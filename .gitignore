@@ -1,5 +1,5 @@
 **/.spago
+**/node_modules
 **/output
 .psc-ide-port
 npm-debug.log
-package-lock.json
