@@ -13,6 +13,7 @@ import Debug (spy)
 import Effect.Aff.Class (class MonadAff)
 import Effect.Class (class MonadEffect)
 import Effect.Class.Console (log)
+import Game.Board (firstEmptyLocation)
 import Game.ProblemDescription (ProblemDescription)
 import Halogen (ClassName(..), HalogenM, HalogenQ, Slot)
 import Halogen as H
@@ -72,6 +73,11 @@ component = H.mkComponent { eval , initialState , render }
         maybeLocation <- H.request _board unit (Board.GetMouseOverLocation)
         for_ maybeLocation \loc ->
           H.request _board unit (Board.AddPiece loc piece)
+      SidebarOutput (Sidebar.PieceAdded piece) -> do
+        maybeBoard <- H.request _board unit Board.GetBoard
+        for_ maybeBoard \board ->
+          for_ (firstEmptyLocation board) \loc ->
+            H.request _board unit (Board.AddPiece loc piece)
     , handleQuery: case _ of
       _ -> pure Nothing
     , initialize: Just Initialise

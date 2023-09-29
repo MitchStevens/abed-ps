@@ -13,6 +13,7 @@ import Data.Map as M
 import Data.Maybe (Maybe(..), maybe)
 import Data.Set as S
 import Data.Time.Duration (Seconds(..))
+import Data.Tuple (Tuple(..))
 import Effect (Effect)
 import Effect.Aff (Aff)
 import Effect.Class (class MonadEffect, liftEffect)
@@ -20,13 +21,14 @@ import Effect.Exception (error, throw)
 import Game.Location as Direction
 import Game.Piece (mkPiece)
 import Game.Piece.BasicPiece (idPiece, notPiece)
+import Game.ProblemDescription (restrictionPieceCount)
 import Halogen (Component, HalogenIO)
 import Halogen as H
 import Halogen.Aff as HA
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
 import Halogen.VDom.Driver (runUI)
-import IO.Conversations (conversation1)
+import IO.Conversations (conversation1, conversation2)
 import Partial.Unsafe (unsafeCrashWith)
 import Type.Proxy (Proxy(..))
 import Web.DOM.ParentNode (QuerySelector(..))
@@ -52,7 +54,7 @@ testChatComponent = HA.runHalogenAff do
   --  , { user: "mitch", text: "you are wrong", delayBy: Seconds 2.0 }
   --  , { user: "lachy", text: "ok goodbye", delayBy: Seconds 2.0 }
   --  ])
-  _ <- query (Chat.QueuedMessages conversation1)
+  _ <- query (Chat.QueuedMessages conversation2)
   pure unit
 
 testPuzzleComponent :: Effect Unit
@@ -63,9 +65,14 @@ testPuzzleComponent = HA.runHalogenAff do
     , testCases: [ M.singleton Direction.Left ff, M.singleton Direction.Left tt ]
     , requiresAutomaticTesting: false
     , pieceSet: S.fromFoldable [ mkPiece idPiece, mkPiece notPiece]
-    , otherRestrictions: M.empty
+    , otherRestrictions:
+      [ { name: "only one id",
+          description: "only one id in t board is allowed", 
+          restriction: restrictionPieceCount (Tuple 0 1) idPiece
+        }
+      ]
     }
-  let conversation = conversation1
+  let conversation = conversation2
   { dispose, messages, query } <- runComponent { problemDescription, conversation } Puzzle.component
   pure unit
 

@@ -37,25 +37,27 @@ type Input = ProblemDescription
 type State =
   { problem :: ProblemDescription
   , error :: Maybe PieceSpecMismatch
-  , selectedPiece :: Maybe APiece
   }
 
 data Query a
   = IsProblemSolved Board (Either PieceSpecMismatch Boolean -> a)
-  | GetSelectedPiece (APiece -> a)
+--  | GetSelectedPiece (APiece -> a)
 
 data Action
   = PieceOnDrop APiece DragEvent
-  | PieceOnDragLeave DragEvent
+  | PieceOnClick APiece MouseEvent
 
-data Output = PieceDropped APiece
+data Output
+  = PieceDropped APiece
+  | PieceAdded APiece
+
 
 component :: forall m. MonadAff m => H.Component Query Input Output m
 component = H.mkComponent { eval , initialState , render }
   where
-  initialState problem = { problem, error: Nothing, selectedPiece: Nothing }
+  initialState problem = { problem, error: Nothing }
 
-  render { problem, error, selectedPiece } = 
+  render { problem, error } = 
     HH.div 
       [ HP.class_ (ClassName "sidebar-component")
       ]
@@ -68,12 +70,12 @@ component = H.mkComponent { eval , initialState , render }
           HH.div 
             [ HP.draggable true
             , HE.onDragEnd (PieceOnDrop piece)
-            , HE.onDragLeave PieceOnDragLeave
+            , HE.onDoubleClick (PieceOnClick piece)
             ]
             [HH.text (name piece)]
       ]
   
-  renderError = HH.div_ <<< case _ of
+  renderError err = HH.div_ $ case err of
     DifferentPortConfiguration r ->
       case r.received, r.expected of
         Just received, Nothing -> [ HH.text "Remove the ", renderPort received, HH.text " in the ", renderDirection r.dir, HH.text " direction."]
@@ -83,7 +85,8 @@ component = H.mkComponent { eval , initialState , render }
       [ HH.text "You need an ", renderPort r.expected, HH.text " in the ", renderDirection r.dir, HH.text " direction."]
     FailedTestCase r ->
       [ HH.text "For the inputs ", renderSignals r.inputs, HH.text " your solution should output ", renderSignals r.expected, HH.text ", not ", renderSignals r.received , HH.text "." ]
-    FailedRestriction str -> [ HH.text ("Failed predicate " <> str) ]
+    FailedRestriction r ->
+      [ HH.text ("Failed predicate " <> r.name <> " with description " <> r.description) ]
   
   renderPort port = HH.span [ HP.class_ (ClassName "port")]
     [ HH.text (if isInput port then "Input" else "Output") ]
@@ -99,19 +102,19 @@ component = H.mkComponent { eval , initialState , render }
   eval = H.mkEval
     { finalize: Nothing
     , handleAction: case _ of
-        PieceOnDrop piece dragEvent -> do
+        PieceOnDrop piece _ -> do
           H.raise (PieceDropped piece)
-        PieceOnDragLeave dragEvent -> do
-          log "LEFT TARGT!"
+        PieceOnClick piece _ ->
+          H.raise (PieceAdded piece)
     , handleQuery: case _ of
         IsProblemSolved board f -> do
           problemDescription <- H.gets (_.problem)
           isSolved <- liftAff $ runExceptT $ solvedBy problemDescription board
           H.modify_ (_ { error = blush isSolved })
           pure (Just (f isSolved))
-        GetSelectedPiece f -> do
-          maybePiece <- H.gets (_.selectedPiece)
-          pure $ f <$> maybePiece
+        --GetSelectedPiece f -> do
+        --  maybePiece <- H.gets (_.selectedPiece)
+        --  pure $ f <$> maybePiece
     , initialize: Nothing
     , receive: const Nothing -- :: input -> Maybe action
     }

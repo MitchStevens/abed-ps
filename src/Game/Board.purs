@@ -7,10 +7,11 @@ import Control.Alternative (guard)
 import Control.Monad.Error.Class (class MonadError, throwError)
 import Control.Monad.Except (Except)
 import Control.Monad.State (class MonadState, State, StateT(..), get, gets, modify_)
+import Data.Array ((..))
 import Data.Array as A
 import Data.Array as Array
 import Data.Bifunctor (bimap)
-import Data.Either (Either(..), note)
+import Data.Either (Either(..), isLeft, note)
 import Data.FoldableWithIndex (foldrWithIndex)
 import Data.Graph (Graph, unfoldGraph)
 import Data.Graph as G
@@ -106,6 +107,15 @@ emptyBoard n =
 
 standardBoard :: Board
 standardBoard = Board { size: 3, pieces: M.empty }
+
+-- todo: ensure that this short circuits when the empty loction is found 
+firstEmptyLocation :: Board -> Maybe Location
+firstEmptyLocation board = A.head do
+  let n = board ^. _size
+  j <- 0 .. (n - 1)
+  i <- 0 .. (n - 1)
+  let loc = location i j
+  guard (isLeft $ getPieceInfo board loc) $> loc
 
 -- should return either boarderror
 getPieceInfo :: Board -> Location -> Either BoardError PieceInfo

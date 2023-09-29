@@ -53,8 +53,7 @@ data Action
   | LocationOnDragEnter Location DragEvent
   | LocationOnDragOver Location DragEvent
   | LocationOnDragLeave DragEvent
-  | LocationOnDrop DragEvent
-  | LocationOnMouseLeave MouseEvent
+  | LocationOnDrop Location DragEvent
 
 data Output
   = NewBoardState Board
@@ -77,6 +76,7 @@ component = H.mkComponent { eval , initialState , render }
         , "grid-template-rows: " <> (power "1fr " n)
         ]
       , HE.onKeyDown OnKeyDown
+      --, HE.onDragExit BoardOnDragLeave
       ]
       -- todo: this is repellant
       do
@@ -91,10 +91,9 @@ component = H.mkComponent { eval , initialState , render }
           , HE.onDragEnter (LocationOnDragEnter loc)
           , HE.onDragOver (LocationOnDragOver loc)
           , HE.onDragLeave LocationOnDragLeave
-          , HE.onDrop LocationOnDrop
-          , HE.onMouseLeave LocationOnMouseLeave
+          , HE.onDrop (LocationOnDrop loc)
           ]
-          (either (\_ -> [ emptyPieceHTML ]) ((_.piece) >>> pieceHTML loc >>> pure) eitherPieceInfo)
+          (either (\_ -> [ emptyPieceHTML loc ]) ((_.piece) >>> pieceHTML loc >>> pure) eitherPieceInfo)
     where
       n = state.board ^. _size
 
@@ -102,8 +101,8 @@ component = H.mkComponent { eval , initialState , render }
       pieceHTML location piece =
           HH.slot _piece location Piece.component { piece, location } PieceOutput
       
-      emptyPieceHTML :: HH.HTML (H.ComponentSlot Slots m Action) Action
-      emptyPieceHTML = HH.text (show state.mouseOverLocation)
+      emptyPieceHTML :: Location -> HH.HTML (H.ComponentSlot Slots m Action) Action
+      emptyPieceHTML loc = HH.text (show loc)
 
 
   eval :: HalogenQ Query Action Input ~> HalogenM State Action Slots Output m
@@ -168,18 +167,19 @@ component = H.mkComponent { eval , initialState , render }
         then log "undo"
         else pure unit 
 
-    LocationOnDragEnter loc _ -> do
+    LocationOnDragEnter loc dragEvent -> do
+      liftEffect $ preventDefault (toEvent dragEvent)
       log "dragenter"
-      H.modify_ (_ { mouseOverLocation = Just loc } )
-    LocationOnDragOver loc _ -> do
+      --H.modify_ (_ { mouseOverLocation = Just loc } )
+    LocationOnDragOver loc dragEvent -> do
+      liftEffect $ preventDefault (toEvent dragEvent)
       H.modify_ (_ { mouseOverLocation = Just loc } )
       --liftEffect $ preventDefault (toEvent dragEvent)
-    LocationOnDrop dragEvent ->
+    LocationOnDrop loc dragEvent -> do
+      log "on drop"
+      H.modify_ (_ { mouseOverLocation = Just loc } )
       liftEffect $ preventDefault (toEvent dragEvent)
     LocationOnDragLeave _ -> do
       log "drag leave"
-      --H.modify_ (_ { mouseOverLocation = Nothing } )
-    LocationOnMouseLeave _ -> do
-      log "mouse leave"
-      --H.modify_ (_ { mouseOverLocation = Nothing } )
+      H.modify_ (_ { mouseOverLocation = Nothing } )
 

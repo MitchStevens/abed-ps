@@ -53,8 +53,11 @@ component = H.mkComponent { eval , initialState , render }
   where
   initialState _ = { messages: [], queuedMessages: [] } 
 
-  render state =  HH.table [ HP.class_ (ClassName "chat-component") ] $
-    map renderMessage state.messages
+  render state =  
+    HH.div [ HP.class_ (ClassName "chat-component") ] $
+      [ HH.table_ (map renderMessage state.messages)
+      , HH.div [ HP.id "anchor" ] []
+      ]
   
   renderMessage { user, text, time } =
     HH.tr_
