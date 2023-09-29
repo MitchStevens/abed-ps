@@ -10,8 +10,8 @@ import Data.Time.Duration (Seconds(..))
 foreign import conversation1 :: Array (Message (delayBy :: Seconds))
 
 timeToRead :: String -> Seconds
---timeToRead str = Seconds 2.0 <> Seconds (toNumber (String.length str) * 0.065)
-timeToRead str = Seconds 0.5 -- <> Seconds (toNumber (String.length str) * 0.065)
+timeToRead str = Seconds 2.0 <> Seconds (toNumber (String.length str) * 0.065)
+--timeToRead str = Seconds 0.5 -- <> Seconds (toNumber (String.length str) * 0.065)
 
 conversation2 :: Array (Message (delayBy :: Seconds))
 conversation2 = map (\text -> { user: "big_dnnr", text, delayBy: timeToRead text })
