@@ -63,7 +63,9 @@ component = H.mkComponent { eval , initialState , render }
     HH.tr_
       [ HH.td [ HP.class_ (ClassName "timestamp") ]
         [ HH.text $ intercalate ":" [pad2 (hour time), pad2 (minute time), pad2 (second time)] ]
-      , HH.td [ HP.classes [ ClassName "username", ClassName ("user-" <> user)] ] [ HH.text user ]
+      , HH.td
+          [ HP.classes [ ClassName "username", ClassName ("user-" <> user)] ]
+          [ HH.div_ [ HH.text user ] ]
       , HH.td [ HP.class_ (ClassName "message") ] [ HH.text text ]
       ]
 

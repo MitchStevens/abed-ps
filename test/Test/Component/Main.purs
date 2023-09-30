@@ -1,4 +1,4 @@
-module Main where
+module Test.Component.Main where
 
 import Prelude
 
@@ -6,45 +6,41 @@ import Component.Board as Board
 import Component.Chat as Chat
 import Component.Piece as Piece
 import Component.Puzzle as Puzzle
-import Control.Monad.Error.Class (throwError)
-import Data.Array.NonEmpty (findLastIndex)
-import Data.Either (either, fromRight)
 import Data.Foldable (for_)
 import Data.HeytingAlgebra (ff, tt)
 import Data.Map as M
 import Data.Maybe (Maybe(..), maybe)
 import Data.Set as S
-import Data.Time.Duration (Seconds(..))
 import Data.Tuple (Tuple(..))
 import Effect (Effect)
 import Effect.Aff (Aff, runAff_)
-import Effect.Class (class MonadEffect, liftEffect)
-import Effect.Exception (error, throw)
+import Effect.Class.Console (log)
+import Effect.Exception (throw)
 import Game.Location (location)
 import Game.Location as Direction
 import Game.Piece (mkPiece)
 import Game.Piece.BasicPiece (andPiece, idPiece, notPiece, orPiece)
 import Game.ProblemDescription (restrictionPieceCount)
-import Halogen (Component, HalogenIO)
-import Halogen as H
+import Halogen (Component, HalogenIO, liftEffect)
 import Halogen.Aff as HA
-import Halogen.HTML as HH
-import Halogen.HTML.Events as HE
 import Halogen.VDom.Driver (runUI)
-import IO.Conversations (conversation1, conversation2)
-import Partial.Unsafe (unsafeCrashWith)
-import Type.Proxy (Proxy(..))
+import IO.Conversations (conversation2)
 import Web.DOM.ParentNode (QuerySelector(..))
 import Web.Event.EventTarget (addEventListener, eventListener)
 import Web.HTML (HTMLElement, window)
-import Web.HTML.HTMLDocument (toEventTarget)
+import Web.HTML.HTMLDocument (toDocument, toEventTarget)
 import Web.HTML.Window (document)
 import Web.UIEvent.KeyboardEvent as KeyboardEvent
 import Web.UIEvent.KeyboardEvent.EventTypes (keydown)
 
+  --[ Tuple "" $ proxy ExpIndex.component -- override the index page
+  --, Tuple "count" $ proxy ExpCount.component
+  --, Tuple "input" $ proxy ExpInput.component
+  --]
+
 main :: Effect Unit
 main = testPuzzleComponent
---
+    
 runComponent :: forall query input output. input -> Component query input output Aff -> Aff (HalogenIO query output Aff)
 runComponent input component = do
   HA.awaitLoad
@@ -55,12 +51,6 @@ runComponent input component = do
 testChatComponent ::  Effect Unit
 testChatComponent = HA.runHalogenAff do
   { dispose, messages, query } <- runComponent unit Chat.component
-  --_ <- query (Chat.QueuedMessages
-  --  [ { user: "mitch", text: "wow i'm alive", delayBy: Seconds 0.0 }
-  --  , { user: "lachy", text: "i think i'm cool", delayBy: Seconds 1.0 }
-  --  , { user: "mitch", text: "you are wrong", delayBy: Seconds 2.0 }
-  --  , { user: "lachy", text: "ok goodbye", delayBy: Seconds 2.0 }
-  --  ])
   _ <- query (Chat.QueuedMessages conversation2)
   pure unit
 
@@ -69,6 +59,7 @@ testPuzzleComponent = HA.runHalogenAff do
   let conversation = conversation2
       problemDescription = problem2
   { dispose, messages, query } <- runComponent { problemDescription, conversation } Puzzle.component
+  -- intialise keyboard event  listener for C-z: undo
   liftEffect $ do
     htmlDocument <- window >>= document
     let target = toEventTarget htmlDocument

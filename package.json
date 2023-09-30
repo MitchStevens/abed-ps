@@ -6,7 +6,11 @@
     "build": "spago bundle-app --main Main --to dist/abed.js --minify",
     "build-watch": "spago bundle-app --main Main --to dist/abed.js --watch",
     "test": "spago -x test.dhall test",
-    "test-watch": "spago -x test.dhall test --watch"
+    "test-watch": "spago -x test.dhall test --watch",
+    "test-browser-watch": "spago -x test.dhall bundle-app --main Test.Component.Main --to test/dist/abed.js --watch"
+
+
+
   },
   "devDependencies": {
     "esbuild": "^0.18.15",

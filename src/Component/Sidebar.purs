@@ -73,6 +73,12 @@ component = H.mkComponent { eval , initialState , render }
             , HE.onDoubleClick (PieceOnClick piece)
             ]
             [HH.text (name piece)]
+      , HH.h3_ [ HH.text "Board size" ]
+      , HH.span_
+        [ HH.button_ [ HH.text "-" ]
+        , HH.text "3"
+        , HH.button_ [ HH.text "+" ]
+        ]
       ]
   
   renderError err = HH.div_ $ case err of

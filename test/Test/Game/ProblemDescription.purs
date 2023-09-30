@@ -33,7 +33,7 @@ problemDescription =
   , testCases: [ M.singleton Left ff, M.singleton Left tt ]
   , requiresAutomaticTesting: false
   , pieceSet: S.empty
-  , otherRestrictions: M.empty
+  , otherRestrictions: []
   }
 
 --problemDescription2 =

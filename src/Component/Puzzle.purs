@@ -12,7 +12,6 @@ import Data.Traversable (for)
 import Debug (spy)
 import Effect.Aff.Class (class MonadAff)
 import Effect.Class (class MonadEffect)
-import Effect.Class.Console (log)
 import Game.Board (firstEmptyLocation)
 import Game.ProblemDescription (ProblemDescription)
 import Halogen (ClassName(..), HalogenM, HalogenQ, Slot)
@@ -20,6 +19,7 @@ import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.Properties as HP
 import Type.Proxy (Proxy(..))
+import Web.UIEvent.KeyboardEvent (KeyboardEvent)
 
 type Input =
   { problemDescription :: ProblemDescription
@@ -28,7 +28,7 @@ type Input =
 
 type State = Input
 
-data Query a
+data Query a = GlobalKeyDown KeyboardEvent a
 
 data Action = Initialise | BoardOutput Board.Output | SidebarOutput Sidebar.Output
 
@@ -51,8 +51,8 @@ component = H.mkComponent { eval , initialState , render }
   initialState = identity
 
   render state = HH.div [ HP.class_ (ClassName "puzzle")]
-    [ HH.slot _board    unit Board.component { board: Nothing } BoardOutput
-    , HH.slot_ _chat     unit Chat.component unit
+    [ HH.slot _board    unit Board.component Nothing BoardOutput
+    , HH.slot_ _chat    unit Chat.component unit
     , HH.slot _sidebar  unit Sidebar.component state.problemDescription SidebarOutput
     ]
 
@@ -69,7 +69,6 @@ component = H.mkComponent { eval , initialState , render }
       BoardOutput (Board.NewBoardState board) -> do
         H.tell _sidebar unit (\_ -> Sidebar.IsProblemSolved board (\_ -> unit))
       SidebarOutput (Sidebar.PieceDropped piece) -> do
-        log "SIDEBAR: drop"
         maybeLocation <- H.request _board unit (Board.GetMouseOverLocation)
         for_ maybeLocation \loc ->
           H.request _board unit (Board.AddPiece loc piece)
@@ -79,7 +78,8 @@ component = H.mkComponent { eval , initialState , render }
           for_ (firstEmptyLocation board) \loc ->
             H.request _board unit (Board.AddPiece loc piece)
     , handleQuery: case _ of
-      _ -> pure Nothing
+        GlobalKeyDown ke a -> do
+          H.query _board unit (Board.GlobalKeyDown ke a)
     , initialize: Just Initialise
     , receive: const Nothing -- :: input -> Maybe action
     }

@@ -87,9 +87,9 @@ tests = do
         ports board `shouldEqual` M.empty
   describe "getPieceInfo" do
     it "" do
-      assertNothing $ getPieceInfo testBoard (location 0 0)
-      maybe (failure "") (\p -> p.rotation `shouldEqual` rotation 1) (getPieceInfo testBoard (location 1 0))
-      maybe (failure "") (\p -> p.rotation `shouldEqual` rotation 0) (getPieceInfo testBoard (location 1 1))
+      assertLeft $ getPieceInfo testBoard (location 0 0)
+      either (\_ -> failure "") (\p -> p.rotation `shouldEqual` rotation 1) (getPieceInfo testBoard (location 1 0))
+      either (\_ -> failure "") (\p -> p.rotation `shouldEqual` rotation 0) (getPieceInfo testBoard (location 1 1))
   describe "getPortOnEdge" do
     it "should return empty if space is not occupied" do
       getPortOnEdge testBoard (relative (location 0 0) Direction.Up) `shouldEqual` Nothing
