@@ -1,11 +1,14 @@
-module Main where
+module Main (main) where
 
 import Prelude
 
+import Capability.Navigate (class Navigate, Route(..), navigateTo, routeCodec)
+import Capability.Navigate as Navigate
 import Component.Board as Board
 import Component.Chat as Chat
 import Component.Piece as Piece
 import Component.Puzzle as Puzzle
+import Component.Routes as Routes
 import Control.Monad.Error.Class (throwError)
 import Data.Array.NonEmpty (findLastIndex)
 import Data.Either (either, fromRight)
@@ -17,14 +20,15 @@ import Data.Set as S
 import Data.Time.Duration (Seconds(..))
 import Data.Tuple (Tuple(..))
 import Effect (Effect)
-import Effect.Aff (Aff, runAff_)
+import Effect.Aff (Aff, launchAff_, runAff_)
+import Effect.Aff.Class (class MonadAff)
 import Effect.Class (class MonadEffect, liftEffect)
+import Effect.Class.Console (log)
 import Effect.Exception (error, throw)
 import Game.Location (location)
 import Game.Location as Direction
 import Game.Piece (mkPiece)
 import Game.Piece.BasicPiece (andPiece, idPiece, notPiece, orPiece)
-import Game.ProblemDescription (restrictionPieceCount)
 import Halogen (Component, HalogenIO)
 import Halogen as H
 import Halogen.Aff as HA
@@ -33,6 +37,8 @@ import Halogen.HTML.Events as HE
 import Halogen.VDom.Driver (runUI)
 import IO.Conversations (conversation1, conversation2)
 import Partial.Unsafe (unsafeCrashWith)
+import Routing.Duplex (parse, print)
+import Routing.Hash (matchesWith, setHash)
 import Type.Proxy (Proxy(..))
 import Web.DOM.ParentNode (QuerySelector(..))
 import Web.Event.EventTarget (addEventListener, eventListener)
@@ -42,81 +48,30 @@ import Web.HTML.Window (document)
 import Web.UIEvent.KeyboardEvent as KeyboardEvent
 import Web.UIEvent.KeyboardEvent.EventTypes (keydown)
 
+
+newtype AppM a = AppM (Aff a)
+derive newtype instance Functor AppM
+derive newtype instance Apply AppM
+derive newtype instance Applicative AppM
+derive newtype instance Bind AppM
+derive newtype instance Monad AppM
+derive newtype instance MonadEffect AppM
+derive newtype instance MonadAff AppM
+
+runAppM :: forall a. AppM a -> Aff a
+runAppM (AppM a) = a
+
+instance Navigate AppM where
+  navigateTo route = do 
+    liftEffect (setHash (print Navigate.routeCodec route))
+
 main :: Effect Unit
-main = testPuzzleComponent
---
-runComponent :: forall query input output. input -> Component query input output Aff -> Aff (HalogenIO query output Aff)
-runComponent input component = do
+main = HA.runHalogenAff do
   HA.awaitLoad
   (element :: HTMLElement ) <- HA.selectElement (QuerySelector "#abed") >>=
     maybe (throw ("Could not find element #abed")) pure >>> liftEffect
-  runUI component input element
-
-testChatComponent ::  Effect Unit
-testChatComponent = HA.runHalogenAff do
-  { dispose, messages, query } <- runComponent unit Chat.component
-  --_ <- query (Chat.QueuedMessages
-  --  [ { user: "mitch", text: "wow i'm alive", delayBy: Seconds 0.0 }
-  --  , { user: "lachy", text: "i think i'm cool", delayBy: Seconds 1.0 }
-  --  , { user: "mitch", text: "you are wrong", delayBy: Seconds 2.0 }
-  --  , { user: "lachy", text: "ok goodbye", delayBy: Seconds 2.0 }
-  --  ])
-  _ <- query (Chat.QueuedMessages conversation2)
-  pure unit
-
-testPuzzleComponent :: Effect Unit
-testPuzzleComponent = HA.runHalogenAff do
-  let conversation = conversation2
-      problemDescription = problem2
-  { dispose, messages, query } <- runComponent { problemDescription, conversation } Puzzle.component
-  liftEffect $ do
-    htmlDocument <- window >>= document
-    let target = toEventTarget htmlDocument
-    listener <- eventListener $ \event -> do
-      for_ (KeyboardEvent.fromEvent event) \ke ->
-        runAff_ (\_ -> pure  unit) $ query (Puzzle.GlobalKeyDown ke unit)
-    addEventListener keydown listener true target
-  pure unit
-
-problem1 =
-  { goal: mkPiece idPiece
-  , title: "Double negation"
-  , description: "create an idenity from not gate"
-  , testCases: [ M.singleton Direction.Left ff, M.singleton Direction.Left tt ]
-  , requiresAutomaticTesting: false
-  , pieceSet: S.fromFoldable [ mkPiece idPiece, mkPiece notPiece]
-  , otherRestrictions:
-    [ { name: "only one id",
-        description: "only one id in t board is allowed", 
-        restriction: restrictionPieceCount (Tuple 0 1) idPiece
-      }
-    ]
-  }
-
-problem2 = 
-  { goal: mkPiece orPiece
-  , title: "or problem"
-  , description: "create or from and an not"
-  , testCases: [ testCase ff ff, testCase ff tt, testCase tt tt ]
-  , requiresAutomaticTesting: false
-  , pieceSet: S.fromFoldable [ mkPiece notPiece, mkPiece andPiece, mkPiece idPiece ]
-  , otherRestrictions: []
-  }
-  where
-    testCase x y = M.fromFoldable [ Tuple Direction.Up x, Tuple Direction.Left y ]
---
---
---testBoardComponent :: Effect Unit
---testBoardComponent = void $ HA.runHalogenAff do
---  board <- either (\err -> throwError (error (show err))) pure $
---    emptyBoard 3
---      >>= addPiece (location 1 1) Primitive.and
---      >>= addPiece (location 1 0) Primitive.not
---      >>= rotatePieceBy (location 1 0) (rotation 1)
---      >>= addPiece (location 0 1) Primitive.not
---      >>= addPiece (location 2 1) Primitive.not
---  runComponent { board } Board.component
---
-testPieceComponent :: Effect Unit
-testPieceComponent = void $ HA.runHalogenAff do
-  runComponent { location: location 0 0, piece: mkPiece notPiece } Piece.component
+  let rootComponent = H.hoist runAppM Routes.component
+  { dispose, messages, query } <- runUI rootComponent unit element
+  liftEffect $ matchesWith (parse routeCodec) \old new ->
+    when (old /= Just new)
+      (launchAff_ $ void $ query (Routes.Navigate new unit))

@@ -68,11 +68,8 @@ instance Show PieceSpecMismatch where
       "failed test case with inputs " <> show r.inputs <> ": " <> showMismatch r
     FailedRestriction r -> "Failed predicate " <> r.name <> " with message " <> r.description
 
--- asserts that a board contains between (a, b) instances of the piece p
-restrictionPieceCount :: forall p. Piece p => Tuple Int Int -> p -> Board -> Boolean
-restrictionPieceCount (Tuple a b) piece (Board board) =
-  let n = length $ M.filter (\p -> mkPiece piece == p.piece) board.pieces
-  in a <= n && n <= b
+countPiecesOfType :: forall p. Piece p => Board -> p -> Int
+countPiecesOfType (Board board) piece = length $ M.filter (\p -> mkPiece piece == p.piece) board.pieces
 
 
 solvedBy :: ProblemDescription -> Board -> ExceptT PieceSpecMismatch Aff Boolean

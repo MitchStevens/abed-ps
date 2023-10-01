@@ -32,8 +32,6 @@ data Query a = GlobalKeyDown KeyboardEvent a
 
 data Action = Initialise | BoardOutput Board.Output | SidebarOutput Sidebar.Output
 
-data Output
-
 type Slots =
   ( board   :: Slot Board.Query Board.Output Unit
   , chat    :: Slot Chat.Query Chat.Output Unit
@@ -45,7 +43,7 @@ _chat    = Proxy :: Proxy "chat"
 _sidebar = Proxy :: Proxy "sidebar"
 
 
-component :: forall m. MonadAff m => H.Component Query Input Output m
+component :: forall o m. MonadAff m => H.Component Query Input o m
 component = H.mkComponent { eval , initialState , render }
   where
   initialState = identity
@@ -56,7 +54,7 @@ component = H.mkComponent { eval , initialState , render }
     , HH.slot _sidebar  unit Sidebar.component state.problemDescription SidebarOutput
     ]
 
-  eval :: HalogenQ Query Action Input ~> HalogenM State Action Slots Output m
+  eval :: HalogenQ Query Action Input ~> HalogenM State Action Slots o m
   eval = H.mkEval
     { finalize: Nothing
     , handleAction: case _ of
