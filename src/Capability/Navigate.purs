@@ -12,7 +12,7 @@ data Route
   = Home
   | About
   | PuzzleSelect
-  | Puzzle String
+  | Puzzle String String
 derive instance Generic Route _
 derive instance Eq Route
 derive instance Ord Route
@@ -22,10 +22,10 @@ instance Show Route where
 
 routeCodec :: RouteDuplex' Route
 routeCodec = root $ sum
-  { "Home": "home" / noArgs
+  { "Home": noArgs
   , "About": "about" / noArgs
   , "PuzzleSelect": "puzzleSelect" / noArgs
-  , "Puzzle": "puzzle" / segment
+  , "Puzzle": "puzzle" / segment / segment
   }
 
 class Monad m <= Navigate m where

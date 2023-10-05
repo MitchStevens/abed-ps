@@ -16,7 +16,7 @@ import Effect.Aff (Aff)
 import Game.Board (Board(..), _pieces)
 import Game.Expression (Signal(..))
 import Game.Location (CardinalDirection, allDirections)
-import Game.Piece (class Piece, APiece(..), Directions, Port, eval, getPort, mkPiece)
+import Game.Piece (class Piece, APiece(..), Port, eval, getPort, mkPiece)
 import Type.Proxy (Proxy(..))
 
 type ProblemDescription = 

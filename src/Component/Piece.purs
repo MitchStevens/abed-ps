@@ -3,7 +3,7 @@ module Component.Piece where
 import Prelude
 
 import Control.Apply (lift2)
-import Data.Enum (enumFromTo)
+import Data.Enum (enumFromTo, fromEnum)
 import Data.Foldable (for_, traverse_)
 import Data.Int (round, toNumber)
 import Data.Lens ((^.))
@@ -63,13 +63,16 @@ data Output
   = Rotated Location Rotation
   | Dropped Location
 
+portIconSrc :: Maybe Port -> String
+portIconSrc = case _ of
+  Just (Port.Input _) -> "./input-port2.svg"
+  Just (Port.Output _ )-> "./output-port2.svg"
+  Nothing -> "./no-port.svg"
+
 component :: forall m. MonadEffect m => H.Component Query Input Output m
 component = H.mkComponent { eval , initialState , render }
   where
   initialState { piece, location } = { piece, location, isRotating: Nothing }
-
-  --this :: forall slots. Unit -> HalogenM State Action slots Output m Element
-  --this _ = fromMaybe (unsafeCrashWith "coldn't find self??") <$> H.getRef (RefLabel "piece")
 
   render state =
     HH.div
@@ -82,28 +85,27 @@ component = H.mkComponent { eval , initialState , render }
       , HE.onMouseDown OnMouseDown
       , HE.onMouseMove OnMouseMove
       , HE.onMouseUp (OnMouseUp state.location)
-      ]
-      ([ pieceTitle ] <> ports)
+      ] $
+      [ port Direction.Up
+      , port Direction.Right
+      , port Direction.Down
+      , port Direction.Left
+      ] <> [ pieceTitle ]
+      --([ pieceTitle ] <> ports)
     where
-      rotation = maybe 0.0 (_.currentRotation) state.isRotating
       isDraggable = isNothing state.isRotating
+      rotation = maybe 0.0 (_.currentRotation) state.isRotating
 
-      ports = enumFromTo Direction.Up Direction.Left <#> \dir ->
+      port dir =
         HH.div
-          [ HP.class_ (ClassName (show dir))
+          [ HP.classes [ClassName (show dir), ClassName "port"]
           , HP.draggable false
           ]
           [ HH.img
-            [ HP.src (portIconSrc dir)
+            [ HP.src (portIconSrc (getPort state.piece dir))
             , HP.classes [ ClassName "port-icon"]
-            , HP.draggable false
             ]
           ]
-      
-      portIconSrc dir = case getPort state.piece dir of
-        Just (Port.Input _) -> "./input-port.svg"
-        Just (Port.Output _ )-> "./output-port.svg"
-        Nothing -> "./no-port.svg"
       
       pieceTitle = HH.div 
         [ HP.class_ (ClassName "piece-name") 

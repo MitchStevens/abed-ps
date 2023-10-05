@@ -3,6 +3,7 @@ module Game.Piece.BasicPiece where
 import Prelude
 
 import Control.Alt ((<|>))
+import Data.HeytingAlgebra (ff, tt)
 import Data.Map (Map)
 import Data.Map as M
 import Data.Maybe (Maybe(..))
@@ -10,7 +11,7 @@ import Data.Newtype (class Newtype)
 import Data.Traversable (traverse)
 import Data.Tuple (Tuple(..))
 import Data.Unfoldable (fromMaybe)
-import Game.Expression (Expression(..), evaluate, ref)
+import Game.Expression (Expression(..), evaluate, raw, ref)
 import Game.Location (CardinalDirection(..))
 import Game.Location as Direction
 import Game.Piece (class Piece, Capacity(..), Port(..))
@@ -76,6 +77,29 @@ andPiece = Basic
     ]
   }
 
+crossPiece :: BasicPiece
+crossPiece = Basic
+  { name: "cross" 
+  , capacity: Capacity 1 
+  , ports: M.fromFoldable
+    [ Tuple Left $ BasicInput  
+    , Tuple Up $ BasicInput 
+    , Tuple Right $ BasicOutput (ref Left)
+    , Tuple Down $ BasicOutput (ref Up)
+    ]
+  }
+
+dupPiece :: BasicPiece
+dupPiece = Basic
+  { name: "dup" 
+  , capacity: Capacity 1 
+  , ports: M.fromFoldable
+    [ Tuple Left $ BasicInput  
+    , Tuple Right $ BasicOutput (ref Left)
+    , Tuple Down $ BasicOutput (ref Left)
+    ]
+  }
+
 xorPiece :: BasicPiece
 xorPiece = Basic 
   { name: "xor" 
@@ -84,5 +108,23 @@ xorPiece = Basic
     [ Tuple Left $ BasicInput
     , Tuple Up $ BasicInput
     , Tuple Right $ BasicOutput (ref Left `Xor` ref Up)
+    ]
+  }
+
+truePiece :: BasicPiece
+truePiece = Basic 
+  { name: "true" 
+  , capacity: Capacity 1
+  , ports: M.fromFoldable
+    [ Tuple Right $ BasicOutput tt
+    ]
+  }
+
+falsePiece :: BasicPiece
+falsePiece = Basic 
+  { name: "false" 
+  , capacity: Capacity 1
+  , ports: M.fromFoldable
+    [ Tuple Right $ BasicOutput ff
     ]
   }

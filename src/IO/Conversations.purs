@@ -3,15 +3,40 @@ module IO.Conversations where
 import Prelude
 
 import Component.Chat (Message)
+import Data.Array as A
 import Data.Int (toNumber)
 import Data.String as String
 import Data.Time.Duration (Seconds(..))
+import Foreign.Object (Object, fromHomogeneous)
+
+user = { god: "jrizz" }
+
 
 foreign import conversation1 :: Array (Message (delayBy :: Seconds))
 
 timeToRead :: String -> Seconds
-timeToRead str = Seconds 2.0 <> Seconds (toNumber (String.length str) * 0.065)
---timeToRead str = Seconds 0.5 -- <> Seconds (toNumber (String.length str) * 0.065)
+timeToRead str = Seconds 1.5 <> Seconds (toNumber (String.length str) * 0.065)
+
+addDelay :: Message () -> Message (delayBy :: Seconds)
+addDelay { user, text } = { user, text, delayBy: timeToRead text }
+
+dialogue :: Array String -> Array String -> Array (Message ())
+dialogue _ [] = []
+dialogue users messages = A.zipWith { user: _, text: _ } users before <> dialogue users after
+  where { before, after } = A.splitAt (A.length users) messages
+
+conversations :: Object (Object (Array (Message (delayBy :: Seconds))))
+conversations = (map<<<map<<<map) addDelay $ fromHomogeneous
+  { "Tutorial Suite": fromHomogeneous
+    { "From A to B": dialogue [user.god]
+      [ "hi! glad you made it"
+      , "welcome "
+      , "you find yourself at the game board"
+
+      ]
+    }
+  }
+
 
 conversation2 :: Array (Message (delayBy :: Seconds))
 conversation2 = map (\text -> { user: "big_dnnr", text, delayBy: timeToRead text })

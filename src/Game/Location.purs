@@ -58,6 +58,8 @@ derive instance Eq Location
 derive instance Ord Location
 instance Show Location where
   show (Location {x, y}) = "(" <> show x <> "," <> show y <> ")"
+--instance Semigroup Location where
+--  Location a <> Location b = location 
 
 location :: Int -> Int -> Location
 location x y = Location { x, y }

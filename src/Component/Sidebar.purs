@@ -10,6 +10,7 @@ module Component.Sidebar where
 
 import Prelude
 
+import Capability.Navigate (class Navigate, Route(..), navigateTo)
 import Control.Monad.Except (runExceptT)
 import Data.Array as A
 import Data.Either (Either, blush, hush)
@@ -26,6 +27,7 @@ import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
+import IO.Progress (savePuzzleProgress)
 import Web.Event.Event (preventDefault)
 import Web.HTML (Location)
 import Web.HTML.Event.DataTransfer as DataTransfer
@@ -40,19 +42,20 @@ type State =
   }
 
 data Query a
-  = IsProblemSolved Board (Either PieceSpecMismatch Boolean -> a)
+  = IsProblemSolved Board (PieceSpecMismatch -> a)
 --  | GetSelectedPiece (APiece -> a)
 
 data Action
   = PieceOnDrop APiece DragEvent
   | PieceOnClick APiece MouseEvent
+  | BackToLevelSelect MouseEvent
 
 data Output
   = PieceDropped APiece
   | PieceAdded APiece
+  -- | ProblemSolved
 
-
-component :: forall m. MonadAff m => H.Component Query Input Output m
+component :: forall m. MonadAff m => Navigate m => H.Component Query Input Output m
 component = H.mkComponent { eval , initialState , render }
   where
   initialState problem = { problem, error: Nothing }
@@ -63,7 +66,7 @@ component = H.mkComponent { eval , initialState , render }
       ]
       [ HH.h2_ [ HH.text problem.title ]
       , HH.h3_ [ HH.text problem.description ]
-      , maybe (HH.text "problem complete") renderError error
+      , maybe problemComplete renderError error
       , HH.h3_ [ HH.text "Available pieces:"]
       , HH.div [ HP.class_ (ClassName "pieces") ] $
         A.fromFoldable problem.pieceSet <#> \piece ->
@@ -81,6 +84,15 @@ component = H.mkComponent { eval , initialState , render }
         ]
       ]
   
+
+  problemComplete = HH.span_
+    [ HH.text "problem complete"
+    , HH.button
+        [ HE.onClick BackToLevelSelect ]
+        [ HH.text "solve another"]
+    ]
+  
+
   renderError err = HH.div_ $ case err of
     DifferentPortConfiguration r ->
       case r.received, r.expected of
@@ -112,12 +124,14 @@ component = H.mkComponent { eval , initialState , render }
           H.raise (PieceDropped piece)
         PieceOnClick piece _ ->
           H.raise (PieceAdded piece)
+        BackToLevelSelect _ -> do
+          navigateTo PuzzleSelect
     , handleQuery: case _ of
         IsProblemSolved board f -> do
           problemDescription <- H.gets (_.problem)
           isSolved <- liftAff $ runExceptT $ solvedBy problemDescription board
           H.modify_ (_ { error = blush isSolved })
-          pure (Just (f isSolved))
+          pure (f <$> blush isSolved)
         --GetSelectedPiece f -> do
         --  maybePiece <- H.gets (_.selectedPiece)
         --  pure $ f <$> maybePiece

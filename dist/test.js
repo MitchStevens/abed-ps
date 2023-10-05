@@ -542,9 +542,6 @@
   };
 
   // output/Data.Show/foreign.js
-  var showIntImpl = function(n) {
-    return n.toString();
-  };
   var showNumberImpl = function(n) {
     var str2 = n.toString();
     return isNaN(str2 + ".0") ? str2 : str2 + ".0";
@@ -553,9 +550,6 @@
   // output/Data.Show/index.js
   var showNumber = {
     show: showNumberImpl
-  };
-  var showInt = {
-    show: showIntImpl
   };
   var show = function(dict) {
     return dict.show;
@@ -804,11 +798,11 @@
   var semiringTuple = function(dictSemiring) {
     var add2 = add(dictSemiring);
     var one2 = one(dictSemiring);
-    var mul2 = mul(dictSemiring);
+    var mul3 = mul(dictSemiring);
     var zero2 = zero(dictSemiring);
     return function(dictSemiring1) {
       var add1 = add(dictSemiring1);
-      var mul12 = mul(dictSemiring1);
+      var mul1 = mul(dictSemiring1);
       return {
         add: function(v) {
           return function(v1) {
@@ -818,7 +812,7 @@
         one: new Tuple(one2, one(dictSemiring1)),
         mul: function(v) {
           return function(v1) {
-            return new Tuple(mul2(v.value0)(v1.value0), mul12(v.value1)(v1.value1));
+            return new Tuple(mul3(v.value0)(v1.value0), mul1(v.value1)(v1.value1));
           };
         },
         zero: new Tuple(zero2, zero(dictSemiring1))
@@ -5021,11 +5015,6 @@
     return _read(Nothing.value, Just.create, x);
   };
 
-  // output/Data.Enum/index.js
-  var fromEnum = function(dict) {
-    return dict.fromEnum;
-  };
-
   // output/Web.HTML.Window/foreign.js
   function document(window2) {
     return function() {
@@ -6617,12 +6606,6 @@
   var img = function(props) {
     return element2("img")(props)([]);
   };
-  var table = /* @__PURE__ */ element2("table");
-  var table_ = /* @__PURE__ */ table([]);
-  var td = /* @__PURE__ */ element2("td");
-  var td_ = /* @__PURE__ */ td([]);
-  var tr = /* @__PURE__ */ element2("tr");
-  var tr_ = /* @__PURE__ */ tr([]);
   var div2 = /* @__PURE__ */ element2("div");
   var div_ = /* @__PURE__ */ div2([]);
 
@@ -6788,105 +6771,6 @@
       return eqCardinalDirection;
     }
   };
-  var enumCardinalDirection = {
-    succ: function(v) {
-      if (v instanceof Up) {
-        return new Just(Right2.value);
-      }
-      ;
-      if (v instanceof Right2) {
-        return new Just(Down.value);
-      }
-      ;
-      if (v instanceof Down) {
-        return new Just(Left2.value);
-      }
-      ;
-      if (v instanceof Left2) {
-        return Nothing.value;
-      }
-      ;
-      throw new Error("Failed pattern match at Game.Location (line 23, column 10 - line 27, column 20): " + [v.constructor.name]);
-    },
-    pred: function(v) {
-      if (v instanceof Up) {
-        return Nothing.value;
-      }
-      ;
-      if (v instanceof Right2) {
-        return new Just(Up.value);
-      }
-      ;
-      if (v instanceof Down) {
-        return new Just(Right2.value);
-      }
-      ;
-      if (v instanceof Left2) {
-        return new Just(Down.value);
-      }
-      ;
-      throw new Error("Failed pattern match at Game.Location (line 28, column 10 - line 32, column 22): " + [v.constructor.name]);
-    },
-    Ord0: function() {
-      return ordCardinalDirection;
-    }
-  };
-  var boundedCardinalDirection = /* @__PURE__ */ function() {
-    return {
-      bottom: Up.value,
-      top: Left2.value,
-      Ord0: function() {
-        return ordCardinalDirection;
-      }
-    };
-  }();
-  var boundedEnumCardinalDirect = {
-    cardinality: 4,
-    fromEnum: function(v) {
-      if (v instanceof Up) {
-        return 0;
-      }
-      ;
-      if (v instanceof Right2) {
-        return 1;
-      }
-      ;
-      if (v instanceof Down) {
-        return 2;
-      }
-      ;
-      if (v instanceof Left2) {
-        return 3;
-      }
-      ;
-      throw new Error("Failed pattern match at Game.Location (line 40, column 14 - line 44, column 14): " + [v.constructor.name]);
-    },
-    toEnum: function(v) {
-      if (v === 0) {
-        return new Just(Up.value);
-      }
-      ;
-      if (v === 1) {
-        return new Just(Right2.value);
-      }
-      ;
-      if (v === 2) {
-        return new Just(Down.value);
-      }
-      ;
-      if (v === 3) {
-        return new Just(Left2.value);
-      }
-      ;
-      return Nothing.value;
-    },
-    Bounded0: function() {
-      return boundedCardinalDirection;
-    },
-    Enum1: function() {
-      return enumCardinalDirection;
-    }
-  };
   var rotation = function(n) {
     return mod2(n)(4);
   };
@@ -7037,17 +6921,16 @@
   }
 
   // output/Component.Piece/index.js
-  var getPort2 = /* @__PURE__ */ getPort(pieceAPiece);
-  var fromEnum2 = /* @__PURE__ */ fromEnum(boundedEnumCardinalDirect);
   var show2 = /* @__PURE__ */ show(showCardinalDirection);
-  var show1 = /* @__PURE__ */ show(showInt);
+  var getPort2 = /* @__PURE__ */ getPort(pieceAPiece);
   var name16 = /* @__PURE__ */ name15(pieceAPiece);
-  var show22 = /* @__PURE__ */ show(showNumber);
+  var show1 = /* @__PURE__ */ show(showNumber);
+  var append12 = /* @__PURE__ */ append(semigroupArray);
   var pure1 = /* @__PURE__ */ pure(applicativeHalogenM);
   var bind12 = /* @__PURE__ */ bind(bindHalogenM);
   var traverse_5 = /* @__PURE__ */ traverse_(applicativeHalogenM)(foldableMaybe);
   var map15 = /* @__PURE__ */ map(functorEffect);
-  var mul1 = /* @__PURE__ */ mul(semiringNumber);
+  var mul2 = /* @__PURE__ */ mul(semiringNumber);
   var sub2 = /* @__PURE__ */ sub(/* @__PURE__ */ ringTuple(ringNumber)(ringNumber));
   var modify_3 = /* @__PURE__ */ modify_2(monadStateHalogenM);
   var discard2 = /* @__PURE__ */ discard(discardUnit)(bindHalogenM);
@@ -7138,35 +7021,33 @@
     };
     return OnMouseUp2;
   }();
+  var portIconSrc = function(v) {
+    if (v instanceof Just && v.value0 instanceof Input) {
+      return "./input-port2.svg";
+    }
+    ;
+    if (v instanceof Just && v.value0 instanceof Output) {
+      return "./output-port2.svg";
+    }
+    ;
+    if (v instanceof Nothing) {
+      return "./no-port.svg";
+    }
+    ;
+    throw new Error("Failed pattern match at Component.Piece (line 67, column 15 - line 70, column 29): " + [v.constructor.name]);
+  };
   var component = function(dictMonadEffect) {
     var liftEffect8 = liftEffect(monadEffectHalogenM(dictMonadEffect));
     var render = function(state3) {
       var rotation2 = maybe(0)(function(v) {
         return v.currentRotation;
       })(state3.isRotating);
-      var portIconSrc = function(dir2) {
-        var v = getPort2(state3.piece)(dir2);
-        if (v instanceof Just && v.value0 instanceof Input) {
-          return "./input-port.png";
-        }
-        ;
-        if (v instanceof Just && v.value0 instanceof Output) {
-          return "./output-port.svg";
-        }
-        ;
-        if (v instanceof Nothing) {
-          return "./no-port.svg";
-        }
-        ;
-        throw new Error("Failed pattern match at Component.Piece (line 123, column 25 - line 126, column 35): " + [v.constructor.name]);
-      };
       var port2 = function(dir2) {
-        var portRotation = fromEnum2(dir2) * 90 | 0;
-        return div2([class_(show2(dir2)), draggable2(false)])([img([src9(portIconSrc(dir2)), classes(["port-icon"]), draggable2(false), style("transform: rotate(" + (show1(portRotation) + "deg);"))])]);
+        return div2([classes([show2(dir2), "port"]), draggable2(false)])([img([src9(portIconSrc(getPort2(state3.piece)(dir2))), classes(["port-icon"])])]);
       };
       var pieceTitle = div2([class_("piece-name"), draggable2(false)])([div_([text5(name16(state3.piece))])]);
       var isDraggable = isNothing(state3.isRotating);
-      return div2([class_("piece-component"), draggable2(isDraggable), style("transform: rotate(" + (show22(rotation2) + "rad);")), ref2("piece"), onDragEnd(OnDrop.create(state3.location)), onDrag(OnDrag.create), onMouseDown(OnMouseDown.create), onMouseMove(OnMouseMove.create), onMouseUp(OnMouseUp.create(state3.location))])([table_([tr_([td_([]), td_([port2(Up.value)]), td_([])]), tr_([td_([port2(Left2.value)]), td_([]), td_([port2(Right2.value)])]), tr_([td_([]), td_([port2(Down.value)]), td_([])])])]);
+      return div2([class_("piece-component"), draggable2(isDraggable), style("transform: rotate(" + (show1(rotation2) + "rad);")), ref2("piece"), onDragEnd(OnDrop.create(state3.location)), onDrag(OnDrag.create), onMouseDown(OnMouseDown.create), onMouseMove(OnMouseMove.create), onMouseUp(OnMouseUp.create(state3.location))])(append12([port2(Up.value), port2(Right2.value), port2(Down.value), port2(Left2.value)])([pieceTitle]));
     };
     var initialState = function(v) {
       return {
@@ -7203,40 +7084,40 @@
         ;
         if (v instanceof OnMouseDown) {
           return bind12(getHTMLElementRef("piece"))(traverse_5(function(he) {
-            return bind12(liftEffect8(map15(mul1(0.5))(clientWidth(toElement(he)))))(function(r) {
+            return bind12(liftEffect8(map15(mul2(0.5))(clientWidth(toElement(he)))))(function(r) {
               return bind12(liftEffect8(elementCenterClient(toElement(he))))(function(c) {
                 var v1 = sub2(getPosition(v.value0))(c);
-                var $61 = r * r > v1.value0 * v1.value0 + v1.value1 * v1.value1;
-                if ($61) {
+                var $59 = r * r > v1.value0 * v1.value0 + v1.value1 * v1.value1;
+                if ($59) {
                   return modify_3(function(v2) {
-                    var $62 = {};
-                    for (var $63 in v2) {
-                      if ({}.hasOwnProperty.call(v2, $63)) {
-                        $62[$63] = v2[$63];
+                    var $60 = {};
+                    for (var $61 in v2) {
+                      if ({}.hasOwnProperty.call(v2, $61)) {
+                        $60[$61] = v2[$61];
                       }
                       ;
                     }
                     ;
-                    $62.isRotating = Nothing.value;
-                    return $62;
+                    $60.isRotating = Nothing.value;
+                    return $60;
                   });
                 }
                 ;
                 return discard2(liftEffect8(setDraggable(false)(he)))(function() {
                   return modify_3(function(v2) {
-                    var $65 = {};
-                    for (var $66 in v2) {
-                      if ({}.hasOwnProperty.call(v2, $66)) {
-                        $65[$66] = v2[$66];
+                    var $63 = {};
+                    for (var $64 in v2) {
+                      if ({}.hasOwnProperty.call(v2, $64)) {
+                        $63[$64] = v2[$64];
                       }
                       ;
                     }
                     ;
-                    $65.isRotating = new Just({
+                    $63.isRotating = new Just({
                       initialClickPosition: getPosition(v.value0),
                       currentRotation: 0
                     });
-                    return $65;
+                    return $63;
                   });
                 });
               });
@@ -7265,19 +7146,19 @@
                 };
                 var angle = atan2(det(v11)(v2))(dot(v11)(v2));
                 return modify_3(function(v3) {
-                  var $84 = {};
-                  for (var $85 in v3) {
-                    if ({}.hasOwnProperty.call(v3, $85)) {
-                      $84[$85] = v3[$85];
+                  var $82 = {};
+                  for (var $83 in v3) {
+                    if ({}.hasOwnProperty.call(v3, $83)) {
+                      $82[$83] = v3[$83];
                     }
                     ;
                   }
                   ;
-                  $84.isRotating = new Just({
+                  $82.isRotating = new Just({
                     initialClickPosition: v1.initialClickPosition,
                     currentRotation: angle
                   });
-                  return $84;
+                  return $82;
                 });
               });
             }));
@@ -7292,21 +7173,21 @@
             return raise(new Rotated(v.value0, rot));
           })))(function() {
             return modify_3(function(v1) {
-              var $93 = {};
-              for (var $94 in v1) {
-                if ({}.hasOwnProperty.call(v1, $94)) {
-                  $93[$94] = v1[$94];
+              var $91 = {};
+              for (var $92 in v1) {
+                if ({}.hasOwnProperty.call(v1, $92)) {
+                  $91[$92] = v1[$92];
                 }
                 ;
               }
               ;
-              $93.isRotating = Nothing.value;
-              return $93;
+              $91.isRotating = Nothing.value;
+              return $91;
             });
           });
         }
         ;
-        throw new Error("Failed pattern match at Component.Piece (line 146, column 21 - line 185, column 49): " + [v.constructor.name]);
+        throw new Error("Failed pattern match at Component.Piece (line 128, column 21 - line 167, column 49): " + [v.constructor.name]);
       },
       handleQuery: function(v) {
         return pure1(Nothing.value);

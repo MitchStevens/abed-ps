@@ -2,6 +2,8 @@ module Component.Puzzle where
 
 import Prelude
 
+import Capability.GlobalKeyDown (class GlobalKeyDown)
+import Capability.Navigate (class Navigate)
 import Component.Board as Board
 import Component.Chat as Chat
 import Component.Sidebar as Sidebar
@@ -11,24 +13,26 @@ import Data.Time.Duration (Seconds(..))
 import Data.Traversable (for)
 import Debug (spy)
 import Effect.Aff.Class (class MonadAff)
-import Effect.Class (class MonadEffect)
+import Effect.Class (class MonadEffect, liftEffect)
 import Game.Board (firstEmptyLocation)
 import Game.ProblemDescription (ProblemDescription)
 import Halogen (ClassName(..), HalogenM, HalogenQ, Slot)
 import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.Properties as HP
+import IO.Progress (PuzzleId, PuzzleProgress(..), puzzleProgress, savePuzzleProgress)
 import Type.Proxy (Proxy(..))
 import Web.UIEvent.KeyboardEvent (KeyboardEvent)
 
 type Input =
-  { problemDescription :: ProblemDescription
+  { puzzleId :: PuzzleId
+  , problemDescription :: ProblemDescription
   , conversation :: Array (Chat.Message ( delayBy :: Seconds ))
   }
 
 type State = Input
 
-data Query a = GlobalKeyDown KeyboardEvent a
+data Query a
 
 data Action = Initialise | BoardOutput Board.Output | SidebarOutput Sidebar.Output
 
@@ -43,7 +47,7 @@ _chat    = Proxy :: Proxy "chat"
 _sidebar = Proxy :: Proxy "sidebar"
 
 
-component :: forall o m. MonadAff m => H.Component Query Input o m
+component :: forall o m. MonadAff m => Navigate m => GlobalKeyDown m => H.Component Query Input o m
 component = H.mkComponent { eval , initialState , render }
   where
   initialState = identity
@@ -65,7 +69,10 @@ component = H.mkComponent { eval , initialState , render }
         for_ maybeBoard $ \board ->
           H.request _sidebar unit (Sidebar.IsProblemSolved board)
       BoardOutput (Board.NewBoardState board) -> do
-        H.tell _sidebar unit (\_ -> Sidebar.IsProblemSolved board (\_ -> unit))
+        maybeMismatch <- H.request _sidebar unit (Sidebar.IsProblemSolved board)
+        when (maybeMismatch == Nothing) do
+          puzzleId <-  H.gets (_.puzzleId)
+          liftEffect $ savePuzzleProgress puzzleId Completed
       SidebarOutput (Sidebar.PieceDropped piece) -> do
         maybeLocation <- H.request _board unit (Board.GetMouseOverLocation)
         for_ maybeLocation \loc ->
@@ -76,8 +83,7 @@ component = H.mkComponent { eval , initialState , render }
           for_ (firstEmptyLocation board) \loc ->
             H.request _board unit (Board.AddPiece loc piece)
     , handleQuery: case _ of
-        GlobalKeyDown ke a -> do
-          H.query _board unit (Board.GlobalKeyDown ke a)
+        _ -> pure Nothing
     , initialize: Just Initialise
     , receive: const Nothing -- :: input -> Maybe action
     }

@@ -1,120 +1,155 @@
 #content {
-    max-width: 700px;
-    margin: 0 auto;
+  max-width: 700px;
+  margin: 0 auto;
+  background-color: rgba(255, 73, 231, 0.466);
 }
-
+#abed {
+  user-select: none;
+}
 #board-component {
-    display: grid;
+  overflow: hidden;
 }
-
-#board-component .piece {
-    display: block;
-    aspect-ratio: 1 / 1;
-    margin: 5px;
-    background-color: beige;
-    z-index: 0;
-    position: static;
+#board-component #pieces {
+  display: grid;
+  position: relative;
+  background-color: cadetblue;
 }
-
+#board-component #pieces > div {
+  box-shadow: inset 0px 0px 0px 2px white;
+}
+#board-component #pieces .piece {
+  display: block;
+  aspect-ratio: 1 / 1;
+  background-color: beige;
+  z-index: 0;
+  position: static;
+}
+#board-component .board-port {
+  position: relative;
+  background-color: coral;
+  width: 100%;
+  height: 100%;
+}
+#board-component .board-port div {
+  display: flex;
+  justify-content: center;
+  background-color: aqua;
+}
+#board-component .board-port img {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+#board-component .board-port.Up {
+  transform: rotate(180deg);
+}
+#board-component .board-port.Right img {
+  transform: rotate(-90deg) translateX(-100%);
+  transform-origin: top left;
+}
+#board-component .board-port.Left {
+  transform: rotate(90deg);
+}
 .piece-component {
-    background-image: linear-gradient(45deg, transparent 50%, rgba(0, 0, 0, 0.5) 50%);
-    display: grid;
-    height: 100%;
-    aspect-ratio: 1 / 1;
-    grid-template-columns: 15% auto 15%;
-    grid-template-rows: 15% auto 15%;
-    place-items: center;
-    user-select: none;
-    z-index: 1;
-    position: relative;
+  background-image: linear-gradient(45deg, transparent 50%, rgba(0, 0, 0, 0.5) 50%);
+  user-select: none;
+  aspect-ratio: 1 / 1;
+  z-index: 1;
+  position: relative;
 }
-
+.piece-component > div {
+  position: absolute;
+}
+.piece-component .port {
+  display: flex;
+  justify-content: center;
+  background-color: aqua;
+  width: 74%;
+  height: 13%;
+}
+.piece-component .port .port-icon {
+  object-fit: cover;
+  max-height: 100%;
+  max-width: 100%;
+}
 .piece-component .Up {
-    grid-row: 1;
-    grid-column: 2;
+  top: 0;
+  left: 13%;
 }
-
-.piece-component .Right {
-    grid-row: 2;
-    grid-column: 3;
-}
-
 .piece-component .Down {
-    grid-row: 3;
-    grid-column: 2;
+  top: 87%;
+  left: 13%;
+  transform: rotate(180deg);
+  transform-origin: center center;
 }
-
 .piece-component .Left {
-    grid-row: 2;
-    grid-column: 1;
+  top: 74%;
+  left: 13%;
+  transform-origin: 0% 100%;
+  transform: rotate(-90deg);
 }
-
+.piece-component .Right {
+  top: 0;
+  left: 87%;
+  transform-origin: 0% 100%;
+  transform: rotate(90deg);
+}
 .piece-component .piece-name {
-    grid-row: 2;
-    grid-column: 2;
-    font-size: 50px;
+  top: 13%;
+  left: 13%;
+  font-size: 50px;
 }
-
-.piece-component * {
-    height: 100%;
-    width: 100%;
-}
-
-.piece-component .port-icon {
-    width: 100%;
-    height: 100%;
-}
-
-
 .chat-component {
-    font-family: 'Courier New', Courier, monospace;
-    vertical-align: top;
-    font-size: small;
-    overflow-y: scroll;
-    height: 200px;
+  font-family: 'Courier New', Courier, monospace;
+  vertical-align: top;
+  font-size: small;
+  overflow-y: scroll;
+  height: 200px;
 }
-
-
-.chat-component table {
-    overflow-anchor: none;
-}
-
 .chat-component #anchor {
   overflow-anchor: auto;
   height: 1px;
 }
-
-.chat-component td * {
-    padding-left: 10px;
-    vertical-align: top;
+.chat-component table {
+  overflow-anchor: none;
 }
-
-.chat-component  td, table td * {
-    vertical-align: top;
+.chat-component table td * {
+  padding-left: 10px;
+  vertical-align: top;
 }
-
-.chat-component .username {
-    text-align: right;
-    width: 70px;
+.chat-component table td,
+.chat-component table table td * {
+  vertical-align: top;
 }
-
-.chat-component .message {
-    border-left: 1px solid black;
+.chat-component table .username {
+  text-align: right;
+  width: 70px;
 }
-
-
-.user-drawthtc { color:blue; }
-.user-shawnu { color:darkgreen;}
-.user-awoo { color:palevioletred; }
-.user-big_dnnr { color:palevioletred; }
-
-
+.chat-component table .message {
+  border-left: 1px solid black;
+}
+.chat-component table .user-drawthtc {
+  color: blue;
+}
+.chat-component table .user-shawnu {
+  color: darkgreen;
+}
+.chat-component table .user-awoo {
+  color: palevioletred;
+}
+.chat-component table .user-big_dnnr {
+  color: palevioletred;
+}
 .sidebar-component {
-    width: 400px;
-    top: 0;
-    right: 0;
-    position: fixed;
+  width: 400px;
+  top: 0;
+  right: 0;
+  position: fixed;
 }
-
-.sidebar-component .port { color:red; }
-.sidebar-component .direction { color:darkgoldenrod; }
+.sidebar-component .port {
+  color: red;
+}
+.sidebar-component .direction {
+  color: darkgoldenrod;
+}

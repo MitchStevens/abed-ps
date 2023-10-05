@@ -23,9 +23,6 @@ instance Semigroup Capacity where
 instance Monoid Capacity where
   mempty = Capacity 0
 
-type Directions :: Type -> Row Type
-type Directions a = (up :: a, right :: a, down :: a, left :: a)
-
 data Port
   = Input Capacity
   | Output Capacity
@@ -40,10 +37,12 @@ isInput :: Port -> Boolean
 isInput (Input _) = true
 isInput _ = false
 
+matchingPort :: Port -> Port
+matchingPort (Input c) = Output c
+matchingPort (Output c) = Input c
+
 portMatches :: Port -> Port -> Boolean
-portMatches (Input c1) (Output c2) = c1 == c2
-portMatches (Output c1) (Input c2) = c1 == c2
-portMatches _ _ = false
+portMatches port otherPort = port == matchingPort otherPort 
 
 portCapacity :: Port -> Capacity
 portCapacity = case _ of

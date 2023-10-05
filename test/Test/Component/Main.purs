@@ -2,6 +2,7 @@ module Test.Component.Main where
 
 import Prelude
 
+import AppM (AppM, runAppM)
 import Component.Board as Board
 import Component.Chat as Chat
 import Component.Piece as Piece
@@ -20,11 +21,13 @@ import Game.Location (location)
 import Game.Location as Direction
 import Game.Piece (mkPiece)
 import Game.Piece.BasicPiece (andPiece, idPiece, notPiece, orPiece)
-import Game.ProblemDescription (restrictionPieceCount)
+import Game.ProblemDescription (countPiecesOfType)
 import Halogen (Component, HalogenIO, liftEffect)
+import Halogen as H
 import Halogen.Aff as HA
 import Halogen.VDom.Driver (runUI)
 import IO.Conversations (conversation2)
+import Main (rootElement)
 import Web.DOM.ParentNode (QuerySelector(..))
 import Web.Event.EventTarget (addEventListener, eventListener)
 import Web.HTML (HTMLElement, window)
@@ -39,14 +42,14 @@ import Web.UIEvent.KeyboardEvent.EventTypes (keydown)
   --]
 
 main :: Effect Unit
-main = testPuzzleComponent
+main = testPieceComponent
     
-runComponent :: forall query input output. input -> Component query input output Aff -> Aff (HalogenIO query output Aff)
+runComponent :: forall q i o m. i -> Component q i o AppM -> Aff (HalogenIO q o Aff)
 runComponent input component = do
   HA.awaitLoad
-  (element :: HTMLElement ) <- HA.selectElement (QuerySelector "#abed") >>=
-    maybe (throw ("Could not find element #abed")) pure >>> liftEffect
-  runUI component input element
+  let rootComponent = H.hoist runAppM component
+  runUI rootComponent input =<< rootElement
+
 
 testChatComponent ::  Effect Unit
 testChatComponent = HA.runHalogenAff do
@@ -58,15 +61,8 @@ testPuzzleComponent :: Effect Unit
 testPuzzleComponent = HA.runHalogenAff do
   let conversation = conversation2
       problemDescription = problem2
-  { dispose, messages, query } <- runComponent { problemDescription, conversation } Puzzle.component
-  -- intialise keyboard event  listener for C-z: undo
-  liftEffect $ do
-    htmlDocument <- window >>= document
-    let target = toEventTarget htmlDocument
-    listener <- eventListener $ \event -> do
-      for_ (KeyboardEvent.fromEvent event) \ke ->
-        runAff_ (\_ -> pure  unit) $ query (Puzzle.GlobalKeyDown ke unit)
-    addEventListener keydown listener true target
+      puzzleId = { suiteName: "no suite", puzzleName: "no name"}
+  { dispose, messages, query } <- runComponent { problemDescription, conversation, puzzleId } Puzzle.component
   pure unit
 
 problem1 =
@@ -79,7 +75,7 @@ problem1 =
   , otherRestrictions:
     [ { name: "only one id",
         description: "only one id in t board is allowed", 
-        restriction: restrictionPieceCount (Tuple 0 1) idPiece
+        restriction: \b -> countPiecesOfType b idPiece <= 1
       }
     ]
   }
@@ -110,4 +106,4 @@ problem2 =
 --
 testPieceComponent :: Effect Unit
 testPieceComponent = void $ HA.runHalogenAff do
-  runComponent { location: location 0 0, piece: mkPiece notPiece } Piece.component
+  runComponent { location: location 0 0, piece: mkPiece andPiece } Piece.component

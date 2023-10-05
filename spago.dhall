@@ -44,6 +44,7 @@ to generate this file without the comments in this block.
   , "prelude"
   , "profunctor"
   , "profunctor-lenses"
+  , "record"
   , "routing"
   , "routing-duplex"
   , "strings"
@@ -54,6 +55,7 @@ to generate this file without the comments in this block.
   , "web-dom"
   , "web-events"
   , "web-html"
+  , "web-storage"
   , "web-uievents"
   ]
 , packages = ./packages.dhall

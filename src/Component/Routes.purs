@@ -2,29 +2,32 @@ module Component.Routes where
 
 import Prelude
 
+import Capability.GlobalKeyDown (class GlobalKeyDown)
 import Capability.Navigate (class Navigate, Route(..))
 import Component.About as About
 import Component.Home as Home
 import Component.Puzzle as Puzzle
 import Component.PuzzleSelect as PuzzleSelect
 import Data.Foldable (oneOf)
-import Data.Maybe (Maybe(..))
+import Data.Maybe (Maybe(..), fromMaybe)
 import Effect.Aff.Class (class MonadAff)
 import Effect.Class.Console (log)
 import Foreign.Object as Object
 import Halogen (Component, Slot, mkEval)
 import Halogen as H
 import Halogen.HTML as HH
-import IO.Puzzles (puzzles)
+import IO.Puzzles (allPuzzles)
+import Record as Record
 import Routing.Match (Match, lit, str)
 import Type.Proxy (Proxy(..))
+import Web.UIEvent.KeyboardEvent (KeyboardEvent)
 
 route :: Match Route
 route = oneOf
   [ Home <$ lit "home"
   , About <$ lit "about"
   , PuzzleSelect <$ lit "puzzle-select"
-  , Puzzle <$> (lit "puzzle" *> str)
+  , Puzzle <$> (lit "puzzle" *> str) <*> str
   ]
 
 type Input = {}
@@ -32,7 +35,8 @@ type Input = {}
 type State = 
   { route :: Maybe Route }
 
-data Query a = Navigate Route a
+data Query a
+  = Navigate Route a
 
 data Action
 
@@ -46,7 +50,11 @@ type Slots =
   , puzzle        ::           Slot Puzzle.Query Void Unit
   )
 
-component :: forall m. MonadAff m => Navigate m => Component Query Unit Void m
+component :: forall m.
+  MonadAff m =>
+  Navigate m =>
+  GlobalKeyDown m =>
+  Component Query Unit Void m
 component = H.mkComponent { eval, initialState, render }
   where
   initialState _ = { route: Just Home }
@@ -60,9 +68,11 @@ component = H.mkComponent { eval, initialState, render }
         HH.slot_ (Proxy :: _ "about") unit About.component unit
       PuzzleSelect ->
         HH.slot_ (Proxy :: _ "puzzleSelect") unit PuzzleSelect.component unit
-      Puzzle puzzleId -> case Object.lookup puzzleId puzzles of
-        Just input -> HH.slot_ (Proxy :: _ "puzzle") unit Puzzle.component input
-        Nothing -> HH.text "couldn't find that puzzle"
+      Puzzle suiteName puzzleName -> fromMaybe (HH.text "coublent find tht roblem" ) do
+        puzzleSuite <- Object.lookup suiteName allPuzzles
+        input <- Object.lookup puzzleName puzzleSuite
+        pure $ HH.slot_ (Proxy :: _ "puzzle") unit Puzzle.component $
+          (Record.union { puzzleId: { suiteName, puzzleName } } input :: Puzzle.Input)
     Nothing ->
       HH.div_ [ HH.text "Oh no! That page wasn't found." ]
 
