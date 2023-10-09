@@ -11,12 +11,16 @@ import Data.Map (Map, filter)
 import Data.Map as M
 import Data.Maybe (Maybe(..))
 import Data.Set (Set)
+import Data.Set as Set
 import Data.Tuple (Tuple(..))
 import Effect.Aff (Aff)
 import Game.Board (Board(..), _pieces)
+import Game.BoardDelta (BoardDelta)
 import Game.Expression (Signal(..))
 import Game.Location (CardinalDirection, allDirections)
 import Game.Piece (class Piece, APiece(..), Port, eval, getPort, mkPiece)
+import Game.Piece.BasicPiece (idPiece)
+import Store (Message)
 import Type.Proxy (Proxy(..))
 
 type ProblemDescription = 
@@ -31,6 +35,19 @@ type ProblemDescription =
     , restriction :: Board -> Boolean
     , description :: String
     }
+  , boardDeltaTrigger :: BoardDelta -> Maybe (Message ())
+  }
+
+defaultProblemDescription :: ProblemDescription
+defaultProblemDescription = 
+  { goal: mkPiece idPiece
+  , title: "default title"
+  , description: "default description"
+  , testCases: []
+  , requiresAutomaticTesting: false
+  , pieceSet: Set.empty
+  , otherRestrictions: []
+  , boardDeltaTrigger: \_ -> Nothing
   }
 
 data PieceSpecMismatch
@@ -70,7 +87,6 @@ instance Show PieceSpecMismatch where
 
 countPiecesOfType :: forall p. Piece p => Board -> p -> Int
 countPiecesOfType (Board board) piece = length $ M.filter (\p -> mkPiece piece == p.piece) board.pieces
-
 
 solvedBy :: ProblemDescription -> Board -> ExceptT PieceSpecMismatch Aff Boolean
 solvedBy problem board = do

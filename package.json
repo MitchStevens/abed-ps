@@ -4,7 +4,7 @@
   "scripts": {
     "postinstall": "spago install",
     "compile-css": "lessc dist/default.less dist/default.css",
-    "build": "spago bundle-app --main Main --to dist/abed.js --minify",
+    "build": "spago bundle-app --main Main --to dist/abed.js",
     "test": "spago -x test.dhall test",
     "test-browser": "spago -x test.dhall bundle-app --main Test.Component.Main --to dist/test.js",
 

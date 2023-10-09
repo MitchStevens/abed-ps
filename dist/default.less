@@ -1,4 +1,4 @@
-@content-width: 700px;
+@content-width: 750px;
 @port-height: 13%;
 
 #content {
@@ -7,31 +7,45 @@
     background-color: rgba(255, 73, 231, 0.466);
 }
 
-#abed { user-select: none; }
+@keyframes glow {
+  from {
+    box-shadow: 0 0 10px -10px #aef4af;
+  }
+  to {
+    box-shadow: 0 0 10px 10px #aef4af;
+  }
+}
 
-#board-component {
-    overflow: hidden;
-
-    & #pieces {
-        display: grid;
-        position: relative;
-        background-color: cadetblue;
-
-        & > div {
-            box-shadow:inset 0px 0px 0px 2px white;
-        }
-
-        & .piece {
-            display: block;
-            aspect-ratio: 1 / 1;
-            background-color: beige;
-            z-index: 0;
-            position: static;
-        }
+#abed {
+    user-select: none;
+    & .spotlight {
+        animation: glow 1s infinite alternate;
     }
 }
 
-#board-component .fake-piece {
+#board-component table {
+    @board-port-margin: 30px;
+
+    background-color:yellowgreen;
+    width: 100%;
+    height: 100%;
+    aspect-ratio: 1 / 1;
+    border-spacing: 0px;
+
+    & tr > td:first-child { max-width: @board-port-margin; }
+    & tr > td:last-child { max-width: @board-port-margin; }
+
+    & > tr:first-child > td { max-height: @board-port-margin; }
+    & > tr:last-child  > td { max-height: @board-port-margin; }
+
+    & .piece {
+        display: block;
+        aspect-ratio: 1 / 1;
+        height: 100%;
+        width: 100%;
+        background-color: beige;
+        z-index: 0;
+    }
 
 }
 

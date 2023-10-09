@@ -4,19 +4,21 @@ import Data.Lens
 import Prelude
 
 import Control.Alternative (guard)
-import Control.Monad.Error.Class (class MonadError, throwError)
-import Control.Monad.Except (Except)
-import Control.Monad.State (class MonadState, State, StateT(..), get, gets, modify_)
+import Control.Monad.Error.Class (class MonadError, class MonadThrow, throwError)
+import Control.Monad.Except (class MonadTrans, Except, ExceptT, lift, runExcept, runExceptT)
+import Control.Monad.State (class MonadState, State, StateT(..), get, gets, modify_, runStateT)
 import Data.Array ((..))
 import Data.Array as A
 import Data.Array as Array
 import Data.Bifunctor (bimap)
-import Data.Either (Either(..), isLeft, note)
+import Data.Either (Either(..), either, fromRight, hush, isLeft, note)
+import Data.Foldable (class Foldable, foldM, for_)
 import Data.FoldableWithIndex (foldrWithIndex)
 import Data.Graph (Graph, unfoldGraph)
 import Data.Graph as G
 import Data.Group (ginverse)
 import Data.HeytingAlgebra (ff, tt)
+import Data.Identity (Identity)
 import Data.Int (odd)
 import Data.Lens.At (at)
 import Data.Lens.Index (ix)
@@ -28,12 +30,13 @@ import Data.List as List
 import Data.Map (Map, fromFoldableWithIndex)
 import Data.Map as M
 import Data.Map.Internal as Map
-import Data.Maybe (Maybe(..), fromJust, fromMaybe)
+import Data.Maybe (Maybe(..), fromJust, fromMaybe, maybe)
 import Data.Monoid as Monoid
 import Data.Newtype (class Newtype, unwrap)
 import Data.Set as S
-import Data.Traversable (all, foldMap, for, traverse)
-import Data.Tuple (Tuple(..))
+import Data.Traversable (all, foldMap, for, sequence, traverse)
+import Data.Tuple (Tuple(..), fst, snd)
+import Debug (spy, trace)
 import Game.Expression (Signal(..))
 import Game.Location (CardinalDirection, Edge(..), Location, Rotation(..), allDirections, edge, edgeDirection, location, matchEdge, rotateDirection, rotation)
 import Game.Location as Direction
@@ -98,6 +101,41 @@ _pieces = _Newtype <<< prop (Proxy :: Proxy "pieces")
 _ports :: Getter' Board (Map CardinalDirection Port)
 _ports = to portsBoard 
 
+newtype BoardT m a = BoardT (StateT Board (ExceptT BoardError m) a)
+derive instance Newtype (BoardT m a) _
+derive newtype instance Functor m => Functor (BoardT m)
+derive newtype instance Monad m => Apply (BoardT m)
+derive newtype instance Monad m => Applicative (BoardT m)
+derive newtype instance Monad m => Bind (BoardT m)
+derive newtype instance Monad m => Monad (BoardT m)
+derive newtype instance Monad m => MonadState Board (BoardT m)
+derive newtype instance Monad m => MonadThrow BoardError (BoardT m)
+instance MonadTrans BoardT where
+  lift m = BoardT (lift $ lift m)
+
+type BoardM a = BoardT Identity a
+
+runBoardT :: forall m a. Monad m => BoardT m a -> Board -> m (Either BoardError (Tuple a Board))
+runBoardT boardM b = runExceptT $ runStateT (unwrap boardM) b
+
+evalBoardT :: forall m a. Monad m => BoardT m a -> Board -> m (Either BoardError a)
+evalBoardT boardM b = map fst <$> runBoardT boardM b
+
+execBoardT :: forall m a. Monad m => BoardT m a -> Board -> m (Either BoardError Board)
+execBoardT boardM b = map snd <$> runBoardT boardM b
+
+runBoardM :: forall a. BoardM a -> Board -> Either BoardError (Tuple a Board)
+runBoardM boardM b = unwrap $ runBoardT boardM b
+
+evalBoardM :: forall a. BoardM a -> Board -> Either BoardError a
+evalBoardM boardM b = unwrap $ evalBoardT boardM b
+
+execBoardM :: forall a. BoardM a -> Board -> Either BoardError Board
+execBoardM boardM b = unwrap $ execBoardT boardM b
+
+
+
+
 emptyBoard :: Int -> Either BoardError Board
 emptyBoard n = 
   if odd n && n >= 1
@@ -110,33 +148,45 @@ standardBoard = Board { size: 3, pieces: M.empty }
 
 -- todo: ensure that this short circuits when the empty loction is found 
 firstEmptyLocation :: Board -> Maybe Location
-firstEmptyLocation board = A.head do
-  let n = board ^. _size
-  j <- 0 .. (n - 1)
-  i <- 0 .. (n - 1)
-  let loc = location i j
-  guard (isLeft $ getPieceInfo board loc) $> loc
+firstEmptyLocation board = do
+  let n = view _size board
+  let allLocations = do
+        j <- 0 .. (n - 1)
+        i <- 0 .. (n - 1)
+        pure $ location i j
+  A.find (\loc -> isLeft $ runBoardM (getPieceInfo loc) board) allLocations
 
 -- should return either boarderror
-getPieceInfo :: Board -> Location -> Either BoardError PieceInfo
-getPieceInfo board loc = note (LocationNotOccupied loc) $ preview (_pieces <<< ix loc) board
+getPieceInfo :: forall m. Monad m => Location -> BoardT m PieceInfo
+getPieceInfo loc =
+  gets ((preview (_pieces <<< ix loc))) >>=
+    maybe (throwError (LocationNotOccupied loc)) pure
+
+getPiece :: forall m. Monad m => Location -> BoardT m APiece
+getPiece loc = (_.piece) <$> getPieceInfo loc
 
 -- should retun either boarderror
-getPortOnEdge :: Board -> RelativeEdge ->  Maybe Port
-getPortOnEdge board (Relative (Edge { loc, dir })) = board ^?
-  _pieces <<< ix loc <<< to (\p -> getPort p.piece dir) <<< _Just
+getPortOnEdge ::forall m. Monad m => RelativeEdge -> BoardT m (Maybe Port)
+getPortOnEdge (Relative (Edge { loc, dir })) = do
+  piece <- getPiece loc
+  --pure $ spy ("on edge:" <> show relEdge <> " has port: " <> show (getPort piece dir)) $ getPort piece dir
+  pure $ getPort piece dir
 
 -- if location is not accupied, reledge == absEdge
-toAbsoluteEdge :: Board -> RelativeEdge -> AbsoluteEdge
-toAbsoluteEdge board (Relative (Edge { loc, dir })) = case getPieceInfo board loc of
-  Right p -> absolute loc (rotateDirection dir p.rotation)
-  Left _ -> absolute loc dir
+toAbsoluteEdge :: forall m. Monad m => RelativeEdge -> BoardT m AbsoluteEdge
+toAbsoluteEdge (Relative (Edge { loc, dir })) = do
+  board <- get
+  pure $ case evalBoardM (getPieceInfo loc) board of
+    Left _ -> absolute loc dir
+    Right p -> absolute loc (rotateDirection dir p.rotation)
 
 -- if location is not accupied, reledge == absEdge
-toRelativeEdge :: Board -> AbsoluteEdge -> RelativeEdge
-toRelativeEdge board (Edge { loc, dir }) = case getPieceInfo board loc of
-  Right p -> relative loc (rotateDirection dir (ginverse p.rotation))
-  Left _ -> relative loc dir
+toRelativeEdge :: forall m. Monad m => AbsoluteEdge -> BoardT m RelativeEdge
+toRelativeEdge (Edge { loc, dir }) = do
+  board <- get
+  pure $ case evalBoardM (getPieceInfo loc) board of
+    Right p -> relative loc (rotateDirection dir (ginverse p.rotation))
+    Left _ -> relative loc dir
 
 portEdges :: Board -> CardinalDirection -> AbsoluteEdge
 portEdges (Board b) dir = 
@@ -150,44 +200,47 @@ portEdges (Board b) dir =
 -- do not export 
 portsBoard :: Board -> Map CardinalDirection Port
 portsBoard board = M.fromFoldable $ allDirections >>= \dir -> do
-  port <- A.fromFoldable $ getPortOnEdge board (toRelativeEdge board (portEdges board dir))
+  port <- A.catMaybes $ A.fromFoldable $ flip evalBoardM board $ do
+    relEdge <- toRelativeEdge (portEdges board dir)
+    getPortOnEdge relEdge
   pure (Tuple dir port)
 
 
 {-
   piece add/modify/remove
 -}
-rotatePieceBy :: Location -> Rotation -> Board -> Either BoardError Board
-rotatePieceBy loc rot board = Right $ (_pieces <<< ix loc <<< _rotation <>~ rot) board
+rotatePieceBy :: forall m. Monad m => Location -> Rotation -> BoardT m Unit
+rotatePieceBy loc rot =
+  _pieces <<< ix loc <<< _rotation <>= rot
 
-{-
--}
-addPiece :: forall p. Piece p => Location -> p -> Board -> Either BoardError Board
-addPiece loc piece board =
-  if has (_pieces <<< ix loc) board
-    then Left $ LocationOccupied loc
-    else Right $ (_pieces <<< at loc .~ Just { piece: mkPiece piece, rotation: rotation 0}) board
+addPiece :: forall m. Monad m => Location -> APiece -> BoardT m Unit
+addPiece loc piece = do
+  pieceInfo <- runBoardM (getPiece loc) <$> get
+  case pieceInfo of
+    Left _ -> _pieces <<< at loc .= Just { piece, rotation: rotation 0 }
+    Right _ -> throwError (LocationOccupied loc)
 
-removePiece :: Location -> Board -> Either BoardError Board
-removePiece loc board =
-  if has (_pieces <<< ix loc) board
-    then Right $ (_pieces <<< at loc .~ Nothing) board 
-    else Left (LocationNotOccupied loc)
+removePiece :: forall m. Monad m => Location -> BoardT m APiece
+removePiece loc = do
+  piece <- getPiece loc
+  _pieces <<< at loc .= Nothing
+  pure piece
 
 ---- Board compilation
 --{-
 --
 ---}
-matchingRelativeEdge :: Board -> RelativeEdge -> RelativeEdge
-matchingRelativeEdge board edge1 = 
-  let absEdge = toAbsoluteEdge board edge1
-  in toRelativeEdge board (matchEdge absEdge)
+matchingRelativeEdge :: forall m. Monad m => RelativeEdge -> BoardT m RelativeEdge
+matchingRelativeEdge edge1 = do
+  absEdge <- toAbsoluteEdge edge1
+  toRelativeEdge (matchEdge absEdge)
 
 buildBoardGraph :: Board -> Graph Location Unit
 buildBoardGraph board@(Board b) = G.unfoldGraph (S.toUnfoldable $ M.keys b.pieces :: Array Location) (\_ -> unit) \loc -> do
   p <- toListOf (_pieces <<< ix loc) board
-  dir <- List.fromFoldable $ getOutputDirs p.piece  
-  pure $ relativeEdgeLocation $ matchingRelativeEdge board (relative loc dir)
+  dir <- List.fromFoldable $ getOutputDirs p.piece
+  relEdge <- List.fromFoldable $ evalBoardM (matchingRelativeEdge (relative loc dir)) board
+  pure $ relativeEdgeLocation relEdge
 
 -- should no be exported! only creates valid maps when f is increasing
 unsafeMapKey :: forall k l a. (k -> l) -> Map k a -> Map l a
@@ -207,49 +260,56 @@ toGlobalInputs loc = unsafeMapKey (relative loc)
 
 instance Piece Board where
   name _ = "BOARD"
-  eval = evalBoard
+  eval board inputs = either (\s -> unsafeCrashWith ("couldnt eval: " <> show s)) identity $ evalBoardM (evalBoard inputs) board
   ports = portsBoard
 
+evalLocation :: forall m. Monad m => Map RelativeEdge Signal -> Location -> BoardT m (Map RelativeEdge Signal)
+evalLocation acc loc = M.union acc <$> do
+    p <- getPieceInfo loc 
+    let outputs = toGlobalInputs loc (eval p.piece (toLocalInputs loc acc))
+    adjacentInputs <- map M.fromFoldable <$> for (M.toUnfoldable outputs :: Array _) $ \(Tuple relEdge signal) -> do
+      matching <- matchingRelativeEdge relEdge
+      pure (Tuple matching signal)
+    --pure $ spy ("eval location: " <> show outputs) M.union outputs adjacentInputs
+    pure $ M.union outputs adjacentInputs
 
-evalLocation :: Board -> Map RelativeEdge Signal -> Location -> Map RelativeEdge Signal
-evalLocation board acc loc =
-  let
-    outputs = M.fromFoldable do
-      p <- A.fromFoldable $ getPieceInfo board loc
-      Tuple relEdge signal <- M.toUnfoldable $ toGlobalInputs loc $ eval p.piece $ toLocalInputs loc acc
-      [ Tuple relEdge signal, Tuple (matchingRelativeEdge board relEdge) signal ]
-  in
-    M.union acc outputs
+evalBoard :: forall m. Monad m => Map CardinalDirection Signal -> BoardT m (Map CardinalDirection Signal)
+evalBoard m = do 
+  boardGraph <- buildBoardGraph <$> get
+  n <- use _size 
+  --let locationsToEvaluate = L.reverse $ G.topologicalSort boardGraph
+  let locationsToEvaluate = G.topologicalSort boardGraph
+  initialValues <- initial n
+  extractOutputs =<< L.foldM evalLocation initialValues locationsToEvaluate
 
-evalBoard :: Board -> Map CardinalDirection Signal -> Map CardinalDirection Signal
-evalBoard board@(Board b) m = extractOutputs $ L.foldl (evalLocation board) initial (G.topologicalSort boardGraph)
   where
-    n = b.size
-
-    boardGraph :: Graph Location Unit
-    boardGraph = buildBoardGraph board
-
-    initial :: Map RelativeEdge Signal
-    initial = M.catMaybes $ M.fromFoldable $ do
-      [ Tuple (toRelativeEdge board (absolute (location (n`div`2) 0        ) Direction.Up   )) (M.lookup Direction.Up    m)
-      , Tuple (toRelativeEdge board (absolute (location (n-1)     (n`div`2)) Direction.Right)) (M.lookup Direction.Right m)
-      , Tuple (toRelativeEdge board (absolute (location (n`div`2) (n-1)    ) Direction.Down )) (M.lookup Direction.Down  m)
-      , Tuple (toRelativeEdge board (absolute (location 0         (n`div`2)) Direction.Left )) (M.lookup Direction.Left  m)
+    initial :: Int -> BoardT m (Map RelativeEdge Signal)
+    initial n = M.catMaybes <<< M.fromFoldable <$> sequence
+      [ Tuple <$> toRelativeEdge (absolute (location (n`div`2) 0        ) Direction.Up   ) <*> pure (M.lookup Direction.Up    m)
+      , Tuple <$> toRelativeEdge (absolute (location (n-1)     (n`div`2)) Direction.Right) <*> pure (M.lookup Direction.Right m)
+      , Tuple <$> toRelativeEdge (absolute (location (n`div`2) (n-1)    ) Direction.Down ) <*> pure (M.lookup Direction.Down  m)
+      , Tuple <$> toRelativeEdge (absolute (location 0         (n`div`2)) Direction.Left ) <*> pure (M.lookup Direction.Left  m)
       ]
 
-    extractOutputs :: Map RelativeEdge Signal -> Map CardinalDirection Signal
-    extractOutputs signals = M.fromFoldable $ A.catMaybes $ absEdgePorts <#> \absEdge -> do
-      let relEdge = toRelativeEdge board absEdge
-      port <- getPortOnEdge board relEdge
-      guard (not (isInput port))
-      Tuple (edgeDirection absEdge) <$> M.lookup relEdge signals
+    extractOutputs :: Map RelativeEdge Signal -> BoardT m (Map CardinalDirection Signal)
+    extractOutputs signals = M.fromFoldable <$> A.catMaybes <$> do
+      ports <- absEdgePorts
+      for ports \(absEdge :: AbsoluteEdge) -> do
+        relEdge <- toRelativeEdge absEdge
+        (maybePort :: Maybe Port) <- map (fromRight Nothing) $ evalBoardT (getPortOnEdge relEdge) =<< get
+        pure $ maybePort >>= \port ->
+          if not (isInput port) 
+            then Tuple (edgeDirection absEdge) <$> (M.lookup relEdge signals) 
+            else Nothing
       where
-        absEdgePorts =
-          [ absolute (location (n`div`2) 0        ) Direction.Up
-          , absolute (location (n-1)     (n`div`2)) Direction.Right
-          , absolute (location (n`div`2) (n-1)    ) Direction.Down
-          , absolute (location 0         (n`div`2)) Direction.Left
-          ]
+        absEdgePorts = do
+          n <- use _size
+          pure $
+            [ absolute (location (n`div`2) 0        ) Direction.Up
+            , absolute (location (n-1)     (n`div`2)) Direction.Right
+            , absolute (location (n`div`2) (n-1)    ) Direction.Down
+            , absolute (location 0         (n`div`2)) Direction.Left
+            ]
 
 singleBoardPiece :: forall p. Piece p => p -> Board
 singleBoardPiece piece = Board

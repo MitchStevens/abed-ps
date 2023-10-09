@@ -2,7 +2,7 @@ module Main where
 
 import Prelude
 
-import AppM (runAppM)
+import AppM (initialStore, runAppM)
 import Capability.Navigate (class Navigate, Route(..), navigateTo, routeCodec)
 import Component.Routes as Routes
 import Control.Monad.Error.Class (throwError)
@@ -27,7 +27,8 @@ import Web.HTML (HTMLElement)
 main :: Effect Unit
 main = HA.runHalogenAff do
   HA.awaitLoad
-  let rootComponent = H.hoist runAppM Routes.component
+  store <- initialStore
+  let rootComponent = H.hoist (runAppM store) Routes.component
   { dispose, messages, query } <- runUI rootComponent unit =<< rootElement
   liftEffect do
     initialiseRouting (\route -> HA.runHalogenAff $ query (Routes.Navigate route unit))

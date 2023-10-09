@@ -2,22 +2,22 @@ module IO.Conversations where
 
 import Prelude
 
-import Component.Chat (Message)
 import Data.Array as A
 import Data.Int (toNumber)
 import Data.String as String
 import Data.Time.Duration (Seconds(..))
 import Foreign.Object (Object, fromHomogeneous)
+import Store (Message, QueuedMessage)
 
 user = { god: "jrizz" }
 
 
-foreign import conversation1 :: Array (Message (delayBy :: Seconds))
+foreign import conversation1 :: Array QueuedMessage
 
 timeToRead :: String -> Seconds
 timeToRead str = Seconds 1.5 <> Seconds (toNumber (String.length str) * 0.065)
 
-addDelay :: Message () -> Message (delayBy :: Seconds)
+addDelay :: Message () -> QueuedMessage
 addDelay { user, text } = { user, text, delayBy: timeToRead text }
 
 dialogue :: Array String -> Array String -> Array (Message ())

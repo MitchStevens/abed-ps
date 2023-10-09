@@ -8,22 +8,24 @@ import Component.Piece (portIconSrc)
 import Component.Piece as Piece
 import Control.Alternative (guard)
 import Control.Monad.Reader (class MonadAsk, class MonadReader)
-import Control.Monad.State (class MonadState)
+import Control.Monad.State (class MonadState, gets, modify_)
 import Data.Array (intercalate, (..))
 import Data.Either (Either(..), blush, either, fromRight, hush)
 import Data.Foldable (foldMap, for_, traverse_)
 import Data.Lens.At (at)
 import Data.Lens.Index (ix)
 import Data.Lens.Record (prop)
-import Data.List.NonEmpty as L
-import Data.List.Types (NonEmptyList)
+import Data.List (List(..))
+import Data.List as L
 import Data.Map as M
 import Data.Maybe (Maybe(..), fromMaybe, maybe)
 import Data.Monoid (power)
+import Data.Traversable (for, traverse)
 import Effect (Effect)
 import Effect.Class (class MonadEffect, liftEffect)
 import Effect.Class.Console (log, logShow)
-import Game.Board (Board(..), BoardError, PieceInfo, _pieces, _size, addPiece, getPieceInfo, removePiece, rotatePieceBy, standardBoard)
+import Game.Board (Board(..), BoardError, BoardM, PieceInfo, _pieces, _size, addPiece, evalBoardM, execBoardM, getPiece, getPieceInfo, removePiece, rotatePieceBy, standardBoard)
+import Game.BoardDelta (BoardDelta(..), invertBoardDelta, runDelta, undoDelta)
 import Game.Location (CardinalDirection, Location(..), Rotation(..), allDirections, location, oppositeDirection, rotation)
 import Game.Location as Direction
 import Game.Piece (APiece(..), getPort, matchingPort)
@@ -52,7 +54,8 @@ import Web.UIEvent.MouseEvent (MouseEvent)
 type Input = Maybe Board
 
 type State = 
-  { boardHistory :: NonEmptyList Board
+  { currentBoard :: Board
+  , boardDeltas :: List BoardDelta
   , mouseOverLocation :: Maybe Location
   }
 
@@ -66,15 +69,16 @@ data Action
   = Initialise
   | PieceOutput Piece.Output
   | RevertBoard
-  | SetBoard Board
+  | RunDelta BoardDelta
   | GlobalOnKeyDown KeyboardEvent
   | LocationOnDragEnter Location DragEvent
   | LocationOnDragOver Location DragEvent
   | LocationOnDragLeave DragEvent
   | LocationOnDrop Location DragEvent
 
+
 data Output
-  = NewBoardState Board
+  = NewBoardState BoardDelta Board
 
 type Slots = ( piece :: H.Slot Piece.Query Piece.Output Location )
 
@@ -85,19 +89,21 @@ component = H.mkComponent { eval , initialState , render }
   where
 
   _board :: forall m. MonadState State m => m Board
-  _board = H.gets ((_.boardHistory) >>> L.head)
+  _board = H.gets (_.currentBoard)
 
   initialState board =
-    { boardHistory: L.singleton $ fromMaybe standardBoard board
+    { currentBoard: fromMaybe standardBoard board
+    , boardDeltas: Nil
     , mouseOverLocation: Nothing }
 
   render :: State -> HH.HTML (H.ComponentSlot Slots m Action) Action
   render state =
     HH.div
       [ HP.id "board-component" ] $
-      [ renderBoard ]
+      [ pieces ]
     where
-      n = L.head (state.boardHistory) ^. _size
+      board = state.currentBoard
+      n = board ^. _size
 
       renderBoard =
         HH.div
@@ -111,20 +117,26 @@ component = H.mkComponent { eval , initialState , render }
                 ]
           , HP.tabIndex (-1)
           ]
-          (pieceSlots <> boardPorts)
+          []
       
-      pieceSlots = do
-        j <- 0 .. (n - 1)
-        i <- 0 .. (n - 1)
-        pure $ renderPieceSlot i j
-      
+      pieces :: HTML (H.ComponentSlot Slots m Action) Action
+      pieces = HH.table_ do
+        j <- (-1) .. n
+        pure $ HH.tr_ do
+          i <- (-1) .. n
+          pure $ HH.td_ $
+            if between 0 (n-1) i && between 0 (n-1) j
+              then [ renderPieceSlot i j ]
+              else [ maybe (HH.div_ []) renderBoardPort (asDirection i j) ]
+
+
       renderPieceSlot :: Int -> Int -> HTML (H.ComponentSlot Slots m Action) Action
       renderPieceSlot i j = 
         HH.div
           [ HP.class_ (ClassName "piece")
           , HP.style $ intercalate "; "
             [ "transform: rotate("<> (show (rot * 90)) <>"deg)"
-            , "grid-area: " <> gridArea
+            --, "grid-area: " <> gridArea
             ]
           , HE.onDragEnter (LocationOnDragEnter loc)
           , HE.onDragOver (LocationOnDragOver loc)
@@ -134,19 +146,27 @@ component = H.mkComponent { eval , initialState , render }
           [ maybe emptyPieceHTML pieceHTML maybePiece loc ]
         where
           loc = location i j
-          eitherPieceInfo = getPieceInfo (L.head state.boardHistory) loc
+          eitherPieceInfo = evalBoardM (getPieceInfo loc) board
           maybePiece = (_.piece) <$> hush eitherPieceInfo
           Rotation rot = foldMap (_.rotation) eitherPieceInfo
-          gridArea = show (j+2) <> " / " <> show (i+2) <> " / auto / auto" 
       
-      boardPorts = renderBoardPort <$> allDirections
+      asDirection :: Int -> Int -> Maybe CardinalDirection
+      asDirection i j =
+        if      i == -1 && j == h 
+          then Just Direction.Left
+        else if i == h  && j == -1
+          then Just Direction.Up
+        else if i == n  && j == h 
+          then Just Direction.Right
+        else if i == h  && j == n 
+          then Just Direction.Down
+        else Nothing
+        where h = n `div` 2
 
       renderBoardPort :: CardinalDirection -> HTML (H.ComponentSlot Slots m Action) Action
       renderBoardPort dir =
         HH.div
           [ HP.class_ (ClassName "fake-piece")
-          , HP.style $ intercalate "; "
-                [ "grid-area: " <> gridArea ]
           ]
           [ HH.div
             [ HP.classes [ ClassName "board-port", ClassName (show dir)]
@@ -159,15 +179,6 @@ component = H.mkComponent { eval , initialState , render }
               ]
             ]
           ]
-        where
-          Location { x, y } = case dir of
-            Direction.Left  -> location 1             (n`div`2 + 2)
-            Direction.Up -> location (n`div`2 + 2) 1
-            Direction.Right -> location (n+2)             (n`div`2 + 2)
-            Direction.Down  -> location (n`div`2 + 2)     (n+2)    
-          --gridArea = let p = [ y , x ] in intercalate " / " (map show (p <> p))
-          gridArea = show y <> " / " <> show x <> " / auto / auto" 
-          board = L.head state.boardHistory
 
       pieceHTML piece location =
           HH.slot _piece location Piece.component { piece, location } PieceOutput
@@ -184,18 +195,19 @@ component = H.mkComponent { eval , initialState , render }
           board <- _board
           pure $ Just (f board)
         AddPiece loc piece f -> do
-          eitherBoard <- addPiece loc piece <$> _board
-          for_ eitherBoard (\b -> handleAction (SetBoard b))
+          eitherBoard <- handleDelta (AddedPiece loc piece)
           pure $ f <$> blush eitherBoard
         RemovePiece loc f -> do
-          eitherBoard <- removePiece loc <$> _board
-          for_ eitherBoard (\b -> handleAction (SetBoard b))
+          board <- _board
+          eitherPiece <- halogenEvalBoardM (getPiece loc)
+          eitherBoard <- join <$> for eitherPiece \piece ->
+            handleDelta (RemovedPiece loc piece)
           pure $ f <$> blush eitherBoard
         GetMouseOverLocation f -> do
           maybeLoc <- H.gets (_.mouseOverLocation)
           pure $ f <$> maybeLoc
     , initialize: Just Initialise
-    , receive: map SetBoard
+    , receive: \_ -> Nothing 
     }
 
   handleAction :: Action -> HalogenM State Action Slots Output m Unit
@@ -203,33 +215,21 @@ component = H.mkComponent { eval , initialState , render }
     Initialise -> do
       emitter <- getKeyDownEmitter
       void $ H.subscribe (GlobalOnKeyDown <$> emitter)
-    PieceOutput (Piece.Rotated loc rot) -> do
-      rotatePieceBy loc rot <$> _board >>= traverse_ \board' ->
-        handleAction (SetBoard board')
-    PieceOutput (Piece.Dropped initialLocation) -> do
-      board <- _board
-      maybeDestination <- H.gets (_.mouseOverLocation)
-
-      -- remove  piece
-      -- if dst location is set, move to locatin else  not, do nothing
-      -- setBoard either way
-      let remove = removePiece initialLocation board
-      let move dst = getPieceInfo board initialLocation >>= (\p ->
-        remove >>= addPiece dst p.piece >>= rotatePieceBy dst p.rotation)
-
-      for_ (maybe remove move maybeDestination) \board' ->
-        handleAction (SetBoard board')
+    PieceOutput (Piece.Rotated loc rot) -> void $
+      handleDelta (RotatedPiece loc rot)
+    PieceOutput (Piece.Dropped src) -> do
+      halogenEvalBoardM (getPiece src) >>= traverse_ \piece -> do
+        maybeDst <- H.gets (_.mouseOverLocation)
+        let delta = maybe (RemovedPiece src piece) (MovedPiece src) maybeDst
+        handleDelta delta
     RevertBoard -> do
-      tail <- H.gets (_.boardHistory >>> L.tail)
-      for_ (L.fromList tail) \neList -> do
-        H.modify_ (\s -> s { boardHistory = neList })
-        H.raise (NewBoardState (L.head neList))
-    SetBoard board -> do
-    --todo: cance this action if  oldboard == new board (requires board has Eq instance )
-      H.modify_ (\s -> s { boardHistory = L.cons board s.boardHistory })
-      H.raise (NewBoardState board)
-      log "show board"
-    LocationOnDragEnter loc dragEvent -> do
+      maybeUncons <- gets ((_.boardDeltas) >>> L.uncons)
+      for_ maybeUncons $ \{ head, tail } -> do
+        H.modify_ (_ { boardDeltas = tail })
+        handleDelta (invertBoardDelta head)
+    RunDelta delta -> do
+      void $ handleDelta delta
+    LocationOnDragEnter _ dragEvent -> do
       liftEffect $ preventDefault (toEvent dragEvent)
     LocationOnDragOver loc dragEvent -> do
       liftEffect $ preventDefault (toEvent dragEvent)
@@ -244,3 +244,18 @@ component = H.mkComponent { eval , initialState , render }
       when (key ke == "z" && ctrlKey ke) do
         handleAction RevertBoard
 
+  handleDelta :: BoardDelta -> HalogenM State Action Slots Output m (Either BoardError Board)
+  handleDelta delta = do
+    board <- _board
+    let eitherBoard = flip execBoardM board (runDelta delta) 
+    for_ eitherBoard $ \newBoard -> do
+      modify_ $ \s -> s
+        { currentBoard = newBoard
+        , boardDeltas = Cons delta s.boardDeltas
+        }
+      H.raise (NewBoardState delta newBoard)
+    pure eitherBoard
+
+  halogenEvalBoardM :: forall a. BoardM a -> HalogenM State Action Slots Output m (Either BoardError a)
+  halogenEvalBoardM boardM = do
+    flip evalBoardM <$> _board <*> pure boardM

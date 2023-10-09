@@ -6,6 +6,7 @@ import Component.Chat as Chat
 import Data.HeytingAlgebra (ff, tt)
 import Data.Map (Map)
 import Data.Map as M
+import Data.Maybe (Maybe(..))
 import Data.Set as S
 import Data.Time.Duration (Seconds(..))
 import Data.Tuple (Tuple(..))
@@ -17,6 +18,7 @@ import Game.Piece (mkPiece)
 import Game.Piece.BasicPiece (andPiece, idPiece, notPiece, orPiece, truePiece)
 import Game.ProblemDescription (ProblemDescription, countPiecesOfType)
 import IO.Conversations (conversation1, conversation2)
+import Store (QueuedMessage)
 
 {-
 all puzzles
@@ -34,7 +36,7 @@ allPuzzles = fromHomogeneous
 
 type PuzzleSuite = Object
   { problemDescription :: ProblemDescription
-  , conversation :: Array (Chat.Message ( delayBy :: Seconds ))
+  , conversation :: Array QueuedMessage
   }
 
 basicTestCases :: Array (Map CardinalDirection Signal)
@@ -46,7 +48,6 @@ basicTestCases = do
     [ Tuple Direction.Up x
     , Tuple Direction.Left y
     ]
-
 
 -- intros id, not, and, or, true, false
 tutorialSuite :: PuzzleSuite
@@ -60,71 +61,73 @@ tutorialSuite = fromHomogeneous
       , requiresAutomaticTesting: false
       , pieceSet: S.fromFoldable [ mkPiece idPiece ]
       , otherRestrictions: []
+      , boardDeltaTrigger: case _ of
+          _ -> Nothing
       }
-    , conversation: []
+    , conversation: conversation1
     }
-  , "Negation":
-    { problemDescription:
-      { goal: mkPiece notPiece
-      , title: "Negation"
-      , description: "Negate the signal inputed on the Left and output it on the Right"
-      , testCases: basicTestCases
-      , requiresAutomaticTesting: false
-      , pieceSet: S.fromFoldable [ mkPiece idPiece ]
-      , otherRestrictions: []
-      }
-    , conversation: []
-    }
-  , "Disjunction":
-    { problemDescription:
-      { goal: mkPiece orPiece
-      , title: "Disjunction"
-      , description: "dijunction"
-      , testCases: basicTestCases
-      , requiresAutomaticTesting: false
-      , pieceSet: S.fromFoldable [ mkPiece idPiece, mkPiece orPiece ]
-      , otherRestrictions: []
-      }
-    , conversation: []
-    }
-  , "Conjugation":
-    { problemDescription:
-      { goal: mkPiece andPiece
-      , title: "Conjugation"
-      , description: "conj"
-      , testCases: basicTestCases
-      , requiresAutomaticTesting: false
-      , pieceSet: S.fromFoldable [ mkPiece idPiece, mkPiece andPiece ]
-      , otherRestrictions: []
-      }
-    , conversation: []
-    }
-  , "Constant True":
-    { problemDescription:
-      { goal: mkPiece truePiece
-      , title: "True"
-      , description: "const true"
-      , testCases: basicTestCases
-      , requiresAutomaticTesting: false
-      , pieceSet: S.fromFoldable
-          [ mkPiece idPiece, mkPiece notPiece, mkPiece orPiece, mkPiece andPiece ]
-      , otherRestrictions: []
-      }
-    , conversation: []
-    }
-  , "Constant False":
-    { problemDescription:
-      { goal: mkPiece notPiece
-      , title: "Constant False"
-      , description: ""
-      , testCases: basicTestCases
-      , requiresAutomaticTesting: false
-      , pieceSet: S.fromFoldable
-          [ mkPiece idPiece, mkPiece notPiece, mkPiece orPiece, mkPiece andPiece ]
-      , otherRestrictions: []
-      }
-    , conversation: []
-    }
+  --, "Negation":
+  --  { problemDescription:
+  --    { goal: mkPiece notPiece
+  --    , title: "Negation"
+  --    , description: "Negate the signal inputed on the Left and output it on the Right"
+  --    , testCases: basicTestCases
+  --    , requiresAutomaticTesting: false
+  --    , pieceSet: S.fromFoldable [ mkPiece idPiece ]
+  --    , otherRestrictions: []
+  --    }
+  --  , conversation: []
+  --  }
+  --, "Disjunction":
+  --  { problemDescription:
+  --    { goal: mkPiece orPiece
+  --    , title: "Disjunction"
+  --    , description: "dijunction"
+  --    , testCases: basicTestCases
+  --    , requiresAutomaticTesting: false
+  --    , pieceSet: S.fromFoldable [ mkPiece idPiece, mkPiece orPiece ]
+  --    , otherRestrictions: []
+  --    }
+  --  , conversation: []
+  --  }
+  --, "Conjugation":
+  --  { problemDescription:
+  --    { goal: mkPiece andPiece
+  --    , title: "Conjugation"
+  --    , description: "conj"
+  --    , testCases: basicTestCases
+  --    , requiresAutomaticTesting: false
+  --    , pieceSet: S.fromFoldable [ mkPiece idPiece, mkPiece andPiece ]
+  --    , otherRestrictions: []
+  --    }
+  --  , conversation: []
+  --  }
+  --, "Constant True":
+  --  { problemDescription:
+  --    { goal: mkPiece truePiece
+  --    , title: "True"
+  --    , description: "const true"
+  --    , testCases: basicTestCases
+  --    , requiresAutomaticTesting: false
+  --    , pieceSet: S.fromFoldable
+  --        [ mkPiece idPiece, mkPiece notPiece, mkPiece orPiece, mkPiece andPiece ]
+  --    , otherRestrictions: []
+  --    }
+  --  , conversation: []
+  --  }
+  --, "Constant False":
+  --  { problemDescription:
+  --    { goal: mkPiece notPiece
+  --    , title: "Constant False"
+  --    , description: ""
+  --    , testCases: basicTestCases
+  --    , requiresAutomaticTesting: false
+  --    , pieceSet: S.fromFoldable
+  --        [ mkPiece idPiece, mkPiece notPiece, mkPiece orPiece, mkPiece andPiece ]
+  --    , otherRestrictions: []
+  --    }
+  --  , conversation: []
+  --  }
   }
 
 

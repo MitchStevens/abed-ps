@@ -14,7 +14,7 @@ import Data.Unfoldable (fromMaybe)
 import Game.Expression (Expression(..), evaluate, raw, ref)
 import Game.Location (CardinalDirection(..))
 import Game.Location as Direction
-import Game.Piece (class Piece, Capacity(..), Port(..))
+import Game.Piece (class Piece, APiece(..), Capacity(..), Port(..), mkPiece)
 
 data BasicPort = BasicInput | BasicOutput Expression
 
@@ -35,8 +35,8 @@ instance Piece BasicPiece where
     BasicInput -> Input piece.capacity
     BasicOutput _ -> Output piece.capacity
 
-idPiece :: BasicPiece
-idPiece = Basic 
+idPiece :: APiece
+idPiece = mkPiece $ Basic 
   { name: "id"
   , capacity: Capacity 1
   , ports: M.fromFoldable
@@ -45,8 +45,8 @@ idPiece = Basic
     ]
   }
 
-notPiece :: BasicPiece
-notPiece = Basic 
+notPiece :: APiece
+notPiece = mkPiece $ Basic 
   { name: "not"
   , capacity: Capacity 1
   , ports: M.fromFoldable
@@ -55,8 +55,8 @@ notPiece = Basic
     ]
   }
 
-orPiece :: BasicPiece
-orPiece = Basic 
+orPiece :: APiece
+orPiece = mkPiece $ Basic 
   { name: "or"
   , capacity: Capacity 1
   , ports: M.fromFoldable
@@ -66,8 +66,8 @@ orPiece = Basic
     ]
   }
 
-andPiece :: BasicPiece
-andPiece = Basic 
+andPiece :: APiece
+andPiece = mkPiece $ Basic 
   { name: "and" 
   , capacity: Capacity 1 
   , ports: M.fromFoldable
@@ -77,8 +77,8 @@ andPiece = Basic
     ]
   }
 
-crossPiece :: BasicPiece
-crossPiece = Basic
+crossPiece :: APiece
+crossPiece = mkPiece $ Basic
   { name: "cross" 
   , capacity: Capacity 1 
   , ports: M.fromFoldable
@@ -89,8 +89,8 @@ crossPiece = Basic
     ]
   }
 
-dupPiece :: BasicPiece
-dupPiece = Basic
+dupPiece :: APiece
+dupPiece = mkPiece $ Basic
   { name: "dup" 
   , capacity: Capacity 1 
   , ports: M.fromFoldable
@@ -100,8 +100,8 @@ dupPiece = Basic
     ]
   }
 
-xorPiece :: BasicPiece
-xorPiece = Basic 
+xorPiece :: APiece
+xorPiece = mkPiece $ Basic 
   { name: "xor" 
   , capacity: Capacity 1
   , ports: M.fromFoldable
@@ -111,8 +111,8 @@ xorPiece = Basic
     ]
   }
 
-truePiece :: BasicPiece
-truePiece = Basic 
+truePiece :: APiece
+truePiece = mkPiece $ Basic 
   { name: "true" 
   , capacity: Capacity 1
   , ports: M.fromFoldable
@@ -120,8 +120,8 @@ truePiece = Basic
     ]
   }
 
-falsePiece :: BasicPiece
-falsePiece = Basic 
+falsePiece :: APiece
+falsePiece = mkPiece $ Basic 
   { name: "false" 
   , capacity: Capacity 1
   , ports: M.fromFoldable

@@ -2,6 +2,7 @@ module Component.Routes where
 
 import Prelude
 
+import Capability.ChatServer (class ChatServer)
 import Capability.GlobalKeyDown (class GlobalKeyDown)
 import Capability.Navigate (class Navigate, Route(..))
 import Component.About as About
@@ -53,6 +54,7 @@ type Slots =
 component :: forall m.
   MonadAff m =>
   Navigate m =>
+  ChatServer m =>
   GlobalKeyDown m =>
   Component Query Unit Void m
 component = H.mkComponent { eval, initialState, render }

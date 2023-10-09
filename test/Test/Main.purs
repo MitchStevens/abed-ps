@@ -16,9 +16,9 @@ import Test.Unit.Output.Fancy (runTest)
 main :: Effect Unit
 main = runAff_ (\_ -> pure unit) $ runTest do
   describe "Expression tests"           Test.Game.Expression.tests
+  describe "Location tests"             Test.Game.Location.tests
   describe "Piece tests"                Test.Game.Piece.tests
   describe "Board tests"                Test.Game.Board.tests
-  describe "Location tests"             Test.Game.Location.tests
   describe "ProblemDescription tests"   Test.Game.ProblemDescription.tests
 
   --describe "Better Piece" do
