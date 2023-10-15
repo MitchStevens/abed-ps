@@ -23,7 +23,6 @@ import Routing.Hash (matchesWith)
 import Web.DOM.ParentNode (QuerySelector(..))
 import Web.HTML (HTMLElement)
 
-
 main :: Effect Unit
 main = HA.runHalogenAff do
   HA.awaitLoad

@@ -14,7 +14,7 @@ import Data.Unfoldable (fromMaybe)
 import Game.Expression (Expression(..), evaluate, raw, ref)
 import Game.Location (CardinalDirection(..))
 import Game.Location as Direction
-import Game.Piece (class Piece, APiece(..), Capacity(..), Port(..), mkPiece)
+import Game.Piece (class Piece, APiece(..), Capacity(..), PieceId(..), Port(..), mkPiece)
 
 data BasicPort = BasicInput | BasicOutput Expression
 
@@ -27,7 +27,7 @@ newtype BasicPiece = Basic
 derive instance Newtype BasicPiece _
 
 instance Piece BasicPiece where
-  name (Basic piece) = piece.name
+  name (Basic piece) = PieceId piece.name
   eval (Basic piece) f = flip M.mapMaybe piece.ports $ case _ of
     BasicInput  -> Nothing
     BasicOutput expression -> Just (evaluate f expression)

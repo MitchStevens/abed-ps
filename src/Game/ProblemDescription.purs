@@ -15,13 +15,16 @@ import Data.Set as Set
 import Data.Tuple (Tuple(..))
 import Effect.Aff (Aff)
 import Game.Board (Board(..), _pieces)
-import Game.BoardDelta (BoardDelta)
+import Game.Board.BoardDelta (BoardDelta)
+import Game.Board.BoardDeltaStore (BoardDeltaStore)
 import Game.Expression (Signal(..))
 import Game.Location (CardinalDirection, allDirections)
-import Game.Piece (class Piece, APiece(..), Port, eval, getPort, mkPiece)
+import Game.Message (Message, guiding)
+import Game.Piece (class Piece, APiece(..), PieceId(..), Port, eval, getPort, mkPiece)
 import Game.Piece.BasicPiece (idPiece)
-import Store (Message)
+import Game.RulesEngine (Rule)
 import Type.Proxy (Proxy(..))
+import Web.DOM.ParentNode (QuerySelector(..))
 
 type ProblemDescription = 
   { goal :: APiece
@@ -29,13 +32,12 @@ type ProblemDescription =
   , description :: String
   , testCases :: Array (Map CardinalDirection Signal)
   , requiresAutomaticTesting :: Boolean
-  , pieceSet :: Set APiece
+  , pieceSet :: Set PieceId
   , otherRestrictions :: Array
     { name :: String
     , restriction :: Board -> Boolean
     , description :: String
     }
-  , boardDeltaTrigger :: BoardDelta -> Maybe (Message ())
   }
 
 defaultProblemDescription :: ProblemDescription
@@ -47,7 +49,6 @@ defaultProblemDescription =
   , requiresAutomaticTesting: false
   , pieceSet: Set.empty
   , otherRestrictions: []
-  , boardDeltaTrigger: \_ -> Nothing
   }
 
 data PieceSpecMismatch
@@ -116,4 +117,3 @@ solvedBy problem board = do
       if r.restriction board
         then pure unit
         else throwError $ FailedRestriction { name: r.name, description: r.description }
-

@@ -4,64 +4,51 @@ import Data.Lens
 import Prelude
 
 import Capability.GlobalKeyDown (class GlobalKeyDown, getKeyDownEmitter)
+import Component.DataAttribute (attr)
+import Component.DataAttribute as DataAttr
 import Component.Piece (portIconSrc)
 import Component.Piece as Piece
-import Control.Alternative (guard)
 import Control.Monad.Reader (class MonadAsk, class MonadReader)
-import Control.Monad.State (class MonadState, gets, modify_)
+import Control.Monad.State (class MonadState, gets, modify, modify_)
 import Data.Array (intercalate, (..))
 import Data.Either (Either(..), blush, either, fromRight, hush)
 import Data.Foldable (foldMap, for_, traverse_)
-import Data.Lens.At (at)
-import Data.Lens.Index (ix)
-import Data.Lens.Record (prop)
-import Data.List (List(..))
-import Data.List as L
-import Data.Map as M
 import Data.Maybe (Maybe(..), fromMaybe, maybe)
-import Data.Monoid (power)
 import Data.Traversable (for, traverse)
-import Effect (Effect)
 import Effect.Class (class MonadEffect, liftEffect)
 import Effect.Class.Console (log, logShow)
 import Game.Board (Board(..), BoardError, BoardM, PieceInfo, _pieces, _size, addPiece, evalBoardM, execBoardM, getPiece, getPieceInfo, removePiece, rotatePieceBy, standardBoard)
-import Game.BoardDelta (BoardDelta(..), invertBoardDelta, runDelta, undoDelta)
+import Game.Board.BoardDelta (BoardDelta(..), invertBoardDelta, runDelta)
+import Game.Board.BoardDeltaStore (BoardDeltaStore)
+import Game.Board.BoardDeltaStore as BoardDeltaStore
 import Game.Location (CardinalDirection, Location(..), Rotation(..), allDirections, location, oppositeDirection, rotation)
 import Game.Location as Direction
-import Game.Piece (APiece(..), getPort, matchingPort)
-import Halogen (ClassName(..), HalogenM(..), HalogenQ)
+import Game.Piece (APiece(..), PieceId(..), getPort, matchingPort, name)
+import Halogen (AttrName(..), ClassName(..), Component, HalogenM(..), HalogenQ, Slot)
 import Halogen as H
 import Halogen.HTML (HTML, PlainHTML)
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
-import Halogen.Subscription (Emitter)
-import Halogen.Subscription as HS
 import Type.Proxy (Proxy(..))
 import Web.DOM.Document (toEventTarget)
 import Web.Event.Event (Event, preventDefault)
 import Web.Event.EventTarget (addEventListener, eventListener)
-import Web.HTML (window)
 import Web.HTML.Common (ClassName(..))
-import Web.HTML.Event.DataTransfer as DataTransfer
 import Web.HTML.Event.DragEvent (DragEvent, dataTransfer, toEvent)
-import Web.HTML.HTMLDocument (toDocument)
-import Web.HTML.Window (document)
 import Web.UIEvent.KeyboardEvent (KeyboardEvent, code, ctrlKey, fromEvent, key)
-import Web.UIEvent.KeyboardEvent.EventTypes (keydown)
-import Web.UIEvent.MouseEvent (MouseEvent)
 
 type Input = Maybe Board
 
 type State = 
   { currentBoard :: Board
-  , boardDeltas :: List BoardDelta
+  , boardDeltas :: BoardDeltaStore
   , mouseOverLocation :: Maybe Location
   }
 
 data Query a
   = GetBoard (Board -> a)
-  | AddPiece Location APiece (BoardError -> a)
+  | AddPiece Location PieceId (BoardError -> a)
   | RemovePiece Location (BoardError -> a)
   | GetMouseOverLocation (Location -> a)
 
@@ -78,22 +65,21 @@ data Action
 
 
 data Output
-  = NewBoardState BoardDelta Board
+  = NewBoardState BoardDeltaStore Board
 
-type Slots = ( piece :: H.Slot Piece.Query Piece.Output Location )
+type Slots = ( piece :: Slot Piece.Query Piece.Output Location )
 
 _piece = Proxy :: Proxy "piece"
+
+_board = H.gets (_.currentBoard)
 
 component :: forall m. MonadEffect m => GlobalKeyDown m => H.Component Query Input Output m
 component = H.mkComponent { eval , initialState , render }
   where
 
-  _board :: forall m. MonadState State m => m Board
-  _board = H.gets (_.currentBoard)
-
   initialState board =
     { currentBoard: fromMaybe standardBoard board
-    , boardDeltas: Nil
+    , boardDeltas: BoardDeltaStore.empty
     , mouseOverLocation: Nothing }
 
   render :: State -> HH.HTML (H.ComponentSlot Slots m Action) Action
@@ -105,19 +91,19 @@ component = H.mkComponent { eval , initialState , render }
       board = state.currentBoard
       n = board ^. _size
 
-      renderBoard =
-        HH.div
-          [ HP.id "pieces"
-          , HP.style $
-              let margin = "13fr" -- update this in css also!
-                  gridTemplate = margin <> " repeat(" <> show n <> ", 100fr) " <> margin
-              in intercalate "; " 
-                [ "grid-template-columns: " <> gridTemplate 
-                , "grid-template-rows: " <> gridTemplate
-                ]
-          , HP.tabIndex (-1)
-          ]
-          []
+      --renderBoard =
+      --  HH.div
+      --    [ HP.id "pieces"
+      --    , HP.style $
+      --        let margin = "13fr" -- update this in css also!
+      --            gridTemplate = margin <> " repeat(" <> show n <> ", 100fr) " <> margin
+      --        in intercalate "; " 
+      --          [ "grid-template-columns: " <> gridTemplate 
+      --          , "grid-template-rows: " <> gridTemplate
+      --          ]
+      --    , HP.tabIndex (-1)
+      --    ]
+      --    []
       
       pieces :: HTML (H.ComponentSlot Slots m Action) Action
       pieces = HH.table_ do
@@ -133,10 +119,10 @@ component = H.mkComponent { eval , initialState , render }
       renderPieceSlot :: Int -> Int -> HTML (H.ComponentSlot Slots m Action) Action
       renderPieceSlot i j = 
         HH.div
-          [ HP.class_ (ClassName "piece")
+          [ attr DataAttr.location loc
+          , HP.class_ (ClassName "piece")
           , HP.style $ intercalate "; "
             [ "transform: rotate("<> (show (rot * 90)) <>"deg)"
-            --, "grid-area: " <> gridArea
             ]
           , HE.onDragEnter (LocationOnDragEnter loc)
           , HE.onDragOver (LocationOnDragOver loc)
@@ -194,14 +180,14 @@ component = H.mkComponent { eval , initialState , render }
         GetBoard f -> do
           board <- _board
           pure $ Just (f board)
-        AddPiece loc piece f -> do
-          eitherBoard <- handleDelta (AddedPiece loc piece)
+        AddPiece loc pieceId f -> do
+          eitherBoard <- handleDelta (AddedPiece loc pieceId)
           pure $ f <$> blush eitherBoard
         RemovePiece loc f -> do
           board <- _board
           eitherPiece <- halogenEvalBoardM (getPiece loc)
           eitherBoard <- join <$> for eitherPiece \piece ->
-            handleDelta (RemovedPiece loc piece)
+            handleDelta (RemovedPiece loc (name piece))
           pure $ f <$> blush eitherBoard
         GetMouseOverLocation f -> do
           maybeLoc <- H.gets (_.mouseOverLocation)
@@ -220,10 +206,10 @@ component = H.mkComponent { eval , initialState , render }
     PieceOutput (Piece.Dropped src) -> do
       halogenEvalBoardM (getPiece src) >>= traverse_ \piece -> do
         maybeDst <- H.gets (_.mouseOverLocation)
-        let delta = maybe (RemovedPiece src piece) (MovedPiece src) maybeDst
+        let delta = maybe (RemovedPiece src (name piece)) (MovedPiece src) maybeDst
         handleDelta delta
     RevertBoard -> do
-      maybeUncons <- gets ((_.boardDeltas) >>> L.uncons)
+      maybeUncons <- gets ((_.boardDeltas) >>> BoardDeltaStore.uncons)
       for_ maybeUncons $ \{ head, tail } -> do
         H.modify_ (_ { boardDeltas = tail })
         handleDelta (invertBoardDelta head)
@@ -238,7 +224,6 @@ component = H.mkComponent { eval , initialState , render }
       H.modify_ (_ { mouseOverLocation = Just loc } )
       liftEffect $ preventDefault (toEvent dragEvent)
     LocationOnDragLeave _ -> do
-      log "drag leave"
       H.modify_ (_ { mouseOverLocation = Nothing } )
     GlobalOnKeyDown ke -> do
       when (key ke == "z" && ctrlKey ke) do
@@ -249,11 +234,13 @@ component = H.mkComponent { eval , initialState , render }
     board <- _board
     let eitherBoard = flip execBoardM board (runDelta delta) 
     for_ eitherBoard $ \newBoard -> do
-      modify_ $ \s -> s
+      s <- modify $ \s -> s
         { currentBoard = newBoard
-        , boardDeltas = Cons delta s.boardDeltas
+        , boardDeltas = BoardDeltaStore.cons delta s.boardDeltas
         }
-      H.raise (NewBoardState delta newBoard)
+      log "NEW DELTA STORE"
+      log (show s)
+      H.raise (NewBoardState s.boardDeltas newBoard)
     pure eitherBoard
 
   halogenEvalBoardM :: forall a. BoardM a -> HalogenM State Action Slots Output m (Either BoardError a)

@@ -3,19 +3,26 @@
   margin: 0 auto;
   background-color: rgba(255, 73, 231, 0.466);
 }
-@keyframes glow {
-  from {
-    box-shadow: 0 0 10px -10px #aef4af;
+@keyframes blink {
+  0% {
+    box-shadow: 0 0 10px 10px #e74747;
   }
-  to {
-    box-shadow: 0 0 10px 10px #aef4af;
+  50% {
+    box-shadow: none;
+  }
+  66% {
+    box-shadow: 0 0 10px 10px #e74747;
   }
 }
 #abed {
   user-select: none;
 }
 #abed .spotlight {
-  animation: glow 1s infinite alternate;
+  animation-name: blink;
+  animation-duration: 1s;
+  animation-direction: normal;
+  animation-iteration-count: 1;
+  animation-timing-function: linear;
 }
 #board-component table {
   background-color: yellowgreen;
@@ -134,8 +141,9 @@
 .chat-component table {
   overflow-anchor: none;
 }
-.chat-component table td * {
+.chat-component table td {
   padding-left: 10px;
+  padding-right: 10px;
   vertical-align: top;
 }
 .chat-component table td,
@@ -146,20 +154,11 @@
   text-align: right;
   width: 70px;
 }
-.chat-component table .message {
-  border-left: 1px solid black;
-}
-.chat-component table .user-drawthtc {
+.chat-component table .username [data-username="guide"] {
   color: blue;
 }
-.chat-component table .user-shawnu {
-  color: darkgreen;
-}
-.chat-component table .user-awoo {
-  color: palevioletred;
-}
-.chat-component table .user-big_dnnr {
-  color: palevioletred;
+.chat-component table .message {
+  border-left: 1px solid black;
 }
 .sidebar-component {
   width: 400px;

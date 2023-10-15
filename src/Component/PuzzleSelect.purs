@@ -23,7 +23,7 @@ import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
 import IO.Progress (PuzzleId, PuzzleProgress(..), getAllPuzzleProgress, puzzleProgress)
-import IO.Puzzles (PuzzleSuite, allPuzzles)
+import IO.Puzzles (allPuzzles)
 import Web.HTML.HTMLDocument.ReadyState (ReadyState(..))
 
 

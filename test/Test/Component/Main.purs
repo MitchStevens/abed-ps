@@ -27,7 +27,7 @@ import Halogen (Component, HalogenIO, liftEffect)
 import Halogen as H
 import Halogen.Aff as HA
 import Halogen.VDom.Driver (runUI)
-import IO.Conversations (conversation2)
+import IO.Conversations (conversation1)
 import Main (rootElement)
 import Web.DOM.ParentNode (QuerySelector(..))
 import Web.Event.EventTarget (addEventListener, eventListener)

@@ -40,7 +40,7 @@ import Debug (spy, trace)
 import Game.Expression (Signal(..))
 import Game.Location (CardinalDirection, Edge(..), Location, Rotation(..), allDirections, edge, edgeDirection, location, matchEdge, rotateDirection, rotation)
 import Game.Location as Direction
-import Game.Piece (class Piece, APiece(..), Port, eval, getOutputDirs, getPort, isInput, mkPiece, portMatches, ports)
+import Game.Piece (class Piece, APiece(..), PieceId(..), Port, eval, getOutputDirs, getPort, isInput, mkPiece, portMatches, ports)
 import Partial.Unsafe (unsafeCrashWith)
 import Type.Proxy (Proxy(..))
 
@@ -89,8 +89,10 @@ newtype Board = Board
   , pieces :: Map Location PieceInfo
   }
 derive instance Newtype Board _
+derive instance Eq Board
 instance Show Board where
-  show (Board {size, pieces}) = "Board"
+  show (Board {size, pieces}) = "Board " <> show size <> " " <>
+    show pieces
 
 _size :: Lens' Board Int
 _size = _Newtype <<< prop (Proxy :: Proxy "size")
@@ -259,7 +261,7 @@ toGlobalInputs :: Location -> Map CardinalDirection Signal -> Map RelativeEdge S
 toGlobalInputs loc = unsafeMapKey (relative loc)
 
 instance Piece Board where
-  name _ = "BOARD"
+  name _ = PieceId "board"
   eval board inputs = either (\s -> unsafeCrashWith ("couldnt eval: " <> show s)) identity $ evalBoardM (evalBoard inputs) board
   ports = portsBoard
 

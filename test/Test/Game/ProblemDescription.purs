@@ -36,7 +36,7 @@ problemDescription =
   , requiresAutomaticTesting: false
   , pieceSet: S.empty
   , otherRestrictions: []
-  , boardDeltaTrigger: \_ -> Nothing -- add trigger tests later
+  , boardDeltaTrigger: [] -- add trigger tests later
   }
 
 --problemDescription2 =

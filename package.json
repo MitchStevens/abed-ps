@@ -4,13 +4,12 @@
   "scripts": {
     "postinstall": "spago install",
     "compile-css": "lessc dist/default.less dist/default.css",
-    "build": "spago bundle-app --main Main --to dist/abed.js",
+    "build": "spago bundle-app --main Main --to dist/abed.js --minify",
     "test": "spago -x test.dhall test",
     "test-browser": "spago -x test.dhall bundle-app --main Test.Component.Main --to dist/test.js",
-
     "compile-css-watch": "nodemon --watch dist/*.less --exec 'npm run compile-css'",
-    "build-watch":        "npm run compile-css-watch & npm run build -- --watch",
-    "test-watch":         "npm run test -- --watch",
+    "build-watch": "npm run compile-css-watch & npm run build -- --watch",
+    "test-watch": "npm run test -- --watch",
     "test-browser-watch": "npm run compile-css-watch & npm run test-browser -- --watch"
   },
   "devDependencies": {
@@ -18,5 +17,7 @@
     "less": "^4.2.0",
     "nodemon": "^3.0.1",
     "spago": "^0.21.0"
+  },
+  "dependencies": {
   }
 }

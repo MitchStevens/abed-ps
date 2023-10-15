@@ -48,7 +48,7 @@ type Slots =
   ( home          :: forall q. Slot q Void Unit
   , about         :: forall q. Slot q Void Unit
   , puzzleSelect  :: forall q. Slot q Void Unit
-  , puzzle        ::           Slot Puzzle.Query Void Unit
+  , puzzle        :: forall q. Slot q Void Unit
   )
 
 component :: forall m.
@@ -72,9 +72,9 @@ component = H.mkComponent { eval, initialState, render }
         HH.slot_ (Proxy :: _ "puzzleSelect") unit PuzzleSelect.component unit
       Puzzle suiteName puzzleName -> fromMaybe (HH.text "coublent find tht roblem" ) do
         puzzleSuite <- Object.lookup suiteName allPuzzles
-        input <- Object.lookup puzzleName puzzleSuite
+        puzzle <- Object.lookup puzzleName puzzleSuite
         pure $ HH.slot_ (Proxy :: _ "puzzle") unit Puzzle.component $
-          (Record.union { puzzleId: { suiteName, puzzleName } } input :: Puzzle.Input)
+           { puzzleId: { suiteName, puzzleName }, puzzle }
     Nothing ->
       HH.div_ [ HH.text "Oh no! That page wasn't found." ]
 
@@ -92,20 +92,3 @@ component = H.mkComponent { eval, initialState, render }
     , initialize: Nothing
     , receive: \_ -> Nothing
     }
---component :: forall m. MonadAff m => H.Component Query Input Output m
---component state
---  where
---  render :: State -> H.ComponentHTML Action ChildSlots m
---  render state@{ route, currentUser } =
---    navbarPageWrapper state $ case route of
---      Nothing ->
---        HH.h1_ [ HH.text "Oh no! That page wasn't found" ]
---      Just Home ->
---        HH.slot_ (Proxy :: _ "home") unit Home.component unit
---          
---      Just Login ->
---        HH.slot_ (Proxy :: _ "login") unit Login.component ({ redirect: true } :: Login.Input)
---          
---      Just Secrets ->
---        authorize currentUser $
---          HH.slot_ (Proxy :: _ "secrets") unit Secrets.component unit

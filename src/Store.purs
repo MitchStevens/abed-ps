@@ -4,16 +4,17 @@ import Prelude
 
 import Data.Time.Duration (Seconds(..))
 import Effect.Ref (Ref)
-import Halogen.Subscription (Emitter, SubscribeIO)
+import Game.Message (Message)
+import Halogen.Subscription (Emitter, Listener, SubscribeIO)
 import Web.UIEvent.KeyboardEvent (KeyboardEvent)
 
-type Message r = { user :: String, text :: String | r }
-type QueuedMessage = Message (delayBy :: Seconds)
+type ChatServerStore = 
+  { queuedMessages :: Ref (Array Message)
+  , emitter :: Emitter Message
+  , listener :: Listener Message
+  }
 
 type Store =
   { keyDownEmitter :: Emitter KeyboardEvent
-  , chatServer ::
-    { queuedMessages :: Ref (Array QueuedMessage)
-    , messageEmitter :: Emitter (Message ())
-    }
+  , chatServer :: ChatServerStore
   }

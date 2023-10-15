@@ -7,6 +7,7 @@ import Data.Group (class Group, ginverse)
 import Data.Maybe (Maybe(..), fromMaybe)
 import Data.Newtype (class Newtype)
 import Data.Tuple (Tuple(..))
+import Web.HTML.Common (ClassName(..))
 
 data CardinalDirection = Up | Right | Down | Left 
 derive instance Eq CardinalDirection
@@ -64,6 +65,10 @@ instance Show Location where
 location :: Int -> Int -> Location
 location x y = Location { x, y }
 
+-- used for CSS creation
+locationId :: Location -> String
+locationId (Location {x, y}) = "position-" <> show x <> "-" <> show y
+
 newtype Edge = Edge { loc :: Location, dir :: CardinalDirection }
 derive instance Newtype Edge _
 derive instance Eq Edge
@@ -71,8 +76,6 @@ instance Show Edge where
   show (Edge { loc, dir }) = "Edge " <> show loc <> " " <> show dir
 
 -- do not derive Ord, needed for `mapKeys` function
---instance Ord Edge where
---  compare (Edge e) (Edge f) = compare e.dir f.dir <> compare e.loc f.loc
 instance Ord Edge where
   compare (Edge e) (Edge f) = compare e.loc f.loc <> compare e.dir f.dir 
 

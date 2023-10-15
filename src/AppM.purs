@@ -6,7 +6,6 @@ import Capability.ChatServer (class ChatServer, initialiseChatServer)
 import Capability.GlobalKeyDown (class GlobalKeyDown, globalKeyDownEventEmitter)
 import Capability.Navigate (class Navigate)
 import Capability.Navigate as Navigate
-import Capability.Spotlight (class Spotlight, spotlightElement)
 import Control.Monad.Reader (class MonadAsk, class MonadReader, ReaderT, asks, runReaderT)
 import Data.Array as A
 import Data.Time.Duration (Milliseconds(..), Seconds(..))
@@ -21,8 +20,6 @@ import Halogen.Subscription as HS
 import Routing.Duplex (print)
 import Routing.Hash (setHash)
 import Store (Store)
-import Web.DOM.DOMTokenList as DOMTokenList
-import Web.DOM.Element (classList)
 
 
 newtype AppM a = AppM (ReaderT Store Aff a)
@@ -38,7 +35,7 @@ derive newtype instance MonadAsk Store AppM
 initialStore :: Aff Store
 initialStore = do
   keyDownEmitter <- liftEffect globalKeyDownEventEmitter
-  chatServer <- initialiseChatServer unit
+  chatServer <- initialiseChatServer
   pure { keyDownEmitter, chatServer }
 
 runAppM :: forall a. Store -> AppM a -> Aff a
@@ -53,24 +50,10 @@ instance GlobalKeyDown AppM where
   getKeyDownEmitter = asks (_.keyDownEmitter)
 
 instance ChatServer AppM where
-  modifyMessages f = do
+  modifyQueuedMessages f = do
     ref <- asks (_.chatServer.queuedMessages)
     liftEffect $ Ref.modify f ref
-  chatServerEmitter = asks (_.chatServer.messageEmitter)
-
-instance Spotlight AppM where
-  spotlightElement element = do
-    tokenList <- liftEffect $ classList element
-    liftEffect $ DOMTokenList.add tokenList "spotlight"
-    liftAff $ delay (Milliseconds 5000.0)
-    liftEffect $ DOMTokenList.remove tokenList "spotlight"
-
-
-
-
-
-
-
-
+  chatServerEmitter = asks (_.chatServer.emitter)
+  chatServerListener = asks (_.chatServer.listener)
 
 

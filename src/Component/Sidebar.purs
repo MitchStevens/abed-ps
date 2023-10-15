@@ -11,6 +11,8 @@ module Component.Sidebar where
 import Prelude
 
 import Capability.Navigate (class Navigate, Route(..), navigateTo)
+import Component.DataAttribute (attr)
+import Component.DataAttribute as DataAttr
 import Control.Monad.Except (runExceptT)
 import Data.Array as A
 import Data.Either (Either, blush, hush)
@@ -20,17 +22,13 @@ import Effect.Aff.Class (class MonadAff)
 import Effect.Class (class MonadEffect, liftEffect)
 import Effect.Class.Console (log)
 import Game.Board (Board(..))
-import Game.Piece (APiece(..), isInput, name)
+import Game.Piece (APiece(..), PieceId(..), isInput, name)
 import Game.ProblemDescription (PieceSpecMismatch(..), ProblemDescription, solvedBy)
 import Halogen (ClassName(..), HalogenM, HalogenQ, liftAff)
 import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
-import IO.Progress (savePuzzleProgress)
-import Web.Event.Event (preventDefault)
-import Web.HTML (Location)
-import Web.HTML.Event.DataTransfer as DataTransfer
 import Web.HTML.Event.DragEvent (DragEvent, dataTransfer, toEvent)
 import Web.UIEvent.MouseEvent (MouseEvent)
 
@@ -43,17 +41,15 @@ type State =
 
 data Query a
   = IsProblemSolved Board (PieceSpecMismatch -> a)
---  | GetSelectedPiece (APiece -> a)
 
 data Action
-  = PieceOnDrop APiece DragEvent
-  | PieceOnClick APiece MouseEvent
+  = PieceOnDrop PieceId DragEvent
+  | PieceOnClick PieceId MouseEvent
   | BackToLevelSelect MouseEvent
 
 data Output
-  = PieceDropped APiece
-  | PieceAdded APiece
-  -- | ProblemSolved
+  = PieceDropped PieceId
+  | PieceAdded PieceId
 
 component :: forall m. MonadAff m => Navigate m => H.Component Query Input Output m
 component = H.mkComponent { eval , initialState , render }
@@ -69,13 +65,15 @@ component = H.mkComponent { eval , initialState , render }
       , maybe problemComplete renderError error
       , HH.h3_ [ HH.text "Available pieces:"]
       , HH.div [ HP.class_ (ClassName "pieces") ] $
-        A.fromFoldable problem.pieceSet <#> \piece ->
+        A.fromFoldable problem.pieceSet <#> \pieceId ->
           HH.div 
-            [ HP.draggable true
-            , HE.onDragEnd (PieceOnDrop piece)
-            , HE.onDoubleClick (PieceOnClick piece)
+            [ attr DataAttr.availablePiece pieceId
+            , HP.draggable true
+            , HP.classes [ ClassName "available-piece" ]
+            , HE.onDragEnd (PieceOnDrop pieceId)
+            , HE.onDoubleClick (PieceOnClick pieceId)
             ]
-            [HH.text (name piece)]
+            [HH.text (show pieceId)]
       , HH.h3_ [ HH.text "Board size" ]
       , HH.span_
         [ HH.button_ [ HH.text "-" ]
@@ -132,9 +130,6 @@ component = H.mkComponent { eval , initialState , render }
           isSolved <- liftAff $ runExceptT $ solvedBy problemDescription board
           H.modify_ (_ { error = blush isSolved })
           pure (f <$> blush isSolved)
-        --GetSelectedPiece f -> do
-        --  maybePiece <- H.gets (_.selectedPiece)
-        --  pure $ f <$> maybePiece
     , initialize: Nothing
     , receive: const Nothing -- :: input -> Maybe action
     }

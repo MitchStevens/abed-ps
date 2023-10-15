@@ -50,14 +50,21 @@ portCapacity = case _ of
   Output capacity -> capacity
 
 
+newtype PieceId = PieceId String
+derive instance Eq PieceId
+derive instance Ord PieceId
+instance Show PieceId where
+  show (PieceId id) = id
+
 {-
   what is a piece?
     a piece can be evaluated
     a piece has ports
     a piece can modified by adjacent ports
+    a piece has a unique identifier
 -}
 class Piece p where
-  name  :: p -> String
+  name  :: p -> PieceId
   eval  :: p -> Map CardinalDirection Signal -> Map CardinalDirection Signal
   ports :: p -> Map CardinalDirection Port
 
@@ -77,7 +84,7 @@ instance Eq APiece where
 instance Ord APiece where
   compare = compare `on` name
 instance Show APiece where
-  show p = "Piece " <> (name p)
+  show p = "Piece " <> (show (name p))
 
 mkPiece :: forall p. Piece p => p -> APiece
 mkPiece piece = APiece (_ $ piece)

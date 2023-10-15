@@ -23,6 +23,8 @@ import Game.Location as Direction
 import Game.Piece (Capacity(..), Port(..), getPort, mkPiece, ports)
 import Game.Piece.BasicPiece (andPiece, notPiece)
 import Partial.Unsafe (unsafeCrashWith)
+import Test.Game.Board.BoardDelta as BoardDelta
+import Test.Game.Board.BoardDeltaStore as BoardDeltaStore
 import Test.Game.Location (allDirections, allLocations, n)
 import Test.QuickCheck (assertEquals)
 import Test.Unit (TestSuite, describe, failure, it, success)
@@ -54,6 +56,12 @@ runBoardTest board boardT = void $ runBoardT boardT board
 
 tests :: TestSuite
 tests = do
+  boardTests
+  BoardDelta.tests
+  BoardDeltaStore.tests
+
+boardTests :: TestSuite
+boardTests = do
   describe "emptyBoard" do
     it "can create a board" do
       assertRight $ emptyBoard 3

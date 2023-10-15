@@ -15,11 +15,11 @@ import Data.Tuple (Tuple(..))
 import Effect (Effect)
 import Effect.Class (class MonadEffect, liftEffect)
 import Effect.Class.Console (log, logShow)
-import Game.Location (CardinalDirection, Location, Rotation(..), rotation)
+import Game.Location (CardinalDirection, Location, Rotation(..), allDirections, locationId, rotation)
 import Game.Location as Direction
 import Game.Piece (class Piece, APiece(..), Port(..), getPort, name)
 import Game.Piece as Port
-import Halogen (ClassName(..), HalogenM, RefLabel(..), gets)
+import Halogen (AttrName(..), ClassName(..), HalogenM, RefLabel(..), gets)
 import Halogen as H
 import Halogen.HTML (PlainHTML)
 import Halogen.HTML as HH
@@ -76,22 +76,19 @@ component = H.mkComponent { eval , initialState , render }
 
   render state =
     HH.div
-      [ HP.class_ (ClassName "piece-component")
+      [ HP.classes
+        [ ClassName "piece-component" ]
       , HP.draggable isDraggable
       , HP.style ("transform: rotate(" <> show rotation <> "rad);")
       , HP.ref (RefLabel "piece")
+
       , HE.onDragEnd (OnDrop state.location)
       , HE.onDrag OnDrag
       , HE.onMouseDown OnMouseDown
       , HE.onMouseMove OnMouseMove
       , HE.onMouseUp (OnMouseUp state.location)
       ] $
-      [ port Direction.Up
-      , port Direction.Right
-      , port Direction.Down
-      , port Direction.Left
-      ] <> [ pieceTitle ]
-      --([ pieceTitle ] <> ports)
+      ( map port allDirections ) <> [ pieceTitle ]
     where
       isDraggable = isNothing state.isRotating
       rotation = maybe 0.0 (_.currentRotation) state.isRotating
@@ -110,7 +107,7 @@ component = H.mkComponent { eval , initialState , render }
       pieceTitle = HH.div 
         [ HP.class_ (ClassName "piece-name") 
         , HP.draggable false ]
-        [ HH.div_ [ HH.text ( name state.piece) ] ]
+        [ HH.div_ [ HH.text (show (name state.piece)) ] ]
 
   getPosition :: MouseEvent -> Tuple Number Number 
   getPosition e = Tuple (toNumber (clientX e)) (toNumber (clientY e))

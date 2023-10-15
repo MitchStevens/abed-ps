@@ -3,12 +3,15 @@ module Component.Chat where
 import Prelude
 
 import Capability.ChatServer (class ChatServer, chatServerEmitter)
+import Capability.Spotlight (spotlight)
+import Component.DataAttribute (attr)
+import Component.DataAttribute as DataAttr
 import Control.Monad.Rec.Class (class MonadRec, forever)
 import Control.Monad.State (class MonadState, gets, put)
 import Data.Array as A
 import Data.DateTime (DateTime(..), Time(..), hour, minute, second)
 import Data.Enum (class BoundedEnum, fromEnum)
-import Data.Foldable (intercalate)
+import Data.Foldable (intercalate, traverse_)
 import Data.Interval (Duration(..))
 import Data.Maybe (Maybe(..))
 import Data.Monoid (power)
@@ -20,6 +23,7 @@ import Effect.Class (class MonadEffect, liftEffect)
 import Effect.Class.Console (log)
 import Effect.Exception (message)
 import Effect.Now (nowTime)
+import Game.Message (BaseMessage(..), Message, TimestampedMessage, timestamped)
 import Halogen (ClassName(..), HalogenM, HalogenQ, defaultEval, modify_)
 import Halogen as H
 import Halogen.HTML (PlainHTML)
@@ -27,7 +31,6 @@ import Halogen.HTML as HH
 import Halogen.HTML.Properties as HP
 import Halogen.Subscription (Emitter)
 import Halogen.Subscription as HS
-import Store (Message)
 import Web.Event.Event (timeStamp)
 import Web.HTML.Event.EventTypes (offline)
 
@@ -36,12 +39,12 @@ maxMessages = 20
 type Input = Unit
 
 type State =
-  { messages :: Array (Message (time :: Time))
+  { messages :: Array TimestampedMessage
   }
 
 data Query a
 
-data Action = Initialise | NewMessage (Message ())
+data Action = Initialise | NewMessage Message
 
 data Output
 
@@ -56,18 +59,22 @@ component = H.mkComponent { eval , initialState , render }
       , HH.div [ HP.id "anchor" ] []
       ]
   
-  renderMessage { user, text, time } =
+  renderMessage (Message { user, text, selector, time }) =
     HH.tr_
       [ HH.td [ HP.class_ (ClassName "timestamp") ]
-        [ HH.text $ intercalate ":" [pad2 (hour time), pad2 (minute time), pad2 (second time)] ]
+        [ HH.text (showTime time) ]
       , HH.td
-          [ HP.classes [ ClassName "username", ClassName ("user-" <> user)] ]
+          [ attr DataAttr.chatUsername user
+          , HP.class_ ( ClassName "username" ) ]
           [ HH.div_ [ HH.text user ] ]
       , HH.td [ HP.class_ (ClassName "message") ] [ HH.text text ]
       ]
 
-  pad2 :: forall a. BoundedEnum a => a -> String
-  pad2 n = let s = show (fromEnum n) in power "0" (2 - length s) <> s
+  showTime :: Time -> String -- break a leg :D
+  showTime time = intercalate ":" [pad2 (hour time), pad2 (minute time), pad2 (second time)]
+    where
+      pad2 :: forall a. BoundedEnum a => a -> String
+      pad2 n = let s = show (fromEnum n) in power "0" (2 - length s) <> s
 
   eval :: forall slots. HalogenQ Query Action Input ~> HalogenM State Action slots Output m
   eval = H.mkEval
@@ -85,6 +92,7 @@ component = H.mkComponent { eval , initialState , render }
       emitter <- chatServerEmitter
       _ <- H.subscribe (NewMessage <$> emitter)
       pure unit
-    NewMessage { user, text } -> do
+    NewMessage message@(Message m) -> do
       time <- liftEffect nowTime
-      modify_ \s -> s { messages = s.messages <> [{user, text, time }] }
+      modify_ \s -> s { messages = s.messages <> [timestamped time message] }
+      traverse_ spotlight m.selector -- should spotlight be triggered here?
