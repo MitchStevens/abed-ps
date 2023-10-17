@@ -33,6 +33,16 @@
     }
 }
 
+#puzzle-select-component {
+    & span[data-puzzle-progress="completed"] {
+        color: green;
+    }
+    & span[data-puzzle-progress="incomplete"] {
+        color: yellow;
+    }
+}
+
+
 #board-component table {
     @board-port-margin: 30px;
 

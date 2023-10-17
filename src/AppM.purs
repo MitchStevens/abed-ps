@@ -2,8 +2,7 @@ module AppM where
 
 import Prelude
 
-import Capability.ChatServer (class ChatServer, initialiseChatServer)
-import Capability.GlobalKeyDown (class GlobalKeyDown, globalKeyDownEventEmitter)
+import Capability.ChatServer (newChatServer)
 import Capability.Navigate (class Navigate)
 import Capability.Navigate as Navigate
 import Control.Monad.Reader (class MonadAsk, class MonadReader, ReaderT, asks, runReaderT)
@@ -34,9 +33,8 @@ derive newtype instance MonadAsk Store AppM
 
 initialStore :: Aff Store
 initialStore = do
-  keyDownEmitter <- liftEffect globalKeyDownEventEmitter
-  chatServer <- initialiseChatServer
-  pure { keyDownEmitter, chatServer }
+  chatServer <- newChatServer
+  pure { chatServer }
 
 runAppM :: forall a. Store -> AppM a -> Aff a
 runAppM store (AppM a) = do
@@ -45,15 +43,3 @@ runAppM store (AppM a) = do
 instance Navigate AppM where
   navigateTo route =
     liftEffect (setHash (print Navigate.routeCodec route))
-
-instance GlobalKeyDown AppM where
-  getKeyDownEmitter = asks (_.keyDownEmitter)
-
-instance ChatServer AppM where
-  modifyQueuedMessages f = do
-    ref <- asks (_.chatServer.queuedMessages)
-    liftEffect $ Ref.modify f ref
-  chatServerEmitter = asks (_.chatServer.emitter)
-  chatServerListener = asks (_.chatServer.listener)
-
-

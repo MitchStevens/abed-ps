@@ -6,13 +6,13 @@ import Prelude
 import Control.Alternative (guard)
 import Control.Monad.Error.Class (class MonadError, class MonadThrow, throwError)
 import Control.Monad.Except (class MonadTrans, Except, ExceptT, lift, runExcept, runExceptT)
-import Control.Monad.State (class MonadState, State, StateT(..), get, gets, modify_, runStateT)
+import Control.Monad.State (class MonadState, State, StateT(..), get, gets, modify_, put, runStateT)
 import Data.Array ((..))
 import Data.Array as A
 import Data.Array as Array
 import Data.Bifunctor (bimap)
 import Data.Either (Either(..), either, fromRight, hush, isLeft, note)
-import Data.Foldable (class Foldable, foldM, for_)
+import Data.Foldable (class Foldable, all, find, foldM, for_)
 import Data.FoldableWithIndex (foldrWithIndex)
 import Data.Graph (Graph, unfoldGraph)
 import Data.Graph as G
@@ -38,9 +38,9 @@ import Data.Traversable (all, foldMap, for, sequence, traverse)
 import Data.Tuple (Tuple(..), fst, snd)
 import Debug (spy, trace)
 import Game.Expression (Signal(..))
-import Game.Location (CardinalDirection, Edge(..), Location, Rotation(..), allDirections, edge, edgeDirection, location, matchEdge, rotateDirection, rotation)
+import Game.Location (CardinalDirection, Edge(..), Location(..), Rotation(..), allDirections, edge, edgeDirection, location, matchEdge, rotateDirection, rotation)
 import Game.Location as Direction
-import Game.Piece (class Piece, APiece(..), PieceId(..), Port, eval, getOutputDirs, getPort, isInput, mkPiece, portMatches, ports)
+import Game.Piece (class Piece, APiece(..), PieceId(..), Port, eval, getOutputDirs, getPort, isInput, mkPiece)
 import Partial.Unsafe (unsafeCrashWith)
 import Type.Proxy (Proxy(..))
 
@@ -227,6 +227,31 @@ removePiece loc = do
   piece <- getPiece loc
   _pieces <<< at loc .= Nothing
   pure piece
+
+{-
+  change size
+-}
+decreaseSize :: forall m. Monad m => BoardT m Unit
+decreaseSize = do
+  Board {size: n, pieces} <- get
+  let insideSquare (Location {x, y}) = all (between 1 n) [x, y]
+
+  let firstPieceOusideSquare = find (not <<< insideSquare) (M.keys pieces) 
+  case firstPieceOusideSquare of
+    Just loc -> throwError (LocationOccupied loc)
+    Nothing -> put $ Board
+      { size: n-2
+      , pieces: unsafeMapKey (\(Location {x, y}) -> location (x-1) (y-1)) pieces }
+
+
+increaseSize :: forall m. Monad m => BoardT m Unit
+increaseSize = do
+  Board { size: n, pieces } <- get
+  put $ Board
+    { size: n+2
+    , pieces: unsafeMapKey (\(Location {x, y}) -> location (x+1) (y+1)) pieces }
+
+
 
 ---- Board compilation
 --{-

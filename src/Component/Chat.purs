@@ -2,10 +2,10 @@ module Component.Chat where
 
 import Prelude
 
-import Capability.ChatServer (class ChatServer, chatServerEmitter)
-import Capability.Spotlight (spotlight)
+import Capability.ChatServer (chatServerEmitter)
 import Component.DataAttribute (attr)
 import Component.DataAttribute as DataAttr
+import Control.Monad.Reader (class MonadAsk, class MonadReader, asks)
 import Control.Monad.Rec.Class (class MonadRec, forever)
 import Control.Monad.State (class MonadState, gets, put)
 import Data.Array as A
@@ -31,6 +31,7 @@ import Halogen.HTML as HH
 import Halogen.HTML.Properties as HP
 import Halogen.Subscription (Emitter)
 import Halogen.Subscription as HS
+import Store (Store)
 import Web.Event.Event (timeStamp)
 import Web.HTML.Event.EventTypes (offline)
 
@@ -48,7 +49,7 @@ data Action = Initialise | NewMessage Message
 
 data Output
 
-component :: forall m. ChatServer m => MonadAff m => H.Component Query Input Output m
+component :: forall m. MonadAsk Store m => MonadAff m => H.Component Query Input Output m
 component = H.mkComponent { eval , initialState , render }
   where
   initialState _ = { messages: [] } 
@@ -89,10 +90,9 @@ component = H.mkComponent { eval , initialState , render }
   handleAction :: forall slots. Action -> HalogenM State Action slots Output m Unit
   handleAction = case _ of
     Initialise -> do
-      emitter <- chatServerEmitter
-      _ <- H.subscribe (NewMessage <$> emitter)
-      pure unit
+      emitt <- asks (_.chatServer.emitter)
+      void $ H.subscribe (NewMessage <$> emitt)
     NewMessage message@(Message m) -> do
       time <- liftEffect nowTime
       modify_ \s -> s { messages = s.messages <> [timestamped time message] }
-      traverse_ spotlight m.selector -- should spotlight be triggered here?
+      --traverse_ spotlight m.selector -- should spotlight be triggered here?

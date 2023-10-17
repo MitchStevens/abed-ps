@@ -1,4 +1,4 @@
-module Game.PuzzleSuite where
+module Game.Puzzle where
 
 import Prelude
 
@@ -26,6 +26,8 @@ type Puzzle =
   , conversation :: Array Message
   , settings :: PuzzleSettings
   }
+
+type PuzzleId = { suiteName :: String, puzzleName :: String }
 
 defaultSettings :: PuzzleSettings
 defaultSettings =

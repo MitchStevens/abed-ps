@@ -2,11 +2,17 @@ module IO.Puzzles where
 
 import Prelude
 
+import Capability.Progress (PuzzleProgress, getPuzzleProgress)
 import Component.Chat as Chat
 import Data.HeytingAlgebra (ff, tt)
+import Data.Map (Map)
+import Data.Map as M
 import Data.Time.Duration (Seconds(..))
+import Data.Traversable (for)
 import Data.Tuple (Tuple(..))
+import Effect.Class (class MonadEffect)
 import Foreign.Object (Object, fromHomogeneous)
+import Foreign.Object as O
 import Game.Board.BoardDelta (BoardDelta(..))
 import Game.Board.BoardDeltaStore (BoardDeltaStore, count, firstTime, latest, pieceAdded, pieceMovedTo, secondTime)
 import Game.Expression (Signal(..))
@@ -16,7 +22,7 @@ import Game.Message (Message, guiding)
 import Game.Piece (mkPiece, name)
 import Game.Piece.BasicPiece (andPiece, idPiece, notPiece, orPiece, truePiece)
 import Game.ProblemDescription (ProblemDescription, countPiecesOfType)
-import Game.PuzzleSuite (PuzzleSuite)
+import Game.Puzzle (PuzzleSuite, PuzzleId)
 import Game.RulesEngine (Rule(..))
 import IO.Puzzles.TutorialSuite (tutorialSuite)
 import Web.DOM.ParentNode (QuerySelector(..))
@@ -29,6 +35,12 @@ allPuzzles = fromHomogeneous
   , "Identity Suite": identitySuite
   , "Intermediate Suite": intermediateSuite
   }
+
+getAllPuzzleProgress :: forall m. MonadEffect m => m (Map PuzzleId PuzzleProgress)
+getAllPuzzleProgress = map (join >>> M.fromFoldable >>> M.catMaybes) $
+  for (O.toUnfoldable allPuzzles :: Array _) \(Tuple suiteName suite) ->
+    for (O.toUnfoldable suite :: Array _) \(Tuple puzzleName _) ->
+      Tuple {suiteName, puzzleName} <$> getPuzzleProgress { suiteName, puzzleName}
 
 identitySuite :: PuzzleSuite
 identitySuite = fromHomogeneous {}

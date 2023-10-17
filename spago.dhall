@@ -32,6 +32,7 @@ to generate this file without the comments in this block.
   , "graphs"
   , "group"
   , "halogen"
+  , "halogen-hooks"
   , "halogen-subscriptions"
   , "identity"
   , "integers"

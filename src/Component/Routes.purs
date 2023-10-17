@@ -2,13 +2,12 @@ module Component.Routes where
 
 import Prelude
 
-import Capability.ChatServer (class ChatServer)
-import Capability.GlobalKeyDown (class GlobalKeyDown)
 import Capability.Navigate (class Navigate, Route(..))
 import Component.About as About
 import Component.Home as Home
 import Component.Puzzle as Puzzle
 import Component.PuzzleSelect as PuzzleSelect
+import Control.Monad.Reader (class MonadAsk)
 import Data.Foldable (oneOf)
 import Data.Maybe (Maybe(..), fromMaybe)
 import Effect.Aff.Class (class MonadAff)
@@ -20,6 +19,7 @@ import Halogen.HTML as HH
 import IO.Puzzles (allPuzzles)
 import Record as Record
 import Routing.Match (Match, lit, str)
+import Store (Store)
 import Type.Proxy (Proxy(..))
 import Web.UIEvent.KeyboardEvent (KeyboardEvent)
 
@@ -51,12 +51,12 @@ type Slots =
   , puzzle        :: forall q. Slot q Void Unit
   )
 
-component :: forall m.
-  MonadAff m =>
-  Navigate m =>
-  ChatServer m =>
-  GlobalKeyDown m =>
-  Component Query Unit Void m
+component 
+  :: forall m
+   . MonadAff m
+  => MonadAsk Store m
+  => Navigate m
+  => Component Query Unit Void m
 component = H.mkComponent { eval, initialState, render }
   where
   initialState _ = { route: Just Home }

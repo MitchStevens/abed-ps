@@ -3,6 +3,7 @@ module Capability.Navigate where
 import Prelude hiding ((/))
 
 import Data.Generic.Rep (class Generic)
+import Game.Puzzle (PuzzleId)
 import Halogen (HalogenM, lift)
 import Routing.Duplex (RouteDuplex', as, parse, print, root, segment)
 import Routing.Duplex.Generic (noArgs, sum)

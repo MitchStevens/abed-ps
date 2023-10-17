@@ -21,17 +21,17 @@ import Web.HTML.HTMLDocument (toParentNode)
 import Web.HTML.Window (document)
 
 -- different spotlight effects?
-class Monad m <= Spotlight m where
-  spotlight :: QuerySelector -> m Unit
-
-instance MonadAff m => Spotlight m where
-  spotlight selector = do
-    htmlDocument <- liftEffect $ window >>= document
-    nodeList <- liftEffect $ querySelectorAll selector (toParentNode htmlDocument)
-    liftEffect (toArray nodeList) >>= traverse_ \node ->
-      for_ (fromNode node) \element -> do
-        log ("spotlighting " <> nodeName node <> " with local name " <> localName element)
-        tokenList <- liftEffect $ classList element
-        liftEffect $ DOMTokenList.add tokenList "spotlight"
-        liftAff $ delay (Milliseconds 1000.0)
-        liftEffect $ DOMTokenList.remove tokenList "spotlight"
+spotlight
+  :: forall m
+   . MonadAff m
+   => QuerySelector -> m Unit
+spotlight selector = do
+  htmlDocument <- liftEffect $ window >>= document
+  nodeList <- liftEffect $ querySelectorAll selector (toParentNode htmlDocument)
+  liftEffect (toArray nodeList) >>= traverse_ \node ->
+    for_ (fromNode node) \element -> do
+      log ("spotlighting " <> nodeName node <> " with local name " <> localName element)
+      tokenList <- liftEffect $ classList element
+      liftEffect $ DOMTokenList.add tokenList "spotlight"
+      liftAff $ delay (Milliseconds 1000.0)
+      liftEffect $ DOMTokenList.remove tokenList "spotlight"

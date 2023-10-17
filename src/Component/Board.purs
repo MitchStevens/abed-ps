@@ -3,7 +3,7 @@ module Component.Board where
 import Data.Lens
 import Prelude
 
-import Capability.GlobalKeyDown (class GlobalKeyDown, getKeyDownEmitter)
+import Capability.GlobalKeyDown (globalKeyDownEventEmitter)
 import Component.DataAttribute (attr)
 import Component.DataAttribute as DataAttr
 import Component.Piece (portIconSrc)
@@ -73,7 +73,8 @@ _piece = Proxy :: Proxy "piece"
 
 _board = H.gets (_.currentBoard)
 
-component :: forall m. MonadEffect m => GlobalKeyDown m => H.Component Query Input Output m
+--component :: forall m. MonadEffect m => GlobalKeyDown m => H.Component Query Input Output m
+component :: forall m. MonadEffect m => H.Component Query Input Output m
 component = H.mkComponent { eval , initialState , render }
   where
 
@@ -91,20 +92,6 @@ component = H.mkComponent { eval , initialState , render }
       board = state.currentBoard
       n = board ^. _size
 
-      --renderBoard =
-      --  HH.div
-      --    [ HP.id "pieces"
-      --    , HP.style $
-      --        let margin = "13fr" -- update this in css also!
-      --            gridTemplate = margin <> " repeat(" <> show n <> ", 100fr) " <> margin
-      --        in intercalate "; " 
-      --          [ "grid-template-columns: " <> gridTemplate 
-      --          , "grid-template-rows: " <> gridTemplate
-      --          ]
-      --    , HP.tabIndex (-1)
-      --    ]
-      --    []
-      
       pieces :: HTML (H.ComponentSlot Slots m Action) Action
       pieces = HH.table_ do
         j <- (-1) .. n
@@ -199,7 +186,7 @@ component = H.mkComponent { eval , initialState , render }
   handleAction :: Action -> HalogenM State Action Slots Output m Unit
   handleAction = case _ of
     Initialise -> do
-      emitter <- getKeyDownEmitter
+      emitter <- liftEffect $ globalKeyDownEventEmitter
       void $ H.subscribe (GlobalOnKeyDown <$> emitter)
     PieceOutput (Piece.Rotated loc rot) -> void $
       handleDelta (RotatedPiece loc rot)

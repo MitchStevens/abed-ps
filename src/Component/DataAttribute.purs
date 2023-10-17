@@ -2,6 +2,8 @@ module Component.DataAttribute where
 
 import Prelude
 
+import Capability.Progress (PuzzleProgress(..))
+import Data.Maybe (Maybe(..))
 import Game.Location (Location(..))
 import Game.Piece (PieceId(..))
 import Halogen.HTML (IProp)
@@ -31,3 +33,8 @@ availablePiece = Attr (AttrName "data-available-piece") (\(PieceId id) -> id)
 
 chatUsername :: DataAttribute String
 chatUsername = Attr (AttrName "data-username") identity
+
+progress :: DataAttribute PuzzleProgress
+progress = Attr (AttrName "data-puzzle-progress") case _ of
+  Completed -> "completed"
+  Incomplete -> "incomplete"

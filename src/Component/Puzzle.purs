@@ -2,12 +2,13 @@ module Component.Puzzle where
 
 import Prelude
 
-import Capability.ChatServer (class ChatServer, sendMessage, setQueuedMessages)
-import Capability.GlobalKeyDown (class GlobalKeyDown)
+import Capability.ChatServer (putQueuedMessages, sendMessage)
 import Capability.Navigate (class Navigate)
+import Capability.Progress (PuzzleProgress(..), savePuzzleProgress)
 import Component.Board as Board
 import Component.Chat as Chat
 import Component.Sidebar as Sidebar
+import Control.Monad.Reader (class MonadAsk, class MonadReader)
 import Data.Foldable (foldMap, for_)
 import Data.Maybe (Maybe(..))
 import Data.Time.Duration (Seconds(..))
@@ -22,13 +23,13 @@ import Game.Message (Message)
 import Game.Piece (name)
 import Game.Piece.PieceLookup (pieceLookup)
 import Game.ProblemDescription (ProblemDescription)
-import Game.PuzzleSuite (Puzzle)
+import Game.Puzzle (Puzzle, PuzzleId)
 import Game.RulesEngine (Rule, runEngine)
-import Halogen (ClassName(..), HalogenM, HalogenQ, Slot, gets)
+import Halogen (ClassName(..), Component, HalogenM, HalogenQ, Slot, gets)
 import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.Properties as HP
-import IO.Progress (PuzzleId, PuzzleProgress(..), puzzleProgress, savePuzzleProgress)
+import Store (Store)
 import Type.Proxy (Proxy(..))
 import Web.UIEvent.KeyboardEvent (KeyboardEvent)
 
@@ -56,10 +57,9 @@ _sidebar = Proxy :: Proxy "sidebar"
 
 component :: forall q o m
   . MonadAff m
-  => ChatServer m
+  => MonadAsk Store m
   => Navigate m 
-  => GlobalKeyDown m 
-  => H.Component q Input o m
+  => Component q Input o m
 component = H.mkComponent { eval , initialState , render }
   where
   initialState = identity
@@ -76,7 +76,7 @@ component = H.mkComponent { eval , initialState , render }
     , handleAction: case _ of
       Initialise -> do
         initialConversation <- H.gets (_.puzzle.conversation)
-        setQueuedMessages initialConversation
+        putQueuedMessages initialConversation
         maybeBoard <- H.request _board unit Board.GetBoard
         for_ maybeBoard $ \board ->
           H.request _sidebar unit (Sidebar.IsProblemSolved board)
@@ -85,8 +85,8 @@ component = H.mkComponent { eval , initialState , render }
         when (maybeMismatch == Nothing) do
           puzzleId <-  gets (_.puzzleId)
           liftEffect $ savePuzzleProgress puzzleId Completed
-        gets (_.puzzle.boardDeltaRulesEngine) >>= \rulesEngine -> do
-          for_ (runEngine rulesEngine boardDeltaStore) sendMessage
+        rulesEngine <- gets (_.puzzle.boardDeltaRulesEngine)
+        for_ (runEngine rulesEngine boardDeltaStore) sendMessage
       SidebarOutput (Sidebar.PieceDropped pieceId) -> do
         maybeLocation <- H.request _board unit (Board.GetMouseOverLocation)
         for_ maybeLocation \loc ->

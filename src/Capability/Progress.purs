@@ -1,4 +1,4 @@
-module IO.Progress where
+module Capability.Progress where
 
 import Prelude
 
@@ -13,10 +13,10 @@ import Effect (Effect)
 import Effect.Aff (Aff)
 import Effect.Class (class MonadEffect, liftEffect)
 import Foreign.Object as O
-import IO.Puzzles (allPuzzles)
+import Game.Puzzle (PuzzleId)
 import Web.HTML (window)
 import Web.HTML.Window (localStorage)
-import Web.Storage.Storage (getItem, setItem)
+import Web.Storage.Storage (clear, getItem, setItem)
 
 
 --storing puzzle progress
@@ -39,20 +39,14 @@ instance Show PuzzleProgress where
       Incomplete -> "Incomplete"
       Completed -> "Completed"
 
-type PuzzleId = { suiteName :: String, puzzleName :: String }
 
 savePuzzleProgress :: forall m. MonadEffect m => PuzzleId -> PuzzleProgress -> m Unit
 savePuzzleProgress id progress = liftEffect $
   window >>= localStorage >>= setItem (show id) (review puzzleProgress progress)
 
-getAllPuzzleProgress :: forall m. MonadEffect m => m (Map PuzzleId PuzzleProgress)
-getAllPuzzleProgress = map (join >>> M.fromFoldable >>> M.catMaybes) $
-  for (O.toUnfoldable allPuzzles :: Array _) \(Tuple suiteName suite) ->
-    for (O.toUnfoldable suite :: Array _) \(Tuple puzzleName _) ->
-      Tuple {suiteName, puzzleName} <$> getPuzzleProgress { suiteName, puzzleName}
-
 getPuzzleProgress :: forall m. MonadEffect m => PuzzleId -> m (Maybe PuzzleProgress)
 getPuzzleProgress id = liftEffect $
   window >>= localStorage >>= getItem (show id) <#> bindFlipped (preview puzzleProgress)
-  
 
+deleteProgress :: forall m. MonadEffect m => m Unit
+deleteProgress = liftEffect $ window >>= localStorage >>= clear

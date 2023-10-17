@@ -24,6 +24,12 @@
   animation-iteration-count: 1;
   animation-timing-function: linear;
 }
+#puzzle-select-component span[data-puzzle-progress="completed"] {
+  color: green;
+}
+#puzzle-select-component span[data-puzzle-progress="incomplete"] {
+  color: yellow;
+}
 #board-component table {
   background-color: yellowgreen;
   width: 100%;

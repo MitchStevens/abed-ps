@@ -2,6 +2,7 @@ module Component.About where
 
 import Prelude
 
+import Capability.Progress (deleteProgress)
 import Data.Time.Duration (Milliseconds(..), Seconds(..), fromDuration)
 import Effect.Aff.Class (class MonadAff)
 import Effect.Class (class MonadEffect, liftEffect)
@@ -39,7 +40,7 @@ component = H.mkComponent { eval , initialState , render }
   eval = H.mkEval H.defaultEval
     { handleAction = case _ of
         DeleteProgress -> liftEffect do
-          deleteProgress <- window >>= confirm "Really delete all progress?"
-          when deleteProgress do
-            window >>= localStorage >>= clear
+          confirmDelete <- window >>= confirm "Really delete all progress?"
+          when confirmDelete do
+            deleteProgress
     }

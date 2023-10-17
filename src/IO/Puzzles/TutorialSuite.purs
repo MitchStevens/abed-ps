@@ -12,7 +12,7 @@ import Game.Location as Direction
 import Game.Message (addDelay, guiding)
 import Game.Piece (name)
 import Game.Piece.BasicPiece (idPiece)
-import Game.PuzzleSuite (PuzzleSuite, binaryTestInputs, defaultPuzzle)
+import Game.Puzzle (PuzzleSuite, binaryTestInputs, defaultPuzzle)
 import Game.RulesEngine (Rule(..))
 
 tutorialSuite :: PuzzleSuite
