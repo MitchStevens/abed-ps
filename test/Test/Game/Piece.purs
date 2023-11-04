@@ -7,8 +7,9 @@ import Data.Map as M
 import Data.Tuple (Tuple(..))
 import Game.Expression (raw)
 import Game.Location as Direction
-import Game.Piece (Capacity(..), Port(..), eval, isInput, portMatches, ports)
+import Game.Piece (eval, ports)
 import Game.Piece.BasicPiece (andPiece, notPiece, orPiece, xorPiece)
+import Game.Piece.Port (Capacity(..), Port(..), isInput, portMatches)
 import Test.Unit (TestSuite, describe, it)
 import Test.Unit.Assert (shouldEqual)
 

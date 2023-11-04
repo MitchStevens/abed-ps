@@ -5,7 +5,7 @@ import Prelude
 import Control.Monad.State (get, lift)
 import Data.Array ((..))
 import Data.Array as Array
-import Data.Either (either, fromRight)
+import Data.Either (Either(..), either, fromRight)
 import Data.Enum (enumFromTo)
 import Data.Foldable (for_, traverse_)
 import Data.Graph as G
@@ -16,15 +16,14 @@ import Data.Maybe (Maybe(..), maybe)
 import Data.Tuple (Tuple(..))
 import Debug (trace)
 import Effect.Aff (Aff)
-import Game.Board (Board(..), BoardT, RelativeEdge, addPiece, buildBoardGraph, emptyBoard, evalBoard, evalBoardM, evalLocation, execBoardM, execBoardT, getPieceInfo, getPortOnEdge, matchingRelativeEdge, relative, removePiece, rotatePieceBy, runBoardT, standardBoard, toAbsoluteEdge, toRelativeEdge)
+import Game.Board (Board(..), BoardError(..), BoardT, RelativeEdge, addPiece, buildBoardGraph, decreaseSize, emptyBoard, evalBoardM, evalBoardScratch, evalLocation, execBoardM, execBoardT, extractOutputs, getPieceInfo, getPortOnEdge, increaseSize, matchingRelativeEdge, relative, removePiece, rotatePieceBy, runBoardT, standardBoard, toAbsoluteEdge, toRelativeEdge, validBoardSize)
 import Game.Expression (Signal(..))
 import Game.Location (CardinalDirection, Location(..), edge, location, rotation)
 import Game.Location as Direction
-import Game.Piece (Capacity(..), Port(..), getPort, mkPiece, ports)
+import Game.Piece (getPort, ports)
 import Game.Piece.BasicPiece (andPiece, notPiece)
+import Game.Piece.Port (Capacity(..), Port(..))
 import Partial.Unsafe (unsafeCrashWith)
-import Test.Game.Board.BoardDelta as BoardDelta
-import Test.Game.Board.BoardDeltaStore as BoardDeltaStore
 import Test.Game.Location (allDirections, allLocations, n)
 import Test.QuickCheck (assertEquals)
 import Test.Unit (TestSuite, describe, failure, it, success)
@@ -56,12 +55,7 @@ runBoardTest board boardT = void $ runBoardT boardT board
 
 tests :: TestSuite
 tests = do
-  boardTests
-  BoardDelta.tests
-  BoardDeltaStore.tests
-
-boardTests :: TestSuite
-boardTests = do
+  let evalBoard inputs = evalBoardScratch inputs >>= extractOutputs
   describe "emptyBoard" do
     it "can create a board" do
       assertRight $ emptyBoard 3
@@ -137,6 +131,17 @@ boardTests = do
         matchingRelativeEdge (relative (location 1 1) Direction.Right)
       _ <- equal (relative (location 1 1) Direction.Up) <$>
         matchingRelativeEdge (relative (location 1 0) Direction.Right)
+      pure unit
+  describe "board size change" do
+    it "validBoardSize" do
+      validBoardSize 3 `shouldEqual` Right 3
+      validBoardSize 5 `shouldEqual` Right 5
+      validBoardSize 2 `shouldEqual` Left (BadBoardSize 2)
+      validBoardSize 4 `shouldEqual` Left (BadBoardSize 4)
+      validBoardSize 11 `shouldEqual` Left (BadBoardSize 11)
+    it "should allow board size increment and decrement" $ runBoardTest testBoard do
+      _ <- increaseSize
+      _ <- decreaseSize
       pure unit
   describe "buildBoardGraph" do
     let boardGraph = buildBoardGraph testBoard

@@ -6,10 +6,10 @@ import Component.DataAttribute (nullSelector, selector)
 import Component.DataAttribute as DataAttr
 import Data.Set as S
 import Foreign.Object (fromHomogeneous)
-import Game.Board.BoardDeltaStore (count, firstTime, latest, pieceAdded, pieceMovedTo, secondTime)
+import Game.GameEvent (count, firstTime, latest, pieceAdded, pieceMovedTo, secondTime)
 import Game.Location (location)
 import Game.Location as Direction
-import Game.Message (addDelay, guiding)
+import Game.Message (addDelay, addDelayToMessages, guiding)
 import Game.Piece (name)
 import Game.Piece.BasicPiece (idPiece)
 import Game.Puzzle (PuzzleSuite, binaryTestInputs, defaultPuzzle)
@@ -45,11 +45,11 @@ tutorialSuite = fromHomogeneous
           , Rule (firstTime (pieceMovedTo l2)) $
             guiding "add one more final id piece" $
               selector DataAttr.availablePiece (name idPiece)
-          , Rule (count pieceAdded EQ 3 && latest pieceAdded) $
+          , Rule ((count eq 3 && latest) pieceAdded) $
             guiding "move piece to (1, 1)" $
               selector DataAttr.location l3
           ]
-      , conversation = map addDelay
+      , conversation = addDelayToMessages $
         [ guiding "welcome to ABED! click 'id' to get started adding pieces!" $
           selector DataAttr.availablePiece (name idPiece)
         ]

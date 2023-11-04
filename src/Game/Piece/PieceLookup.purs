@@ -10,7 +10,7 @@ import Data.Tuple (Tuple(..))
 import Game.Piece (APiece(..), PieceId(..), name)
 
 allPieces :: Array APiece
-allPieces = [ idPiece, notPiece, orPiece, andPiece, dupPiece, xorPiece, truePiece, falsePiece ]
+allPieces = allBasicPieces
 
 pieceVault :: Map PieceId APiece
 pieceVault = M.fromFoldable $ map (\p -> Tuple (name p) p) allPieces

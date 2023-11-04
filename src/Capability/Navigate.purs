@@ -3,11 +3,13 @@ module Capability.Navigate where
 import Prelude hiding ((/))
 
 import Data.Generic.Rep (class Generic)
+import Effect.Class (class MonadEffect, liftEffect)
 import Game.Puzzle (PuzzleId)
 import Halogen (HalogenM, lift)
 import Routing.Duplex (RouteDuplex', as, parse, print, root, segment)
 import Routing.Duplex.Generic (noArgs, sum)
 import Routing.Duplex.Generic.Syntax ((/))
+import Routing.Hash (setHash)
 
 data Route
   = Home
@@ -29,8 +31,5 @@ routeCodec = root $ sum
   , "Puzzle": "puzzle" / segment / segment
   }
 
-class Monad m <= Navigate m where
-  navigateTo :: Route -> m  Unit
-
-instance Navigate m => Navigate (HalogenM st act slots msg m) where
-  navigateTo = lift <<< navigateTo
+navigateTo :: forall m. MonadEffect m => Route -> m Unit
+navigateTo route = liftEffect (setHash (print routeCodec route))

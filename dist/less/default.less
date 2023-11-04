@@ -1,0 +1,52 @@
+@content-width: 750px;
+
+@import "board-component";
+@import "piece-component";
+@import "chat-component";
+@import "test.less";
+
+#content {
+    max-width: @content-width;
+    margin: 0 auto;
+    background-color: rgba(255, 73, 231, 0.466);
+}
+
+@glow-duration: 1s;
+
+@keyframes blink {
+    0% { box-shadow: 0 0 10px 10px #e74747; }
+    50% { box-shadow: none; }
+    66% { box-shadow: 0 0 10px 10px #e74747; }
+}
+
+#abed {
+    user-select: none;
+    & .spotlight {
+        animation-name: blink;
+        animation-duration: 1s;
+        animation-direction: normal;
+        animation-iteration-count: 1;
+        animation-timing-function: linear;
+    }
+}
+
+#puzzle-select-component {
+    & span[data-puzzle-progress="completed"] {
+        color: green;
+    }
+    & span[data-puzzle-progress="incomplete"] {
+        color: yellow;
+    }
+}
+
+
+
+.sidebar-component {
+    width: 400px;
+    top: 0;
+    right: 0;
+    position: fixed;
+
+    & .port { color:red; }
+    & .direction { color:darkgoldenrod; }
+}

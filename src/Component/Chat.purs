@@ -24,6 +24,7 @@ import Effect.Class.Console (log)
 import Effect.Exception (message)
 import Effect.Now (nowTime)
 import Game.Message (BaseMessage(..), Message, TimestampedMessage, timestamped)
+import GlobalState (GlobalState)
 import Halogen (ClassName(..), HalogenM, HalogenQ, defaultEval, modify_)
 import Halogen as H
 import Halogen.HTML (PlainHTML)
@@ -31,7 +32,6 @@ import Halogen.HTML as HH
 import Halogen.HTML.Properties as HP
 import Halogen.Subscription (Emitter)
 import Halogen.Subscription as HS
-import Store (Store)
 import Web.Event.Event (timeStamp)
 import Web.HTML.Event.EventTypes (offline)
 
@@ -49,7 +49,7 @@ data Action = Initialise | NewMessage Message
 
 data Output
 
-component :: forall m. MonadAsk Store m => MonadAff m => H.Component Query Input Output m
+component :: forall m. MonadAsk GlobalState m => MonadAff m => H.Component Query Input Output m
 component = H.mkComponent { eval , initialState , render }
   where
   initialState _ = { messages: [] } 

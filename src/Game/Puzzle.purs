@@ -8,8 +8,8 @@ import Data.Map (Map)
 import Data.Map as M
 import Data.Traversable (traverse)
 import Foreign.Object (Object)
-import Game.Board.BoardDeltaStore (BoardDeltaStore)
 import Game.Expression (Signal(..))
+import Game.GameEvent (GameEventStore)
 import Game.Location (CardinalDirection, location)
 import Game.Message (Message)
 import Game.ProblemDescription (ProblemDescription, defaultProblemDescription)
@@ -22,7 +22,7 @@ type PuzzleSettings =
 
 type Puzzle =
   { problemDescription :: ProblemDescription
-  , boardDeltaRulesEngine :: Array (Rule BoardDeltaStore Message)
+  , boardDeltaRulesEngine :: Array (Rule GameEventStore Message)
   , conversation :: Array Message
   , settings :: PuzzleSettings
   }

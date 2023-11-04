@@ -1,0 +1,40 @@
+.chat-component {
+    font-family: 'Courier New', Courier, monospace;
+    vertical-align: top;
+    font-size: small;
+    overflow-y: scroll;
+    height: 200px;
+
+    & #anchor {
+    overflow-anchor: auto;
+    height: 1px;
+    }
+
+    & table {
+        overflow-anchor: none;
+
+        & td {
+            padding-left: 10px;
+            padding-right: 10px;
+            vertical-align: top;
+        }
+
+        & td, table td * {
+            vertical-align: top;
+        }
+
+        & .username {
+            text-align: right;
+            width: 70px;
+
+            [data-username="guide"] {
+                color:blue;
+            }
+        }
+
+        & .message {
+            border-left: 1px solid black;
+        }
+
+    }
+}

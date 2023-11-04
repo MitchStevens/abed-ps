@@ -10,7 +10,7 @@ module Component.Sidebar where
 
 import Prelude
 
-import Capability.Navigate (class Navigate, Route(..), navigateTo)
+import Capability.Navigate (Route(..), navigateTo)
 import Component.DataAttribute (attr)
 import Component.DataAttribute as DataAttr
 import Control.Monad.Except (runExceptT)
@@ -22,7 +22,8 @@ import Effect.Aff.Class (class MonadAff)
 import Effect.Class (class MonadEffect, liftEffect)
 import Effect.Class.Console (log)
 import Game.Board (Board(..))
-import Game.Piece (APiece(..), PieceId(..), isInput, name)
+import Game.Piece (APiece(..), PieceId(..), name)
+import Game.Piece.Port (isInput)
 import Game.ProblemDescription (PieceSpecMismatch(..), ProblemDescription, solvedBy)
 import Halogen (ClassName(..), HalogenM, HalogenQ, liftAff)
 import Halogen as H
@@ -32,11 +33,15 @@ import Halogen.HTML.Properties as HP
 import Web.HTML.Event.DragEvent (DragEvent, dataTransfer, toEvent)
 import Web.UIEvent.MouseEvent (MouseEvent)
 
-type Input = ProblemDescription
+type Input = 
+  { problem :: ProblemDescription
+  --, currentBoardSize :: Int
+  }
 
 type State =
   { problem :: ProblemDescription
   , error :: Maybe PieceSpecMismatch
+  --, currentBoardSize :: Int
   }
 
 data Query a
@@ -46,15 +51,19 @@ data Action
   = PieceOnDrop PieceId DragEvent
   | PieceOnClick PieceId MouseEvent
   | BackToLevelSelect MouseEvent
+  | IncrementBoardSize
+  | DecrementBoardSize
 
 data Output
   = PieceDropped PieceId
   | PieceAdded PieceId
+  | BoardSizeIncremented
+  | BoardSizeDecremented
 
-component :: forall m. MonadAff m => Navigate m => H.Component Query Input Output m
+component :: forall m. MonadAff m => H.Component Query Input Output m
 component = H.mkComponent { eval , initialState , render }
   where
-  initialState problem = { problem, error: Nothing }
+  initialState { problem }= { problem, error: Nothing }
 
   render { problem, error } = 
     HH.div 
@@ -76,9 +85,9 @@ component = H.mkComponent { eval , initialState , render }
             [HH.text (show pieceId)]
       , HH.h3_ [ HH.text "Board size" ]
       , HH.span_
-        [ HH.button_ [ HH.text "-" ]
+        [ HH.button [ HE.onClick (\_ -> DecrementBoardSize) ] [ HH.text "-" ]
         , HH.text "3"
-        , HH.button_ [ HH.text "+" ]
+        , HH.button [ HE.onClick (\_ -> IncrementBoardSize) ] [ HH.text "+" ]
         ]
       ]
   
@@ -124,8 +133,11 @@ component = H.mkComponent { eval , initialState , render }
           H.raise (PieceAdded piece)
         BackToLevelSelect _ -> do
           navigateTo PuzzleSelect
+        IncrementBoardSize -> H.raise BoardSizeIncremented
+        DecrementBoardSize -> H.raise BoardSizeDecremented
     , handleQuery: case _ of
         IsProblemSolved board f -> do
+          log "is solved?"
           problemDescription <- H.gets (_.problem)
           isSolved <- liftAff $ runExceptT $ solvedBy problemDescription board
           H.modify_ (_ { error = blush isSolved })

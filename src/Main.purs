@@ -2,8 +2,9 @@ module Main where
 
 import Prelude
 
-import AppM (initialStore, runAppM)
-import Capability.Navigate (class Navigate, Route(..), navigateTo, routeCodec)
+import AppM (runAppM)
+import Capability.ChatServer (runChatServer)
+import Capability.Navigate (Route(..), navigateTo, routeCodec)
 import Component.Routes as Routes
 import Control.Monad.Error.Class (throwError)
 import Control.Monad.Reader (ReaderT, runReaderT)
@@ -26,8 +27,7 @@ import Web.HTML (HTMLElement)
 main :: Effect Unit
 main = HA.runHalogenAff do
   HA.awaitLoad
-  store <- initialStore
-  let rootComponent = H.hoist (runAppM store) Routes.component
+  rootComponent <- runAppM Routes.component
   { dispose, messages, query } <- runUI rootComponent unit =<< rootElement
   liftEffect do
     initialiseRouting (\route -> HA.runHalogenAff $ query (Routes.Navigate route unit))
@@ -40,5 +40,4 @@ rootElement =
 initialiseRouting :: (Route -> Effect Unit) -> Effect Unit
 initialiseRouting onNewRoute = void $ do
   matchesWith (parse routeCodec) \old new ->
-    when (old /= Just new) do
-      onNewRoute new
+    when (old /= Just new) (onNewRoute new)

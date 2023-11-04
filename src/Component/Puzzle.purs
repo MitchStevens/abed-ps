@@ -3,13 +3,12 @@ module Component.Puzzle where
 import Prelude
 
 import Capability.ChatServer (putQueuedMessages, sendMessage)
-import Capability.Navigate (class Navigate)
 import Capability.Progress (PuzzleProgress(..), savePuzzleProgress)
 import Component.Board as Board
 import Component.Chat as Chat
 import Component.Sidebar as Sidebar
 import Control.Monad.Reader (class MonadAsk, class MonadReader)
-import Data.Foldable (foldMap, for_)
+import Data.Foldable (foldMap, for_, traverse_)
 import Data.Maybe (Maybe(..))
 import Data.Time.Duration (Seconds(..))
 import Data.Traversable (for)
@@ -18,18 +17,19 @@ import Effect.Aff.Class (class MonadAff)
 import Effect.Class (class MonadEffect, liftEffect)
 import Effect.Class.Console (log)
 import Game.Board (firstEmptyLocation)
-import Game.Board.BoardDeltaStore (BoardDeltaStore)
+import Game.GameEvent (GameEvent, GameEventStore)
 import Game.Message (Message)
-import Game.Piece (name)
+import Game.Piece (name, ports)
 import Game.Piece.PieceLookup (pieceLookup)
 import Game.ProblemDescription (ProblemDescription)
 import Game.Puzzle (Puzzle, PuzzleId)
 import Game.RulesEngine (Rule, runEngine)
+import GlobalState (GlobalState)
 import Halogen (ClassName(..), Component, HalogenM, HalogenQ, Slot, gets)
 import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.Properties as HP
-import Store (Store)
+import Halogen.Store.Monad (class MonadStore)
 import Type.Proxy (Proxy(..))
 import Web.UIEvent.KeyboardEvent (KeyboardEvent)
 
@@ -57,17 +57,18 @@ _sidebar = Proxy :: Proxy "sidebar"
 
 component :: forall q o m
   . MonadAff m
-  => MonadAsk Store m
-  => Navigate m 
+  => MonadAsk GlobalState m
+  => MonadStore GameEvent GameEventStore m
   => Component q Input o m
 component = H.mkComponent { eval , initialState , render }
   where
   initialState = identity
 
-  render state = HH.div [ HP.class_ (ClassName "puzzle")]
+  --render :: State -> HalogenM State Action Slots o m Unit
+  render { puzzle, puzzleId } = HH.div [ HP.class_ (ClassName "puzzle")]
     [ HH.slot _board    unit Board.component Nothing BoardOutput
     , HH.slot_ _chat    unit Chat.component unit
-    , HH.slot _sidebar  unit Sidebar.component state.puzzle.problemDescription SidebarOutput
+    , HH.slot _sidebar  unit Sidebar.component { problem: puzzle.problemDescription } SidebarOutput
     ]
 
   eval :: HalogenQ q Action Input ~> HalogenM State Action Slots o m
@@ -80,24 +81,34 @@ component = H.mkComponent { eval , initialState , render }
         maybeBoard <- H.request _board unit Board.GetBoard
         for_ maybeBoard $ \board ->
           H.request _sidebar unit (Sidebar.IsProblemSolved board)
-      BoardOutput (Board.NewBoardState boardDeltaStore board) -> do
+
+        piece <- H.gets (_.puzzle.problemDescription.goal)
+        H.tell _board unit (\_ -> Board.SetGoalPorts (ports piece))
+      BoardOutput (Board.NewBoardState board) -> do
+        -- the sidebar should be updated with the new board so it can display the
+        -- pieceSpecMismatch 
         maybeMismatch <- H.request _sidebar unit (Sidebar.IsProblemSolved board)
+
+        -- when puzzle is complete, save the puzzle
         when (maybeMismatch == Nothing) do
           puzzleId <-  gets (_.puzzleId)
           liftEffect $ savePuzzleProgress puzzleId Completed
-        rulesEngine <- gets (_.puzzle.boardDeltaRulesEngine)
-        for_ (runEngine rulesEngine boardDeltaStore) sendMessage
       SidebarOutput (Sidebar.PieceDropped pieceId) -> do
         maybeLocation <- H.request _board unit (Board.GetMouseOverLocation)
-        for_ maybeLocation \loc ->
-          H.request _board unit (Board.AddPiece loc pieceId)
+        for_ maybeLocation (addPieceToComponent pieceId)
       SidebarOutput (Sidebar.PieceAdded pieceId) -> do
-        maybeBoard <- H.request _board unit Board.GetBoard
-        for_ maybeBoard \board ->
-          for_ (firstEmptyLocation board) \loc ->
-            H.request _board unit (Board.AddPiece loc pieceId)
+        H.request _board unit Board.GetBoard >>= traverse_ \board ->
+          for_ (firstEmptyLocation board) (addPieceToComponent pieceId)
+      SidebarOutput Sidebar.BoardSizeIncremented ->
+        void $ H.request _board unit Board.IncrementBoardSize
+      SidebarOutput Sidebar.BoardSizeDecremented ->
+        void $ H.request _board unit Board.DecrementBoardSize
     , handleQuery: case _ of
         _ -> pure Nothing
     , initialize: Just Initialise
     , receive: const Nothing -- :: input -> Maybe action
     }
+  
+  addPieceToComponent pieceId loc = do
+    for_ (pieceLookup pieceId) \piece ->
+      H.tell _board unit (\_ -> Board.AddPiece loc piece)

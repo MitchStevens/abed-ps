@@ -1,3 +1,95 @@
+#board-component {
+  background-color: yellowgreen;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  border-spacing: 0px;
+  display: grid;
+}
+#board-component .piece {
+  display: block;
+  height: 100%;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  background-color: beige;
+  z-index: 0;
+}
+#board-component .board-port {
+  background-color: coral;
+  position: relative;
+  display: grid;
+  justify-items: center;
+  align-items: center;
+}
+#board-component .board-port[data-direction='up'] svg {
+  width: 50%;
+}
+#board-component .board-port[data-direction='down'] svg {
+  width: 50%;
+}
+#board-component .bad-port {
+  stroke: red;
+}
+#board-component .unused-port {
+  stroke: black;
+}
+.piece-component {
+  background-image: linear-gradient(45deg, transparent 50%, rgba(0, 0, 0, 0.5) 50%);
+  user-select: none;
+  aspect-ratio: 1 / 1;
+  z-index: 1;
+  position: relative;
+}
+.piece-component > div {
+  position: absolute;
+}
+.piece-component svg circle {
+  fill: aliceblue;
+}
+.piece-component svg text {
+  fill: black;
+  font-size: 90px ;
+  font-family: 'Courier New', Courier, monospace;
+}
+.port[data-connected='connected'] {
+  stroke: grey;
+  stroke-width: 1px;
+}
+.port[data-connected='not-connected'] {
+  stroke: none;
+}
+.chat-component {
+  font-family: 'Courier New', Courier, monospace;
+  vertical-align: top;
+  font-size: small;
+  overflow-y: scroll;
+  height: 200px;
+}
+.chat-component #anchor {
+  overflow-anchor: auto;
+  height: 1px;
+}
+.chat-component table {
+  overflow-anchor: none;
+}
+.chat-component table td {
+  padding-left: 10px;
+  padding-right: 10px;
+  vertical-align: top;
+}
+.chat-component table td,
+.chat-component table table td * {
+  vertical-align: top;
+}
+.chat-component table .username {
+  text-align: right;
+  width: 70px;
+}
+.chat-component table .username [data-username="guide"] {
+  color: blue;
+}
+.chat-component table .message {
+  border-left: 1px solid black;
+}
 #content {
   max-width: 750px;
   margin: 0 auto;
@@ -37,52 +129,13 @@
   aspect-ratio: 1 / 1;
   border-spacing: 0px;
 }
-#board-component table tr > td:first-child {
-  max-width: 30px;
-}
-#board-component table tr > td:last-child {
-  max-width: 30px;
-}
-#board-component table > tr:first-child > td {
-  max-height: 30px;
-}
-#board-component table > tr:last-child > td {
-  max-height: 30px;
-}
 #board-component table .piece {
   display: block;
-  aspect-ratio: 1 / 1;
   height: 100%;
   width: 100%;
+  aspect-ratio: 1 / 1;
   background-color: beige;
   z-index: 0;
-}
-#board-component .board-port {
-  position: relative;
-  background-color: coral;
-  width: 100%;
-  height: 100%;
-}
-#board-component .board-port div {
-  display: flex;
-  justify-content: center;
-  background-color: aqua;
-}
-#board-component .board-port img {
-  position: absolute;
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-}
-#board-component .board-port.Up {
-  transform: rotate(180deg);
-}
-#board-component .board-port.Right img {
-  transform: rotate(-90deg) translateX(-100%);
-  transform-origin: top left;
-}
-#board-component .board-port.Left {
-  transform: rotate(90deg);
 }
 .piece-component {
   background-image: linear-gradient(45deg, transparent 50%, rgba(0, 0, 0, 0.5) 50%);
@@ -105,33 +158,6 @@
   object-fit: cover;
   max-height: 100%;
   max-width: 100%;
-}
-.piece-component .Up {
-  top: 0;
-  left: 13%;
-}
-.piece-component .Down {
-  top: 87%;
-  left: 13%;
-  transform: rotate(180deg);
-  transform-origin: center center;
-}
-.piece-component .Left {
-  top: 74%;
-  left: 13%;
-  transform-origin: 0% 100%;
-  transform: rotate(-90deg);
-}
-.piece-component .Right {
-  top: 0;
-  left: 87%;
-  transform-origin: 0% 100%;
-  transform: rotate(90deg);
-}
-.piece-component .piece-name {
-  top: 13%;
-  left: 13%;
-  font-size: 50px;
 }
 .chat-component {
   font-family: 'Courier New', Courier, monospace;
@@ -165,6 +191,50 @@
 }
 .chat-component table .message {
   border-left: 1px solid black;
+}
+.sidebar-component {
+  width: 400px;
+  top: 0;
+  right: 0;
+  position: fixed;
+}
+.sidebar-component .port {
+  color: red;
+}
+.sidebar-component .direction {
+  color: darkgoldenrod;
+}
+#content {
+  max-width: 750px;
+  margin: 0 auto;
+  background-color: rgba(255, 73, 231, 0.466);
+}
+@keyframes blink {
+  0% {
+    box-shadow: 0 0 10px 10px #e74747;
+  }
+  50% {
+    box-shadow: none;
+  }
+  66% {
+    box-shadow: 0 0 10px 10px #e74747;
+  }
+}
+#abed {
+  user-select: none;
+}
+#abed .spotlight {
+  animation-name: blink;
+  animation-duration: 1s;
+  animation-direction: normal;
+  animation-iteration-count: 1;
+  animation-timing-function: linear;
+}
+#puzzle-select-component span[data-puzzle-progress="completed"] {
+  color: green;
+}
+#puzzle-select-component span[data-puzzle-progress="incomplete"] {
+  color: yellow;
 }
 .sidebar-component {
   width: 400px;

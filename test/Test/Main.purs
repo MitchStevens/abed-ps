@@ -4,12 +4,15 @@ import Prelude
 
 import Effect (Effect)
 import Effect.Aff (runAff_)
-import Test.Game.Board              as Test.Game.Board
-import Test.Game.Expression         as Test.Game.Expression
-import Test.Game.Location           as Test.Game.Location
-import Test.Game.Piece              as Test.Game.Piece
+import Halogen as Test
+import Test.Component.Board as Test.Component.Board
+import Test.Game.Board as Test.Game.Board
+import Test.Game.Expression as Test.Game.Expression
+import Test.Game.GameEvent as Test.Game.GameEvent
+import Test.Game.Location as Test.Game.Location
+import Test.Game.Piece as Test.Game.Piece
 import Test.Game.ProblemDescription as Test.Game.ProblemDescription
-import Test.Game.RulesEngine        as Test.Game.RulesEngine
+import Test.Game.RulesEngine as Test.Game.RulesEngine
 import Test.Unit (describe, it)
 import Test.Unit.Assert (shouldEqual)
 import Test.Unit.Output.Fancy (runTest)
@@ -22,6 +25,9 @@ main = runAff_ (\_ -> pure unit) $ runTest do
   describe "Board tests"                Test.Game.Board.tests
   describe "ProblemDescription tests"   Test.Game.ProblemDescription.tests
   describe "Rules Engine tests"         Test.Game.RulesEngine.tests
+  describe "Game Event Tests"           Test.Game.GameEvent.tests
+  describe "Component tests" do
+    Test.Component.Board.tests
 
   --describe "Better Piece" do
   --  it "test1" $ eval SimpleNegate { left: true } `shouldEqual` { right: false }

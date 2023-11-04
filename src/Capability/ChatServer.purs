@@ -21,7 +21,7 @@ import Debug (spy, trace)
 import Effect.Aff (Aff, delay, finally, forkAff, invincible, message, runAff_)
 import Effect.Aff.Class (class MonadAff, liftAff)
 import Effect.Class (class MonadEffect, liftEffect)
-import Effect.Class.Console (log)
+import Effect.Class.Console (debug, log)
 import Effect.Ref (Ref)
 import Effect.Ref as Ref
 import Game.Message (BaseMessage(..), Message, delayBy)
@@ -68,24 +68,19 @@ sendMessage message = do
   liftEffect $ HS.notify listener message
 
 -- must be Aff!
-runChatServer
-  :: forall m r
-   . MonadAsk { chatServer :: ChatServer | r } m 
-  => MonadAff m
-  => MonadRec m
-  => m Unit
-runChatServer = forever do
-  ref <- asks (_.chatServer.queuedMessages)
-  queued <- liftEffect $ Ref.read ref
-  case A.uncons queued of
-    Just { head: Message m, tail } -> do
-      -- wait for user to write message
-      for_ m.delayBy
-        \d -> liftAff $ delay (fromDuration d)
-      --send the message, remove message from the queue, 
-      listener <- asks (_.chatServer.listener)
-      liftEffect $ HS.notify listener (Message m)
-      liftEffect $ Ref.write tail ref
-      traverse_ spotlight m.selector
-    Nothing -> do
-      liftAff $ delay (Milliseconds 100.0)
+runChatServer :: ChatServer -> Aff Unit
+runChatServer chatServer = void $ forkAff do
+  forever do
+    let ref = chatServer.queuedMessages
+    queued <- liftEffect $ Ref.read ref
+    case A.uncons queued of
+      Just { head: Message m, tail } -> do
+        -- wait for user to write message
+        for_ m.delayBy
+          \d -> liftAff $ delay (fromDuration d)
+        --send the message, remove message from the queue, 
+        liftEffect $ HS.notify chatServer.listener (Message m)
+        traverse_ spotlight m.selector
+        liftEffect $ Ref.write tail ref
+      Nothing -> do
+        liftAff $ delay (Milliseconds 100.0)

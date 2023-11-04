@@ -1,9 +1,9 @@
-module Store where
+module GlobalState where
 
 import Prelude
 
 import Capability.ChatServer (ChatServer)
 
-type Store =
+type GlobalState =
   { chatServer :: ChatServer
   }

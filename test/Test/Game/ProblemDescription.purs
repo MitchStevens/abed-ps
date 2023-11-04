@@ -20,8 +20,8 @@ import Game.Board (BoardT, addPiece, emptyBoard, evalBoardM, execBoardM, rotateP
 import Game.Expression (Expression, Signal(..), evaluate, raw, ref, simplify)
 import Game.Location (location, rotation)
 import Game.Location as Direction
-import Game.Piece (Capacity(..), Port(..), mkPiece)
 import Game.Piece.BasicPiece (idPiece, notPiece, orPiece)
+import Game.Piece.Port (Capacity(..), Port(..))
 import Game.ProblemDescription (PieceSpecMismatch(..), ProblemDescription, solvedBy)
 import Test.Game.Board (runBoardTest)
 import Test.Unit (Test, TestSuite, describe, it, test, testOnly)
@@ -29,21 +29,14 @@ import Test.Unit.Assert (equal, shouldEqual)
 
 problemDescription :: ProblemDescription
 problemDescription =
-  { goal: mkPiece idPiece
+  { goal: idPiece
   , title: "Double negation"
   , description: "create an idenity from not gate"
   , testCases: [ M.singleton Direction.Left ff, M.singleton Direction.Left tt ]
   , requiresAutomaticTesting: false
   , pieceSet: S.empty
   , otherRestrictions: []
-  , boardDeltaTrigger: [] -- add trigger tests later
   }
-
---problemDescription2 =
---  { goal: mkPiece orPiece
---  , title: "Or Piece from nots and ands"
---  , description: "make an or from only ands"
---  }
 
 tests :: TestSuite
 tests = do

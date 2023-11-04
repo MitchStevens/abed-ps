@@ -4,7 +4,8 @@ import Prelude
 
 import Capability.Progress (PuzzleProgress(..))
 import Data.Maybe (Maybe(..))
-import Game.Location (Location(..))
+import Data.String (toLower)
+import Game.Location (CardinalDirection, Location(..))
 import Game.Piece (PieceId(..))
 import Halogen.HTML (IProp)
 import Halogen.HTML as HP
@@ -38,3 +39,14 @@ progress :: DataAttribute PuzzleProgress
 progress = Attr (AttrName "data-puzzle-progress") case _ of
   Completed -> "completed"
   Incomplete -> "incomplete"
+
+direction :: DataAttribute CardinalDirection
+direction = Attr (AttrName "data-direction") (show >>> toLower)
+
+connected :: DataAttribute Boolean
+connected = Attr (AttrName "data-connected") $
+  if _
+    then "connected"
+    else "not-connected"
+  
+

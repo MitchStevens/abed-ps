@@ -2,7 +2,7 @@ module Component.PuzzleSelect where
 
 import Prelude
 
-import Capability.Navigate (class Navigate, Route(..), navigateTo)
+import Capability.Navigate (Route(..), navigateTo)
 import Capability.Progress (PuzzleProgress(..), savePuzzleProgress)
 import Component.DataAttribute (attr)
 import Component.DataAttribute as DataAttr
@@ -27,14 +27,13 @@ import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
 import IO.Puzzles (allPuzzles, getAllPuzzleProgress)
-import Web.HTML.HTMLDocument.ReadyState (ReadyState(..))
 
 
 type State = { puzzleProgress :: Map PuzzleId PuzzleProgress }
 
 data Action = Initialise | NavigateTo PuzzleId
 
-component :: forall q i o m. MonadAff m => Navigate m => H.Component q i o m
+component :: forall q i o m. MonadAff m => H.Component q i o m
 component = H.mkComponent { eval , initialState , render }
   where
   initialState _ = { puzzleProgress: M.empty } 

@@ -1,0 +1,36 @@
+#board-component {
+    background-color:yellowgreen;
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    border-spacing: 0px;
+    display: grid;
+
+    & .piece {
+        display: block;
+        height: 100%;
+        width: 100%;
+        aspect-ratio: 1 / 1;
+        background-color: beige;
+        z-index: 0;
+    }
+
+    & .board-port {
+        background-color: coral;
+        position: relative;
+        display: grid;
+        justify-items: center;
+        align-items: center;
+
+
+        &[data-direction='up'] svg { width: 50%; }
+        &[data-direction='down'] svg { width: 50%; }
+    }
+
+    .bad-port {
+        stroke: red;
+    }
+
+    .unused-port {
+        stroke: black
+    }
+}

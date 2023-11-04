@@ -22,6 +22,7 @@ type State = {}
 
 data Action
   = DeleteProgress
+  -- | NavigateTo Route
 
 component :: forall q i o m. MonadAff m => H.Component q i o m
 component = H.mkComponent { eval , initialState , render }

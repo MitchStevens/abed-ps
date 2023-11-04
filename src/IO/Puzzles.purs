@@ -13,8 +13,6 @@ import Data.Tuple (Tuple(..))
 import Effect.Class (class MonadEffect)
 import Foreign.Object (Object, fromHomogeneous)
 import Foreign.Object as O
-import Game.Board.BoardDelta (BoardDelta(..))
-import Game.Board.BoardDeltaStore (BoardDeltaStore, count, firstTime, latest, pieceAdded, pieceMovedTo, secondTime)
 import Game.Expression (Signal(..))
 import Game.Location (CardinalDirection, location)
 import Game.Location as Direction
@@ -24,6 +22,7 @@ import Game.Piece.BasicPiece (andPiece, idPiece, notPiece, orPiece, truePiece)
 import Game.ProblemDescription (ProblemDescription, countPiecesOfType)
 import Game.Puzzle (PuzzleSuite, PuzzleId)
 import Game.RulesEngine (Rule(..))
+import IO.Puzzles.IntermediateSuite (intermediateSuite)
 import IO.Puzzles.TutorialSuite (tutorialSuite)
 import Web.DOM.ParentNode (QuerySelector(..))
 import Web.HTML.Common (AttrName(..))
@@ -67,8 +66,8 @@ identitySuite = fromHomogeneous {}
   --, "Starburst":
   --}
 
-intermediateSuite :: PuzzleSuite
-intermediateSuite = fromHomogeneous {}
+--intermediateSuite :: PuzzleSuite
+--intermediateSuite = fromHomogeneous {}
   --{ "Inverted Or":
   --  { problemDescription:
   --    { goal: mkPiece orPiece

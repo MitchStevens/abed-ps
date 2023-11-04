@@ -26,6 +26,7 @@ spotlight
    . MonadAff m
    => QuerySelector -> m Unit
 spotlight selector = do
+  log "starting spotlight"
   htmlDocument <- liftEffect $ window >>= document
   nodeList <- liftEffect $ querySelectorAll selector (toParentNode htmlDocument)
   liftEffect (toArray nodeList) >>= traverse_ \node ->

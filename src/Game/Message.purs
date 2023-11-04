@@ -2,6 +2,7 @@ module Game.Message where
 
 import Prelude
 
+import Data.Array as A
 import Data.Int (toNumber)
 import Data.Maybe (Maybe(..), fromMaybe, maybe)
 import Data.Newtype (unwrap)
@@ -38,11 +39,20 @@ guiding text selector = Message { user: "guide", text, selector: Just selector, 
 timeToRead :: String -> Seconds
 timeToRead str = Seconds 1.5 <> Seconds (toNumber (String.length str) * 0.065)
 
+-- dont delay the first message,
+addDelayToMessages :: Array Message -> Array Message
+addDelayToMessages messages = case A.uncons messages of
+  Just { head, tail } -> [ noDelay head ] <> map addDelay tail
+  Nothing -> []
+
 addDelay :: Message -> Message
 addDelay message@(Message m) = delayBy (timeToRead m.text) message
 
 delayBy :: Seconds -> Message -> Message
 delayBy delay (Message m) = Message (m {delayBy = Just delay} )
+
+noDelay :: Message -> Message
+noDelay (Message m) = Message (m {delayBy = Nothing} )
 
 timestamped :: Time -> Message -> TimestampedMessage
 timestamped time (Message {user, text, selector, delayBy}) = Message {user, text, selector, delayBy, time}

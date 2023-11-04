@@ -2,7 +2,7 @@ module Component.Home where
 
 import Prelude
 
-import Capability.Navigate (class Navigate, Route(..), navigateTo)
+import Capability.Navigate (Route(..), navigateTo)
 import Data.Time.Duration (Milliseconds(..), Seconds(..), fromDuration)
 import Effect.Aff.Class (class MonadAff)
 import Effect.Class (class MonadEffect, liftEffect)
@@ -19,7 +19,7 @@ type State = {}
 
 data Action = NavigateTo Route
 
-component :: forall q i o m. MonadAff m => Navigate m => H.Component q i o m
+component :: forall q i o m. MonadAff m => H.Component q i o m
 component = H.mkComponent { eval , initialState , render }
   where
   initialState _ = {} 

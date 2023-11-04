@@ -14,7 +14,8 @@ import Data.Unfoldable (fromMaybe)
 import Game.Expression (Expression(..), evaluate, raw, ref)
 import Game.Location (CardinalDirection(..))
 import Game.Location as Direction
-import Game.Piece (class Piece, APiece(..), Capacity(..), PieceId(..), Port(..), mkPiece)
+import Game.Piece (class Piece, APiece(..), PieceId(..), mkPiece)
+import Game.Piece.Port (Capacity(..), Port(..))
 
 data BasicPort = BasicInput | BasicOutput Expression
 
@@ -34,6 +35,13 @@ instance Piece BasicPiece where
   ports (Basic piece) = piece.ports <#> case _ of
     BasicInput -> Input piece.capacity
     BasicOutput _ -> Output piece.capacity
+
+allBasicPieces :: Array APiece
+allBasicPieces =
+  [ idPiece, notPiece, orPiece, andPiece, crossPiece
+  , dupPiece, xorPiece, superPiece
+  , truePiece, falsePiece
+  ]
 
 idPiece :: APiece
 idPiece = mkPiece $ Basic 
@@ -74,6 +82,18 @@ andPiece = mkPiece $ Basic
     [ Tuple Left $ BasicInput  
     , Tuple Up $ BasicInput 
     , Tuple Right $ BasicOutput (ref Left && ref Up)
+    ]
+  }
+
+superPiece :: APiece
+superPiece = mkPiece $ Basic
+  { name: "super"
+  , capacity: Capacity 1
+  , ports: M.fromFoldable
+    [ Tuple Left BasicInput
+    , Tuple Up    $ BasicOutput (ref Left)
+    , Tuple Right $ BasicOutput (ref Left)
+    , Tuple Down  $ BasicOutput (ref Left)
     ]
   }
 

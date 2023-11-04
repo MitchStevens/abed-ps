@@ -1,0 +1,49 @@
+.piece-component {
+    background-image: linear-gradient(45deg, transparent 50%, rgba(0, 0, 0, 0.5) 50%);
+    //display: flex;
+    //justify-content: center;
+    //align-items: center;
+    user-select: none;
+    aspect-ratio: 1 / 1;
+    z-index: 1;
+    position: relative;
+
+
+    & > div {
+        position: absolute;
+    }
+
+    //& .port {
+    //    display: flex;
+    //    justify-content: center;
+    //    background-color: aqua;
+    //    width: 100% - 2 * @port-height;
+    //    height: @port-height;
+
+    //    & .port-icon {
+    //        object-fit: cover;
+    //        max-height: 100%;
+    //        max-width: 100%;
+    //    }
+    //}
+
+    & svg {
+        circle { fill: aliceblue }
+
+        text {
+            fill: black; 
+            font-size: 90px ;
+            font-family: 'Courier New', Courier, monospace;
+        }
+    }
+}
+
+.port {
+    &[data-connected='connected'] {
+            stroke: grey;
+            stroke-width: 1px;
+    }
+    &[data-connected='not-connected'] {
+            stroke: none;
+    }
+}

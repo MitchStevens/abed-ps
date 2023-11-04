@@ -2,7 +2,7 @@ module Component.Routes where
 
 import Prelude
 
-import Capability.Navigate (class Navigate, Route(..))
+import Capability.Navigate (Route(..))
 import Component.About as About
 import Component.Home as Home
 import Component.Puzzle as Puzzle
@@ -13,13 +13,15 @@ import Data.Maybe (Maybe(..), fromMaybe)
 import Effect.Aff.Class (class MonadAff)
 import Effect.Class.Console (log)
 import Foreign.Object as Object
+import Game.GameEvent (GameEvent, GameEventStore)
+import GlobalState (GlobalState)
 import Halogen (Component, Slot, mkEval)
 import Halogen as H
 import Halogen.HTML as HH
+import Halogen.Store.Monad (class MonadStore)
 import IO.Puzzles (allPuzzles)
 import Record as Record
 import Routing.Match (Match, lit, str)
-import Store (Store)
 import Type.Proxy (Proxy(..))
 import Web.UIEvent.KeyboardEvent (KeyboardEvent)
 
@@ -54,8 +56,8 @@ type Slots =
 component 
   :: forall m
    . MonadAff m
-  => MonadAsk Store m
-  => Navigate m
+  => MonadAsk GlobalState m
+  => MonadStore GameEvent GameEventStore m
   => Component Query Unit Void m
 component = H.mkComponent { eval, initialState, render }
   where
