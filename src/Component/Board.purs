@@ -291,7 +291,7 @@ component = H.mkComponent { eval , initialState , render }
         updateStore (BoardEvent UndoBoardEvent)
         evaluateBoard
     ToggleInput dir -> do
-      modify_ $ \s -> s { ports = M.alter (map (map not)) dir s.ports }
+      modify_ $ \s -> s { ports = M.alter (map (\(Tuple port signal) -> Tuple port (if isInput port then not signal else signal))) dir s.ports }
       _ <- evaluateBoard
       pure unit
 
