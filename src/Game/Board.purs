@@ -18,7 +18,7 @@ import Data.List as L
 import Data.Map (Map)
 import Data.Map as M
 import Data.Map.Internal as Map
-import Data.Maybe (Maybe(..), isJust, maybe)
+import Data.Maybe (Maybe(..), fromMaybe, isJust, maybe)
 import Data.Newtype (class Newtype)
 import Data.Set (Set)
 import Data.Set as S
@@ -31,6 +31,12 @@ import Game.Piece (class Piece, APiece(..), PieceId(..), eval, getOutputDirs, ge
 import Game.Piece.Port (Port, PortInfo, isInput)
 import Type.Proxy (Proxy(..))
 
+
+{-
+  Edges are references to ports, they contain a location and a direction
+  We have two different types of edges to
+-}
+type AbsoluteEdge = Edge
 
 newtype RelativeEdge = Relative Edge
 derive instance Newtype RelativeEdge _
@@ -48,7 +54,6 @@ relativeEdgeLocation (Relative (Edge {loc, dir})) = loc
 relativeEdgeDirection :: RelativeEdge -> CardinalDirection
 relativeEdgeDirection (Relative (Edge {loc, dir})) = dir
 
-type AbsoluteEdge = Edge
 
 absolute :: Location -> CardinalDirection -> AbsoluteEdge
 absolute = edge 
@@ -258,7 +263,7 @@ evalBoardWithPortInfo inputs = do
   ports <- allPortsOnBoard
 
   pure $ M.fromFoldable do
-    Tuple relEdge signal <- M.toUnfoldable signals
+    Tuple relEdge port <- M.toUnfoldable ports :: Array _
+    let signal = fromMaybe (Signal 0) (M.lookup relEdge signals)
     let connected = S.member relEdge connections
-    port <- A.fromFoldable (M.lookup relEdge ports) :: Array _
     pure $ Tuple relEdge { connected, port, signal }
