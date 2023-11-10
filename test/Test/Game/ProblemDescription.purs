@@ -16,7 +16,8 @@ import Data.Set as S
 import Data.Tuple (Tuple(..), uncurry)
 import Effect.Aff (Aff, error)
 import Effect.Exception (error)
-import Game.Board (BoardT, addPiece, emptyBoard, evalBoardM, execBoardM, rotatePieceBy, standardBoard)
+import Game.Board (standardBoard)
+import Game.Board.Operation (BoardT, addPiece, emptyBoard, evalBoardM, execBoardM, rotatePieceBy)
 import Game.Expression (Expression, Signal(..), evaluate, raw, ref, simplify)
 import Game.Location (location, rotation)
 import Game.Location as Direction

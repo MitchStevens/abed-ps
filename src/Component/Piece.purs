@@ -8,11 +8,12 @@ import Data.Array as A
 import Data.Enum (enumFromTo, fromEnum)
 import Data.Foldable (for_, traverse_)
 import Data.Int (round, toNumber)
+import Data.Lens.At (at)
 import Data.Lens.Index (ix)
 import Data.Lens.Record (prop)
 import Data.Map (Map)
 import Data.Map as M
-import Data.Maybe (Maybe(..), fromMaybe, isNothing, maybe)
+import Data.Maybe (Maybe(..), fromMaybe, isJust, isNothing, maybe)
 import Data.Number (acos, atan2, pi, sqrt)
 import Data.Tuple (Tuple(..))
 import Effect (Effect)
@@ -22,7 +23,7 @@ import Game.Expression (Signal(..))
 import Game.Location (CardinalDirection, Location, Rotation(..), allDirections, locationId, rotateDirection, rotation)
 import Game.Location as Direction
 import Game.Piece (class Piece, APiece(..), PieceId(..), getPort, name, ports)
-import Game.Piece.Port (Port)
+import Game.Piece.Port (Port, PortInfo)
 import Game.Piece.Port as Port
 import Halogen (AttrName(..), ClassName(..), HalogenM, RefLabel(..), gets)
 import Halogen as H
@@ -54,12 +55,13 @@ type State =
     { initialClickPosition :: Tuple Number Number
     , currentRotation :: Number 
     }
-  , portStates :: Map CardinalDirection PortState
+  , portStates :: Map CardinalDirection PortInfo
   }
 
 data Query a
   = PaintSignals (Map CardinalDirection Signal)
   | PaintConnected CardinalDirection Boolean
+  | PaintPort CardinalDirection PortInfo
 
 data Action
   = Initialise
@@ -73,12 +75,6 @@ data Output
   = Rotated Location Rotation
   | Dropped Location
 
-type PortState =
-  { connected :: Boolean
-  , portType :: Port
-  , signal :: Signal
-  }
-
 _portStates = prop (Proxy :: Proxy "portStates")
 _signal = prop (Proxy :: Proxy "signal")
 _connected = prop (Proxy :: Proxy "connected")
@@ -91,7 +87,7 @@ component = H.mkComponent { eval , initialState , render }
     , location
     , rotation: rotation 0
     , isRotating: Nothing
-    , portStates: map (\p -> {connected: false, portType: p, signal: Signal 0}) (ports piece) }
+    , portStates: map (\p -> {connected: false, port: p, signal: Signal 0}) (ports piece) }
 
   render state =
     HH.div
@@ -125,8 +121,8 @@ component = H.mkComponent { eval , initialState , render }
             , Translate 25.0 0.0 ]
           ] $
           do
-            portState <- A.fromFoldable (M.lookup dir state.portStates)
-            pure $ renderPort dir portState
+            portInfo <- A.fromFoldable (M.lookup dir state.portStates)
+            pure $ renderPort (rotateDirection dir state.rotation) portInfo
 
       center = SE.g 
         [ SA.transform [ Translate 30.0 30.0 ] ]
@@ -168,8 +164,10 @@ component = H.mkComponent { eval , initialState , render }
                 })
         OnMouseMove me -> do --pure unit --do
           H.getRef (RefLabel "piece") >>= traverse_ \e -> 
+            -- if the piece is being rotated...
             H.gets (_.isRotating) >>= traverse_ \{ initialClickPosition, currentRotation } -> do
               let p1 = initialClickPosition
+              -- get the current mouse position
               let p2 = getPosition me
               c <- liftEffect $ elementCenterClient e
 
@@ -177,8 +175,10 @@ component = H.mkComponent { eval , initialState , render }
               let v2 = p2 - c
               let dot (Tuple x1 y1) (Tuple x2 y2) = x1*x2 + y1*y2
               let det (Tuple x1 y1) (Tuple x2 y2) = x1*y2 - x2*y1
+              -- find the angle between the initialClick and the current mouse position...
               let angle = atan2 (v1 `det` v2) (v1 `dot` v2)
 
+              -- rotate the piece by this angle
               H.modify_ (_ {
                 isRotating = Just { initialClickPosition, currentRotation: angle }
               })
@@ -195,48 +195,42 @@ component = H.mkComponent { eval , initialState , render }
         PaintConnected dir connected -> do
           _portStates <<< ix dir <<< _connected .= connected
           pure Nothing
+        PaintPort dir portInfo -> do
+          piece <- gets (_.piece)
+          when (isJust $ getPort piece dir) do
+            _portStates <<< at dir .= Just portInfo
+          pure Nothing
     , initialize: Just Initialise 
     , receive: const Nothing -- :: input -> Maybe action
     }
 
 
 electricBlue = RGB 62 207 207
-gunMetalGrey = RGB 118 138 138
+gunMetalGrey = RGB 204 226 237
 
-renderPort :: forall p i. CardinalDirection -> PortState -> HTML p i
-renderPort direction {connected, portType, signal} = SE.g []
-  [ SE.defs []
-    [ SE.linearGradient
-      [ SA.id "port-in-gradient" , SA.gradientTransform [ Rotate 90.0 0.0 0.0 ] ]
-      [ SE.stop [ SA.offset "5%" , SA.stopColor electricBlue, SA.stopOpacity 0.4 ] 
-      , SE.stop [ SA.offset "95%" , SA.stopColor electricBlue ] 
-      ]
-    , SE.linearGradient
-      [ SA.id "port-out-gradient" , SA.gradientTransform [ Rotate 90.0 0.0 0.0 ] ]
-      [ SE.stop [ SA.offset "5%" , SA.stopColor electricBlue, SA.stopOpacity 0.5 ] 
-      , SE.stop [ SA.offset "95%" , SA.stopColor electricBlue, SA.stopOpacity 0.0 ] 
-      ]
-    ]
+renderPort :: forall p i. CardinalDirection -> PortInfo -> HTML p i
+renderPort direction {connected, port, signal} = SE.g []
+  [ SE.defs [] gradients
   , portShape
   ]
   where
-    portShape = case portType of
+    portShape = case port of
       (Port.Input n) ->
         SE.polyline
           [ SA.points portShapePoints
           , SA.classes [ClassName "port-in", ClassName "port"]
           , DataAttr.attr DataAttr.connected connected
-          , SA.fillGradient "#port-in-gradient"
+          , SA.fillGradient (if signal /= Signal 0 then "#port-in-gradient" else "#port-in-gradient-off")
           ]
       (Port.Output n) ->
         SE.polyline
           [ SA.points portShapePoints
           , DataAttr.attr DataAttr.connected connected
           , SA.classes [ClassName "port-out", ClassName "port"]
-          , SA.fillGradient "#port-out-gradient"
+          , SA.fillGradient (if signal /= Signal 0 then "#port-out-gradient" else "#port-out-gradient-off")
           ]
 
-    portShapePoints = case portType of
+    portShapePoints = case port of
       (Port.Input n) ->
         [ Tuple 10.0  0.0
         , Tuple 10.0  12.0
@@ -252,6 +246,30 @@ renderPort direction {connected, portType, signal} = SE.g []
         , Tuple 40.0  25.0
         , Tuple 40.0  0.0
         ]
+
+gradients :: forall p i. Array (HTML p i)
+gradients =
+  [ SE.linearGradient
+    [ SA.id "port-in-gradient" , SA.gradientTransform [ Rotate 90.0 0.0 0.0 ] ]
+    [ SE.stop [ SA.offset "5%" , SA.stopColor electricBlue, SA.stopOpacity 0.5 ] 
+    , SE.stop [ SA.offset "95%" , SA.stopColor electricBlue ] 
+    ]
+  , SE.linearGradient
+    [ SA.id "port-out-gradient" , SA.gradientTransform [ Rotate 90.0 0.0 0.0 ] ]
+    [ SE.stop [ SA.offset "5%" , SA.stopColor electricBlue, SA.stopOpacity 0.5 ] 
+    , SE.stop [ SA.offset "95%" , SA.stopColor electricBlue, SA.stopOpacity 0.0 ] 
+    ]
+  , SE.linearGradient
+    [ SA.id "port-in-gradient-off" , SA.gradientTransform [ Rotate 90.0 0.0 0.0 ] ]
+    [ SE.stop [ SA.offset "5%" , SA.stopColor gunMetalGrey, SA.stopOpacity 0.5 ] 
+    , SE.stop [ SA.offset "95%" , SA.stopColor gunMetalGrey ] 
+    ]
+  , SE.linearGradient
+    [ SA.id "port-out-gradient-off" , SA.gradientTransform [ Rotate 90.0 0.0 0.0 ] ]
+    [ SE.stop [ SA.offset "5%" , SA.stopColor gunMetalGrey, SA.stopOpacity 0.5 ] 
+    , SE.stop [ SA.offset "95%" , SA.stopColor gunMetalGrey, SA.stopOpacity 0.0 ] 
+    ]
+  ]
 
 pieceCenter :: forall p i. PieceId -> HTML p i
 pieceCenter (PieceId id) = SE.image

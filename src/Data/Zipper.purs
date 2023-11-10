@@ -4,9 +4,11 @@ import Prelude
 
 import Control.Comonad (class Comonad, class Extend, extract)
 import Data.Foldable (class Foldable, foldMap, foldl, foldr)
+import Data.Lens (Lens', lens)
 import Data.List (List(..))
 import Data.List as L
 import Data.Maybe (Maybe(..))
+import Data.Traversable (class Traversable, sequence, traverse)
 import Data.Tuple (Tuple(..))
 import Data.Unfoldable (unfoldr)
 
@@ -19,6 +21,10 @@ instance Foldable Zipper where
   foldr f z (Zipper ls v rs) = foldr f (f v (foldl (flip f) z ls)) rs
   foldl f z (Zipper ls v rs) = foldl f (f (foldr (flip f) z rs) v) ls
   foldMap f (Zipper ls v rs) = foldMap f (L.reverse ls) <> f v <> foldMap f rs
+
+instance Traversable Zipper where
+  traverse f (Zipper ls v rs) = Zipper <$> (L.reverse <$> traverse f (L.reverse ls)) <*> f v <*> traverse f rs
+  sequence (Zipper ls v rs) = Zipper <$> (L.reverse <$> sequence (L.reverse ls)) <*> v <*> sequence rs
 
 instance Extend Zipper where
   extend f zipper = Zipper (map f lefts) (f zipper) (map f rights)
@@ -42,6 +48,9 @@ moveRight (Zipper ls v rs) = case rs of
 
 head :: forall a. Zipper a -> a
 head = extract
+
+_head :: forall a. Lens' (Zipper a) a
+_head = lens head (\(Zipper ls _ rs) x -> Zipper ls x rs)
 
 append :: forall a. a -> Zipper a -> Zipper a
 append v' (Zipper ls v rs) = Zipper (Cons v ls) v' Nil

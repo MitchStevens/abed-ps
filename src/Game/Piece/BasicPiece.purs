@@ -38,8 +38,9 @@ instance Piece BasicPiece where
 
 allBasicPieces :: Array APiece
 allBasicPieces =
-  [ idPiece, notPiece, orPiece, andPiece, crossPiece
-  , dupPiece, xorPiece, superPiece
+  [ idPiece, leftPiece, rightPiece, superPiece
+  , notPiece, orPiece, andPiece, crossPiece
+  , dupPiece, xorPiece
   , truePiece, falsePiece
   ]
 
@@ -50,6 +51,26 @@ idPiece = mkPiece $ Basic
   , ports: M.fromFoldable
     [ Tuple Left $ BasicInput
     , Tuple Right $ BasicOutput (ref Left)
+    ]
+  }
+
+leftPiece :: APiece
+leftPiece = mkPiece $ Basic
+  { name: "left"
+  , capacity: Capacity 1
+  , ports: M.fromFoldable
+    [ Tuple Left $ BasicInput
+    , Tuple Up $ BasicOutput (ref Left)
+    ]
+  }
+
+rightPiece :: APiece
+rightPiece = mkPiece $ Basic
+  { name: "right"
+  , capacity: Capacity 1
+  , ports: M.fromFoldable
+    [ Tuple Left $ BasicInput
+    , Tuple Down $ BasicOutput (ref Left)
     ]
   }
 

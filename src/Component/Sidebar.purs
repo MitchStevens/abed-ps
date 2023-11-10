@@ -27,6 +27,7 @@ import Game.Piece.Port (isInput)
 import Game.ProblemDescription (PieceSpecMismatch(..), ProblemDescription, solvedBy)
 import Halogen (ClassName(..), HalogenM, HalogenQ, liftAff)
 import Halogen as H
+import Halogen.HTML (HTML)
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
@@ -80,7 +81,7 @@ component = H.mkComponent { eval , initialState , render }
             , HP.draggable true
             , HP.classes [ ClassName "available-piece" ]
             , HE.onDragEnd (PieceOnDrop pieceId)
-            , HE.onDoubleClick (PieceOnClick pieceId)
+            , HE.onClick (PieceOnClick pieceId)
             ]
             [HH.text (show pieceId)]
       , HH.h3_ [ HH.text "Board size" ]
@@ -100,29 +101,6 @@ component = H.mkComponent { eval , initialState , render }
     ]
   
 
-  renderError err = HH.div_ $ case err of
-    DifferentPortConfiguration r ->
-      case r.received, r.expected of
-        Just received, Nothing -> [ HH.text "Remove the ", renderPort received, HH.text " in the ", renderDirection r.dir, HH.text " direction."]
-        Nothing, Just expected -> [ HH.text "You need an ", renderPort expected, HH.text " in the ", renderDirection r.dir, HH.text " direction"]
-        _,  _ -> [ HH.text "ERROR" ]
-    DifferentPort r ->
-      [ HH.text "You need an ", renderPort r.expected, HH.text " in the ", renderDirection r.dir, HH.text " direction."]
-    FailedTestCase r ->
-      [ HH.text "For the inputs ", renderSignals r.inputs, HH.text " your solution should output ", renderSignals r.expected, HH.text ", not ", renderSignals r.received , HH.text "." ]
-    FailedRestriction r ->
-      [ HH.text ("Failed predicate " <> r.name <> " with description " <> r.description) ]
-  
-  renderPort port = HH.span [ HP.class_ (ClassName "port")]
-    [ HH.text (if isInput port then "Input" else "Output") ]
-
-  renderDirection dir = HH.span [ HP.class_ (ClassName "direction")]
-    [ HH.text (show dir) ]
-  
-  renderSignals signals = HH.text (show signals)
-
-
-
   eval :: forall slots. HalogenQ Query Action Input ~> HalogenM State Action slots Output m
   eval = H.mkEval
     { finalize: Nothing
@@ -137,7 +115,6 @@ component = H.mkComponent { eval , initialState , render }
         DecrementBoardSize -> H.raise BoardSizeDecremented
     , handleQuery: case _ of
         IsProblemSolved board f -> do
-          log "is solved?"
           problemDescription <- H.gets (_.problem)
           isSolved <- liftAff $ runExceptT $ solvedBy problemDescription board
           H.modify_ (_ { error = blush isSolved })
@@ -145,3 +122,25 @@ component = H.mkComponent { eval , initialState , render }
     , initialize: Nothing
     , receive: const Nothing -- :: input -> Maybe action
     }
+
+renderError :: forall r i. PieceSpecMismatch -> HTML r i
+renderError err = HH.div_ $ case err of
+  DifferentPortConfiguration r ->
+    case r.received, r.expected of
+      Just received, Nothing -> [ HH.text "Remove the ", renderPort received, HH.text " in the ", renderDirection r.dir, HH.text " direction."]
+      Nothing, Just expected -> [ HH.text "You need an ", renderPort expected, HH.text " in the ", renderDirection r.dir, HH.text " direction"]
+      _,  _ -> [ HH.text "ERROR" ]
+  DifferentPort r ->
+    [ HH.text "You need an ", renderPort r.expected, HH.text " in the ", renderDirection r.dir, HH.text " direction."]
+  FailedTestCase r ->
+    [ HH.text "For the inputs ", renderSignals r.inputs, HH.text " your solution should output ", renderSignals r.expected, HH.text ", not ", renderSignals r.received , HH.text "." ]
+  FailedRestriction r ->
+    [ HH.text ("Failed predicate " <> r.name <> " with description " <> r.description) ]
+  where
+    renderPort port = HH.span [ HP.class_ (ClassName "port")]
+      [ HH.text (if isInput port then "Input" else "Output") ]
+
+    renderDirection dir = HH.span [ HP.class_ (ClassName "direction")]
+      [ HH.text (show dir) ]
+
+    renderSignals signals = HH.text (show signals)

@@ -2,6 +2,7 @@ module Game.Location where
 
 import Prelude
 
+import Data.Array (find)
 import Data.Enum (class BoundedEnum, class Enum, Cardinality(..), cardinality, enumFromTo, fromEnum, toEnum)
 import Data.Group (class Group, ginverse)
 import Data.Maybe (Maybe(..), fromMaybe)
@@ -138,6 +139,10 @@ oppositeDirection = case _ of
   Right -> Left
   Down  -> Up
   Left  -> Right
+
+directionTo :: Location -> Location -> Maybe CardinalDirection
+directionTo l1 l2 = find (\d -> followDirection l1 d == l2) allDirections
+
 
 matchEdge :: Edge -> Edge
 matchEdge (Edge { loc, dir }) = edge (followDirection loc dir) (oppositeDirection dir)

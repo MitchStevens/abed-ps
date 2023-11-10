@@ -2,6 +2,8 @@ module Game.Piece.Port where
 
 import Prelude
 
+import Game.Expression (Signal(..))
+
 newtype Capacity = Capacity Int
 derive instance Eq Capacity
 
@@ -39,3 +41,11 @@ portCapacity :: Port -> Capacity
 portCapacity = case _ of
   Input  capacity -> capacity
   Output capacity -> capacity
+
+
+-- used later for board evaluation
+type PortInfo = 
+  { port :: Port
+  , connected :: Boolean
+  , signal :: Signal
+  }

@@ -2,12 +2,12 @@ module Test.Game.Board where
 
 import Prelude
 
-import Control.Monad.State (get, lift)
+import Control.Monad.State (class MonadState, State, evalState, get, lift)
 import Data.Array ((..))
 import Data.Array as Array
 import Data.Either (Either(..), either, fromRight)
 import Data.Enum (enumFromTo)
-import Data.Foldable (for_, traverse_)
+import Data.Foldable (for_, length, traverse_)
 import Data.Graph as G
 import Data.HeytingAlgebra (ff, tt)
 import Data.Map (Map)
@@ -15,21 +15,25 @@ import Data.Map as M
 import Data.Maybe (Maybe(..), maybe)
 import Data.Tuple (Tuple(..))
 import Debug (trace)
-import Effect.Aff (Aff)
-import Game.Board (Board(..), BoardError(..), BoardT, RelativeEdge, addPiece, buildBoardGraph, decreaseSize, emptyBoard, evalBoardM, evalBoardScratch, evalLocation, execBoardM, execBoardT, extractOutputs, getPieceInfo, getPortOnEdge, increaseSize, matchingRelativeEdge, relative, removePiece, rotatePieceBy, runBoardT, standardBoard, toAbsoluteEdge, toRelativeEdge, validBoardSize)
+import Effect.Aff (Aff, catchError)
+import Effect.Class.Console (log)
+import Game.Board (Board(..), RelativeEdge, allPortsOnBoard, buildBoardGraph, buildConnectionMap, evalBoardScratch, evalBoardWithPortInfo, evalLocation, extractOutputs, getPortOnEdge, matchingRelativeEdge, relative, standardBoard, toAbsoluteEdge, toRelativeEdge)
+import Game.Board.Operation (BoardError(..), BoardT, addPiece, decreaseSize, emptyBoard, evalBoardM, execBoardM, getPieceInfo, increaseSize, removePiece, rotatePieceBy, runBoardT, validBoardSize)
 import Game.Expression (Signal(..))
 import Game.Location (CardinalDirection, Location(..), edge, location, rotation)
 import Game.Location as Direction
 import Game.Piece (getPort, ports)
-import Game.Piece.BasicPiece (andPiece, notPiece)
+import Game.Piece.BasicPiece (andPiece, idPiece, notPiece)
 import Game.Piece.Port (Capacity(..), Port(..))
+import Game.Piece.Port as Port
 import Partial.Unsafe (unsafeCrashWith)
 import Test.Game.Location (allDirections, allLocations, n)
 import Test.QuickCheck (assertEquals)
 import Test.Unit (TestSuite, describe, failure, it, success)
-import Test.Unit.Assert (equal, shouldEqual)
-import Test.Unit.AssertExtra (assertLeft, assertNothing, assertRight, shouldBeBefore, shouldContain)
+import Test.Unit.Assert (expectFailure)
+import Test.Unit.AssertExtra (assertLeft, assertNothing, assertRight, equal, notEqual, shouldBeBefore, shouldContain, shouldEqual)
 
+testBoard :: Board
 testBoard = either (show >>> unsafeCrashWith) identity $ 
   flip execBoardM standardBoard do
     addPiece (location 0 1) notPiece
@@ -51,10 +55,19 @@ testInputRelEdge loc x y = M.fromFoldable $
   ]
 
 runBoardTest :: forall a. Board -> BoardT Aff a -> Aff Unit
-runBoardTest board boardT = void $ runBoardT boardT board
+runBoardTest board boardT = do 
+  test <- runBoardT boardT board
+  case test of
+    Left boardError -> failure (show boardError)
+    Right (Tuple a board) -> success
 
 tests :: TestSuite
 tests = do
+  describe "meta" do
+    it "runBoardTest" do
+      runBoardTest standardBoard (addPiece (location 0 0) notPiece)
+      expectFailure "" $ runBoardTest standardBoard (removePiece (location 0 0))
+
   let evalBoard inputs = evalBoardScratch inputs >>= extractOutputs
   describe "emptyBoard" do
     it "can create a board" do
@@ -71,9 +84,12 @@ tests = do
         addPiece (location 0 0) andPiece
         addPiece (location 0 0) andPiece
     it "will recognise a new port created" $ runBoardTest standardBoard do
+      b0 <- get
+      getPort b0 Direction.Right `shouldEqual` Nothing
+
       addPiece (location 2 1) andPiece
-      board <- get
-      lift $ getPort board Direction.Right `shouldEqual` Just (Output (Capacity 1))
+      b1 <- get
+      getPort b1 Direction.Right `shouldEqual` Just (Output (Capacity 1))
   describe "removePiece" do
     it "can remove a piece" do
       assertRight $ flip evalBoardM standardBoard do
@@ -96,42 +112,57 @@ tests = do
 
       piece11 <- getPieceInfo (location 1 1)
       lift $ piece11.rotation `shouldEqual` rotation 0
+  describe "allPortsOnBoard" do
+    it "should return empty for an empty board" $ runBoardTest standardBoard do
+      p0 <- allPortsOnBoard
+      length p0 `shouldEqual` 0
+
+      addPiece (location 1 1) notPiece
+      p1 <- allPortsOnBoard
+      length p1 `shouldEqual` 2
+
+      addPiece (location 2 1) idPiece
+      p1 <- allPortsOnBoard
+      length p1 `shouldEqual` 4
+
+    it "testBoard" $ runBoardTest testBoard do
+      --let portsOnBoard = M.fromFoldable []
+      allPorts <- allPortsOnBoard
+      length allPorts `shouldEqual` 9
+
+      --equal portsOnBoard =<< allPortsOnBoard
   describe "getPortOnEdge" do
     it "should return empty if space is not occupied" $ runBoardTest testBoard do
-      _ <- equal Nothing <$> getPortOnEdge (relative (location 0 0) Direction.Up)    
-      _ <- equal Nothing <$> getPortOnEdge (relative (location 2 2) Direction.Down)  
-      _ <- equal Nothing <$> getPortOnEdge (relative (location 0 2) Direction.Right) 
-      pure unit
+      equal Nothing =<< getPortOnEdge (relative (location 0 0) Direction.Up)    
+      equal Nothing =<< getPortOnEdge (relative (location 2 2) Direction.Down)  
+      equal Nothing =<< getPortOnEdge (relative (location 0 2) Direction.Right) 
     --it "should still return empty if space is occupied but no port" $ runBoardTest do
     --  equal Nothing <$> getPortOnEdge (relative (location 0 1) Direction.Up)
     --  equal Nothing <$> getPortOnEdge (relative (location 0 1) Direction.Down)
     it "should return port if space is occupied an port exists" $ runBoardTest testBoard do
-      _ <- equal (Just (Input (Capacity 1)))  <$> getPortOnEdge (relative (location 0 1) Direction.Left)
-      _ <- equal (Just (Output (Capacity 1))) <$> getPortOnEdge (relative (location 0 1) Direction.Right)
-      _ <- equal (Just (Output (Capacity 1))) <$> getPortOnEdge (relative (location 1 0) Direction.Right)
-      _ <- equal (Just (Input (Capacity 1)))  <$> getPortOnEdge (relative (location 1 1) Direction.Up)
-      pure unit
+      equal (Just (Input (Capacity 1)))  =<< getPortOnEdge (relative (location 0 1) Direction.Left)
+      equal (Just (Output (Capacity 1))) =<< getPortOnEdge (relative (location 0 1) Direction.Right)
+      equal (Just (Output (Capacity 1))) =<< getPortOnEdge (relative (location 1 0) Direction.Right)
+      equal (Just (Input (Capacity 1)))  =<< getPortOnEdge (relative (location 1 1) Direction.Up)
   describe "toAbsoluteEdge/toRelativeEdge" do
     it "toAbsoluteEdge" $ runBoardTest testBoard do
-      _ <- equal (edge (location 0 1) Direction.Right) <$> toAbsoluteEdge (relative (location 0 1) Direction.Right)
-      _ <- equal (edge (location 1 0) Direction.Down)  <$> toAbsoluteEdge (relative (location 1 0) Direction.Right)
+      equal (edge (location 0 1) Direction.Right) =<< toAbsoluteEdge (relative (location 0 1) Direction.Right)
+      equal (edge (location 1 0) Direction.Down)  =<< toAbsoluteEdge (relative (location 1 0) Direction.Right)
       pure unit
     it "toRelativeEdge" $ runBoardTest testBoard do
-      _ <- equal (relative (location 1 0) Direction.Right) <$> toRelativeEdge (edge (location 1 0) Direction.Down)
-      _ <- equal (relative (location 1 1) Direction.Up)    <$> toRelativeEdge (edge (location 1 1) Direction.Up)
-      pure unit
+      equal (relative (location 1 0) Direction.Right) =<< toRelativeEdge (edge (location 1 0) Direction.Down)
+      equal (relative (location 1 1) Direction.Up)    =<< toRelativeEdge (edge (location 1 1) Direction.Up)
     it "moving from absolute edge to relative edge should a round trip" $ runBoardTest testBoard do
       for_ (edge <$> allLocations <*> allDirections) \absEdge -> 
-        equal absEdge <$> (toRelativeEdge absEdge >>= toAbsoluteEdge)
+        equal absEdge =<< (toRelativeEdge absEdge >>= toAbsoluteEdge)
   describe "matchingRelativeEdge" do
     it "matches" $ runBoardTest testBoard do
-      _ <- equal (relative (location 1 1) Direction.Left) <$>
+      equal (relative (location 1 1) Direction.Left) =<<
         matchingRelativeEdge (relative (location 0 1) Direction.Right)
-      _ <- equal (relative (location 2 1) Direction.Left) <$>
+      equal (relative (location 2 1) Direction.Left) =<<
         matchingRelativeEdge (relative (location 1 1) Direction.Right)
-      _ <- equal (relative (location 1 1) Direction.Up) <$>
+      equal (relative (location 1 1) Direction.Up) =<<
         matchingRelativeEdge (relative (location 1 0) Direction.Right)
-      pure unit
   describe "board size change" do
     it "validBoardSize" do
       validBoardSize 3 `shouldEqual` Right 3
@@ -140,11 +171,10 @@ tests = do
       validBoardSize 4 `shouldEqual` Left (BadBoardSize 4)
       validBoardSize 11 `shouldEqual` Left (BadBoardSize 11)
     it "should allow board size increment and decrement" $ runBoardTest testBoard do
-      _ <- increaseSize
-      _ <- decreaseSize
-      pure unit
+      increaseSize
+      decreaseSize
   describe "buildBoardGraph" do
-    let boardGraph = buildBoardGraph testBoard
+    let boardGraph = evalState buildBoardGraph testBoard
     it "topological sort" do
       let sortedLocations = Array.fromFoldable (G.topologicalSort boardGraph)
       (location 0 1 `shouldBeBefore` location 1 1) sortedLocations
@@ -152,35 +182,114 @@ tests = do
       (location 1 1 `shouldBeBefore` location 2 1) sortedLocations
       (location 0 1 `shouldBeBefore` location 2 1) sortedLocations
   describe "evalLocation"  do
-    it "" $ runBoardTest testBoard do
-      let loc = location 1 0
-      --let on  = M.singleton (relative (location 1 (-1)) Direction.Down) tt
-      --let off = M.singleton (relative (location 1 (-1)) Direction.Down) ff
-      --evalLocation testBoard on loc
-      --  `shouldEqual` M.union on (M.singleton (relative loc Direction.Right) ff)
-      --evalLocation testBoard off loc
-      --  `shouldEqual` M.union off (M.singleton (relative loc Direction.Right) tt)
-      
-          l2 = location 1 1
-      
-      _ <- equal [ Tuple (relative l2 Direction.Right) ff ] <$>
-            M.toUnfoldable <$> (evalLocation (testInputRelEdge l2 ff ff) l2)
-      _ <- equal [ Tuple (relative l2 Direction.Right) ff ] <$>
-            M.toUnfoldable <$> (evalLocation (testInputRelEdge l2 tt ff) l2)
-      _ <- equal [ Tuple (relative l2 Direction.Right) tt ] <$>
-            M.toUnfoldable <$> (evalLocation (testInputRelEdge l2 tt tt) l2)
-      pure unit 
+    it "empty" $ runBoardTest standardBoard do
+      v <- evalLocation M.empty (location 0 0)
+      v `shouldEqual` M.empty
+    it "single piece" $ runBoardTest standardBoard do
+      addPiece (location 1 1) notPiece
+      v <- evalLocation M.empty (location 1 1)
+      (M.toUnfoldable v :: Array _) `shouldContain`
+        Tuple (relative (location 1 1) Direction.Right) tt
+    it "single piece with rotation" $ runBoardTest standardBoard do
+      let loc = location 1 1
+      addPiece loc notPiece
+      rotatePieceBy loc (rotation 1)
+      out0 :: Array _ <- M.toUnfoldable <$> evalLocation M.empty loc
+      out0 `shouldContain` (Tuple (relative loc Direction.Right) tt)
+
+      out1 :: Array _ <- M.toUnfoldable <$> evalLocation (M.singleton (relative loc Direction.Left) tt) loc
+      out1 `shouldContain` (Tuple (relative loc Direction.Right) ff)
+    it "testBoard" $ runBoardTest testBoard do
+      let loc = location 1 1
+      out0 :: Array _ <- M.toUnfoldable <$> (evalLocation (testInputRelEdge loc ff ff) loc)
+      out1 :: Array _ <- M.toUnfoldable <$> (evalLocation (testInputRelEdge loc tt ff) loc)
+      out2 :: Array _ <- M.toUnfoldable <$> (evalLocation (testInputRelEdge loc tt tt) loc)
+      shouldContain out0 (Tuple (relative loc Direction.Right) ff)
+      shouldContain out1 (Tuple (relative loc Direction.Right) ff)
+      shouldContain out2 (Tuple (relative loc Direction.Right) tt)
+  describe "buildConnectionMap" do
+    it "" $ runBoardTest standardBoard do
+      c0 <- buildConnectionMap <$> get
+      length c0 `shouldEqual` 0
+
+      addPiece (location 1 0) notPiece
+      c1 <- buildConnectionMap <$> get
+      length c1 `shouldEqual` 0
+    it "with test board" $ runBoardTest testBoard do
+      c <- buildConnectionMap <$> get
+      length c `shouldEqual` 3
   describe "evalBoard" do
     it "should eval empty board"  $ runBoardTest standardBoard do
-      _ <- equal (M.empty) <$> evalBoard (testInput ff ff)
-      pure unit
+       equal (M.empty) =<< evalBoard (testInput ff ff)
+    it "scratch" $ runBoardTest testBoard do
+      signals :: Array _ <- M.toUnfoldable <$> evalBoardScratch (testInput tt ff)
+      signals `shouldContain` (Tuple (relative (location 1 1) Direction.Up) tt)
+      signals `shouldContain` (Tuple (relative (location 1 1) Direction.Right) ff)
+      signals `shouldContain` (Tuple (relative (location 1 1) Direction.Left) ff)
     it "should eval accurately test board" $ runBoardTest testBoard do
-      _ <- equal (M.singleton Direction.Right ff) <$> evalBoard (testInput ff ff)
-      _ <- equal (M.singleton Direction.Right ff) <$> evalBoard (testInput tt ff)
-      _ <- equal (M.singleton Direction.Right ff) <$> evalBoard (testInput ff tt)
-      _ <- equal (M.singleton Direction.Right tt) <$> evalBoard (testInput tt tt)
-      pure unit
+      out0 :: Array _ <- M.toUnfoldable <$> evalBoard (testInput ff ff)
+      out1 :: Array _ <- M.toUnfoldable <$> evalBoard (testInput tt ff)
+      out2 :: Array _ <- M.toUnfoldable <$> evalBoard (testInput ff tt)
+      out3 :: Array _ <- M.toUnfoldable <$> evalBoard (testInput tt tt)
 
+      shouldContain out0 (Tuple Direction.Right ff)
+      shouldContain out1 (Tuple Direction.Right tt)
+      shouldContain out2 (Tuple Direction.Right tt)
+      shouldContain out3 (Tuple Direction.Right tt)
+  describe "evalBoardWithPortInfo" do
+    it "empty" $ runBoardTest standardBoard do 
+      b0 <- evalBoardWithPortInfo M.empty
+      b0 `shouldEqual` M.empty
+
+      addPiece (location 1 1) notPiece
+      connections <- buildConnectionMap <$> get
+      length connections `shouldEqual` 0
+      signals :: Array _ <- M.toUnfoldable <$> evalBoardScratch M.empty
+      signals `shouldContain`
+        Tuple (relative (location 1 1) Direction.Right) tt
+
+      ports <- allPortsOnBoard
+      length ports `shouldEqual` 2
+    
+    it "with rotation" $ runBoardTest standardBoard do 
+      let loc = location 1 0
+      addPiece loc notPiece
+      rotatePieceBy loc (rotation 1)
+
+      connections <- buildConnectionMap <$> get
+      length connections `shouldEqual` 0
+      signals :: Array _ <- M.toUnfoldable <$> evalBoardScratch M.empty
+      signals `shouldContain`
+        Tuple (relative loc Direction.Right) tt
+      ports :: Array _ <- M.toUnfoldable <$> allPortsOnBoard
+      ports `shouldContain` Tuple (relative loc Direction.Right) (Port.Output (Capacity 1))
+
+
+      --b0 :: Array _  <- M.toUnfoldable <$> evalBoardWithPortInfo M.empty
+      --b0 `shouldContain` Tuple (relative loc Direction.Right) { connected: false, port: Port.Output (Capacity 1), signal: tt}
+
+
+      --portInfos <- evalBoardWithPortInfo M.empty
+      --length portInfos `shouldEqual` 2
+
+
+
+{-
+   [(Tuple (RelEdge (0,1) Right) 0000)
+   ,(Tuple (RelEdge (0,1) Left) ffff)
+
+   ,(Tuple (RelEdge (1,0) Right) ffff)
+   ,(Tuple (RelEdge (1,0) Left) 0000)
+
+   ,(Tuple (RelEdge (1,1) Up) ffff)
+   ,(Tuple (RelEdge (1,1) Right) 0000)
+   ,(Tuple (RelEdge (1,1) Left) 0000)
+
+   ,(Tuple (RelEdge (2,1) Right) ffff)
+   ,(Tuple (RelEdge (2,1) Left) 0000)
+
+   ,(Tuple (RelEdge (3,1) Left) ffff)]
+   -}
 
 
 
