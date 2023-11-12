@@ -252,10 +252,8 @@ evalBoardScratch m = do
         ]
 
 
-evalBoardWithPortInfo
-  :: forall m
-   . MonadState Board m 
-   => Map CardinalDirection Signal -> m (Map RelativeEdge PortInfo)
+evalBoardWithPortInfo :: forall m . MonadState Board m 
+  => Map CardinalDirection Signal -> m (Map RelativeEdge PortInfo)
 evalBoardWithPortInfo inputs = do
   connectionMap <- buildConnectionMap <$> get
   let connections = S.fromFoldable $ M.toUnfoldable connectionMap >>= \(Tuple relEdge relEdge') -> [ relEdge, relEdge' ]

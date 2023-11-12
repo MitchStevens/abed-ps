@@ -20,6 +20,7 @@ import Data.FunctorWithIndex (mapWithIndex)
 import Data.Int (toNumber)
 import Data.Lens.Record (prop)
 import Data.List (List(..))
+import Data.List as L
 import Data.List.NonEmpty as NE
 import Data.List.Types (NonEmptyList)
 import Data.Map (Map)
@@ -33,8 +34,10 @@ import Data.Zipper as Z
 import Debug (trace)
 import Effect.Class (class MonadEffect, liftEffect)
 import Effect.Class.Console (log, logShow)
-import Game.Board (Board(..), RelativeEdge(..), _size, evalBoardWithPortInfo, extractOutputs, standardBoard)
-import Game.Board.Operation (BoardError, BoardM, addPiece, decreaseSize, evalBoardM, getPieceInfo, increaseSize, movePiece, removePiece, rotatePieceBy, runBoardM)
+import Game.Board (Board(..), RelativeEdge(..), _pieces, _size, evalBoardWithPortInfo, extractOutputs, standardBoard)
+import Game.Board.Operation (BoardError, BoardM, addPiece, applyBoardEvent, decreaseSize, evalBoardM, getPieceInfo, increaseSize, movePiece, removePiece, rotatePieceBy, runBoardM)
+import Game.Board.Path (boardPath)
+import Game.Board.Query (directPredecessors)
 import Game.Expression (Signal(..))
 import Game.GameEvent (BoardEvent(..), GameEvent(..), GameEventStore, boardEventLocationsChanged)
 import Game.Location (CardinalDirection, Edge(..), Location(..), Rotation(..), allDirections, location, oppositeDirection, rotateDirection, rotation)
@@ -55,11 +58,14 @@ import Halogen.Svg.Attributes as SA
 import Halogen.Svg.Elements as SE
 import Type.Proxy (Proxy(..))
 import Web.DOM.Document (toEventTarget)
-import Web.Event.Event (Event, preventDefault)
+import Web.DOM.Element (DOMRect, fromEventTarget, getBoundingClientRect)
+import Web.Event.Event (Event, preventDefault, target)
 import Web.Event.EventTarget (addEventListener, eventListener)
 import Web.HTML.Common (ClassName(..))
 import Web.HTML.Event.DragEvent (DragEvent, dataTransfer, toEvent)
 import Web.UIEvent.KeyboardEvent (KeyboardEvent, code, ctrlKey, fromEvent, key)
+import Web.UIEvent.MouseEvent (MouseEvent, clientX, clientY)
+import Web.UIEvent.MouseEvent as MouseEvent
 
 type Input = Maybe Board
 
@@ -67,8 +73,10 @@ type State =
   { boardHistory :: Zipper Board
   , mouseOverLocation :: Maybe Location
   , ports :: Map CardinalDirection (Tuple Port Signal)
-  --, connectionCache :: Map RelativeEdge RelativeEdge
-  --, lastEvaluation :: Map RelativeEdge Signal
+  , isCreatingWire :: Maybe
+    { initialDirection :: CardinalDirection
+    , locations :: Array Location
+    }
   }
 
 data Query a
@@ -88,6 +96,10 @@ data Action
   | Redo
   | ToggleInput CardinalDirection
   | GlobalOnKeyDown KeyboardEvent
+  | BoardOnDragExit DragEvent
+  | LocationOnMouseDown Location MouseEvent
+  | LocationOnMouseOver Location MouseEvent
+  | LocationOnMouseUp Location MouseEvent
   | LocationOnDragEnter Location DragEvent
   | LocationOnDragOver Location DragEvent
   | LocationOnDragLeave DragEvent
@@ -103,7 +115,9 @@ _piece = Proxy :: Proxy "piece"
 
 _board :: Lens' State Board
 _board = prop (Proxy :: Proxy "boardHistory") <<< Z._head
---_board = H.gets (_.boardHistory >>> Z.head)
+
+_wireLocations :: Traversal' State (Array Location)
+_wireLocations = prop (Proxy :: Proxy "isCreatingWire") <<< _Just <<< prop (Proxy :: Proxy "locations")
 
 --component :: forall m. MonadEffect m => GlobalKeyDown m => H.Component Query Input Output m
 component :: forall m. MonadStore GameEvent GameEventStore m => MonadEffect m => H.Component Query Input Output m
@@ -113,8 +127,7 @@ component = H.mkComponent { eval , initialState , render }
     { boardHistory: Z.singleton $ fromMaybe standardBoard board
     , mouseOverLocation: Nothing
     , ports: M.empty 
-    --, connectionGraph :: Map RelativeEdge RelativeEdge
-    --, lastEvaluation :: Map RelativeEdge Signal
+    , isCreatingWire: Nothing
     }
 
 
@@ -122,6 +135,7 @@ component = H.mkComponent { eval , initialState , render }
   render state =
     HH.div
       [ HP.id "board-component"
+      , HE.onDragExit (BoardOnDragExit)
       , HA.style $ intercalate "; "
         [ "grid-template-columns: " <> gridTemplate
         , "grid-template-rows:    " <> gridTemplate
@@ -148,6 +162,9 @@ component = H.mkComponent { eval , initialState , render }
             [ "transform: rotate("<> (show (rot * 90)) <>"deg)"
             , "grid-area: " <> show (j+2) <> " / " <> show (i+2)
             ]
+          , HE.onMouseDown (LocationOnMouseDown loc)
+          , HE.onMouseOver (LocationOnMouseOver loc)
+          , HE.onMouseUp (LocationOnMouseUp loc)
           , HE.onDragEnter (LocationOnDragEnter loc)
           , HE.onDragOver (LocationOnDragOver loc)
           , HE.onDragLeave LocationOnDragLeave
@@ -161,12 +178,8 @@ component = H.mkComponent { eval , initialState , render }
           Rotation rot = foldMap (_.rotation) eitherPieceInfo
       
       boardPorts :: forall p. Array (HTML p Action)
-      boardPorts = portLocations <#> \(Tuple dir loc) ->
-          renderBoardPort dir loc
-
-        --HH.div
-        --  [ HE.onClick (\_ -> ToggleInput dir) ]
-        --  [ renderBoardPort dir loc ]
+      boardPorts = portLocations <#> \(Tuple dir loc) -> 
+        renderBoardPort dir loc
         where
           m = n+2
           portLocations =
@@ -216,6 +229,7 @@ component = H.mkComponent { eval , initialState , render }
           board <- use _board
           pure $ Just (f board)
         AddPiece loc piece -> do
+          log "board: add piece"
           liftBoardM (addPiece loc piece) >>= traverse_ \(Tuple _ board) -> do
             _ <- updateBoard board 
             updateStore (BoardEvent (AddedPiece loc (name piece)))
@@ -230,7 +244,6 @@ component = H.mkComponent { eval , initialState , render }
         GetMouseOverLocation f -> do
           maybeDst <- H.gets (_.mouseOverLocation)
           pure (f <$> maybeDst)
-        --SetInputs (Map CardinalDirection Signal) (Map CardinalDirection Signal -> a)
         SetInputs inputs f -> do
           let setInput dir (Tuple port signal) = Tuple port (if isInput port then fromMaybe signal (M.lookup dir inputs) else signal)
           modify_ $ \s -> s { ports = mapWithIndex setInput s.ports }
@@ -295,6 +308,46 @@ component = H.mkComponent { eval , initialState , render }
       _ <- evaluateBoard
       pure unit
 
+    BoardOnDragExit _ -> do
+      H.modify_ (_ { isCreatingWire = Nothing })
+      log "cancel wire creation"
+
+    LocationOnMouseDown loc me -> do
+      for_ (target (MouseEvent.toEvent me)) \eventTarget ->
+        for_ (fromEventTarget eventTarget) \element -> do
+          bb <- liftEffect (getBoundingClientRect element)
+          let initialDirection = getDirectionClicked me bb
+          log (show initialDirection)
+
+          H.modify_ (_ { isCreatingWire = Just { initialDirection, locations: [loc] } })
+    LocationOnMouseOver loc _ -> do
+      _wireLocations <>= [loc]
+      pure unit
+    LocationOnMouseUp loc me -> do
+      isCreatingWire <- gets (_.isCreatingWire)
+      for_ isCreatingWire \creatingWire -> do
+        for_ (target (MouseEvent.toEvent me)) \eventTarget ->
+          for_ (fromEventTarget eventTarget) \element -> do
+            bb <- liftEffect (getBoundingClientRect element)
+            let terminalDirection = getDirectionClicked me bb
+            maybeBoardEvents <- evalState (boardPath creatingWire.initialDirection creatingWire.locations terminalDirection) <$> use _board
+            case maybeBoardEvents of
+              Just boardEvents -> do
+                log ("boardevents: " <> show boardEvents)
+                let boardEvent = Multiple boardEvents
+                liftBoardM (applyBoardEvent boardEvent) >>= logShow
+                liftBoardM (applyBoardEvent boardEvent) >>= traverse_ \(Tuple _ board) -> do
+                  log "added boardEvents"
+                  updateStore (BoardEvent boardEvent)
+                  updateBoard board
+
+                H.modify_ $ \s -> s { isCreatingWire = Nothing }
+              Nothing -> do
+                log "no board events!!"
+
+
+
+
     -- can these events be simplified? do we need all of them?
     LocationOnDragEnter _ dragEvent -> do
       liftEffect $ preventDefault (toEvent dragEvent)
@@ -302,6 +355,7 @@ component = H.mkComponent { eval , initialState , render }
       liftEffect $ preventDefault (toEvent dragEvent)
       H.modify_ (_ { mouseOverLocation = Just loc } )
     LocationOnDrop loc dragEvent -> do
+      log "location on drop"
       H.modify_ (_ { mouseOverLocation = Just loc } )
       liftEffect $ preventDefault (toEvent dragEvent)
     LocationOnDragLeave _ -> do
@@ -311,6 +365,18 @@ component = H.mkComponent { eval , initialState , render }
         handleAction Undo
       when (key ke == "y" && ctrlKey ke) do
         handleAction Redo
+
+-- assumes that DOMRect is squareish
+getDirectionClicked :: MouseEvent -> DOMRect -> CardinalDirection
+getDirectionClicked me bb = case isTopOrRight, isTopOrLeft of
+  false, false -> Direction.Down
+  false, true  -> Direction.Left
+  true,  false -> Direction.Right
+  true,  true  -> Direction.Up
+  where
+    Tuple x y = Tuple (toNumber (clientX me) - bb.left) (toNumber (clientY me) - bb.top)
+    isTopOrRight = x > y
+    isTopOrLeft = x + y < bb.width
 
 getInputs :: forall m. MonadState State m => m (Map CardinalDirection Signal)
 getInputs = M.mapMaybe getInputSignal <$> gets (_.ports)
@@ -325,7 +391,9 @@ updateBoard :: forall m. Board -> HalogenM State Action Slots Output m (Map Card
 updateBoard board = do
     -- append new board to board history for undo purposes 
     modify_ $ \s -> s { boardHistory = Z.append board s.boardHistory }
+    pieces <- use (_board <<< _pieces)
     outputs <- evaluateBoard
+
     -- tell puzzle component that board state has been changed
     H.raise (NewBoardState board)
     pure outputs

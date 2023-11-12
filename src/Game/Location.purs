@@ -133,6 +133,9 @@ followDirection (Location {x, y}) = case _ of
 rotateDirection :: CardinalDirection -> Rotation -> CardinalDirection
 rotateDirection dir rot = fromMaybe Up $ toEnum ((fromEnum dir + fromEnum rot) `mod` 4)
 
+clockwiseRotation :: CardinalDirection -> CardinalDirection -> Rotation
+clockwiseRotation d1 d2 = rotation (fromEnum d2 - fromEnum d1 `mod` 4)
+
 oppositeDirection :: CardinalDirection -> CardinalDirection
 oppositeDirection = case _ of
   Up    -> Down
@@ -142,7 +145,6 @@ oppositeDirection = case _ of
 
 directionTo :: Location -> Location -> Maybe CardinalDirection
 directionTo l1 l2 = find (\d -> followDirection l1 d == l2) allDirections
-
 
 matchEdge :: Edge -> Edge
 matchEdge (Edge { loc, dir }) = edge (followDirection loc dir) (oppositeDirection dir)

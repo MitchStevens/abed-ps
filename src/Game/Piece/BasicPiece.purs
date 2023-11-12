@@ -12,7 +12,7 @@ import Data.Traversable (traverse)
 import Data.Tuple (Tuple(..))
 import Data.Unfoldable (fromMaybe)
 import Game.Expression (Expression(..), evaluate, raw, ref)
-import Game.Location (CardinalDirection(..))
+import Game.Location (CardinalDirection(..), Rotation(..))
 import Game.Location as Direction
 import Game.Piece (class Piece, APiece(..), PieceId(..), mkPiece)
 import Game.Piece.Port (Capacity(..), Port(..))
@@ -43,6 +43,7 @@ allBasicPieces =
   , dupPiece, xorPiece
   , truePiece, falsePiece
   ]
+
 
 idPiece :: APiece
 idPiece = mkPiece $ Basic 

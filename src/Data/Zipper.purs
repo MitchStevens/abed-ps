@@ -3,16 +3,30 @@ module Data.Zipper where
 import Prelude
 
 import Control.Comonad (class Comonad, class Extend, extract)
+import Data.Array as A
+import Data.Eq (class Eq1, eq1)
 import Data.Foldable (class Foldable, foldMap, foldl, foldr)
+import Data.Function (on)
 import Data.Lens (Lens', lens)
 import Data.List (List(..))
 import Data.List as L
 import Data.Maybe (Maybe(..))
 import Data.Traversable (class Traversable, sequence, traverse)
 import Data.Tuple (Tuple(..))
-import Data.Unfoldable (unfoldr)
+import Data.Unfoldable (class Unfoldable1, unfoldr, unfoldr1)
 
 data Zipper a = Zipper (List a) a (List a)
+derive instance Eq a => Eq (Zipper a)
+
+--instance Eq1 Zipper where
+--  eq1 = eq1 `on` asList
+--    where asList (Zipper ls v rs) = L.reverse ls <> Cons v rs
+--
+--instance Eq a => Eq (Zipper a) where
+--  eq = eq1
+
+instance Show a => Show (Zipper a) where
+  show (Zipper ls v rs) = "Z " <> show (L.reverse ls) <> " " <> show v <> " " <> show rs
 
 instance Functor Zipper where
   map f (Zipper ls v rs) = Zipper (map f ls) (f v) (map f rs)
@@ -26,6 +40,7 @@ instance Traversable Zipper where
   traverse f (Zipper ls v rs) = Zipper <$> (L.reverse <$> traverse f (L.reverse ls)) <*> f v <*> traverse f rs
   sequence (Zipper ls v rs) = Zipper <$> (L.reverse <$> sequence (L.reverse ls)) <*> v <*> sequence rs
 
+
 instance Extend Zipper where
   extend f zipper = Zipper (map f lefts) (f zipper) (map f rights)
     where
@@ -35,6 +50,14 @@ instance Extend Zipper where
 
 instance Comonad Zipper where
   extract (Zipper _  v _) = v
+
+fromFoldable :: forall f a. Foldable f => f a -> Maybe (Zipper a)
+fromFoldable = foldl (flip f) Nothing
+  where
+    f :: a -> Maybe (Zipper a) -> Maybe (Zipper a)
+    f a = case _ of
+      Nothing -> Just (Zipper Nil a Nil)
+      Just (Zipper ls v _) -> Just (Zipper (Cons v ls) a Nil)-- assume that rs == Nil
 
 moveLeft :: forall a. Zipper a -> Maybe (Zipper a)
 moveLeft (Zipper ls v rs) = case ls of

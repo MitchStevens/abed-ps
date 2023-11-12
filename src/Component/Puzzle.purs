@@ -94,6 +94,7 @@ component = H.mkComponent { eval , initialState , render }
           puzzleId <-  gets (_.puzzleId)
           liftEffect $ savePuzzleProgress puzzleId Completed
       SidebarOutput (Sidebar.PieceDropped pieceId) -> do
+        log "piece dropped in puzzle component"
         maybeLocation <- H.request _board unit (Board.GetMouseOverLocation)
         for_ maybeLocation (addPieceToComponent pieceId)
       SidebarOutput (Sidebar.PieceAdded pieceId) -> do

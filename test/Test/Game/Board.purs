@@ -75,6 +75,10 @@ tests = do
       assertLeft $ emptyBoard 0
       assertLeft $ emptyBoard 4
       assertRight $ emptyBoard 5
+  describe "getPortEdges" do
+    it "empty" $ runBoardTest standardBoard do
+      pure unit -- do this later
+
   describe "addPiece" do
     it "can add a piece" do
       assertRight $ flip evalBoardM standardBoard do
@@ -263,33 +267,3 @@ tests = do
         Tuple (relative loc Direction.Right) tt
       ports :: Array _ <- M.toUnfoldable <$> allPortsOnBoard
       ports `shouldContain` Tuple (relative loc Direction.Right) (Port.Output (Capacity 1))
-
-
-      --b0 :: Array _  <- M.toUnfoldable <$> evalBoardWithPortInfo M.empty
-      --b0 `shouldContain` Tuple (relative loc Direction.Right) { connected: false, port: Port.Output (Capacity 1), signal: tt}
-
-
-      --portInfos <- evalBoardWithPortInfo M.empty
-      --length portInfos `shouldEqual` 2
-
-
-
-{-
-   [(Tuple (RelEdge (0,1) Right) 0000)
-   ,(Tuple (RelEdge (0,1) Left) ffff)
-
-   ,(Tuple (RelEdge (1,0) Right) ffff)
-   ,(Tuple (RelEdge (1,0) Left) 0000)
-
-   ,(Tuple (RelEdge (1,1) Up) ffff)
-   ,(Tuple (RelEdge (1,1) Right) 0000)
-   ,(Tuple (RelEdge (1,1) Left) 0000)
-
-   ,(Tuple (RelEdge (2,1) Right) ffff)
-   ,(Tuple (RelEdge (2,1) Left) 0000)
-
-   ,(Tuple (RelEdge (3,1) Left) ffff)]
-   -}
-
-
-

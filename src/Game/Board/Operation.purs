@@ -7,7 +7,7 @@ import Control.Monad.Error.Class (class MonadError, class MonadThrow, throwError
 import Control.Monad.Except (ExceptT, runExceptT)
 import Control.Monad.State (class MonadState, class MonadTrans, StateT, get, gets, lift, put, runStateT)
 import Data.Either (Either(..))
-import Data.Foldable (all, find)
+import Data.Foldable (all, find, traverse_)
 import Data.Identity (Identity)
 import Data.Int (even, odd)
 import Data.Lens.At (at)
@@ -19,12 +19,16 @@ import Data.Tuple (Tuple(..), fst, snd)
 import Effect.Aff.Class (class MonadAff)
 import Effect.Class (class MonadEffect)
 import Game.Board (Board(..), PieceInfo, _pieces, _rotation, unsafeMapKey)
+import Game.Board.Query (insideBoard)
+import Game.GameEvent (BoardEvent(..))
 import Game.Location (Location(..), Rotation(..), location, rotation)
 import Game.Piece (APiece(..))
+import Game.Piece.PieceLookup (pieceLookup)
 
 data BoardError
   = LocationOccupied Location
   | LocationNotOccupied Location
+  | InvalidLocation Location
   | InvalidBoardInitialisation Int
   | BadBoardSize Int
   | Cyclic Location
@@ -34,6 +38,7 @@ instance Show BoardError where
   show = case _ of
     LocationOccupied loc -> "Location Occupied: " <> show loc
     LocationNotOccupied loc ->  "Location Not Occupied: " <> show loc
+    InvalidLocation loc -> "Location " <> show loc <> " is outside range of the board"
     InvalidBoardInitialisation n -> "Invalid Board Initialisation: " <> show n <> " is not a valid board size"
     BadBoardSize n -> "Boards of size " <>  show n <>" are not valid"
     Cyclic _ -> "ABED does not admit cyclic boards"
@@ -101,8 +106,12 @@ getPiece loc = (_.piece) <$> getPieceInfo loc
   Very useful to seperate the board operations this way.
 -}
 
+isInsideBoard :: forall m. MonadError BoardError m => MonadState Board m => Location -> m Unit
+isInsideBoard loc = whenM (not <$> insideBoard loc) (throwError (InvalidLocation loc))
+
 addPiece :: forall m. MonadError BoardError m => MonadState Board m => Location -> APiece -> m Unit
 addPiece loc piece = do
+  isInsideBoard loc
   pieceInfo <- use (_pieces <<< at loc)
   case pieceInfo of
     Nothing -> _pieces <<< at loc .= Just { piece, rotation: rotation 0 }
@@ -114,7 +123,7 @@ removePiece loc = do
   _pieces <<< at loc .= Nothing
   pure piece
 
-movePiece :: forall m. Monad m => Location -> Location -> BoardT m Unit
+movePiece :: forall m. MonadError BoardError m => MonadState Board m => Location -> Location -> m Unit
 movePiece src dst = do
   pieceInfoSrc <- use (_pieces <<< at src)
   when (isNothing pieceInfoSrc) do
@@ -160,3 +169,16 @@ increaseSize = do
   put $ Board
     { size: newSize
     , pieces: unsafeMapKey (\(Location {x, y}) -> location (x+1) (y+1)) pieces }
+
+applyBoardEvent :: forall m. MonadState Board m => MonadError BoardError m => BoardEvent -> m Unit
+applyBoardEvent = case _ of
+  AddedPiece loc pieceId -> traverse_ (addPiece loc) (pieceLookup pieceId)
+  RemovedPiece loc pieceId -> void $ removePiece loc
+  MovedPiece src dst -> movePiece src dst
+  RotatedPiece loc rot -> rotatePieceBy loc rot
+  UndoBoardEvent -> pure unit
+  IncrementSize -> increaseSize
+  DecrementSize -> decreaseSize
+  Multiple boardEvents -> traverse_ applyBoardEvent boardEvents
+
+

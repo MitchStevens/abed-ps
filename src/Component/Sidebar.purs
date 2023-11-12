@@ -106,6 +106,7 @@ component = H.mkComponent { eval , initialState , render }
     { finalize: Nothing
     , handleAction: case _ of
         PieceOnDrop piece _ -> do
+          log "piece dropped!"
           H.raise (PieceDropped piece)
         PieceOnClick piece _ ->
           H.raise (PieceAdded piece)

@@ -7,6 +7,7 @@ import Effect.Aff (runAff_)
 import Halogen as Test
 import Test.Component.Board as Test.Component.Board
 import Test.Game.Board as Test.Game.Board
+import Test.Game.Board.Path as Test.Game.Board.Path
 import Test.Game.Expression as Test.Game.Expression
 import Test.Game.GameEvent as Test.Game.GameEvent
 import Test.Game.Location as Test.Game.Location
@@ -23,6 +24,7 @@ main = runAff_ (\_ -> pure unit) $ runTest do
   describe "Location tests"             Test.Game.Location.tests
   describe "Piece tests"                Test.Game.Piece.tests
   describe "Board tests"                Test.Game.Board.tests
+  describe "Path"                       Test.Game.Board.Path.tests
   describe "ProblemDescription tests"   Test.Game.ProblemDescription.tests
   describe "Rules Engine tests"         Test.Game.RulesEngine.tests
   describe "Game Event Tests"           Test.Game.GameEvent.tests

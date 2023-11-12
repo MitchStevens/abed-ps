@@ -2,7 +2,7 @@ module Game.GameEvent where
 
 import Prelude
 
-import Data.Foldable (find, sum)
+import Data.Foldable (find, foldMap, sum)
 import Data.List (List(..), head)
 import Data.Map (Map)
 import Data.Map as M
@@ -41,6 +41,7 @@ data BoardEvent
   | UndoBoardEvent
   | IncrementSize
   | DecrementSize
+  | Multiple (List BoardEvent)
 derive instance Eq BoardEvent
 derive instance Ord BoardEvent
 
@@ -53,6 +54,7 @@ instance Show BoardEvent where
     UndoBoardEvent -> "Undo last boardEvent"
     IncrementSize -> "Incremented board size"
     DecrementSize -> "Decremented board size"
+    Multiple boardEvents -> "Multiple boardEvents: " <> show boardEvents
 
 {-
   if the board changed, it probably changed in a specific location.
@@ -61,13 +63,14 @@ instance Show BoardEvent where
 -}
 boardEventLocationsChanged :: BoardEvent -> Maybe (Array Location)
 boardEventLocationsChanged = case _ of
-  AddedPiece loc _    -> Just [loc]
-  RemovedPiece loc _  -> Just [loc]
-  MovedPiece src dst  -> Just [src, dst]
-  RotatedPiece loc _  -> Just [loc]
-  UndoBoardEvent      -> Nothing
-  IncrementSize       -> Nothing
-  DecrementSize       -> Nothing
+  AddedPiece loc _     -> Just [loc]
+  RemovedPiece loc _   -> Just [loc]
+  MovedPiece src dst   -> Just [src, dst]
+  RotatedPiece loc _   -> Just [loc]
+  UndoBoardEvent       -> Nothing
+  IncrementSize        -> Nothing
+  DecrementSize        -> Nothing
+  Multiple boardEvents -> foldMap boardEventLocationsChanged boardEvents
 
 data SidebarEvent
   = BoardSizeIncrementClicked
