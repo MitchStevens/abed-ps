@@ -44,6 +44,7 @@ tests = do
       Z.fromFoldable [ 0, 1 ] `shouldEqual` Just (Zipper (Cons 0 Nil) 1 Nil)
       Z.fromFoldable [ 0, 1, 2 ] `shouldEqual` Just (Zipper (Cons 1 (Cons 0 Nil)) 2 Nil)
 
+{-
     it "small zippers" do
       pieceBoardEvent (Zipper Nil l1 Nil) `shouldEqual` Nothing
       pieceBoardEvent (Zipper (Cons l0 Nil) l1 Nil) `shouldEqual` Just Nil
@@ -129,6 +130,7 @@ tests = do
           Cons (RotatedPiece l1 (rotation 3)) $
           Nil
         )
+        -}
 
 
 

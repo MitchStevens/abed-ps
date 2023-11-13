@@ -36,14 +36,14 @@ import Effect.Class (class MonadEffect, liftEffect)
 import Effect.Class.Console (log, logShow)
 import Game.Board (Board(..), RelativeEdge(..), _pieces, _size, evalBoardWithPortInfo, extractOutputs, standardBoard)
 import Game.Board.Operation (BoardError, BoardM, addPiece, applyBoardEvent, decreaseSize, evalBoardM, getPieceInfo, increaseSize, movePiece, removePiece, rotatePieceBy, runBoardM)
-import Game.Board.Path (boardPath)
+import Game.Board.Path (boardPath, runPathT)
 import Game.Board.Query (directPredecessors)
 import Game.Expression (Signal(..))
 import Game.GameEvent (BoardEvent(..), GameEvent(..), GameEventStore, boardEventLocationsChanged)
 import Game.Location (CardinalDirection, Edge(..), Location(..), Rotation(..), allDirections, location, oppositeDirection, rotateDirection, rotation)
 import Game.Location as Direction
 import Game.Piece (APiece(..), PieceId(..), getPort, name)
-import Game.Piece.Port (Port, isInput, matchingPort)
+import Game.Piece.Port (Port, PortInfo, isInput, matchingPort)
 import Game.Piece.Port as Port
 import Halogen (AttrName(..), ClassName(..), Component, HalogenM(..), HalogenQ, Slot)
 import Halogen as H
@@ -72,7 +72,7 @@ type Input = Maybe Board
 type State = 
   { boardHistory :: Zipper Board
   , mouseOverLocation :: Maybe Location
-  , ports :: Map CardinalDirection (Tuple Port Signal)
+  , ports :: Map CardinalDirection PortInfo
   , isCreatingWire :: Maybe
     { initialDirection :: CardinalDirection
     , locations :: Array Location
@@ -204,8 +204,7 @@ component = H.mkComponent { eval , initialState , render }
               [ SA.transform 
                 [ Rotate (toNumber (fromEnum dir + 2) * 90.0) 25.0 12.5 ]
               ] $
-              A.fromFoldable (M.lookup dir state.ports) <#> \(Tuple port signal) ->
-                Piece.renderPort dir { connected: false, port: matchingPort port, signal }
+              A.fromFoldable (M.lookup dir state.ports) <#> \info -> Piece.renderPort dir (info { port = matchingPort info.port, connected = true})
             ]
           ]
         where
@@ -245,12 +244,14 @@ component = H.mkComponent { eval , initialState , render }
           maybeDst <- H.gets (_.mouseOverLocation)
           pure (f <$> maybeDst)
         SetInputs inputs f -> do
-          let setInput dir (Tuple port signal) = Tuple port (if isInput port then fromMaybe signal (M.lookup dir inputs) else signal)
+          let setInput dir info = info { signal = if isInput info.port then fromMaybe info.signal (M.lookup dir inputs) else info.signal }
+          
+          --Tuple port (if isInput port then fromMaybe signal (M.lookup dir inputs) else signal)
           modify_ $ \s -> s { ports = mapWithIndex setInput s.ports }
           _ <- evaluateBoard
           pure Nothing
         SetGoalPorts ports -> do
-          modify_ $ _ { ports = map (\p -> Tuple p (Signal 0)) ports }
+          modify_ $ _ { ports = map (\port -> { port, signal: Signal 0, connected: false }) ports }
           _ <- evaluateBoard
           pure Nothing
         IncrementBoardSize f -> do
@@ -304,7 +305,7 @@ component = H.mkComponent { eval , initialState , render }
         updateStore (BoardEvent UndoBoardEvent)
         evaluateBoard
     ToggleInput dir -> do
-      modify_ $ \s -> s { ports = M.alter (map (\(Tuple port signal) -> Tuple port (if isInput port then not signal else signal))) dir s.ports }
+      modify_ $ \s -> s { ports = M.alter (map (\info -> info {signal = if isInput info.port then not info.signal else info.signal } )) dir s.ports }
       _ <- evaluateBoard
       pure unit
 
@@ -330,7 +331,7 @@ component = H.mkComponent { eval , initialState , render }
           for_ (fromEventTarget eventTarget) \element -> do
             bb <- liftEffect (getBoundingClientRect element)
             let terminalDirection = getDirectionClicked me bb
-            maybeBoardEvents <- evalState (boardPath creatingWire.initialDirection creatingWire.locations terminalDirection) <$> use _board
+            maybeBoardEvents <- runPathT (boardPath creatingWire.initialDirection creatingWire.locations terminalDirection) <$> use _board
             case maybeBoardEvents of
               Just boardEvents -> do
                 log ("boardevents: " <> show boardEvents)
@@ -344,8 +345,6 @@ component = H.mkComponent { eval , initialState , render }
                 H.modify_ $ \s -> s { isCreatingWire = Nothing }
               Nothing -> do
                 log "no board events!!"
-
-
 
 
     -- can these events be simplified? do we need all of them?
@@ -380,11 +379,11 @@ getDirectionClicked me bb = case isTopOrRight, isTopOrLeft of
 
 getInputs :: forall m. MonadState State m => m (Map CardinalDirection Signal)
 getInputs = M.mapMaybe getInputSignal <$> gets (_.ports)
-  where getInputSignal (Tuple port signal) = if isInput port then Just signal else Nothing
+  where getInputSignal info = if isInput info.port then Just info.signal else Nothing
 
-setOutputs :: forall m. MonadState State m => Map CardinalDirection Signal -> m Unit
-setOutputs outputs = modify_ $ \s -> s { ports = mapWithIndex setOutput s.ports }
-  where setOutput dir (Tuple port signal) = if not (isInput port) then Tuple port (fromMaybe signal (M.lookup dir outputs)) else Tuple port signal
+setOutputs :: forall m. MonadState State m => Map CardinalDirection PortInfo -> m Unit
+setOutputs portInfos = modify_ $ \s -> s { ports = M.union outputs s.ports }
+  where outputs = M.filter (\info -> not (isInput info.port)) portInfos
 
 -- if there is a new board, we always want to evaluate it and send the changes to the piece components
 updateBoard :: forall m. Board -> HalogenM State Action Slots Output m (Map CardinalDirection Signal)
@@ -402,14 +401,13 @@ evaluateBoard :: forall m. HalogenM State Action Slots Output m (Map CardinalDir
 evaluateBoard = do
     inputs  <- getInputs
     signals <- evalState (evalBoardWithPortInfo inputs) <$> use _board
-    outputs <- map (_.signal) <$> evalState (extractOutputs signals) <$> use _board
-    setOutputs outputs
+    outputs <- evalState (extractOutputs signals) <$> use _board
 
     for_ (M.toUnfoldable $ signals :: Array _) \(Tuple (Relative (Edge {dir, loc})) portInfo) -> do
       trace (show loc <> "\t" <> show dir <> "\t" <> show portInfo) \_ ->
         H.tell _piece loc (\_ -> Piece.PaintPort dir portInfo)
 
-    pure outputs
+    pure ((_.signal) <$> outputs)
 
 
 liftBoardM :: forall m a. BoardM a -> HalogenM State Action Slots Output m (Either BoardError (Tuple a Board))

@@ -221,7 +221,10 @@ tests = do
       length c1 `shouldEqual` 0
     it "with test board" $ runBoardTest testBoard do
       c <- buildConnectionMap <$> get
-      length c `shouldEqual` 3
+      length c `shouldEqual` 6
+
+
+
   describe "evalBoard" do
     it "should eval empty board"  $ runBoardTest standardBoard do
        equal (M.empty) =<< evalBoard (testInput ff ff)
@@ -261,9 +264,10 @@ tests = do
       rotatePieceBy loc (rotation 1)
 
       connections <- buildConnectionMap <$> get
-      length connections `shouldEqual` 0
+      length connections `shouldEqual` 1
       signals :: Array _ <- M.toUnfoldable <$> evalBoardScratch M.empty
       signals `shouldContain`
         Tuple (relative loc Direction.Right) tt
       ports :: Array _ <- M.toUnfoldable <$> allPortsOnBoard
+      length ports `shouldEqual` 2
       ports `shouldContain` Tuple (relative loc Direction.Right) (Port.Output (Capacity 1))

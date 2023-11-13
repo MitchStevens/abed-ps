@@ -7,7 +7,7 @@
     "build": "spago bundle-app --main Main --to dist/abed.js --minify",
     "test": "spago -x test.dhall test",
     "test-browser": "spago -x test.dhall bundle-app --main Test.Component.Main --to dist/test.js",
-    "compile-css-watch": "nodemon --watch dist/less/ --exec 'npm run compile-css'",
+    "compile-css-watch": "nodemon --watch dist/less/* --exec 'npm run compile-css'",
     "build-watch": "npm run compile-css-watch & npm run build -- --watch",
     "test-watch": "npm run test -- --watch",
     "test-browser-watch": "npm run compile-css-watch & npm run test-browser -- --watch",

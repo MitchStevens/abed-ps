@@ -1,9 +1,10 @@
 #board-component {
-    background-color:yellowgreen;
+    background-color: beige;
     width: 100%;
     aspect-ratio: 1 / 1;
     border-spacing: 0px;
     display: grid;
+    box-sizing: border-box;
 
     & .piece {
         display: block;
@@ -12,25 +13,18 @@
         aspect-ratio: 1 / 1;
         background-color: beige;
         z-index: 0;
+        border: lightgray 2px solid;
+        overflow: hidden;
     }
 
     & .board-port {
-        background-color: coral;
-        position: relative;
+        box-sizing: border-box;
         display: grid;
         justify-items: center;
         align-items: center;
-
+        overflow: hidden;
 
         &[data-direction='up'] svg { width: 50%; }
         &[data-direction='down'] svg { width: 50%; }
-    }
-
-    .bad-port {
-        stroke: red;
-    }
-
-    .unused-port {
-        stroke: black
     }
 }

@@ -29,6 +29,7 @@ import Game.Location (CardinalDirection, Edge(..), Location(..), Rotation(..), a
 import Game.Location as Direction
 import Game.Piece (class Piece, APiece(..), PieceId(..), eval, getOutputDirs, getPort, ports)
 import Game.Piece.Port (Port, PortInfo, isInput)
+import Game.Piece.Port as Port
 import Type.Proxy (Proxy(..))
 
 
@@ -132,12 +133,19 @@ portEdges (Board b) dir =
 
 
 allPortsOnBoard :: forall m. MonadState Board m => m (Map RelativeEdge Port)
-allPortsOnBoard = do
-  pieceInfos <- use _pieces
-  M.unions <$> for (M.toUnfoldable pieceInfos :: Array _) \(Tuple loc pieceInfo) -> do
-    M.fromFoldable <$> for (M.toUnfoldable (ports pieceInfo.piece) :: Array _) \(Tuple dir port) -> do
-      --relEdge <- toRelativeEdge (absolute loc dir)
-      pure (Tuple (relative loc dir) port)
+allPortsOnBoard = M.union <$> boardPorts <*> piecePorts
+  where
+    boardPorts = M.catMaybes <$> do
+      board <- get
+      M.fromFoldable <$> for allDirections \dir -> do
+        relEdge  <- toRelativeEdge (portEdges board dir)
+        Tuple relEdge <$> getPortOnEdge relEdge
+
+    piecePorts = do
+      pieceInfos <- use _pieces
+      M.unions <$> for (M.toUnfoldable pieceInfos :: Array _) \(Tuple loc pieceInfo) -> do
+        M.fromFoldable <$> for (M.toUnfoldable (ports pieceInfo.piece) :: Array _) \(Tuple dir port) -> do
+          pure (Tuple (relative loc dir) port)
 
 -- do not export 
 portsBoard :: forall m. MonadState Board m => m (Map CardinalDirection Port)
@@ -161,15 +169,29 @@ matchingRelativeEdge edge1 = do
   toRelativeEdge (matchEdge absEdge)
 
 buildConnectionMap :: Board -> Map RelativeEdge RelativeEdge
-buildConnectionMap board@(Board {size, pieces}) = M.fromFoldable do
-  Tuple loc {piece, rotation} <- M.toUnfoldable pieces
-  dir <- A.fromFoldable $ getOutputDirs piece
-  let relEdge  = relative loc dir
-  let relEdge' = evalState (matchingRelativeEdge relEdge) board
-  if isJust (evalState (getPortOnEdge relEdge') board)
-    then [ Tuple relEdge relEdge' ]
-    else []
+buildConnectionMap board@(Board {size, pieces}) = M.union edgeConnections internalConnections
+  where
+    edgeConnections = M.fromFoldable do
+      absEdge <- portEdges board <$> allDirections
+      let internal = evalState (toRelativeEdge absEdge) board
+      let external = evalState (matchingRelativeEdge internal) board
+      let maybePort = evalState (getPortOnEdge internal) board
+      case maybePort of
+        Just (Port.Input _)  -> [ Tuple internal external ]
+        Just (Port.Output _) -> [ Tuple external internal ]
+        Nothing -> []
+    
+    internalConnections = M.fromFoldable do
+      Tuple loc {piece, rotation} <- M.toUnfoldable pieces
+      dir <- A.fromFoldable $ getOutputDirs piece
+      let relEdge  = relative loc dir
+      let relEdge' = evalState (matchingRelativeEdge relEdge) board
+      if isJust (evalState (getPortOnEdge relEdge') board)
+        then [ Tuple relEdge relEdge' ]
+        else []
 
+
+--portEdges :: Board -> CardinalDirection -> AbsoluteEdge
 
 buildBoardGraph :: forall m. MonadState Board m => m (Graph Location Unit)
 buildBoardGraph = do
