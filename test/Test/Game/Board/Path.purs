@@ -8,7 +8,6 @@ import Data.Maybe (Maybe(..))
 import Data.Zipper (Zipper(..))
 import Data.Zipper as Z
 import Game.Board (standardBoard)
-import Game.Board.Path (boardPath, pieceBoardEvent)
 import Game.GameEvent (BoardEvent(..))
 import Game.Location (location, rotation)
 import Game.Piece (name)
