@@ -14,6 +14,7 @@ import Routing.Hash (setHash)
 data Route
   = Home
   | About
+  | Instructions
   | PuzzleSelect
   | Puzzle String String
 derive instance Generic Route _
@@ -27,6 +28,7 @@ routeCodec :: RouteDuplex' Route
 routeCodec = root $ sum
   { "Home": noArgs
   , "About": "about" / noArgs
+  , "Instructions": "how-to-play" / noArgs
   , "PuzzleSelect": "puzzleSelect" / noArgs
   , "Puzzle": "puzzle" / segment / segment
   }

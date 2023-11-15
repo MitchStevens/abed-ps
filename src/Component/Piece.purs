@@ -45,6 +45,7 @@ import Web.UIEvent.MouseEvent (MouseEvent, clientX, clientY, screenX, screenY)
 type Input =
   { piece :: APiece
   , location :: Location
+  , portStates :: Map CardinalDirection PortInfo
   }
 
 type State = 
@@ -59,12 +60,9 @@ type State =
   }
 
 data Query a
-  = PaintSignals (Map CardinalDirection Signal)
-  | PaintConnected CardinalDirection Boolean
-  | PaintPort CardinalDirection PortInfo
 
 data Action
-  = Initialise
+  = Initialise Input
   | OnDrop Location DragEvent
   | OnDrag DragEvent
   | OnMouseDown MouseEvent
@@ -82,12 +80,12 @@ _connected = prop (Proxy :: Proxy "connected")
 component :: forall m. MonadEffect m => H.Component Query Input Output m
 component = H.mkComponent { eval , initialState , render }
   where
-  initialState { piece, location } =
+  initialState { piece, location, portStates } =
     { piece
     , location
     , rotation: rotation 0
     , isRotating: Nothing
-    , portStates: map (\p -> {connected: false, port: p, signal: Signal 0}) (ports piece) }
+    , portStates }
 
   render state =
     HH.div
@@ -102,11 +100,11 @@ component = H.mkComponent { eval , initialState , render }
       , HE.onMouseDown OnMouseDown
       , HE.onMouseMove OnMouseMove
       , HE.onMouseUp (OnMouseUp state.location)
-      ] $ pure $
-        SE.svg
-          [  SA.viewBox 0.0 0.0 100.0 100.0 ]  $
+      ]
+      [ SE.svg
+          [  SA.viewBox 0.0 0.0 100.0 100.0 ] $
           allPorts <> [ center ]
-
+      ]
 
     where
       isDraggable = isNothing state.isRotating
@@ -144,7 +142,8 @@ component = H.mkComponent { eval , initialState , render }
   eval = H.mkEval
     { finalize: Nothing
     , handleAction: case _ of
-        Initialise -> do
+        Initialise input -> do
+          H.put (initialState input)
           pure unit
         OnDrop loc event -> do
           H.raise (Dropped loc)
@@ -188,20 +187,9 @@ component = H.mkComponent { eval , initialState , render }
             H.raise (Rotated loc rot)
           H.modify_ (_ { isRotating = Nothing })
     , handleQuery: case _ of
-        PaintSignals signals -> do
-          for_ (M.toUnfoldable signals :: Array (Tuple CardinalDirection Signal)) \(Tuple dir signal) ->
-            _portStates <<< ix dir <<< _signal .= signal
-          pure Nothing
-        PaintConnected dir connected -> do
-          _portStates <<< ix dir <<< _connected .= connected
-          pure Nothing
-        PaintPort dir portInfo -> do
-          piece <- gets (_.piece)
-          when (isJust $ getPort piece dir) do
-            _portStates <<< at dir .= Just portInfo
-          pure Nothing
-    , initialize: Just Initialise 
-    , receive: const Nothing -- :: input -> Maybe action
+        _ -> pure Nothing
+    , initialize: Nothing
+    , receive: Just <<< Initialise -- :: input -> Maybe action
     }
 
 

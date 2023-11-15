@@ -9,6 +9,7 @@ import Component.Chat as Chat
 import Component.Sidebar as Sidebar
 import Control.Monad.Reader (class MonadAsk, class MonadReader)
 import Data.Foldable (foldMap, for_, traverse_)
+import Data.Lens ((^.))
 import Data.Maybe (Maybe(..))
 import Data.Time.Duration (Seconds(..))
 import Data.Traversable (for)
@@ -16,7 +17,7 @@ import Debug (spy)
 import Effect.Aff.Class (class MonadAff)
 import Effect.Class (class MonadEffect, liftEffect)
 import Effect.Class.Console (log)
-import Game.Board (firstEmptyLocation)
+import Game.Board (_size, firstEmptyLocation)
 import Game.GameEvent (GameEvent, GameEventStore)
 import Game.Message (Message)
 import Game.Piece (name, ports)
@@ -68,7 +69,7 @@ component = H.mkComponent { eval , initialState , render }
   render { puzzle, puzzleId } = HH.div [ HP.class_ (ClassName "puzzle")]
     [ HH.slot _board    unit Board.component Nothing BoardOutput
     , HH.slot_ _chat    unit Chat.component unit
-    , HH.slot _sidebar  unit Sidebar.component { problem: puzzle.problemDescription } SidebarOutput
+    , HH.slot _sidebar  unit Sidebar.component { problem: puzzle.problemDescription, boardSize: 3 } SidebarOutput
     ]
 
   eval :: HalogenQ q Action Input ~> HalogenM State Action Slots o m
@@ -88,6 +89,9 @@ component = H.mkComponent { eval , initialState , render }
         -- the sidebar should be updated with the new board so it can display the
         -- pieceSpecMismatch 
         maybeMismatch <- H.request _sidebar unit (Sidebar.IsProblemSolved board)
+
+        -- the sidebar is also update with the current size of the board
+        H.tell _sidebar unit (\_ -> Sidebar.SetBoardSize (board ^. _size))
 
         -- when puzzle is complete, save the puzzle
         when (maybeMismatch == Nothing) do

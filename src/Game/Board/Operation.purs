@@ -7,7 +7,7 @@ import Control.Monad.Error.Class (class MonadError, class MonadThrow, throwError
 import Control.Monad.Except (ExceptT, runExceptT)
 import Control.Monad.State (class MonadState, class MonadTrans, StateT, get, gets, lift, put, runStateT)
 import Data.Either (Either(..))
-import Data.Foldable (all, find, traverse_)
+import Data.Foldable (all, find, for_, traverse_)
 import Data.Identity (Identity)
 import Data.Int (even, odd)
 import Data.Lens.At (at)
@@ -88,7 +88,7 @@ emptyBoard n =
 -- should return either boarderror
 getPieceInfo :: forall m. MonadState Board m => MonadError BoardError m => Location -> m PieceInfo
 getPieceInfo loc =
-  gets ((preview (_pieces <<< ix loc))) >>=
+  use (_pieces <<< at loc) >>= 
     maybe (throwError (LocationNotOccupied loc)) pure
 
 getPiece :: forall m. MonadState Board m => MonadError BoardError m => Location -> m APiece
@@ -119,9 +119,13 @@ addPiece loc piece = do
 
 removePiece :: forall m. MonadError BoardError m => MonadState Board m => Location -> m APiece
 removePiece loc = do
-  piece <- getPiece loc
-  _pieces <<< at loc .= Nothing
-  pure piece
+  isInsideBoard loc
+  maybePieceInfo <- use (_pieces <<< at loc)
+  case maybePieceInfo of
+    Nothing -> throwError (LocationNotOccupied loc)
+    Just pieceInfo -> do
+      _pieces <<< at loc .= Nothing
+      pure pieceInfo.piece
 
 movePiece :: forall m. MonadError BoardError m => MonadState Board m => Location -> Location -> m Unit
 movePiece src dst = do
@@ -173,12 +177,10 @@ increaseSize = do
 applyBoardEvent :: forall m. MonadState Board m => MonadError BoardError m => BoardEvent -> m Unit
 applyBoardEvent = case _ of
   AddedPiece loc pieceId -> traverse_ (addPiece loc) (pieceLookup pieceId)
-  RemovedPiece loc pieceId -> void $ removePiece loc
+  RemovedPiece loc _ -> void $ removePiece loc
   MovedPiece src dst -> movePiece src dst
   RotatedPiece loc rot -> rotatePieceBy loc rot
   UndoBoardEvent -> pure unit
   IncrementSize -> increaseSize
   DecrementSize -> decreaseSize
-  Multiple boardEvents -> traverse_ applyBoardEvent boardEvents
-
-
+  Multiple boardEvents -> for_ boardEvents applyBoardEvent 

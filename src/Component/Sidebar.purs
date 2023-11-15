@@ -36,17 +36,18 @@ import Web.UIEvent.MouseEvent (MouseEvent)
 
 type Input = 
   { problem :: ProblemDescription
-  --, currentBoardSize :: Int
+  , boardSize :: Int
   }
 
 type State =
   { problem :: ProblemDescription
   , error :: Maybe PieceSpecMismatch
-  --, currentBoardSize :: Int
+  , boardSize :: Int
   }
 
 data Query a
   = IsProblemSolved Board (PieceSpecMismatch -> a)
+  | SetBoardSize Int
 
 data Action
   = PieceOnDrop PieceId DragEvent
@@ -64,34 +65,36 @@ data Output
 component :: forall m. MonadAff m => H.Component Query Input Output m
 component = H.mkComponent { eval , initialState , render }
   where
-  initialState { problem }= { problem, error: Nothing }
+  initialState { problem, boardSize }= { problem, error: Nothing, boardSize }
 
-  render { problem, error } = 
+  render state = 
     HH.div 
       [ HP.class_ (ClassName "sidebar-component")
       ]
-      [ HH.h2_ [ HH.text problem.title ]
-      , HH.h3_ [ HH.text problem.description ]
-      , maybe problemComplete renderError error
+      [ HH.h2_ [ HH.text state.problem.title ]
+      , HH.h3_ [ HH.text state.problem.description ]
+      , maybe problemComplete renderError state.error
       , HH.h3_ [ HH.text "Available pieces:"]
       , HH.div [ HP.class_ (ClassName "pieces") ] $
-        A.fromFoldable problem.pieceSet <#> \pieceId ->
-          HH.div 
-            [ attr DataAttr.availablePiece pieceId
-            , HP.draggable true
-            , HP.classes [ ClassName "available-piece" ]
-            , HE.onDragEnd (PieceOnDrop pieceId)
-            , HE.onClick (PieceOnClick pieceId)
-            ]
-            [HH.text (show pieceId)]
+        A.fromFoldable state.problem.pieceSet <#> renderAvailablePiece
       , HH.h3_ [ HH.text "Board size" ]
       , HH.span_
         [ HH.button [ HE.onClick (\_ -> DecrementBoardSize) ] [ HH.text "-" ]
-        , HH.text "3"
+        , HH.text (show state.boardSize)
         , HH.button [ HE.onClick (\_ -> IncrementBoardSize) ] [ HH.text "+" ]
         ]
       ]
-  
+
+  renderAvailablePiece :: forall p. PieceId -> HTML p Action
+  renderAvailablePiece pieceId =
+    HH.div 
+      [ attr DataAttr.availablePiece pieceId
+      , HP.draggable true
+      , HP.classes [ ClassName "available-piece" ]
+      , HE.onDragEnd (PieceOnDrop pieceId)
+      , HE.onClick (PieceOnClick pieceId)
+      ]
+      [HH.text (show pieceId)]
 
   problemComplete = HH.span_
     [ HH.text "problem complete"
@@ -120,6 +123,9 @@ component = H.mkComponent { eval , initialState , render }
           isSolved <- liftAff $ runExceptT $ solvedBy problemDescription board
           H.modify_ (_ { error = blush isSolved })
           pure (f <$> blush isSolved)
+        SetBoardSize boardSize -> do
+          H.modify_ $ _ { boardSize = boardSize }
+          pure Nothing
     , initialize: Nothing
     , receive: const Nothing -- :: input -> Maybe action
     }

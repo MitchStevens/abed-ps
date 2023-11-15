@@ -39,7 +39,8 @@ instance Piece BasicPiece where
 allBasicPieces :: Array APiece
 allBasicPieces =
   [ idPiece, leftPiece, rightPiece, superPiece
-  , notPiece, orPiece, andPiece, crossPiece
+  , notPiece, orPiece, andPiece
+  , crossPiece, cornerCutPiece, chickenPiece
   , dupPiece, xorPiece
   , truePiece, falsePiece
   ]
@@ -130,6 +131,33 @@ crossPiece = mkPiece $ Basic
     , Tuple Down $ BasicOutput (ref Up)
     ]
   }
+
+cornerCutPiece :: APiece
+cornerCutPiece = mkPiece $ Basic
+  { name: "corner-cut"
+  , capacity: Capacity 1
+  , ports: M.fromFoldable
+    [ Tuple Left $ BasicInput
+    , Tuple Up $ BasicInput
+    , Tuple Right $ BasicOutput (ref Up)
+    , Tuple Down $ BasicOutput (ref Left)
+    ]
+
+  }
+
+chickenPiece :: APiece
+chickenPiece = mkPiece $ Basic
+  { name: "chicken"
+  , capacity: Capacity 1
+  , ports: M.fromFoldable
+    [ Tuple Left $ BasicInput 
+    , Tuple Right $ BasicInput 
+    , Tuple Up $ BasicOutput  (ref Right)
+    , Tuple Down $ BasicOutput (ref Left) 
+    ]
+  }
+
+
 
 dupPiece :: APiece
 dupPiece = mkPiece $ Basic

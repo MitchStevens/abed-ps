@@ -5,6 +5,7 @@ import Prelude
 import Capability.Navigate (Route(..))
 import Component.About as About
 import Component.Home as Home
+import Component.Instructions as Instructions
 import Component.Puzzle as Puzzle
 import Component.PuzzleSelect as PuzzleSelect
 import Control.Monad.Reader (class MonadAsk)
@@ -29,6 +30,7 @@ route :: Match Route
 route = oneOf
   [ Home <$ lit "home"
   , About <$ lit "about"
+  , Instructions <$ lit "how-to-play"
   , PuzzleSelect <$ lit "puzzle-select"
   , Puzzle <$> (lit "puzzle" *> str) <*> str
   ]
@@ -49,6 +51,7 @@ data Output
 type Slots =
   ( home          :: forall q. Slot q Void Unit
   , about         :: forall q. Slot q Void Unit
+  , instructions  :: forall q. Slot q Void Unit
   , puzzleSelect  :: forall q. Slot q Void Unit
   , puzzle        :: forall q. Slot q Void Unit
   )
@@ -70,6 +73,8 @@ component = H.mkComponent { eval, initialState, render }
         HH.slot_ (Proxy :: _ "home") unit Home.component unit
       About ->
         HH.slot_ (Proxy :: _ "about") unit About.component unit
+      Instructions ->
+        HH.slot_ (Proxy :: _ "instructions") unit Instructions.component unit
       PuzzleSelect ->
         HH.slot_ (Proxy :: _ "puzzleSelect") unit PuzzleSelect.component unit
       Puzzle suiteName puzzleName -> fromMaybe (HH.text "coublent find tht roblem" ) do

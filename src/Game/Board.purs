@@ -3,6 +3,7 @@ module Game.Board where
 import Data.Lens
 import Prelude
 
+import Control.Alternative (guard)
 import Control.Monad.State (class MonadState, evalState, get, gets)
 import Data.Array ((..))
 import Data.Array as A
@@ -13,7 +14,7 @@ import Data.Lens.At (at)
 import Data.Lens.Index (ix)
 import Data.Lens.Iso.Newtype (_Newtype)
 import Data.Lens.Record (prop)
-import Data.List (List(..))
+import Data.List (List(..), any)
 import Data.List as L
 import Data.Map (Map)
 import Data.Map as M
@@ -30,6 +31,7 @@ import Game.Location as Direction
 import Game.Piece (class Piece, APiece(..), PieceId(..), eval, getOutputDirs, getPort, ports)
 import Game.Piece.Port (Port, PortInfo, isInput)
 import Game.Piece.Port as Port
+import Halogen.Svg.Attributes (m)
 import Type.Proxy (Proxy(..))
 
 
@@ -216,11 +218,11 @@ unsafeMapKey f = go
       Map.Two l k v r -> Map.Two (go l) (f k) v (go r)
       Map.Three l k1 v1 m k2 v2 r -> Map.Three (go l) (f k1) v1 (go m) (f k2) v2 (go r)
 
-toLocalInputs :: Location -> Map RelativeEdge Signal -> Map CardinalDirection Signal
+toLocalInputs :: forall a. Location -> Map RelativeEdge a -> Map CardinalDirection a
 toLocalInputs loc = M.submap (Just (relative loc Direction.Up)) (Just (relative loc Direction.Left)) >>> unsafeMapKey relativeEdgeDirection
 
 -- this creates a valid map because d1 >= d2 => reledge loc d1 >= relEdge loc d2
-toGlobalInputs :: Location -> Map CardinalDirection Signal -> Map RelativeEdge Signal
+toGlobalInputs :: forall a. Location -> Map CardinalDirection a -> Map RelativeEdge a
 toGlobalInputs loc = unsafeMapKey (relative loc)
 
 instance Piece Board where
@@ -240,21 +242,31 @@ evalLocation acc loc = M.union acc <$> do
       pure (Tuple matching signal)
     pure $ M.union outputs adjacentInputs
 
-extractOutputs :: forall m a . MonadState Board m 
+extractBoardPorts :: forall m a. MonadState Board m
   => Map RelativeEdge a -> m (Map CardinalDirection a)
-extractOutputs signals = M.fromFoldable <$> A.catMaybes <$> do
+extractBoardPorts m = M.fromFoldable <$> A.catMaybes <$> do
   for allDirections \dir -> do
     board <- get
     relEdge <- toRelativeEdge (portEdges board dir)
-    maybePort <- getPortOnEdge relEdge
-    pure $ maybePort >>= \port ->
-      if not (isInput port) 
-        then Tuple dir <$> (M.lookup relEdge signals) 
-        else Nothing
+    pure $ Tuple dir <$> M.lookup relEdge m
+
+extractInputs :: forall m a. MonadState Board m 
+  => Map RelativeEdge a -> m (Map CardinalDirection a)
+extractInputs m = do  
+  ports <- portsBoard
+  let inputFilter dir a = any isInput (M.lookup dir ports)
+  M.filterWithKey inputFilter <$> extractBoardPorts m
+
+extractOutputs :: forall m a. MonadState Board m 
+  => Map RelativeEdge a -> m (Map CardinalDirection a)
+extractOutputs m = do  
+  ports <- portsBoard
+  let outputFilter dir a = any (not <<< isInput) (M.lookup dir ports)
+  M.filterWithKey outputFilter <$> extractBoardPorts m
 
 evalBoardScratch :: forall m . MonadState Board m 
   => Map CardinalDirection Signal -> m (Map RelativeEdge Signal)
-evalBoardScratch m = do 
+evalBoardScratch inputs = do 
   boardGraph <- buildBoardGraph
   let locationsToEvaluate = G.topologicalSort boardGraph
   initialValues <- initial
@@ -267,10 +279,10 @@ evalBoardScratch m = do
     initial = do
       n <- use _size 
       M.catMaybes <<< M.fromFoldable <$> sequence
-        [ Tuple <$> toRelativeEdge (absolute (location (n`div`2) 0        ) Direction.Up   ) <*> pure (M.lookup Direction.Up    m)
-        , Tuple <$> toRelativeEdge (absolute (location (n-1)     (n`div`2)) Direction.Right) <*> pure (M.lookup Direction.Right m)
-        , Tuple <$> toRelativeEdge (absolute (location (n`div`2) (n-1)    ) Direction.Down ) <*> pure (M.lookup Direction.Down  m)
-        , Tuple <$> toRelativeEdge (absolute (location 0         (n`div`2)) Direction.Left ) <*> pure (M.lookup Direction.Left  m)
+        [ Tuple <$> toRelativeEdge (absolute (location (n`div`2) 0        ) Direction.Up   ) <*> pure (M.lookup Direction.Up    inputs)
+        , Tuple <$> toRelativeEdge (absolute (location (n-1)     (n`div`2)) Direction.Right) <*> pure (M.lookup Direction.Right inputs)
+        , Tuple <$> toRelativeEdge (absolute (location (n`div`2) (n-1)    ) Direction.Down ) <*> pure (M.lookup Direction.Down  inputs)
+        , Tuple <$> toRelativeEdge (absolute (location 0         (n`div`2)) Direction.Left ) <*> pure (M.lookup Direction.Left  inputs)
         ]
 
 

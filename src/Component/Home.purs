@@ -26,14 +26,26 @@ component = H.mkComponent { eval , initialState , render }
 
   render state =  
     HH.div [ HP.class_ (ClassName "home-component") ]
-      [ HH.h1_ [ HH.text "Home page" ]
-      , HH.a
-          [ HE.onClick (\_ -> NavigateTo PuzzleSelect) ]
-          [ HH.text "puzzle select" ]
-      , HH.br_
-      , HH.a
-          [ HE.onClick (\_ -> NavigateTo About) ]
-          [ HH.text "about" ]
+      [ HH.h1_ [ HH.text "abed" ]
+      , HH.ul
+        []
+        [ HH.li_
+          [ HH.a
+            [ HE.onClick (\_ -> NavigateTo PuzzleSelect) ]
+            [ HH.text "puzzle select" ]
+          ]
+        , HH.li_
+          [ HH.a
+            [ HE.onClick (\_ -> NavigateTo Instructions) ]
+            [ HH.text "how to play" ]
+          ]
+        , HH.li_
+          [ HH.a
+            [ HE.onClick (\_ -> NavigateTo About) ]
+            [ HH.text "about" ]
+          ]
+        ]
+
       ]
   
   eval :: forall slots. HalogenQ q Action i ~> HalogenM State Action slots o m

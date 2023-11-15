@@ -120,6 +120,10 @@ instance Monoid Rotation where
 instance Group Rotation where
   ginverse (Rotation n) = rotation (-n)
 
+allRotations :: Array Rotation
+allRotations = Rotation <$> [0, 1, 2, 3]
+
+
 rotation :: Int -> Rotation
 rotation n = Rotation (n `mod` 4)
 
