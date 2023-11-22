@@ -14,9 +14,7 @@ import Effect (Effect)
 import Effect.Aff (Aff, error, launchAff_, runAff_)
 import Effect.Class.Console (log)
 import Effect.Exception (error, throw)
-import Game.Piece.BasicPiece (andPiece, idPiece, notPiece, orPiece)
 import Halogen (Component, HalogenIO, liftEffect)
-import Halogen as H
 import Halogen.Aff as HA
 import Halogen.VDom.Driver (runUI)
 import Routing.Duplex (parse)

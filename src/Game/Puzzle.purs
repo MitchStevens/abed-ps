@@ -12,7 +12,7 @@ import Game.Expression (Signal(..))
 import Game.GameEvent (GameEventStore)
 import Game.Location (CardinalDirection, location)
 import Game.Message (Message)
-import Game.ProblemDescription (ProblemDescription, defaultProblemDescription)
+import Game.ProblemDescription (Problem, defaultProblem)
 import Game.RulesEngine (Rule)
 import Web.DOM.ParentNode (QuerySelector(..))
 import Web.HTML.Common (AttrName(..))
@@ -21,7 +21,7 @@ type PuzzleSettings =
   { enableBoardSizeChange :: Boolean }
 
 type Puzzle =
-  { problemDescription :: ProblemDescription
+  { problem :: Problem
   , boardDeltaRulesEngine :: Array (Rule GameEventStore Message)
   , conversation :: Array Message
   , settings :: PuzzleSettings
@@ -36,7 +36,7 @@ defaultSettings =
 
 defaultPuzzle :: Puzzle
 defaultPuzzle = 
-  { problemDescription: defaultProblemDescription
+  { problem: defaultProblem
   , boardDeltaRulesEngine: []
   , conversation: []
   , settings: defaultSettings
@@ -50,5 +50,6 @@ binaryTestInputs :: Array CardinalDirection -> Array (Map CardinalDirection Sign
 binaryTestInputs directions = do
   inputs <- traverse (\_ -> [ff, tt]) directions
   pure $ M.fromFoldable (zip directions inputs)
+
 
 

@@ -13,69 +13,82 @@ import Prelude
 import Capability.Navigate (Route(..), navigateTo)
 import Component.DataAttribute (attr)
 import Component.DataAttribute as DataAttr
+import Component.Piece as Piece
+import Component.Piece.Render (renderPiece)
 import Control.Monad.Except (runExceptT)
 import Data.Array as A
-import Data.Either (Either, blush, hush)
+import Data.Either (Either(..), blush, hush)
 import Data.Foldable (find, for_)
-import Data.Maybe (Maybe(..), maybe)
+import Data.Map as M
+import Data.Maybe (Maybe(..), fromMaybe, maybe)
+import Data.Traversable (for)
 import Effect.Aff.Class (class MonadAff)
 import Effect.Class (class MonadEffect, liftEffect)
 import Effect.Class.Console (log)
 import Game.Board (Board(..))
-import Game.Piece (APiece(..), PieceId(..), name)
+import Game.GameEvent (pieceId)
+import Game.Location (location)
+import Game.Piece (APiece(..), PieceId(..), name, pieceLookup)
 import Game.Piece.Port (isInput)
-import Game.ProblemDescription (PieceSpecMismatch(..), ProblemDescription, solvedBy)
-import Halogen (ClassName(..), HalogenM, HalogenQ, liftAff)
+import Game.Problem.Completion (CompletionStatus(..))
+import Game.ProblemDescription (Problem)
+import Halogen (ClassName(..), ComponentSlot, HalogenM, HalogenQ, liftAff)
 import Halogen as H
-import Halogen.HTML (HTML)
+import Halogen.HTML (HTML, PlainHTML, fromPlainHTML)
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
+import Type.Proxy (Proxy(..))
 import Web.HTML.Event.DragEvent (DragEvent, dataTransfer, toEvent)
 import Web.UIEvent.MouseEvent (MouseEvent)
 
 type Input = 
-  { problem :: ProblemDescription
+  { problem :: Problem
   , boardSize :: Int
   }
 
 type State =
-  { problem :: ProblemDescription
-  , error :: Maybe PieceSpecMismatch
+  { problem :: Problem
+  , completionStatus :: CompletionStatus
   , boardSize :: Int
   }
 
 data Query a
-  = IsProblemSolved Board (PieceSpecMismatch -> a)
+  = SetCompletionStatus CompletionStatus
   | SetBoardSize Int
 
 data Action
   = PieceOnDrop PieceId DragEvent
   | PieceOnClick PieceId MouseEvent
-  | BackToLevelSelect MouseEvent
+  | BackToLevelSelect
   | IncrementBoardSize
   | DecrementBoardSize
+  | RunTestsClicked
+  | PieceOutput Piece.Output
 
 data Output
   = PieceDropped PieceId
   | PieceAdded PieceId
   | BoardSizeIncremented
   | BoardSizeDecremented
+  | TestsTriggered
 
 component :: forall m. MonadAff m => H.Component Query Input Output m
 component = H.mkComponent { eval , initialState , render }
   where
-  initialState { problem, boardSize }= { problem, error: Nothing, boardSize }
+  initialState { problem, boardSize } =
+    { problem
+    , completionStatus: NotStarted
+    , boardSize }
 
   render state = 
     HH.div 
-      [ HP.class_ (ClassName "sidebar-component")
-      ]
+      [ HP.id "sidebar-component" ]
       [ HH.h2_ [ HH.text state.problem.title ]
       , HH.h3_ [ HH.text state.problem.description ]
-      , maybe problemComplete renderError state.error
+      , renderCompletionStatus -- maybe problemComplete renderError state.error
       , HH.h3_ [ HH.text "Available pieces:"]
-      , HH.div [ HP.class_ (ClassName "pieces") ] $
+      , HH.span [ HP.class_ (ClassName "pieces") ] $
         A.fromFoldable state.problem.pieceSet <#> renderAvailablePiece
       , HH.h3_ [ HH.text "Board size" ]
       , HH.span_
@@ -84,25 +97,47 @@ component = H.mkComponent { eval , initialState , render }
         , HH.button [ HE.onClick (\_ -> IncrementBoardSize) ] [ HH.text "+" ]
         ]
       ]
+    where
 
-  renderAvailablePiece :: forall p. PieceId -> HTML p Action
-  renderAvailablePiece pieceId =
-    HH.div 
-      [ attr DataAttr.availablePiece pieceId
-      , HP.draggable true
-      , HP.classes [ ClassName "available-piece" ]
-      , HE.onDragEnd (PieceOnDrop pieceId)
-      , HE.onClick (PieceOnClick pieceId)
-      ]
-      [HH.text (show pieceId)]
+      --renderAvailablePiece :: forall p. PieceId -> HTML (ComponentSlot Slots) Action
+      renderAvailablePiece pieceId =
+          let input = { piece: pieceLookup pieceId, location: location 0 0, portStates: M.empty }
+          in HH.div 
+            [ attr DataAttr.availablePiece pieceId
+            , HP.draggable true
+            , HP.classes [ ClassName "available-piece" ]
+            , HE.onDragEnd (PieceOnDrop pieceId)
+            , HE.onClick (PieceOnClick pieceId)
+            ]
+            --[ HH.slot (Proxy :: Proxy "piece") pieceId Piece.component input PieceOutput
+            [ fromPlainHTML $ renderPiece (Piece.defaultState (pieceLookup pieceId))
+            , HH.text (show pieceId) 
+            ]
 
-  problemComplete = HH.span_
-    [ HH.text "problem complete"
-    , HH.button
-        [ HE.onClick BackToLevelSelect ]
-        [ HH.text "solve another"]
-    ]
-  
+      renderCompletionStatus = case state.completionStatus of
+        NotStarted ->
+          HH.div_ []
+        PortMismatch mismatch ->
+          HH.text "port mismatch, render later"
+        FailedRestriction restriction ->
+          HH.text "failed restriction, render later"
+        ReadyForTesting ->
+          HH.span_
+            [ HH.text "ports are looking good: "
+            , HH.button
+                [ HE.onClick (\_ -> RunTestsClicked) ]
+                [ HH.text "run tests"]
+            ]
+        FailedTestCase testCase ->
+          HH.text "failed test case, render later"
+        Completed ->
+          HH.div_
+            [ HH.text "game completed!"
+            , HH.button
+                [ HE.onClick (\_ -> BackToLevelSelect) ]
+                [ HH.text "new level"]
+            ]
+
 
   eval :: forall slots. HalogenQ Query Action Input ~> HalogenM State Action slots Output m
   eval = H.mkEval
@@ -113,16 +148,21 @@ component = H.mkComponent { eval , initialState , render }
           H.raise (PieceDropped piece)
         PieceOnClick piece _ ->
           H.raise (PieceAdded piece)
-        BackToLevelSelect _ -> do
+        BackToLevelSelect -> do
           navigateTo PuzzleSelect
         IncrementBoardSize -> H.raise BoardSizeIncremented
         DecrementBoardSize -> H.raise BoardSizeDecremented
+        RunTestsClicked -> H.raise TestsTriggered
+        PieceOutput _ -> pure unit -- we dont give a shit
     , handleQuery: case _ of
-        IsProblemSolved board f -> do
-          problemDescription <- H.gets (_.problem)
-          isSolved <- liftAff $ runExceptT $ solvedBy problemDescription board
-          H.modify_ (_ { error = blush isSolved })
-          pure (f <$> blush isSolved)
+        SetCompletionStatus completionStatus -> do
+          H.modify_ $ _ { completionStatus = completionStatus }
+          pure Nothing
+        --IsProblemSolved board f -> do
+        --  problemDescription <- H.gets (_.problem)
+        --  isSolved <- liftAff $ runExceptT $ solvedBy problemDescription board
+        --  H.modify_ (_ { error = blush isSolved })
+        --  pure (f <$> blush isSolved)
         SetBoardSize boardSize -> do
           H.modify_ $ _ { boardSize = boardSize }
           pure Nothing
@@ -130,24 +170,19 @@ component = H.mkComponent { eval , initialState , render }
     , receive: const Nothing -- :: input -> Maybe action
     }
 
-renderError :: forall r i. PieceSpecMismatch -> HTML r i
-renderError err = HH.div_ $ case err of
-  DifferentPortConfiguration r ->
-    case r.received, r.expected of
-      Just received, Nothing -> [ HH.text "Remove the ", renderPort received, HH.text " in the ", renderDirection r.dir, HH.text " direction."]
-      Nothing, Just expected -> [ HH.text "You need an ", renderPort expected, HH.text " in the ", renderDirection r.dir, HH.text " direction"]
-      _,  _ -> [ HH.text "ERROR" ]
-  DifferentPort r ->
-    [ HH.text "You need an ", renderPort r.expected, HH.text " in the ", renderDirection r.dir, HH.text " direction."]
-  FailedTestCase r ->
-    [ HH.text "For the inputs ", renderSignals r.inputs, HH.text " your solution should output ", renderSignals r.expected, HH.text ", not ", renderSignals r.received , HH.text "." ]
-  FailedRestriction r ->
-    [ HH.text ("Failed predicate " <> r.name <> " with description " <> r.description) ]
-  where
-    renderPort port = HH.span [ HP.class_ (ClassName "port")]
-      [ HH.text (if isInput port then "Input" else "Output") ]
-
-    renderDirection dir = HH.span [ HP.class_ (ClassName "direction")]
-      [ HH.text (show dir) ]
-
-    renderSignals signals = HH.text (show signals)
+--renderError :: PieceSpecMismatch -> PlainHTML
+--renderError err = HH.div_ $ 
+--    case r.received, r.expected of
+--      Just received, Nothing -> [ HH.text "Remove the ", renderPort received, HH.text " in the ", renderDirection r.dir, HH.text " direction."]
+--      Nothing, Just expected -> [ HH.text "You need an ", renderPort expected, HH.text " in the ", renderDirection r.dir, HH.text " direction"]
+--      _,  _ -> [ HH.text "ERROR" ]
+--  DifferentPort r ->
+--    [ HH.text "You need an ", renderPort r.expected, HH.text " in the ", renderDirection r.dir, HH.text " direction."]
+--  FailedRestriction r ->
+--    [ HH.text ("Failed predicate " <> r.name <> " with description " <> r.description) ]
+--  where
+--    renderPort port = HH.span [ HP.class_ (ClassName "port")]
+--      [ HH.text (if isInput port then "Input" else "Output") ]
+--
+--    renderDirection dir = HH.span [ HP.class_ (ClassName "direction")]
+--      [ HH.text (show dir) ]

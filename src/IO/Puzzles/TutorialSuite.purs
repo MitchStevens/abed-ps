@@ -4,14 +4,16 @@ import Prelude
 
 import Component.DataAttribute (nullSelector, selector)
 import Component.DataAttribute as DataAttr
+import Data.FunctorWithIndex (mapWithIndex)
+import Data.Lens ((.~))
+import Data.Maybe (Maybe(..))
 import Data.Set as S
 import Foreign.Object (fromHomogeneous)
 import Game.GameEvent (count, firstTime, latest, pieceAdded, pieceMovedTo, secondTime)
 import Game.Location (location)
 import Game.Location as Direction
-import Game.Message (addDelay, addDelayToMessages, guiding)
-import Game.Piece (name)
-import Game.Piece.BasicPiece (idPiece)
+import Game.Message (_selector, addDelay, fromGuide)
+import Game.Piece (name, idPiece)
 import Game.Puzzle (PuzzleSuite, binaryTestInputs, defaultPuzzle)
 import Game.RulesEngine (Rule(..))
 
@@ -19,7 +21,7 @@ tutorialSuite :: PuzzleSuite
 tutorialSuite = fromHomogeneous
   { "From A to B":
     defaultPuzzle
-      { problemDescription =
+      { problem =
         { goal: idPiece
         , title: "From A to B"
         , description: "Propagate the signal inputed on the Left to the Right"
@@ -34,25 +36,26 @@ tutorialSuite = fromHomogeneous
             l3 = location 1 1
         in
           [ Rule (firstTime pieceAdded) $
-            guiding "move this piece to location (2,1)" $
-              selector DataAttr.location l1
+            fromGuide "move this piece to location (2,1)" #
+              _selector .~ Just (selector DataAttr.location l1)
           , Rule (firstTime (pieceMovedTo l1)) $
-            guiding "add another piece" $
-              selector DataAttr.availablePiece (name idPiece)
-          , Rule (secondTime pieceAdded) $
-            guiding "move piece to (0, 1)" $
-              selector DataAttr.location l2
-          , Rule (firstTime (pieceMovedTo l2)) $
-            guiding "add one more final id piece" $
-              selector DataAttr.availablePiece (name idPiece)
-          , Rule ((count eq 3 && latest) pieceAdded) $
-            guiding "move piece to (1, 1)" $
-              selector DataAttr.location l3
+            fromGuide "add another piece" #
+              _selector .~ Just (selector DataAttr.availablePiece (name idPiece))
+          --, Rule (secondTime pieceAdded) $
+          --  guiding "move piece to (0, 1)" $
+          --    selector DataAttr.location l2
+          --, Rule (firstTime (pieceMovedTo l2)) $
+          --  guiding "add one more final id piece" $
+          --    selector DataAttr.availablePiece (name idPiece)
+          --, Rule ((count eq 3 && latest) pieceAdded) $
+          --  guiding "move piece to (1, 1)" $
+          --    selector DataAttr.location l3
           ]
-      , conversation = addDelayToMessages $
-        [ guiding "welcome to ABED! click 'id' to get started adding pieces!" $
-          selector DataAttr.availablePiece (name idPiece)
-        ]
+      , conversation = mapWithIndex (\i m -> if i == 0 then m else addDelay m) $
+        []
+        --[ fromGuide "welcome to ABED! click 'id' to get started adding pieces!" #
+        --  _selector .~ Just (selector DataAttr.availablePiece (name idPiece))
+        --]
       }
   --, "Negation":
   --  { problemDescription:

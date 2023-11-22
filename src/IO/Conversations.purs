@@ -7,7 +7,7 @@ import Data.Int (toNumber)
 import Data.String as String
 import Data.Time.Duration (Seconds(..))
 import Foreign.Object (Object, fromHomogeneous)
-import Game.Message (Message, addDelay)
+import Game.Message (Message, addDelay, message)
 import Game.Message as Message
 
 user = { god: "jrizz" }
@@ -16,7 +16,7 @@ user = { god: "jrizz" }
 
 dialogue :: Array String -> Array String -> Array Message
 dialogue _ [] = []
-dialogue users messages = A.zipWith Message.standard users before <> dialogue users after
+dialogue users messages = A.zipWith message users before <> dialogue users after
   where { before, after } = A.splitAt (A.length users) messages
 
 conversations :: Object (Object (Array Message))
@@ -26,7 +26,6 @@ conversations = (map<<<map<<<map) addDelay $ fromHomogeneous
       [ "hi! glad you made it"
       , "welcome "
       , "you find yourself at the game board"
-
       ]
     }
   }

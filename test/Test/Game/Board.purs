@@ -15,7 +15,7 @@ import Data.Map as M
 import Data.Maybe (Maybe(..), maybe)
 import Data.Tuple (Tuple(..))
 import Debug (trace)
-import Effect.Aff (Aff, catchError)
+import Effect.Aff (Aff)
 import Effect.Class.Console (log)
 import Game.Board (Board(..), RelativeEdge, allPortsOnBoard, buildBoardGraph, buildConnectionMap, evalBoardScratch, evalBoardWithPortInfo, evalLocation, extractOutputs, getPortOnEdge, matchingRelativeEdge, relative, standardBoard, toAbsoluteEdge, toRelativeEdge)
 import Game.Board.Operation (BoardError(..), BoardT, addPiece, decreaseSize, emptyBoard, evalBoardM, execBoardM, getPieceInfo, increaseSize, removePiece, rotatePieceBy, runBoardT, validBoardSize)

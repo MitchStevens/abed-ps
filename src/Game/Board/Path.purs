@@ -36,8 +36,7 @@ import Game.Board.Query (directPredecessors, directSuccessors)
 import Game.GameEvent (BoardEvent(..))
 import Game.Location (CardinalDirection, Location(..), Rotation(..), allDirections, clockwiseRotation, directionTo, followDirection, oppositeDirection, rotateDirection, rotation)
 import Game.Location as Direction
-import Game.Piece (APiece(..), PieceId(..), getPort, name, ports)
-import Game.Piece.BasicPiece (chickenPiece, cornerCutPiece, crossPiece, idPiece, leftPiece, rightPiece)
+import Game.Piece (APiece(..), PieceId(..), getPort, name, chickenPiece, cornerCutPiece, crossPiece, leftPiece, rightPiece, idPiece)
 import Game.Piece.Port (isInput)
 
 data PathError

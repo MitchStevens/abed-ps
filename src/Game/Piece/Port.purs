@@ -4,17 +4,15 @@ import Prelude
 
 import Game.Expression (Signal(..))
 
-newtype Capacity = Capacity Int
+data Capacity = OneBit | TwoBit | FourBit | EightBit
 derive instance Eq Capacity
 
 instance Show Capacity where
-  show (Capacity n) = "Capacity " <> show n
-
-instance Semigroup Capacity where
-  append (Capacity a) (Capacity b) = Capacity (a+b)
-
-instance Monoid Capacity where
-  mempty = Capacity 0
+  show = case _ of
+    OneBit   -> " Capacity 1"
+    TwoBit   -> " Capacity 2"
+    FourBit  -> " Capacity 4"
+    EightBit -> " Capacity 8"
 
 data Port
   = Input Capacity
@@ -23,12 +21,15 @@ derive instance Eq Port
 
 instance Show Port where
   show = case _ of
-    Input capacity -> "Input (" <> show capacity <> ")"
-    Output capacity -> "Output ("<> show capacity <>")"
+    Input capacity -> "Input " <> show capacity
+    Output capacity -> "Output " <> show capacity
 
 isInput :: Port -> Boolean
 isInput (Input _) = true
 isInput _ = false
+
+isOutput :: Port -> Boolean
+isOutput = not <<< isInput
 
 matchingPort :: Port -> Port
 matchingPort (Input c) = Output c

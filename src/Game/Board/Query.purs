@@ -8,8 +8,8 @@ import Data.Array as A
 import Data.Lens (use)
 import Data.Maybe (Maybe(..))
 import Data.Traversable (for)
-import Game.Board (Board(..), _size, absolute, getPortOnEdge, matchingRelativeEdge, relativeEdgeLocation, toRelativeEdge)
-import Game.Location (Location(..), allDirections, oppositeDirection, rotateDirection)
+import Game.Board (Board(..), PieceInfo, _size, absolute, getPortOnEdge, matchingRelativeEdge, relativeEdgeLocation, toRelativeEdge)
+import Game.Location (CardinalDirection, Location(..), allDirections, oppositeDirection, rotateDirection)
 import Game.Piece.Port (isInput)
 
 insideBoard :: forall m. MonadState Board m => Location -> m Boolean

@@ -31,7 +31,8 @@ derive newtype instance MonadStore GameEvent GameEventStore AppM
 
 initialGlobalState :: Aff GlobalState
 initialGlobalState = do
-  chatServer <- newChatServer
+  chatServer <- liftEffect newChatServer
+  runChatServer chatServer
   pure { chatServer }
 
 runAppM :: forall q i o. Component q i o AppM -> Aff (Component q i o Aff)

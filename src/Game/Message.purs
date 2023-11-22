@@ -3,12 +3,26 @@ module Game.Message where
 import Prelude
 
 import Data.Array as A
+import Data.Foldable (foldMap, intercalate)
 import Data.Int (toNumber)
+import Data.Lens (Lens', Traversal', _Just, (.~))
+import Data.Lens.Iso.Newtype (_Newtype)
+import Data.Lens.Record (prop)
 import Data.Maybe (Maybe(..), fromMaybe, maybe)
-import Data.Newtype (unwrap)
+import Data.Newtype (class Newtype, unwrap)
+import Data.Semigroup.Foldable (intercalateMap)
 import Data.String as String
 import Data.Time (Time(..))
 import Data.Time.Duration (Seconds(..))
+import Data.Tuple (snd)
+import Halogen.HTML (ClassName(..), PlainHTML)
+import Halogen.HTML as HH
+import Halogen.HTML.Properties as HP
+import Halogen.Query.Input (Input)
+import Halogen.Svg.Attributes (Color)
+import Halogen.VDom.DOM.Prop (Prop)
+import Halogen.VDom.Types (GraftX(..), VDom(..), runGraft, unGraft)
+import Type.Proxy (Proxy(..))
 import Web.DOM.ParentNode (QuerySelector(..))
 
 {-
@@ -17,42 +31,64 @@ import Web.DOM.ParentNode (QuerySelector(..))
   guiding message: messae with a selector
 
 -}
-newtype BaseMessage r = Message
+
+newtype Message = Message
   { user :: String
-  , text :: String
+  , message :: PlainHTML
   , selector :: Maybe QuerySelector
   , delayBy :: Maybe Seconds
-  | r }
-type Message = BaseMessage ()
-type TimestampedMessage = BaseMessage (time :: Time)
+   } 
+derive instance Newtype Message _
 
-instance Show (BaseMessage r) where
-  show (Message {user, text, selector}) =
-    "Message: " <> user <> " " <> text <> maybe "" (\q -> " " <> unwrap q) selector
+showPlainHTML :: PlainHTML -> String
+showPlainHTML = showVDom <<< unwrap
+  where
+    showVDom :: VDom (Array (Prop (Input Void))) Void -> String
+    showVDom = case _ of
+      Text text -> text
+      Elem _ _ _ children -> intercalate " " $ map showVDom children
+      Keyed _ _ _ children -> intercalate " " $ map (showVDom <<< snd) children
+      Widget void -> absurd void
+      Grafted graft -> showVDom <<< runGraft $ graft
 
-standard :: String -> String -> Message
-standard user text = Message { user, text, selector: Nothing, delayBy: Nothing }
 
-guiding :: String -> QuerySelector -> Message
-guiding text selector = Message { user: "guide", text, selector: Just selector, delayBy: Nothing }
+instance Show Message where
+  show (Message {user, message, selector, delayBy}) =
+    "Message: " <> user <> " " <> showPlainHTML message <> maybe "" (\q -> " " <> unwrap q) selector
+
+_message :: Lens' Message PlainHTML
+_message = _Newtype <<< prop (Proxy :: Proxy "message")
+
+_selector :: Lens' Message (Maybe QuerySelector)
+_selector = _Newtype <<< prop (Proxy :: Proxy "selector")
+
+_delayBy :: Lens' Message (Maybe Seconds)
+_delayBy = _Newtype <<< prop (Proxy :: Proxy "delayBy")
+
+
+
+message :: String -> String -> Message
+message user text = htmlMessage user (HH.text text)
+
+htmlMessage :: String -> PlainHTML -> Message
+htmlMessage user message = Message
+  { user, message, selector: Nothing, delayBy: Nothing }
+
 
 timeToRead :: String -> Seconds
 timeToRead str = Seconds 1.5 <> Seconds (toNumber (String.length str) * 0.065)
 
--- dont delay the first message,
-addDelayToMessages :: Array Message -> Array Message
-addDelayToMessages messages = case A.uncons messages of
-  Just { head, tail } -> [ noDelay head ] <> map addDelay tail
-  Nothing -> []
-
 addDelay :: Message -> Message
-addDelay message@(Message m) = delayBy (timeToRead m.text) message
+addDelay (Message m) = Message m # 
+  _delayBy .~ Just (timeToRead (showPlainHTML m.message))
 
-delayBy :: Seconds -> Message -> Message
-delayBy delay (Message m) = Message (m {delayBy = Just delay} )
+fromGuide :: String -> Message
+fromGuide = message "guide"
 
-noDelay :: Message -> Message
-noDelay (Message m) = Message (m {delayBy = Nothing} )
 
-timestamped :: Time -> Message -> TimestampedMessage
-timestamped time (Message {user, text, selector, delayBy}) = Message {user, text, selector, delayBy, time}
+-- for easy message markup
+red :: String -> PlainHTML
+red text = HH.span [ HP.class_ (ClassName "red") ] [HH.text text]
+
+green :: String -> PlainHTML
+green text = HH.span [ HP.class_ (ClassName "green") ] [HH.text text]

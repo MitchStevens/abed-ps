@@ -1,0 +1,23 @@
+@sidebar-width: 350px;
+
+#sidebar-component {
+    width: @sidebar-width;
+    //top: 0;
+    //right: 0;
+    //position: fixed;
+
+    & .port { color:red; }
+    & .direction { color:darkgoldenrod; }
+
+    & .pieces {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr 1fr;
+        gap: 10px;
+
+
+        & > div  {
+            border: lightgray 2px solid;
+            //padding: lightgray 2px solid;
+        }
+    }
+}

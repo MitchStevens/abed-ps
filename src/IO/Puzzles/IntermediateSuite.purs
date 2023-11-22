@@ -9,9 +9,9 @@ import Foreign.Object (fromHomogeneous)
 import Game.GameEvent (count, firstTime, latest, pieceAdded, pieceMovedTo, secondTime)
 import Game.Location (location)
 import Game.Location as Direction
-import Game.Message (addDelay, addDelayToMessages, guiding, standard)
+import Game.Message (addDelay, message)
 import Game.Piece (name)
-import Game.Piece.BasicPiece (allBasicPieces, crossPiece, idPiece, xorPiece)
+import Game.Piece.BasicPiece (allBasicPieces, crossPiece, xorPiece)
 import Game.Puzzle (PuzzleSuite, binaryTestInputs, defaultPuzzle)
 import Game.RulesEngine (Rule(..))
 
@@ -19,7 +19,7 @@ intermediateSuite :: PuzzleSuite
 intermediateSuite = fromHomogeneous
   { "Criss(t) cross":
     defaultPuzzle
-      { problemDescription =
+      { problem =
         { goal: crossPiece
         , title: "Cross over"
         , description: "Propogate the signal on the left to the right, and the top to the bottom"
@@ -49,8 +49,8 @@ intermediateSuite = fromHomogeneous
         --    guiding "move piece to (1, 1)" $
         --      selector DataAttr.location l3
         --  ]
-      , conversation = addDelayToMessages $
-        [ standard "mitch" "criss cross" ]
+      , conversation = addDelay <$>
+        [ message "mitch" "criss cross" ]
       }
   --, "Negation":
   --  { problemDescription:

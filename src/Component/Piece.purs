@@ -1,9 +1,15 @@
-module Component.Piece where
+module Component.Piece
+  ( component
+  , module Component.Piece.Types
+  )
+  where
 
+import Component.Piece.Types
 import Data.Lens
 import Prelude
 
 import Component.DataAttribute as DataAttr
+import Component.Piece.Render (renderPiece)
 import Data.Array as A
 import Data.Enum (enumFromTo, fromEnum)
 import Data.Foldable (for_, traverse_)
@@ -22,12 +28,12 @@ import Effect.Class.Console (log, logShow)
 import Game.Expression (Signal(..))
 import Game.Location (CardinalDirection, Location, Rotation(..), allDirections, locationId, rotateDirection, rotation)
 import Game.Location as Direction
-import Game.Piece (class Piece, APiece(..), PieceId(..), getPort, name, ports)
+import Game.Piece (class Piece, APiece(..), PieceId(..), getPort, name)
 import Game.Piece.Port (Port, PortInfo)
 import Game.Piece.Port as Port
 import Halogen (AttrName(..), ClassName(..), HalogenM, RefLabel(..), gets)
 import Halogen as H
-import Halogen.HTML (HTML, PlainHTML)
+import Halogen.HTML (HTML, PlainHTML, fromPlainHTML)
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
@@ -42,36 +48,6 @@ import Web.HTML.Event.DragEvent (DragEvent)
 import Web.HTML.HTMLElement (HTMLElement, fromElement, offsetHeight, offsetLeft, offsetTop, offsetWidth, setDraggable, toElement)
 import Web.UIEvent.MouseEvent (MouseEvent, clientX, clientY, screenX, screenY)
 
-type Input =
-  { piece :: APiece
-  , location :: Location
-  , portStates :: Map CardinalDirection PortInfo
-  }
-
-type State = 
-  { piece :: APiece
-  , location :: Location
-  , rotation  :: Rotation
-  , isRotating :: Maybe
-    { initialClickPosition :: Tuple Number Number
-    , currentRotation :: Number 
-    }
-  , portStates :: Map CardinalDirection PortInfo
-  }
-
-data Query a
-
-data Action
-  = Initialise Input
-  | OnDrop Location DragEvent
-  | OnDrag DragEvent
-  | OnMouseDown MouseEvent
-  | OnMouseMove MouseEvent
-  | OnMouseUp Location MouseEvent
-
-data Output
-  = Rotated Location Rotation
-  | Dropped Location
 
 _portStates = prop (Proxy :: Proxy "portStates")
 _signal = prop (Proxy :: Proxy "signal")
@@ -85,7 +61,8 @@ component = H.mkComponent { eval , initialState , render }
     , location
     , rotation: rotation 0
     , isRotating: Nothing
-    , portStates }
+    , portStates 
+    }
 
   render state =
     HH.div
@@ -101,32 +78,10 @@ component = H.mkComponent { eval , initialState , render }
       , HE.onMouseMove OnMouseMove
       , HE.onMouseUp (OnMouseUp state.location)
       ]
-      [ SE.svg
-          [  SA.viewBox 0.0 0.0 100.0 100.0 ] $
-          allPorts <> [ center ]
-      ]
-
+      [ fromPlainHTML (renderPiece state) ]
     where
       isDraggable = isNothing state.isRotating
       currentRotation = maybe 0.0 (_.currentRotation) state.isRotating
-
-      allPorts = do
-        dir <- allDirections
-        let r = fromEnum (rotateDirection dir state.rotation)
-        pure $ SE.g 
-          [ SA.transform
-            [ Rotate (toNumber r * 90.0) 50.0 50.0
-            , Translate 25.0 0.0 ]
-          ] $
-          do
-            portInfo <- A.fromFoldable (M.lookup dir state.portStates)
-            pure $ renderPort (rotateDirection dir state.rotation) portInfo
-
-      center = SE.g 
-        [ SA.transform [ Translate 30.0 30.0 ] ]
-        [ SE.svg [ SA.width 50.0, SA.height 50.0 ]
-          [ pieceCenter (name state.piece) ]
-        ]
 
   getPosition :: MouseEvent -> Tuple Number Number 
   getPosition e = Tuple (toNumber (clientX e)) (toNumber (clientY e))
@@ -142,12 +97,14 @@ component = H.mkComponent { eval , initialState , render }
   eval = H.mkEval
     { finalize: Nothing
     , handleAction: case _ of
-        Initialise input -> do
-          H.put (initialState input)
+        Initialise { piece, location, portStates } -> do
+          H.modify_ $ _ { piece = piece, location = location, portStates = portStates }
+          log "initialising piece"
           pure unit
         OnDrop loc event -> do
           H.raise (Dropped loc)
-        OnDrag dragEvent -> pure unit
+        OnDrag dragEvent -> 
+          pure unit
         OnMouseDown me ->
           H.getHTMLElementRef (RefLabel "piece") >>= traverse_ \he -> do
             r <- liftEffect $ mul 0.5 <$> clientWidth (toElement he)
@@ -155,14 +112,16 @@ component = H.mkComponent { eval , initialState , render }
             let Tuple x y = sub (getPosition me) c
             if r*r > x*x + y*y
               then do
+                log "moving"
                 H.modify_ (_ { isRotating = Nothing })
               else do
+                log "started rotation"
                 liftEffect $ setDraggable false he
                 H.modify_ (_ {
                   isRotating = Just { initialClickPosition: getPosition me, currentRotation: 0.0 }
                 })
         OnMouseMove me -> do --pure unit --do
-          H.getRef (RefLabel "piece") >>= traverse_ \e -> 
+          H.getRef (RefLabel "piece") >>= traverse_ \e -> do
             -- if the piece is being rotated...
             H.gets (_.isRotating) >>= traverse_ \{ initialClickPosition, currentRotation } -> do
               let p1 = initialClickPosition
@@ -186,82 +145,11 @@ component = H.mkComponent { eval , initialState , render }
             let rot = rotation $ round (4.0 * currentRotation / (2.0 * pi))
             H.raise (Rotated loc rot)
           H.modify_ (_ { isRotating = Nothing })
+          log "mouse UP???"
     , handleQuery: case _ of
-        _ -> pure Nothing
+        SetPortStates portStates -> do
+          H.modify_ $ _ { portStates = portStates }
+          pure Nothing
     , initialize: Nothing
-    , receive: Just <<< Initialise -- :: input -> Maybe action
+    , receive: \_ -> Nothing --Just <<< Initialise -- :: input -> Maybe action
     }
-
-
-electricBlue = RGB 62 207 207
-gunMetalGrey = RGB 204 226 237
-
-renderPort :: forall p i. CardinalDirection -> PortInfo -> HTML p i
-renderPort direction {connected, port, signal} = SE.g []
-  [ SE.defs [] gradients
-  , portShape
-  ]
-  where
-    portShape = case port of
-      (Port.Input n) ->
-        SE.polyline
-          [ SA.points portShapePoints
-          , SA.classes [ClassName "port-in", ClassName "port"]
-          , DataAttr.attr DataAttr.connected connected
-          , SA.fillGradient (if signal /= Signal 0 then "#port-in-gradient" else "#port-in-gradient-off")
-          ]
-      (Port.Output n) ->
-        SE.polyline
-          [ SA.points portShapePoints
-          , DataAttr.attr DataAttr.connected connected
-          , SA.classes [ClassName "port-out", ClassName "port"]
-          , SA.fillGradient (if signal /= Signal 0 then "#port-out-gradient" else "#port-out-gradient-off")
-          ]
-
-    portShapePoints = case port of
-      (Port.Input n) ->
-        [ Tuple 10.0  0.0
-        , Tuple 10.0  12.0
-        , Tuple 0.0   12.0
-        , Tuple 25.0  25.0
-        , Tuple 50.0  12.0
-        , Tuple 40.0  12.0
-        , Tuple 40.0  0.0
-        ]
-      (Port.Output n) ->
-        [ Tuple 10.0  0.0
-        , Tuple 10.0  25.0
-        , Tuple 40.0  25.0
-        , Tuple 40.0  0.0
-        ]
-
-gradients :: forall p i. Array (HTML p i)
-gradients =
-  [ SE.linearGradient
-    [ SA.id "port-in-gradient" , SA.gradientTransform [ Rotate 90.0 0.0 0.0 ] ]
-    [ SE.stop [ SA.offset "5%" , SA.stopColor electricBlue, SA.stopOpacity 0.5 ] 
-    , SE.stop [ SA.offset "95%" , SA.stopColor electricBlue ] 
-    ]
-  , SE.linearGradient
-    [ SA.id "port-out-gradient" , SA.gradientTransform [ Rotate 90.0 0.0 0.0 ] ]
-    [ SE.stop [ SA.offset "5%" , SA.stopColor electricBlue, SA.stopOpacity 0.5 ] 
-    , SE.stop [ SA.offset "95%" , SA.stopColor electricBlue, SA.stopOpacity 0.0 ] 
-    ]
-  , SE.linearGradient
-    [ SA.id "port-in-gradient-off" , SA.gradientTransform [ Rotate 90.0 0.0 0.0 ] ]
-    [ SE.stop [ SA.offset "5%" , SA.stopColor gunMetalGrey, SA.stopOpacity 0.5 ] 
-    , SE.stop [ SA.offset "95%" , SA.stopColor gunMetalGrey ] 
-    ]
-  , SE.linearGradient
-    [ SA.id "port-out-gradient-off" , SA.gradientTransform [ Rotate 90.0 0.0 0.0 ] ]
-    [ SE.stop [ SA.offset "5%" , SA.stopColor gunMetalGrey, SA.stopOpacity 0.5 ] 
-    , SE.stop [ SA.offset "95%" , SA.stopColor gunMetalGrey, SA.stopOpacity 0.0 ] 
-    ]
-  ]
-
-pieceCenter :: forall p i. PieceId -> HTML p i
-pieceCenter (PieceId id) = SE.image
-  [ SA.href ("./images/" <> id <> ".png") 
-  , SA.width 40.0
-  , SA.height 40.0 
-  ]

@@ -28,8 +28,8 @@ import Data.Tuple (Tuple(..))
 import Game.Expression (Signal(..))
 import Game.Location (CardinalDirection, Edge(..), Location(..), Rotation(..), allDirections, edge, location, matchEdge, rotateDirection)
 import Game.Location as Direction
-import Game.Piece (class Piece, APiece(..), PieceId(..), eval, getOutputDirs, getPort, ports)
-import Game.Piece.Port (Port, PortInfo, isInput)
+import Game.Piece (class Piece, PieceId(..), Port, PortInfo, eval, getOutputDirs, getPort, getPorts, isInput)
+import Game.Piece.APiece (APiece(..))
 import Game.Piece.Port as Port
 import Halogen.Svg.Attributes (m)
 import Type.Proxy (Proxy(..))
@@ -146,7 +146,7 @@ allPortsOnBoard = M.union <$> boardPorts <*> piecePorts
     piecePorts = do
       pieceInfos <- use _pieces
       M.unions <$> for (M.toUnfoldable pieceInfos :: Array _) \(Tuple loc pieceInfo) -> do
-        M.fromFoldable <$> for (M.toUnfoldable (ports pieceInfo.piece) :: Array _) \(Tuple dir port) -> do
+        M.fromFoldable <$> for (M.toUnfoldable (getPorts pieceInfo.piece) :: Array _) \(Tuple dir port) -> do
           pure (Tuple (relative loc dir) port)
 
 -- do not export 
@@ -156,8 +156,6 @@ portsBoard = M.catMaybes <$> do
   M.fromFoldable <$> for allDirections \dir -> do
     relEdge  <- toRelativeEdge (portEdges board dir)
     Tuple dir <$> getPortOnEdge relEdge
-
-
 
 
 {- Board evaluation
@@ -228,7 +226,8 @@ toGlobalInputs loc = unsafeMapKey (relative loc)
 instance Piece Board where
   name _ = PieceId "board"
   eval board inputs = evalState (evalBoardScratch inputs >>= extractOutputs) board
-  ports = evalState portsBoard
+  getPorts = evalState portsBoard
+  updatePort _ _ p = p
 
 
 evalLocation :: forall m. MonadState Board m 

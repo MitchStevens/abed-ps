@@ -12,18 +12,20 @@ import Data.Identity (Identity)
 import Data.Int (even, odd)
 import Data.Lens.At (at)
 import Data.Lens.Index (ix)
+import Data.Lens.Record (prop)
 import Data.Map as M
 import Data.Maybe (Maybe(..), isJust, isNothing, maybe)
 import Data.Newtype (class Newtype, unwrap)
 import Data.Tuple (Tuple(..), fst, snd)
+import Debug (trace)
 import Effect.Aff.Class (class MonadAff)
 import Effect.Class (class MonadEffect)
-import Game.Board (Board(..), PieceInfo, _pieces, _rotation, unsafeMapKey)
+import Game.Board (Board(..), PieceInfo, RelativeEdge(..), _pieces, _rotation, absolute, getPortOnEdge, matchingRelativeEdge, relative, toRelativeEdge, unsafeMapKey)
 import Game.Board.Query (insideBoard)
 import Game.GameEvent (BoardEvent(..))
-import Game.Location (Location(..), Rotation(..), location, rotation)
-import Game.Piece (APiece(..))
-import Game.Piece.PieceLookup (pieceLookup)
+import Game.Location (CardinalDirection, Edge(..), Location(..), Rotation(..), allDirections, location, rotation)
+import Game.Piece (APiece(..), Port, pieceLookup, updatePort)
+import Type.Proxy (Proxy(..))
 
 data BoardError
   = LocationOccupied Location
@@ -109,6 +111,20 @@ getPiece loc = (_.piece) <$> getPieceInfo loc
 isInsideBoard :: forall m. MonadError BoardError m => MonadState Board m => Location -> m Unit
 isInsideBoard loc = whenM (not <$> insideBoard loc) (throwError (InvalidLocation loc))
 
+updateRelEdge :: forall m. MonadState Board m => RelativeEdge -> Maybe Port -> m Unit
+updateRelEdge (Relative (Edge {dir, loc})) port = 
+  _pieces <<< ix loc <<< prop (Proxy :: Proxy "piece") %= updatePort dir port
+
+updatePortsAround :: forall m. MonadState Board m => Location -> m Unit
+updatePortsAround loc = do
+  for_ allDirections \dir -> do
+    let relEdge = relative loc dir
+    --relEdge <- toRelativeEdge (absolute loc dir)
+    maybePort <- getPortOnEdge relEdge
+    relEdge' <- matchingRelativeEdge relEdge
+    updateRelEdge relEdge' maybePort
+
+
 addPiece :: forall m. MonadError BoardError m => MonadState Board m => Location -> APiece -> m Unit
 addPiece loc piece = do
   isInsideBoard loc
@@ -116,6 +132,7 @@ addPiece loc piece = do
   case pieceInfo of
     Nothing -> _pieces <<< at loc .= Just { piece, rotation: rotation 0 }
     Just _ -> throwError (LocationOccupied loc)
+  updatePortsAround loc
 
 removePiece :: forall m. MonadError BoardError m => MonadState Board m => Location -> m APiece
 removePiece loc = do
@@ -125,6 +142,7 @@ removePiece loc = do
     Nothing -> throwError (LocationNotOccupied loc)
     Just pieceInfo -> do
       _pieces <<< at loc .= Nothing
+      updatePortsAround loc
       pure pieceInfo.piece
 
 movePiece :: forall m. MonadError BoardError m => MonadState Board m => Location -> Location -> m Unit
@@ -138,11 +156,16 @@ movePiece src dst = do
 
   _pieces <<< at src .= Nothing
   _pieces <<< at dst .= pieceInfoSrc
+  updatePortsAround src
+  updatePortsAround dst
+
+
 
 rotatePieceBy :: forall m. MonadError BoardError m => MonadState Board m => Location -> Rotation -> m Unit
 rotatePieceBy loc rot = do
   _ <- getPiece loc
   _pieces <<< ix loc <<< _rotation <>= rot
+  updatePortsAround loc
 
 {-
   change size
@@ -165,7 +188,6 @@ decreaseSize = do
       { size: newSize
       , pieces: unsafeMapKey (\(Location {x, y}) -> location (x-1) (y-1)) pieces }
 
-
 increaseSize :: forall m. MonadState Board m => MonadError BoardError m => m Unit
 increaseSize = do
   Board { size: n, pieces } <- get
@@ -176,7 +198,7 @@ increaseSize = do
 
 applyBoardEvent :: forall m. MonadState Board m => MonadError BoardError m => BoardEvent -> m Unit
 applyBoardEvent = case _ of
-  AddedPiece loc pieceId -> traverse_ (addPiece loc) (pieceLookup pieceId)
+  AddedPiece loc pieceId -> addPiece loc (pieceLookup pieceId)
   RemovedPiece loc _ -> void $ removePiece loc
   MovedPiece src dst -> movePiece src dst
   RotatedPiece loc rot -> rotatePieceBy loc rot

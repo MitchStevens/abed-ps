@@ -16,10 +16,7 @@ import Foreign.Object as O
 import Game.Expression (Signal(..))
 import Game.Location (CardinalDirection, location)
 import Game.Location as Direction
-import Game.Message (Message, guiding)
 import Game.Piece (mkPiece, name)
-import Game.Piece.BasicPiece (andPiece, idPiece, notPiece, orPiece, truePiece)
-import Game.ProblemDescription (ProblemDescription, countPiecesOfType)
 import Game.Puzzle (PuzzleSuite, PuzzleId)
 import Game.RulesEngine (Rule(..))
 import IO.Puzzles.IntermediateSuite (intermediateSuite)
