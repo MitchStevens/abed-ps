@@ -36,17 +36,13 @@ import Data.Zipper (Zipper)
 import Data.Zipper as Z
 import Effect.Class (class MonadEffect, liftEffect)
 import Effect.Class.Console (log, logShow)
-import Game.Board (Board(..), RelativeEdge(..), _pieces, _size, evalBoardWithPortInfo, extractBoardPorts, extractOutputs, relative, standardBoard, toLocalInputs)
-import Game.Board.Operation (BoardError, BoardM, addPiece, applyBoardEvent, decreaseSize, evalBoardM, getPieceInfo, increaseSize, movePiece, removePiece, rotatePieceBy, runBoardM)
-import Game.Board.Path (boardPath)
-import Game.Board.Query (directPredecessors)
+import Game.Board (Board(..), RelativeEdge, standardBoard)
+import Game.Direction (CardinalDirection)
 import Game.Expression (Signal(..))
-import Game.GameEvent (BoardEvent(..), GameEvent(..), GameEventStore, boardEventLocationsChanged)
-import Game.Location (CardinalDirection, Edge(..), Location(..), Rotation(..), allDirections, location, oppositeDirection, rotateDirection, rotation)
-import Game.Location as Direction
-import Game.Piece (APiece(..), PieceId(..), getPort, getPorts, name)
-import Game.Piece.Port (Port, PortInfo, isInput, matchingPort)
-import Game.Piece.Port as Port
+import Game.GameEvent (GameEvent, GameEventStore)
+import Game.Location (Location(..))
+import Game.Piece (APiece, Port(..), PortInfo, getPorts, isInput)
+import Game.Rotation (Rotation(..))
 import Halogen (AttrName(..), ClassName(..), Component, HalogenM(..), HalogenQ, Slot)
 import Halogen as H
 import Halogen.HTML (HTML, PlainHTML, fromPlainHTML)
@@ -73,6 +69,7 @@ type Input = Maybe Board
 
 type State = 
   { boardHistory :: Zipper Board
+  , compiledBoard :: CompiledBoard
   , mouseOverLocation :: Maybe Location
   , goalPorts :: Map CardinalDirection PortInfo
   , lastBoardEvaluation :: Map RelativeEdge PortInfo
@@ -346,7 +343,7 @@ component = H.mkComponent { eval , initialState , render }
         for_ (target (MouseEvent.toEvent me)) \eventTarget ->
           for_ (fromEventTarget eventTarget) \element -> do
             bb <- liftEffect (getBoundingClientRect element)
-            let terminalDirection = getDirectionClicked me bb
+            let terminalDirection = getDirectionClicked me bb  --pieces <- use (_board <<< _pieces)
             maybeBoardEvents <- evalState (boardPath creatingWire.initialDirection creatingWire.locations terminalDirection) <$> use _board
             case maybeBoardEvents of
               Just boardEvents -> do
@@ -394,7 +391,6 @@ updateBoard :: forall m. Board -> HalogenM State Action Slots Output m Unit
 updateBoard board = do
   -- append new board to board history for undo purposes 
   modify_ $ \s -> s { boardHistory = Z.append board s.boardHistory }
-  pieces <- use (_board <<< _pieces)
   evaluateBoard
 
   -- tell puzzle component that board state has been changed
@@ -407,8 +403,9 @@ evaluateBoard = do
   outputs <- evalState (extractOutputs signals) <$> use _board
   H.modify_ $ \s -> s { lastBoardEvaluation = signals, goalPorts = mapWithIndex (\dir info -> fromMaybe info (M.lookup dir outputs)) s.goalPorts}
 
-
-  use (_board <<< _pieces <<< to M.keys) >>= traverse_ \loc -> do
+  -- update port states
+  use (_board <<< _pieces <<< to (M.toUnfoldable :: _ -> List _)) >>= traverse_ \(Tuple loc info) -> do
+    H.tell _piece loc (\_ -> Piece.SetPiece info.piece)
     let portStates = toLocalInputs loc signals
     H.tell _piece loc (\_ -> Piece.SetPortStates portStates)
 

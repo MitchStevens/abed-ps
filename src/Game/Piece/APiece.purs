@@ -8,9 +8,28 @@ module Game.Piece.APiece
 import Prelude
 
 import Data.Function (on)
-import Game.Piece.Class (class Piece, eval, getPorts, name, updatePort)
+import Game.Piece.Class (class Piece, eval, getCapacity, getPorts, name, updateCapacity, updatePort)
 
--- abstract piece
+{-
+  An `APiece` is an abstract piece. Specific piece types (`BasicPiece`, `WirePiece`, etc) are converted to `APiece`s so they can be stored in a board.
+
+
+  data Piece =
+    WirePiece ...
+    BasicPiece ...
+
+
+
+
+  ```
+  interface Piece { ...
+
+  class WirePiece implements Piece
+  class BasicPiece implements Piece
+  
+  ```
+
+-}
 newtype APiece = APiece (forall r. (forall p. Piece p => p -> r) -> r)
 
 instance Eq APiece where
@@ -28,7 +47,9 @@ unPiece f (APiece piece) = piece f
 
 instance Piece APiece where
   name = unPiece name
+  getCapacity = unPiece getCapacity
+  updateCapacity capacity (APiece piece) = piece (\p -> map mkPiece (updateCapacity capacity p))
   eval = unPiece eval
   getPorts = unPiece getPorts
-  updatePort dir port (APiece piece) = piece (\p -> mkPiece (updatePort dir port p))
+  updatePort dir port (APiece piece) = piece (\p -> map mkPiece (updatePort dir port p))
 

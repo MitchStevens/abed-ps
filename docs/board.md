@@ -7,12 +7,12 @@ signal on/off -> grey vs blue gradient
 
 # how do we update the board?
 
-## update connected ports
 
-- get list of modified pieces
-- get list of adjacent-to-modified pieces
+## update port info map
+This is a `Map RelativeEdge PortInfo`
 
-## update signal ports
-- evaluate the board
+## update pieces in PieceComponent
+`Map Location Piece `
 
-`Board -> Map RelativeEdge { isConnected :: Boolean, signal :: Signal }`
+
+

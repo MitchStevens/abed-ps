@@ -19,15 +19,15 @@ import Effect.Aff (Aff)
 import Effect.Class.Console (log)
 import Game.Board (Board(..), RelativeEdge, allPortsOnBoard, buildBoardGraph, buildConnectionMap, evalBoardScratch, evalBoardWithPortInfo, evalLocation, extractOutputs, getPortOnEdge, matchingRelativeEdge, relative, standardBoard, toAbsoluteEdge, toRelativeEdge)
 import Game.Board.Operation (BoardError(..), BoardT, addPiece, decreaseSize, emptyBoard, evalBoardM, execBoardM, getPieceInfo, increaseSize, removePiece, rotatePieceBy, runBoardT, validBoardSize)
+import Game.Direction (CardinalDirection, allDirections)
+import Game.Direction as Direction
+import Game.Edge (edge)
 import Game.Expression (Signal(..))
-import Game.Location (CardinalDirection, Location(..), edge, location, rotation)
-import Game.Location as Direction
-import Game.Piece (getPort, ports)
-import Game.Piece.BasicPiece (andPiece, idPiece, notPiece)
-import Game.Piece.Port (Capacity(..), Port(..))
-import Game.Piece.Port as Port
+import Game.Location (Location(..), location)
+import Game.Piece (Capacity(..), Port(..), andPiece, getPort, getPorts, idPiece, notPiece)
+import Game.Rotation (rotation)
 import Partial.Unsafe (unsafeCrashWith)
-import Test.Game.Location (allDirections, allLocations, n)
+import Test.Game.Location (allLocations, n)
 import Test.QuickCheck (assertEquals)
 import Test.Unit (TestSuite, describe, failure, it, success)
 import Test.Unit.Assert (expectFailure)
@@ -93,7 +93,7 @@ tests = do
 
       addPiece (location 2 1) andPiece
       b1 <- get
-      getPort b1 Direction.Right `shouldEqual` Just (Output (Capacity 1))
+      getPort b1 Direction.Right `shouldEqual` Just (Output OneBit)
   describe "removePiece" do
     it "can remove a piece" do
       assertRight $ flip evalBoardM standardBoard do
@@ -105,10 +105,10 @@ tests = do
     it "will recognise a port has been removed" $ runBoardTest standardBoard do
       addPiece (location 2 1) andPiece
       b0 <- get
-      lift $ ports b0 `shouldEqual` M.singleton Direction.Right (Output (Capacity 1))
+      lift $ getPorts b0 `shouldEqual` M.singleton Direction.Right (Output OneBit)
       _ <- removePiece (location 2 1)
       b1 <- get
-      lift $ ports b1 `shouldEqual` M.empty
+      lift $ getPorts b1 `shouldEqual` M.empty
   describe "getPieceInfo" do
     it "" $ runBoardTest testBoard do
       piece10 <- getPieceInfo (location 1 0)
@@ -144,10 +144,10 @@ tests = do
     --  equal Nothing <$> getPortOnEdge (relative (location 0 1) Direction.Up)
     --  equal Nothing <$> getPortOnEdge (relative (location 0 1) Direction.Down)
     it "should return port if space is occupied an port exists" $ runBoardTest testBoard do
-      equal (Just (Input (Capacity 1)))  =<< getPortOnEdge (relative (location 0 1) Direction.Left)
-      equal (Just (Output (Capacity 1))) =<< getPortOnEdge (relative (location 0 1) Direction.Right)
-      equal (Just (Output (Capacity 1))) =<< getPortOnEdge (relative (location 1 0) Direction.Right)
-      equal (Just (Input (Capacity 1)))  =<< getPortOnEdge (relative (location 1 1) Direction.Up)
+      equal (Just (Input OneBit))  =<< getPortOnEdge (relative (location 0 1) Direction.Left)
+      equal (Just (Output OneBit)) =<< getPortOnEdge (relative (location 0 1) Direction.Right)
+      equal (Just (Output OneBit)) =<< getPortOnEdge (relative (location 1 0) Direction.Right)
+      equal (Just (Input OneBit))  =<< getPortOnEdge (relative (location 1 1) Direction.Up)
   describe "toAbsoluteEdge/toRelativeEdge" do
     it "toAbsoluteEdge" $ runBoardTest testBoard do
       equal (edge (location 0 1) Direction.Right) =<< toAbsoluteEdge (relative (location 0 1) Direction.Right)
@@ -270,4 +270,4 @@ tests = do
         Tuple (relative loc Direction.Right) tt
       ports :: Array _ <- M.toUnfoldable <$> allPortsOnBoard
       length ports `shouldEqual` 2
-      ports `shouldContain` Tuple (relative loc Direction.Right) (Port.Output (Capacity 1))
+      ports `shouldContain` Tuple (relative loc Direction.Right) (Output OneBit)

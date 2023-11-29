@@ -27,11 +27,9 @@ import Effect.Class (class MonadEffect, liftEffect)
 import Effect.Class.Console (log)
 import Game.Board (Board(..))
 import Game.GameEvent (pieceId)
+import Game.Level.Completion (CompletionStatus(..))
 import Game.Location (location)
 import Game.Piece (APiece(..), PieceId(..), name, pieceLookup)
-import Game.Piece.Port (isInput)
-import Game.Problem.Completion (CompletionStatus(..))
-import Game.ProblemDescription (Problem)
 import Halogen (ClassName(..), ComponentSlot, HalogenM, HalogenQ, liftAff)
 import Halogen as H
 import Halogen.HTML (HTML, PlainHTML, fromPlainHTML)
@@ -54,7 +52,7 @@ type State =
   }
 
 data Query a
-  = SetCompletionStatus CompletionStatus
+  = SetCompletionStatus Com
   | SetBoardSize Int
 
 data Action
@@ -74,7 +72,7 @@ data Output
   | TestsTriggered
 
 component :: forall m. MonadAff m => H.Component Query Input Output m
-component = H.mkComponent { eval , initialState , render }
+component = H.mkComponent { eval, initialState, render }
   where
   initialState { problem, boardSize } =
     { problem
@@ -86,7 +84,7 @@ component = H.mkComponent { eval , initialState , render }
       [ HP.id "sidebar-component" ]
       [ HH.h2_ [ HH.text state.problem.title ]
       , HH.h3_ [ HH.text state.problem.description ]
-      , renderCompletionStatus -- maybe problemComplete renderError state.error
+      , renderCompletionStatus
       , HH.h3_ [ HH.text "Available pieces:"]
       , HH.span [ HP.class_ (ClassName "pieces") ] $
         A.fromFoldable state.problem.pieceSet <#> renderAvailablePiece
@@ -100,18 +98,18 @@ component = H.mkComponent { eval , initialState , render }
     where
 
       --renderAvailablePiece :: forall p. PieceId -> HTML (ComponentSlot Slots) Action
-      renderAvailablePiece pieceId =
-          let input = { piece: pieceLookup pieceId, location: location 0 0, portStates: M.empty }
+      renderAvailablePiece piece =
+          let input = { piece, location: location 0 0, portStates: M.empty }
           in HH.div 
-            [ attr DataAttr.availablePiece pieceId
+            [ attr DataAttr.availablePiece (name piece)
             , HP.draggable true
             , HP.classes [ ClassName "available-piece" ]
-            , HE.onDragEnd (PieceOnDrop pieceId)
-            , HE.onClick (PieceOnClick pieceId)
+            , HE.onDragEnd (PieceOnDrop (name piece))
+            , HE.onClick (PieceOnClick (name piece))
             ]
             --[ HH.slot (Proxy :: Proxy "piece") pieceId Piece.component input PieceOutput
-            [ fromPlainHTML $ renderPiece (Piece.defaultState (pieceLookup pieceId))
-            , HH.text (show pieceId) 
+            [ fromPlainHTML $ renderPiece (Piece.defaultState piece)
+            , HH.text (show (name piece)) 
             ]
 
       renderCompletionStatus = case state.completionStatus of

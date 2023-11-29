@@ -1,4 +1,4 @@
-module Component.Puzzle where
+module Component.Level where
 
 import Prelude
 
@@ -35,13 +35,9 @@ import Effect.Class.Console (log)
 import Game.Board (_size, firstEmptyLocation)
 import Game.Expression (Signal(..))
 import Game.GameEvent (GameEvent, GameEventStore)
-import Game.Location (CardinalDirection)
+import Game.Direction (CardinalDirection)
 import Game.Message (Message(..), green, htmlMessage, message, red)
 import Game.Piece (APiece, pieceLookup)
-import Game.Piece.Class (getPorts, name)
-import Game.Problem.Completion (CompletionStatus(..), FailedTestCase, isReadyForTesting, runSingleTest)
-import Game.Puzzle (Puzzle, PuzzleId)
-import Game.RulesEngine (Rule, runEngine)
 import GlobalState (GlobalState)
 import Halogen (ClassName(..), Component, HalogenM, HalogenQ, Slot, gets)
 import Halogen as H

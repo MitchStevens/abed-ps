@@ -12,12 +12,12 @@ import Data.Newtype (class Newtype)
 import Data.Traversable (class Foldable, traverse)
 import Data.Tuple (Tuple(..))
 import Data.Unfoldable (fromMaybe)
+import Game.Direction (CardinalDirection(..))
+import Game.Direction as Direction
 import Game.Expression (Expression(..), Signal(..), evaluate, raw, ref)
-import Game.Location (CardinalDirection(..), Rotation(..))
-import Game.Location as Direction
 import Game.Piece.APiece (APiece(..), mkPiece)
-import Game.Piece.Class (class Piece, PieceId(..))
-import Game.Piece.Port (Capacity(..), Port(..), isInput)
+import Game.Piece.Class (class Piece, PieceId(..), defaultGetCapacity, defaultUpdateCapacity, updateCapacity)
+import Game.Piece.Port (Capacity(..), Port(..), inputPort, isInput, outputPort)
 
 data BasicPort = BasicInput | BasicOutput Expression
 
@@ -34,41 +34,22 @@ instance Piece BasicPiece where
   eval (Basic piece) inputs = flip M.mapMaybe piece.ports $ case _ of
     BasicInput  -> Nothing
     BasicOutput expression -> Just (evaluate inputs expression)
-  getPorts (Basic piece) = piece.ports <#> case _ of
-    BasicInput -> Input piece.capacity
-    BasicOutput _ -> Output piece.capacity
-  updatePort _ _ p = p
 
+  getCapacity = defaultGetCapacity
+  updateCapacity = defaultUpdateCapacity
+
+  getPorts (Basic piece) = piece.ports <#> case _ of
+    BasicInput -> inputPort piece.capacity
+    BasicOutput _ -> outputPort piece.capacity
+  updatePort _ _ _ = Nothing -- basic pieces do not change on port update
 
 
 allBasicPieces :: Array APiece
 allBasicPieces =
-  [ leftPiece, rightPiece, superPiece
-  , notPiece, orPiece, andPiece
+  [ notPiece, orPiece, andPiece, xorPiece
   , crossPiece, cornerCutPiece, chickenPiece
-  , xorPiece
   ]
 
-
-leftPiece :: APiece
-leftPiece = mkPiece $ Basic
-  { name: "left"
-  , capacity: OneBit
-  , ports: M.fromFoldable
-    [ Tuple Left $ BasicInput
-    , Tuple Up $ BasicOutput (ref Left)
-    ]
-  }
-
-rightPiece :: APiece
-rightPiece = mkPiece $ Basic
-  { name: "right"
-  , capacity: OneBit
-  , ports: M.fromFoldable
-    [ Tuple Left $ BasicInput
-    , Tuple Down $ BasicOutput (ref Left)
-    ]
-  }
 
 notPiece :: APiece
 notPiece = mkPiece $ Basic 
@@ -99,18 +80,6 @@ andPiece = mkPiece $ Basic
     [ Tuple Left $ BasicInput  
     , Tuple Up $ BasicInput 
     , Tuple Right $ BasicOutput (ref Left && ref Up)
-    ]
-  }
-
-superPiece :: APiece
-superPiece = mkPiece $ Basic
-  { name: "super"
-  , capacity: OneBit
-  , ports: M.fromFoldable
-    [ Tuple Left BasicInput
-    , Tuple Up    $ BasicOutput (ref Left)
-    , Tuple Right $ BasicOutput (ref Left)
-    , Tuple Down  $ BasicOutput (ref Left)
     ]
   }
 
@@ -160,4 +129,24 @@ xorPiece = mkPiece $ Basic
     , Tuple Up $ BasicInput
     , Tuple Right $ BasicOutput (ref Left `Xor` ref Up)
     ]
+  }
+
+halfAdder :: APiece
+halfAdder = mkPiece $ Basic
+  { name: "half-adder"
+  , capacity: OneBit
+  , ports: M.fromFoldable
+    [ Tuple Left $ BasicInput
+    , Tuple Up $ BasicInput
+    , Tuple Right $ BasicOutput (ref Left `Xor` ref Up)
+    , Tuple Down $ BasicOutput (ref Left && ref Up)
+
+    ]
+  }
+
+sourcePiece :: Signal -> Capacity -> APiece
+sourcePiece (Signal s) capacity = mkPiece $ Basic
+  { name: "source"
+  , capacity
+  , ports: M.singleton Right (BasicOutput (raw s))
   }

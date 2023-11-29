@@ -5,34 +5,32 @@ import Prelude
 import Data.HeytingAlgebra (ff, tt)
 import Data.Map as M
 import Data.Tuple (Tuple(..))
+import Game.Direction as Direction
 import Game.Expression (raw)
-import Game.Location as Direction
-import Game.Piece (eval, ports)
-import Game.Piece.BasicPiece (andPiece, notPiece, orPiece, xorPiece)
-import Game.Piece.Port (Capacity(..), Port(..), isInput, portMatches)
+import Game.Piece (Capacity(..), PortType(..), andPiece, eval, getPorts, inputPort, isInput, notPiece, orPiece, outputPort, portMatches, xorPiece)
 import Test.Unit (TestSuite, describe, it)
 import Test.Unit.Assert (shouldEqual)
 
 tests :: TestSuite
 tests = do
-  let inputPort = Input (Capacity 1)
-  let outputPort = Output (Capacity 1)
-  let bigInput = Input (Capacity 10)
+  let portIn = inputPort OneBit
+  let portOut = outputPort OneBit
+  let bigInput = inputPort EightBit
   describe "Capacity" do
     it "" $ pure unit
   describe "Port" do
     it "isInput" do
-      isInput inputPort `shouldEqual` true
-      isInput outputPort `shouldEqual` false
+      isInput portIn `shouldEqual` true
+      isInput portOut `shouldEqual` false
     describe "portMatches" do
       it "basic" do
-        (inputPort `portMatches` outputPort) `shouldEqual` true
-        (outputPort `portMatches` inputPort) `shouldEqual` true
-        (inputPort `portMatches` inputPort) `shouldEqual` false
-        (outputPort `portMatches` outputPort) `shouldEqual` false
+        (portIn `portMatches` portOut) `shouldEqual` true
+        (portOut `portMatches` portIn) `shouldEqual` true
+        (portIn `portMatches` portIn) `shouldEqual` false
+        (portOut `portMatches` portOut) `shouldEqual` false
       it "bigInput" do
-        (bigInput `portMatches` outputPort) `shouldEqual` false
-        (bigInput `portMatches` inputPort) `shouldEqual` false
+        (bigInput `portMatches` portOut) `shouldEqual` false
+        (bigInput `portMatches` portIn) `shouldEqual` false
   describe "Piece" do
     describe "Basic Piece"  do 
       let f x y = M.fromFoldable [ Tuple Direction.Left x, Tuple Direction.Up y ]
@@ -56,21 +54,20 @@ tests = do
           eval xorPiece (f tt tt) `shouldEqual` M.singleton Direction.Right ff
       describe "ports" do
         it "NotPiece" do
-          ports notPiece `shouldEqual` M.fromFoldable
-            [ Tuple Direction.Left inputPort
-            , Tuple Direction.Right outputPort
+          getPorts notPiece `shouldEqual` M.fromFoldable
+            [ Tuple Direction.Left portIn
+            , Tuple Direction.Right portOut
             ]
         it "OrPiece" do
-          ports orPiece `shouldEqual` M.fromFoldable
-            [ Tuple Direction.Left inputPort
-            , Tuple Direction.Up inputPort
-            , Tuple Direction.Right outputPort
+          getPorts orPiece `shouldEqual` M.fromFoldable
+            [ Tuple Direction.Left portIn
+            , Tuple Direction.Up portIn
+            , Tuple Direction.Right portOut
             ]
         it "andPiece" do
-          ports andPiece `shouldEqual` M.fromFoldable
-            [ Tuple Direction.Left inputPort
-            , Tuple Direction.Up inputPort
-            , Tuple Direction.Right outputPort
+          getPorts andPiece `shouldEqual` M.fromFoldable
+            [ Tuple Direction.Left portIn
+            , Tuple Direction.Up portIn
+            , Tuple Direction.Right portOut
             ]
-
 

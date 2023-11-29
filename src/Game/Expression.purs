@@ -19,7 +19,7 @@ import Data.String.CodeUnits (fromCharArray)
 import Data.Traversable (class Traversable)
 import Data.Tuple (Tuple(..))
 import Data.Unfoldable (unfoldr)
-import Game.Location (CardinalDirection)
+import Game.Direction (CardinalDirection)
 
 newtype Signal = Signal Int
 

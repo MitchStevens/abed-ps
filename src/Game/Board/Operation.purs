@@ -6,6 +6,7 @@ import Prelude
 import Control.Monad.Error.Class (class MonadError, class MonadThrow, throwError)
 import Control.Monad.Except (ExceptT, runExceptT)
 import Control.Monad.State (class MonadState, class MonadTrans, StateT, get, gets, lift, put, runStateT)
+import Data.Array as A
 import Data.Either (Either(..))
 import Data.Foldable (all, find, for_, traverse_)
 import Data.Identity (Identity)
@@ -13,18 +14,26 @@ import Data.Int (even, odd)
 import Data.Lens.At (at)
 import Data.Lens.Index (ix)
 import Data.Lens.Record (prop)
+import Data.List (List(..))
+import Data.List as L
 import Data.Map as M
+import Data.Map.Unsafe (unsafeMapKey)
 import Data.Maybe (Maybe(..), isJust, isNothing, maybe)
 import Data.Newtype (class Newtype, unwrap)
+import Data.Set (Set)
+import Data.Set as S
 import Data.Tuple (Tuple(..), fst, snd)
 import Debug (trace)
 import Effect.Aff.Class (class MonadAff)
 import Effect.Class (class MonadEffect)
-import Game.Board (Board(..), PieceInfo, RelativeEdge(..), _pieces, _rotation, absolute, getPortOnEdge, matchingRelativeEdge, relative, toRelativeEdge, unsafeMapKey)
-import Game.Board.Query (insideBoard)
+import Game.Board (Board(..), PieceInfo, RelativeEdge(..), _pieces, _rotation, relative)
+import Game.Board.Query (adjacentRelativeEdge, getPortOnEdge, isInsideBoard)
+import Game.Direction (allDirections)
+import Game.Edge (Edge(..))
 import Game.GameEvent (BoardEvent(..))
-import Game.Location (CardinalDirection, Edge(..), Location(..), Rotation(..), allDirections, location, rotation)
-import Game.Piece (APiece(..), Port, pieceLookup, updatePort)
+import Game.Location (Location(..), location)
+import Game.Piece (APiece(..), Capacity, Port, pieceLookup, portType, updateCapacity, updatePort)
+import Game.Rotation (Rotation(..), rotation)
 import Type.Proxy (Proxy(..))
 
 data BoardError
@@ -84,7 +93,7 @@ execBoardM boardM b = unwrap $ execBoardT boardM b
 emptyBoard :: Int -> Either BoardError Board
 emptyBoard n = 
   if odd n && n >= 1
-    then Right $ Board { size: n, pieces: M.empty }
+    then Right $ Board { size: n, pieces: M.empty, ports: M.empty }
     else Left $ InvalidBoardInitialisation n
 
 -- should return either boarderror
@@ -108,26 +117,27 @@ getPiece loc = (_.piece) <$> getPieceInfo loc
   Very useful to seperate the board operations this way.
 -}
 
-isInsideBoard :: forall m. MonadError BoardError m => MonadState Board m => Location -> m Unit
-isInsideBoard loc = whenM (not <$> insideBoard loc) (throwError (InvalidLocation loc))
+checkInsideBoard :: forall m. MonadError BoardError m => MonadState Board m => Location -> m Unit
+checkInsideBoard loc = whenM (not <$> isInsideBoard loc) (throwError (InvalidLocation loc))
 
 updateRelEdge :: forall m. MonadState Board m => RelativeEdge -> Maybe Port -> m Unit
-updateRelEdge (Relative (Edge {dir, loc})) port = 
-  _pieces <<< ix loc <<< prop (Proxy :: Proxy "piece") %= updatePort dir port
+updateRelEdge (Relative (Edge {dir, loc})) port =
+  use (_pieces <<< at loc) >>= traverse_ \info ->
+    for_ (updatePort dir (portType <$> port) info.piece) \p' ->
+      _pieces <<< ix loc .= (info { piece = p' })
+    
 
 updatePortsAround :: forall m. MonadState Board m => Location -> m Unit
 updatePortsAround loc = do
   for_ allDirections \dir -> do
     let relEdge = relative loc dir
-    --relEdge <- toRelativeEdge (absolute loc dir)
     maybePort <- getPortOnEdge relEdge
-    relEdge' <- matchingRelativeEdge relEdge
+    relEdge' <- adjacentRelativeEdge relEdge
     updateRelEdge relEdge' maybePort
-
 
 addPiece :: forall m. MonadError BoardError m => MonadState Board m => Location -> APiece -> m Unit
 addPiece loc piece = do
-  isInsideBoard loc
+  checkInsideBoard loc
   pieceInfo <- use (_pieces <<< at loc)
   case pieceInfo of
     Nothing -> _pieces <<< at loc .= Just { piece, rotation: rotation 0 }
@@ -136,7 +146,7 @@ addPiece loc piece = do
 
 removePiece :: forall m. MonadError BoardError m => MonadState Board m => Location -> m APiece
 removePiece loc = do
-  isInsideBoard loc
+  checkInsideBoard loc
   maybePieceInfo <- use (_pieces <<< at loc)
   case maybePieceInfo of
     Nothing -> throwError (LocationNotOccupied loc)
@@ -178,7 +188,7 @@ validBoardSize n =
 
 decreaseSize :: forall m. MonadState Board m => MonadError BoardError m => m Unit
 decreaseSize = do
-  Board {size: n, pieces} <- get
+  Board {size: n, pieces, ports} <- get
   newSize <- validBoardSize (n-2)
   let insideSquare (Location {x, y}) = all (between 1 n) [x, y]
   let firstPieceOusideSquare = find (not <<< insideSquare) (M.keys pieces) 
@@ -186,15 +196,38 @@ decreaseSize = do
     Just loc -> throwError (LocationOccupied loc)
     Nothing -> put $ Board
       { size: newSize
-      , pieces: unsafeMapKey (\(Location {x, y}) -> location (x-1) (y-1)) pieces }
+      , pieces: unsafeMapKey (\(Location {x, y}) -> location (x-1) (y-1)) pieces
+      , ports
+      }
 
 increaseSize :: forall m. MonadState Board m => MonadError BoardError m => m Unit
 increaseSize = do
-  Board { size: n, pieces } <- get
+  Board { size: n, pieces, ports } <- get
   newSize <- validBoardSize (n+2)
   put $ Board
     { size: newSize
-    , pieces: unsafeMapKey (\(Location {x, y}) -> location (x+1) (y+1)) pieces }
+    , pieces: unsafeMapKey (\(Location {x, y}) -> location (x+1) (y+1)) pieces
+    , ports }
+
+capacityRipple :: forall m. MonadState Board m => Location -> Capacity -> m Unit
+capacityRipple loc capacity = capacityRippleAcc { openSet: L.singleton loc, closedSet: S.empty }
+  where
+    capacityRippleAcc :: { openSet :: List Location, closedSet :: Set Location } -> m Unit
+    capacityRippleAcc vars = case vars.openSet of
+      Nil -> pure unit
+      Cons l ls -> do
+        use (_pieces <<< at loc) >>= traverse_ \info -> do
+          let closedSet = S.insert loc vars.closedSet
+          case updateCapacity capacity info.piece of
+            Just p -> do                                        -- if the capacity can be changed...
+              _pieces <<< ix loc .= (info { piece = p })          -- set the capacity at the location...
+
+              --let adj = A.filter (\l -> not (S.member l closedSet)) $ follow loc <$> allDirections
+              --let openSet = L.fromFoldable adj <> ls            -- add the adjacent locations to the open set
+              --capacityRippleAcc capacity { openSet, closedSet } -- ripple the capacity
+            Nothing ->
+              capacityRippleAcc { openSet: ls, closedSet }
+
 
 applyBoardEvent :: forall m. MonadState Board m => MonadError BoardError m => BoardEvent -> m Unit
 applyBoardEvent = case _ of

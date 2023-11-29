@@ -51,7 +51,7 @@ component = H.mkComponent { eval , initialState , render }
         ]
       , HH.br_
       , HH.a 
-        [ HE.onClick (\_ -> NavigateTo PuzzleSelect)
+        [ HE.onClick (\_ -> NavigateTo LevelSelect)
         , HP.class_ (ClassName "link")
         ]
         [ HH.text "Puzzle Select" ]

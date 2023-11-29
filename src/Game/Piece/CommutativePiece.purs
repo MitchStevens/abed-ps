@@ -15,10 +15,10 @@ import Data.Newtype (class Newtype, over2)
 import Data.Semigroup.Commutative (class Commutative)
 import Data.Tuple (Tuple(..))
 import Game.Expression (Signal(..))
-import Game.Location (CardinalDirection)
-import Game.Location as Direction
+import Game.Direction (CardinalDirection)
+import Game.Direction as Direction
 import Game.Piece.APiece (APiece(..))
-import Game.Piece.Class (class Piece, PieceId(..), preserveStandardPorts)
+import Game.Piece.Class (class Piece, PieceId(..), defaultGetCapacity, defaultUpdateCapacity, updateCapacity)
 import Game.Piece.Port (Capacity(..), Port, isInput, isOutput)
 import Game.Piece.Port as Port
 
@@ -38,28 +38,32 @@ newtype CommutativePiece = Commutative
 
 derive instance Newtype CommutativePiece _
 
-instance Piece CommutativePiece where
-  name (Commutative piece) = piece.pieceId
-  eval (Commutative piece) inputs = 
-    M.filter (not <<< isInput) piece.ports $> (piece.eval (M.values inputs))
-  getPorts (Commutative piece) = piece.ports
-  updatePort =
-    preserveStandardPorts \dir port (Commutative piece) ->
-      fromMaybe (Commutative piece) do
-        guard (all isInput port)
-        pure $ Commutative (piece { ports = M.alter (\_ -> port) dir piece.ports})
+--instance Piece CommutativePiece where
+--  name (Commutative piece) = piece.pieceId
+--  eval (Commutative piece) inputs = 
+--    M.filter (not <<< isInput) piece.ports $> (piece.eval (M.values inputs))
+--
+--  getCapacity = defaultGetCapacity
+--  updateCapacity = defaultUpdateCapacity
+--
+--  getPorts (Commutative piece) = piece.ports
+--  updatePort =
+--    preserveStandardPorts \dir port (Commutative piece) ->
+--      fromMaybe (Commutative piece) do
+--        guard (all isInput port)
+--        pure $ Commutative (piece { ports = M.alter (\_ -> port) dir piece.ports})
     
-commutative :: String -> Capacity -> (List Signal -> Signal) -> CommutativePiece
-commutative name capacity eval = Commutative
-  { pieceId: PieceId name
-  , capacity
-  , ports: M.fromFoldable
-    [ Tuple Direction.Left  (Port.Input capacity)
-    , Tuple Direction.Up    (Port.Output capacity)
-    , Tuple Direction.Right (Port.Output capacity)
-    ]
-  , eval
-  }
+--commutative :: String -> Capacity -> (List Signal -> Signal) -> CommutativePiece
+--commutative name capacity eval = Commutative
+--  { pieceId: PieceId name
+--  , capacity
+--  , ports: M.fromFoldable
+--    [ Tuple Direction.Left  (Port.Input capacity)
+--    , Tuple Direction.Up    (Port.Output capacity)
+--    , Tuple Direction.Right (Port.Output capacity)
+--    ]
+--  , eval
+--  }
 
 allCommutativePieces :: Array APiece
 allCommutativePieces = [  ]

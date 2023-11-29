@@ -5,9 +5,10 @@ import Game.GameEvent
 
 import Data.Foldable (length)
 import Data.Newtype (unwrap)
-import Game.Location (location, rotation)
+import Game.Location (location)
+import Game.Rotation (rotation)
 import Game.Piece (name)
-import Game.Piece.BasicPiece (idPiece, notPiece)
+import Game.Piece (idPiece, notPiece)
 import Test.Unit (TestSuite, describe, it)
 import Test.Unit.Assert (shouldEqual)
 

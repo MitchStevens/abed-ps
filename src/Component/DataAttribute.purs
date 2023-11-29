@@ -2,11 +2,12 @@ module Component.DataAttribute where
 
 import Prelude
 
-import Capability.Progress (PuzzleProgress(..))
+import Capability.Progress (LevelProgress(..))
 import Data.Maybe (Maybe(..))
 import Data.String (toLower)
-import Game.Location (CardinalDirection, Location(..))
-import Game.Piece (PieceId(..))
+import Game.Direction (CardinalDirection)
+import Game.Location (Location(..))
+import Game.Piece (PieceId(..), PortInfo, isInput, portCapacity, toInt)
 import Halogen.HTML (IProp)
 import Halogen.HTML as HP
 import Web.DOM.ParentNode (QuerySelector(..))
@@ -35,7 +36,7 @@ availablePiece = Attr (AttrName "data-available-piece") (\(PieceId id) -> id)
 chatUsername :: DataAttribute String
 chatUsername = Attr (AttrName "data-username") identity
 
-progress :: DataAttribute PuzzleProgress
+progress :: DataAttribute LevelProgress
 progress = Attr (AttrName "data-puzzle-progress") case _ of
   Completed -> "completed"
   Incomplete -> "incomplete"
@@ -48,5 +49,3 @@ connected = Attr (AttrName "data-connected") $
   if _
     then "connected"
     else "not-connected"
-  
-

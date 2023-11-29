@@ -6,8 +6,8 @@ import Capability.Navigate (Route(..))
 import Component.About as About
 import Component.Home as Home
 import Component.Instructions as Instructions
-import Component.Puzzle as Puzzle
-import Component.PuzzleSelect as PuzzleSelect
+import Component.Level as Level
+import Component.LevelSelect as LevelSelect
 import Control.Monad.Reader (class MonadAsk)
 import Data.Foldable (oneOf)
 import Data.Maybe (Maybe(..), fromMaybe)
@@ -20,7 +20,6 @@ import Halogen (Component, Slot, mkEval)
 import Halogen as H
 import Halogen.HTML as HH
 import Halogen.Store.Monad (class MonadStore)
-import IO.Puzzles (allPuzzles)
 import Record as Record
 import Routing.Match (Match, lit, str)
 import Type.Proxy (Proxy(..))
@@ -31,8 +30,8 @@ route = oneOf
   [ Home <$ lit "home"
   , About <$ lit "about"
   , Instructions <$ lit "how-to-play"
-  , PuzzleSelect <$ lit "puzzle-select"
-  , Puzzle <$> (lit "puzzle" *> str) <*> str
+  , LevelSelect <$ lit "level-select"
+  , Level <$> (lit "level" *> str) <*> str
   ]
 
 type Input = {}
@@ -52,8 +51,8 @@ type Slots =
   ( home          :: forall q. Slot q Void Unit
   , about         :: forall q. Slot q Void Unit
   , instructions  :: forall q. Slot q Void Unit
-  , puzzleSelect  :: forall q. Slot q Void Unit
-  , puzzle        :: forall q. Slot q Void Unit
+  , levelSelect   :: forall q. Slot q Void Unit
+  , level         :: forall q. Slot q Void Unit
   )
 
 component 
@@ -76,11 +75,11 @@ component = H.mkComponent { eval, initialState, render }
       Instructions ->
         HH.slot_ (Proxy :: _ "instructions") unit Instructions.component unit
       PuzzleSelect ->
-        HH.slot_ (Proxy :: _ "puzzleSelect") unit PuzzleSelect.component unit
+        HH.slot_ (Proxy :: _ "levelSelect") unit PuzzleSelect.component unit
       Puzzle suiteName puzzleName -> fromMaybe (HH.text "coublent find tht roblem" ) do
         puzzleSuite <- Object.lookup suiteName allPuzzles
         puzzle <- Object.lookup puzzleName puzzleSuite
-        pure $ HH.slot_ (Proxy :: _ "puzzle") unit Puzzle.component $
+        pure $ HH.slot_ (Proxy :: _ "level") unit Puzzle.component $
            { puzzleId: { suiteName, puzzleName }, puzzle }
     Nothing ->
       HH.div_ [ HH.text "Oh no! That page wasn't found." ]

@@ -1,8 +1,8 @@
-module IO.Puzzles where
+module IO.LevelSuites where
 
 import Prelude
 
-import Capability.Progress (PuzzleProgress, getPuzzleProgress)
+import Capability.Progress (LevelProgress, getLevelProgress)
 import Component.Chat as Chat
 import Data.HeytingAlgebra (ff, tt)
 import Data.Map (Map)
@@ -13,32 +13,32 @@ import Data.Tuple (Tuple(..))
 import Effect.Class (class MonadEffect)
 import Foreign.Object (Object, fromHomogeneous)
 import Foreign.Object as O
+import Game.Direction as Direction
 import Game.Expression (Signal(..))
-import Game.Location (CardinalDirection, location)
-import Game.Location as Direction
+import Game.Level (LevelSuite, LevelId)
 import Game.Piece (mkPiece, name)
-import Game.Puzzle (PuzzleSuite, PuzzleId)
-import Game.RulesEngine (Rule(..))
-import IO.Puzzles.IntermediateSuite (intermediateSuite)
-import IO.Puzzles.TutorialSuite (tutorialSuite)
+import IO.LevelSuites.IntermediateSuite (intermediateSuite)
+import IO.LevelSuites.TutorialSuite (tutorialSuite)
+import IO.LevelSuites.TwoBitSuite (twoBitSuite)
 import Web.DOM.ParentNode (QuerySelector(..))
 import Web.HTML.Common (AttrName(..))
 
 
-allPuzzles :: Object PuzzleSuite
-allPuzzles = fromHomogeneous
+allLevelSuites :: Object LevelSuite
+allLevelSuites = fromHomogeneous
   { "Tutorial Suite": tutorialSuite
   , "Identity Suite": identitySuite
   , "Intermediate Suite": intermediateSuite
+  , "Two Bit Suite": twoBitSuite
   }
 
-getAllPuzzleProgress :: forall m. MonadEffect m => m (Map PuzzleId PuzzleProgress)
-getAllPuzzleProgress = map (join >>> M.fromFoldable >>> M.catMaybes) $
-  for (O.toUnfoldable allPuzzles :: Array _) \(Tuple suiteName suite) ->
-    for (O.toUnfoldable suite :: Array _) \(Tuple puzzleName _) ->
-      Tuple {suiteName, puzzleName} <$> getPuzzleProgress { suiteName, puzzleName}
+getAllLevelProgress :: forall m. MonadEffect m => m (Map LevelId LevelProgress)
+getAllLevelProgress = map (join >>> M.fromFoldable >>> M.catMaybes) $
+  for (O.toUnfoldable allLevelSuites :: Array _) \(Tuple suiteName suite) ->
+    for (O.toUnfoldable suite :: Array _) \(Tuple levelName _) ->
+      Tuple {suiteName, levelName} <$> getLevelProgress { suiteName, levelName}
 
-identitySuite :: PuzzleSuite
+identitySuite :: LevelSuite
 identitySuite = fromHomogeneous {}
   --{ "Double Negation":
   --  { problemDescription:

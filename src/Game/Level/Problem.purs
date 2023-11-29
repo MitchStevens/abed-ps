@@ -1,4 +1,4 @@
-module Game.ProblemDescription where
+module Game.Level.Problem where
 
 import Prelude
 
@@ -24,9 +24,8 @@ import Effect.Aff (Aff, Milliseconds(..), delay)
 import Effect.Aff.Class (class MonadAff, liftAff)
 import Game.Board (Board(..), _pieces)
 import Game.Expression (Signal(..))
-import Game.Location (CardinalDirection, allDirections)
+import Game.Direction (CardinalDirection, allDirections)
 import Game.Piece (class Piece, APiece(..), PieceId(..), Port, eval, getPort, idPiece)
-import Game.RulesEngine (Rule)
 import Type.Proxy (Proxy(..))
 import Web.DOM.ParentNode (QuerySelector(..))
 
@@ -36,7 +35,7 @@ type Problem =
   , description :: String
   , testCases :: Array (Map CardinalDirection Signal)
   , requiresAutomaticTesting :: Boolean
-  , pieceSet :: Set PieceId
+  , pieceSet :: Set APiece
   , otherRestrictions :: Array
     { name :: String
     , restriction :: Board -> Boolean

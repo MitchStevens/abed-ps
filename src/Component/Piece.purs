@@ -25,12 +25,11 @@ import Data.Tuple (Tuple(..))
 import Effect (Effect)
 import Effect.Class (class MonadEffect, liftEffect)
 import Effect.Class.Console (log, logShow)
+import Game.Direction as Direction
 import Game.Expression (Signal(..))
-import Game.Location (CardinalDirection, Location, Rotation(..), allDirections, locationId, rotateDirection, rotation)
-import Game.Location as Direction
-import Game.Piece (class Piece, APiece(..), PieceId(..), getPort, name)
-import Game.Piece.Port (Port, PortInfo)
+import Game.Piece (class Piece, APiece(..), PieceId(..), getPort, name, Port, PortInfo)
 import Game.Piece.Port as Port
+import Game.Rotation (rotation)
 import Halogen (AttrName(..), ClassName(..), HalogenM, RefLabel(..), gets)
 import Halogen as H
 import Halogen.HTML (HTML, PlainHTML, fromPlainHTML)
@@ -149,6 +148,9 @@ component = H.mkComponent { eval , initialState , render }
     , handleQuery: case _ of
         SetPortStates portStates -> do
           H.modify_ $ _ { portStates = portStates }
+          pure Nothing
+        SetPiece piece -> do
+          H.modify_ $ _ { piece = piece }
           pure Nothing
     , initialize: Nothing
     , receive: \_ -> Nothing --Just <<< Initialise -- :: input -> Maybe action

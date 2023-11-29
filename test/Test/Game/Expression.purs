@@ -10,7 +10,7 @@ import Data.Map as M
 import Data.Maybe (Maybe(..))
 import Data.Tuple (Tuple(..), uncurry)
 import Game.Expression (Expression, Signal(..), evaluate, raw, ref, simplify)
-import Game.Location (CardinalDirection(..))
+import Game.Direction (CardinalDirection(..))
 import Test.Unit (Test, TestSuite, describe, it, test)
 import Test.Unit.Assert (shouldEqual)
 

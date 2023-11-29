@@ -1,9 +1,10 @@
 let conf = ./spago.dhall
 
 in conf // 
-    { sources = conf.sources # [ "test/**/*.purs" ]
+    { sources = [ "src/Game/*.purs", "test/Game/*.purs" ]
     , dependencies = conf.dependencies #
         [ "test-unit"
         , "quickcheck"
         ] 
     }
+    --{ sources = conf.sources # [ "test/**/*.purs" ]

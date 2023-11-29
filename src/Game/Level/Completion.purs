@@ -1,4 +1,4 @@
-module Game.Problem.Completion where
+module Game.Level.Completion where
 
 import Prelude
 
@@ -9,10 +9,11 @@ import Data.Foldable (for_)
 import Data.Map (Map)
 import Data.Maybe (Maybe)
 import Game.Board (Board(..))
+import Game.Board.CompiledBoard (CompiledBoard)
 import Game.Expression (Signal(..))
-import Game.Location (CardinalDirection, allDirections)
+import Game.Direction (CardinalDirection, allDirections)
 import Game.Piece (APiece, Port, eval, getPort)
-import Game.ProblemDescription (Problem)
+import Game.Level (Level)
 
 data CompletionStatus
   = NotStarted
@@ -48,19 +49,19 @@ type FailedRestriction =
   , description :: String
   }
 
-isReadyForTesting :: Problem -> Board -> CompletionStatus
+isReadyForTesting :: Level -> CompiledBoard -> CompletionStatus
 isReadyForTesting problem board = fromLeft ReadyForTesting do
   lmap PortMismatch $ checkPortMismatch problem board
   lmap FailedRestriction $ checkOtherRestrictions problem board
 
-checkPortMismatch :: Problem -> Board -> Either PortMismatch Unit
+checkPortMismatch :: Level -> CompiledBoard -> Either PortMismatch Unit
 checkPortMismatch problem board = for_ allDirections \dir -> do
   let expected = getPort problem.goal dir
   let received = getPort board dir
   when (expected /= received) do
     throwError { dir, expected, received }
 
-checkOtherRestrictions :: Problem -> Board -> Either FailedRestriction Unit
+checkOtherRestrictions :: Level -> CompiledBoard -> Either FailedRestriction Unit
 checkOtherRestrictions problem board = for_ problem.otherRestrictions \r ->
   unless (r.restriction board) do
     throwError { name: r.name, description: r.description }

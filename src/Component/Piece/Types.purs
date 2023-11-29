@@ -6,8 +6,10 @@ import Data.Map (Map)
 import Data.Map as M
 import Data.Maybe (Maybe(..))
 import Data.Tuple (Tuple)
-import Game.Location (CardinalDirection, Location(..), Rotation(..), location, rotation)
+import Game.Direction (CardinalDirection)
+import Game.Location (Location(..), location)
 import Game.Piece (APiece, PortInfo)
+import Game.Rotation (Rotation(..), rotation)
 import Web.HTML.Event.DragEvent (DragEvent)
 import Web.UIEvent.MouseEvent (MouseEvent)
 
@@ -30,6 +32,8 @@ type State =
 
 data Query a
   = SetPortStates (Map CardinalDirection PortInfo)
+  | SetPiece APiece
+
 
 data Action
   = Initialise Input

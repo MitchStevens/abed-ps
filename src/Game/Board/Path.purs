@@ -31,13 +31,14 @@ import Data.Zipper (Zipper(..))
 import Data.Zipper as Z
 import Debug (debugger, trace)
 import Effect.Aff (Aff, error)
-import Game.Board (Board(..), PieceInfo, _pieces, buildBoardGraph)
-import Game.Board.Query (directPredecessors, directSuccessors)
+import Game.Board (Board(..), _pieces)
+import Game.Direction (CardinalDirection, allDirections)
+import Game.Direction as Direction
 import Game.GameEvent (BoardEvent(..))
-import Game.Location (CardinalDirection, Location(..), Rotation(..), allDirections, clockwiseRotation, directionTo, followDirection, oppositeDirection, rotateDirection, rotation)
-import Game.Location as Direction
+import Game.Location (Location(..), directionTo, followDirection)
 import Game.Piece (APiece(..), PieceId(..), getPort, name, chickenPiece, cornerCutPiece, crossPiece, leftPiece, rightPiece, idPiece)
 import Game.Piece.Port (isInput)
+import Game.Rotation (Rotation(..), clockwiseRotation, rotateDirection, rotation)
 
 data PathError
   = ObstructedByAnotherPiece Location
@@ -69,7 +70,7 @@ type Wire =
 
 getWireAt :: forall m. MonadError PathError m => MonadState Board m => Location -> m (Maybe Wire)
 getWireAt location = do
-  (maybePieceInfo :: Maybe PieceInfo) <- use (_pieces <<< at location)
+  maybePieceInfo <- use (_pieces <<< at location)
   for maybePieceInfo \info -> do
     let inputDirection = rotateDirection Direction.Left info.rotation
     if info.piece == idPiece

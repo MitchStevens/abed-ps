@@ -13,18 +13,18 @@ import Effect (Effect)
 import Effect.Aff (Aff)
 import Effect.Class (class MonadEffect, liftEffect)
 import Foreign.Object as O
-import Game.Puzzle (PuzzleId)
+import Game.Level (LevelId)
 import Web.HTML (window)
 import Web.HTML.Window (localStorage)
 import Web.Storage.Storage (clear, getItem, setItem)
 
 
 --storing puzzle progress
-data PuzzleProgress = Incomplete | Completed
-derive instance Eq PuzzleProgress
+data LevelProgress = Incomplete | Completed
+derive instance Eq LevelProgress
 
-puzzleProgress :: Prism' String PuzzleProgress
-puzzleProgress = prism' toStr fromStr
+levelProgress :: Prism' String LevelProgress
+levelProgress = prism' toStr fromStr
   where
     toStr = case _ of
       Incomplete -> "Incomplete"
@@ -34,19 +34,19 @@ puzzleProgress = prism' toStr fromStr
       "Completed" -> Just Completed
       _ -> Nothing
 
-instance Show PuzzleProgress where
+instance Show LevelProgress where
   show = case _ of
       Incomplete -> "Incomplete"
       Completed -> "Completed"
 
 
-savePuzzleProgress :: forall m. MonadEffect m => PuzzleId -> PuzzleProgress -> m Unit
-savePuzzleProgress id progress = liftEffect $
-  window >>= localStorage >>= setItem (show id) (review puzzleProgress progress)
+saveLevelProgress :: forall m. MonadEffect m => LevelId -> LevelProgress -> m Unit
+saveLevelProgress id progress = liftEffect $
+  window >>= localStorage >>= setItem (show id) (review levelProgress progress)
 
-getPuzzleProgress :: forall m. MonadEffect m => PuzzleId -> m (Maybe PuzzleProgress)
-getPuzzleProgress id = liftEffect $
-  window >>= localStorage >>= getItem (show id) <#> bindFlipped (preview puzzleProgress)
+getLevelProgress :: forall m. MonadEffect m => LevelId -> m (Maybe LevelProgress)
+getLevelProgress id = liftEffect $
+  window >>= localStorage >>= getItem (show id) <#> bindFlipped (preview levelProgress)
 
 deleteProgress :: forall m. MonadEffect m => m Unit
 deleteProgress = liftEffect $ window >>= localStorage >>= clear
