@@ -1,4 +1,4 @@
-module Component.Puzzle where
+module Component.Level where
 
 import Prelude
 
@@ -33,15 +33,13 @@ import Effect.Aff.Class (class MonadAff, liftAff)
 import Effect.Class (class MonadEffect, liftEffect)
 import Effect.Class.Console (log)
 import Game.Board (_size, firstEmptyLocation)
-import Game.Expression (Signal(..))
+import Game.Direction (CardinalDirection)
 import Game.GameEvent (GameEvent, GameEventStore)
-import Game.Location (CardinalDirection)
+import Game.Level (LevelId, Level)
+import Game.Level.Completion (CompletionStatus(..), FailedTestCase, isReadyForTesting, runSingleTest)
 import Game.Message (Message(..), green, htmlMessage, message, red)
-import Game.Piece (APiece, pieceLookup)
-import Game.Piece.Class (getPorts, name)
-import Game.Problem.Completion (CompletionStatus(..), FailedTestCase, isReadyForTesting, runSingleTest)
-import Game.Puzzle (Puzzle, PuzzleId)
-import Game.RulesEngine (Rule, runEngine)
+import Game.Piece (APiece, getPorts, pieceLookup)
+import Game.Signal (Signal(..))
 import GlobalState (GlobalState)
 import Halogen (ClassName(..), Component, HalogenM, HalogenQ, Slot, gets)
 import Halogen as H
@@ -53,8 +51,8 @@ import Type.Proxy (Proxy(..))
 import Web.UIEvent.KeyboardEvent (KeyboardEvent)
 
 type Input = 
-  { puzzleId :: PuzzleId
-  , puzzle :: Puzzle
+  { levelId :: LevelId
+  , level :: Level
   }
 
 type State = Input
@@ -88,11 +86,11 @@ component = H.mkComponent { eval , initialState , render }
   initialState = identity
 
   --render :: State -> HalogenM State Action Slots o m Unit
-  render { puzzle, puzzleId } = HH.div
+  render { level, levelId } = HH.div
     [ HP.id "puzzle-component"]
     [ HH.slot _board    unit Board.component Nothing BoardOutput
     , HH.slot_ _chat    unit Chat.component unit
-    , HH.slot _sidebar  unit Sidebar.component { problem: puzzle.problem, boardSize: 3 } SidebarOutput
+    , HH.slot _sidebar  unit Sidebar.component { problem: level.problem, boardSize: 3 } SidebarOutput
     ]
 
   eval :: HalogenQ q Action Input ~> HalogenM State Action Slots o m
@@ -109,25 +107,24 @@ component = H.mkComponent { eval , initialState , render }
   handleAction = case _ of
     Initialise -> do
       -- initialise the chat server with conversation text
-      initialConversation <- H.gets (_.puzzle.conversation)
+      initialConversation <- H.gets (_.level.conversation)
       putQueuedMessages initialConversation
 
       -- make the board component display goal ports
-      piece <- H.gets (_.puzzle.problem.goal)
+      piece <- H.gets (_.level.problem.goal)
       H.tell _board unit (\_ -> Board.SetGoalPorts (getPorts piece))
     LevelComplete -> do
-      log "level complete"
       H.tell _sidebar unit (\_ -> Sidebar.SetCompletionStatus Completed)
 
-      puzzleId <-  gets (_.puzzleId)
-      liftEffect $ Progress.savePuzzleProgress puzzleId Progress.Completed
+      levelId <-  gets (_.levelId)
+      liftEffect $ Progress.saveLevelProgress levelId Progress.Completed
     BoardOutput (Board.NewBoardState board) -> do
       -- the sidebar is also update with the current size of the board
       H.tell _sidebar unit (\_ -> Sidebar.SetBoardSize (board ^. _size))
 
       -- the side bar updates the puzzle completion status, if the board is ready to be
       -- shown, trigger to test is on the sidebar
-      problem <- H.gets (_.puzzle.problem)
+      problem <- H.gets (_.level.problem)
       let status = isReadyForTesting problem board
 
       H.tell _sidebar unit (\_ -> Sidebar.SetCompletionStatus status)
@@ -145,7 +142,7 @@ component = H.mkComponent { eval , initialState , render }
       sendMessage (htmlMessage "/test" (HH.b_ [HH.text "Verifying board: running tests..."]))
 
       let eval inputs = fromMaybe M.empty <$> H.request _board unit (Board.SetInputs inputs)
-      problem <- gets (_.puzzle.problem)
+      problem <- gets (_.level.problem)
 
       res <- runAllTests problem.goal (L.fromFoldable problem.testCases) eval
 

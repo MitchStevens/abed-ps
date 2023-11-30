@@ -1,4 +1,4 @@
-module Game.Puzzle where
+module Game.Level where
 
 import Prelude
 
@@ -8,34 +8,34 @@ import Data.Map (Map)
 import Data.Map as M
 import Data.Traversable (traverse)
 import Foreign.Object (Object)
-import Game.Expression (Signal(..))
+import Game.Direction (CardinalDirection)
 import Game.GameEvent (GameEventStore)
-import Game.Location (CardinalDirection, location)
+import Game.Level.Problem (Problem, defaultProblem)
+import Game.Level.RulesEngine (Rule)
 import Game.Message (Message)
-import Game.ProblemDescription (Problem, defaultProblem)
-import Game.RulesEngine (Rule)
+import Game.Signal (Signal(..))
 import Web.DOM.ParentNode (QuerySelector(..))
 import Web.HTML.Common (AttrName(..))
 
-type PuzzleSettings =
+type LevelSettings =
   { enableBoardSizeChange :: Boolean }
 
-type Puzzle =
+type Level =
   { problem :: Problem
   , boardDeltaRulesEngine :: Array (Rule GameEventStore Message)
   , conversation :: Array Message
-  , settings :: PuzzleSettings
+  , settings :: LevelSettings
   }
 
-type PuzzleId = { suiteName :: String, puzzleName :: String }
+type LevelId = { suiteName :: String, levelName :: String }
 
-defaultSettings :: PuzzleSettings
+defaultSettings :: LevelSettings
 defaultSettings =
   { enableBoardSizeChange: true
   }
 
-defaultPuzzle :: Puzzle
-defaultPuzzle = 
+defaultLevel :: Level
+defaultLevel = 
   { problem: defaultProblem
   , boardDeltaRulesEngine: []
   , conversation: []
@@ -44,12 +44,9 @@ defaultPuzzle =
 
 
 
-type PuzzleSuite = Object Puzzle 
+type LevelSuite = Object Level
 
 binaryTestInputs :: Array CardinalDirection -> Array (Map CardinalDirection Signal)
 binaryTestInputs directions = do
   inputs <- traverse (\_ -> [ff, tt]) directions
   pure $ M.fromFoldable (zip directions inputs)
-
-
-

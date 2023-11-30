@@ -1,4 +1,4 @@
-module Test.Game.ProblemDescription (tests) where
+module Test.Game.Level.Problem (tests) where
 
 import Prelude
 
@@ -19,11 +19,6 @@ import Effect.Exception (error)
 import Game.Board (standardBoard)
 import Game.Board.Operation (BoardT, addPiece, emptyBoard, evalBoardM, execBoardM, rotatePieceBy)
 import Game.Expression (Expression, Signal(..), evaluate, raw, ref, simplify)
-import Game.Location (location, rotation)
-import Game.Location as Direction
-import Game.Piece.BasicPiece (idPiece, notPiece, orPiece)
-import Game.Piece.Port (Capacity(..), Port(..))
-import Game.ProblemDescription (PieceSpecMismatch(..), ProblemDescription, solvedBy)
 import Test.Game.Board (runBoardTest)
 import Test.Unit (Test, TestSuite, describe, it, test, testOnly)
 import Test.Unit.Assert (equal, shouldEqual)

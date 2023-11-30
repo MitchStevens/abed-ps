@@ -1,4 +1,4 @@
-module Test.Game.RulesEngine where
+module Test.Game.Level.RulesEngine where
 
 import Prelude
 
@@ -6,7 +6,7 @@ import Data.HeytingAlgebra (ff, tt)
 import Data.Int (even)
 import Data.Maybe (Maybe(..))
 import Data.Predicate (Predicate(..))
-import Game.RulesEngine (Rule(..), runEngine, runRule)
+import Game.Level.RulesEngine (Rule(..), runEngine, runRule)
 import Test.Unit (TestSuite, describe, it)
 import Test.Unit.Assert (shouldEqual)
 

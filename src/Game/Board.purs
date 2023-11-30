@@ -25,12 +25,16 @@ import Data.Set (Set)
 import Data.Set as S
 import Data.Traversable (for, sequence)
 import Data.Tuple (Tuple(..))
-import Game.Expression (Signal(..))
-import Game.Location (CardinalDirection, Edge(..), Location(..), Rotation(..), allDirections, edge, location, matchEdge, rotateDirection)
-import Game.Location as Direction
-import Game.Piece (class Piece, PieceId(..), Port, PortInfo, eval, getOutputDirs, getPort, getPorts, isInput)
+import Game.Board.PortInfo (PortInfo)
+import Game.Direction (CardinalDirection, allDirections, rotateDirection)
+import Game.Direction as Direction
+import Game.Edge (Edge(..), edge, matchEdge)
+import Game.Location (Location(..), location)
+import Game.Piece (class Piece, PieceId(..), Port, eval, getOutputDirs, getPort, getPorts, isInput)
 import Game.Piece.APiece (APiece(..))
 import Game.Piece.Port as Port
+import Game.Rotation (Rotation(..))
+import Game.Signal (Signal(..))
 import Halogen.Svg.Attributes (m)
 import Type.Proxy (Proxy(..))
 

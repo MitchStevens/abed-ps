@@ -6,13 +6,14 @@ import Component.DataAttribute as DataAttr
 import Component.Piece.Types (State)
 import Data.Array as A
 import Data.Enum (fromEnum)
+import Data.HeytingAlgebra (ff)
 import Data.Int (toNumber)
 import Data.Map as M
 import Data.Maybe (maybe)
 import Data.Tuple (Tuple(..))
-import Game.Expression (Signal(..))
-import Game.Location (CardinalDirection, allDirections, rotateDirection)
-import Game.Piece (PieceId(..), PortInfo, name)
+import Game.Board.PortInfo (PortInfo)
+import Game.Direction (CardinalDirection, allDirections, rotateDirection)
+import Game.Piece (PieceId(..), name)
 import Game.Piece as Port
 import Halogen.HTML (ClassName(..), PlainHTML)
 import Halogen.HTML as HH
@@ -71,14 +72,14 @@ renderPort direction {connected, port, signal} = SE.g []
           [ SA.points portShapePoints
           , SA.classes [ClassName "port-in", ClassName "port"]
           , DataAttr.attr DataAttr.connected connected
-          , SA.fillGradient (if signal /= Signal 0 then "#port-in-gradient" else "#port-in-gradient-off")
+          , SA.fillGradient (if signal /= ff then "#port-in-gradient" else "#port-in-gradient-off")
           ]
       (Port.Output n) ->
         SE.polyline
           [ SA.points portShapePoints
           , DataAttr.attr DataAttr.connected connected
           , SA.classes [ClassName "port-out", ClassName "port"]
-          , SA.fillGradient (if signal /= Signal 0 then "#port-out-gradient" else "#port-out-gradient-off")
+          , SA.fillGradient (if signal /= ff then "#port-out-gradient" else "#port-out-gradient-off")
           ]
 
     portShapePoints = case port of

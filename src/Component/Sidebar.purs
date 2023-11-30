@@ -27,11 +27,11 @@ import Effect.Class (class MonadEffect, liftEffect)
 import Effect.Class.Console (log)
 import Game.Board (Board(..))
 import Game.GameEvent (pieceId)
+import Game.Level.Completion (CompletionStatus(..))
+import Game.Level.Problem (Problem)
 import Game.Location (location)
 import Game.Piece (APiece(..), PieceId(..), name, pieceLookup)
 import Game.Piece.Port (isInput)
-import Game.Problem.Completion (CompletionStatus(..))
-import Game.ProblemDescription (Problem)
 import Halogen (ClassName(..), ComponentSlot, HalogenM, HalogenQ, liftAff)
 import Halogen as H
 import Halogen.HTML (HTML, PlainHTML, fromPlainHTML)
@@ -149,7 +149,7 @@ component = H.mkComponent { eval , initialState , render }
         PieceOnClick piece _ ->
           H.raise (PieceAdded piece)
         BackToLevelSelect -> do
-          navigateTo PuzzleSelect
+          navigateTo LevelSelect
         IncrementBoardSize -> H.raise BoardSizeIncremented
         DecrementBoardSize -> H.raise BoardSizeDecremented
         RunTestsClicked -> H.raise TestsTriggered

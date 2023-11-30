@@ -39,14 +39,15 @@ import Effect.Class.Console (log, logShow)
 import Game.Board (Board(..), RelativeEdge(..), _pieces, _size, evalBoardWithPortInfo, extractBoardPorts, extractOutputs, relative, standardBoard, toLocalInputs)
 import Game.Board.Operation (BoardError, BoardM, addPiece, applyBoardEvent, decreaseSize, evalBoardM, getPieceInfo, increaseSize, movePiece, removePiece, rotatePieceBy, runBoardM)
 import Game.Board.Path (boardPath)
+import Game.Board.PortInfo (PortInfo)
 import Game.Board.Query (directPredecessors)
-import Game.Expression (Signal(..))
+import Game.Direction (CardinalDirection)
+import Game.Direction as Direction
 import Game.GameEvent (BoardEvent(..), GameEvent(..), GameEventStore, boardEventLocationsChanged)
-import Game.Location (CardinalDirection, Edge(..), Location(..), Rotation(..), allDirections, location, oppositeDirection, rotateDirection, rotation)
-import Game.Location as Direction
-import Game.Piece (APiece(..), PieceId(..), getPort, getPorts, name)
-import Game.Piece.Port (Port, PortInfo, isInput, matchingPort)
-import Game.Piece.Port as Port
+import Game.Location (Location(..), location)
+import Game.Piece (APiece(..), PieceId(..), Port, getPort, getPorts, isInput, matchingPort, name)
+import Game.Rotation (Rotation(..))
+import Game.Signal (Signal(..))
 import Halogen (AttrName(..), ClassName(..), Component, HalogenM(..), HalogenQ, Slot)
 import Halogen as H
 import Halogen.HTML (HTML, PlainHTML, fromPlainHTML)
@@ -407,11 +408,9 @@ evaluateBoard = do
   outputs <- evalState (extractOutputs signals) <$> use _board
   H.modify_ $ \s -> s { lastBoardEvaluation = signals, goalPorts = mapWithIndex (\dir info -> fromMaybe info (M.lookup dir outputs)) s.goalPorts}
 
-
   use (_board <<< _pieces <<< to M.keys) >>= traverse_ \loc -> do
     let portStates = toLocalInputs loc signals
     H.tell _piece loc (\_ -> Piece.SetPortStates portStates)
-
 
 
 liftBoardM :: forall m a. BoardM a -> HalogenM State Action Slots Output m (Either BoardError (Tuple a Board))

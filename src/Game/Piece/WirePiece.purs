@@ -10,9 +10,9 @@ import Data.Maybe (fromMaybe, maybe)
 import Data.Set (Set)
 import Data.Set as S
 import Data.Tuple (Tuple(..))
-import Game.Expression (Signal(..))
-import Game.Location (CardinalDirection)
-import Game.Location as Direction
+import Game.Signal (Signal(..))
+import Game.Direction (CardinalDirection)
+import Game.Direction as Direction
 import Game.Piece.APiece (APiece(..), mkPiece)
 import Game.Piece.Class (class Piece, PieceId(..))
 import Game.Piece.Port (Capacity(..), isInput, isOutput)

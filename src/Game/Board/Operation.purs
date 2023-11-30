@@ -22,9 +22,12 @@ import Effect.Aff.Class (class MonadAff)
 import Effect.Class (class MonadEffect)
 import Game.Board (Board(..), PieceInfo, RelativeEdge(..), _pieces, _rotation, absolute, getPortOnEdge, matchingRelativeEdge, relative, toRelativeEdge, unsafeMapKey)
 import Game.Board.Query (insideBoard)
+import Game.Direction (allDirections)
+import Game.Edge (Edge(..))
 import Game.GameEvent (BoardEvent(..))
-import Game.Location (CardinalDirection, Edge(..), Location(..), Rotation(..), allDirections, location, rotation)
+import Game.Location (Location(..), location)
 import Game.Piece (APiece(..), Port, pieceLookup, updatePort)
+import Game.Rotation (Rotation(..), rotation)
 import Type.Proxy (Proxy(..))
 
 data BoardError

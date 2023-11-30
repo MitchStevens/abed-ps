@@ -1,4 +1,4 @@
-module Game.RulesEngine where
+module Game.Level.RulesEngine where
 
 import Prelude
 

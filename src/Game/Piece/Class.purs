@@ -7,10 +7,10 @@ import Data.Map (Map)
 import Data.Map as M
 import Data.Maybe (Maybe)
 import Data.Set (Set)
-import Game.Expression (Signal(..))
-import Game.Location (CardinalDirection)
-import Game.Location as Direction
+import Game.Direction (CardinalDirection)
+import Game.Direction as Direction
 import Game.Piece.Port (Port, isInput, isOutput)
+import Game.Signal (Signal(..))
 
 newtype PieceId = PieceId String
 derive instance Eq PieceId

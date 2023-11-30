@@ -1,4 +1,4 @@
-module Game.ProblemDescription where
+module Game.Level.Problem where
 
 import Prelude
 
@@ -23,10 +23,9 @@ import Data.Tuple (Tuple(..))
 import Effect.Aff (Aff, Milliseconds(..), delay)
 import Effect.Aff.Class (class MonadAff, liftAff)
 import Game.Board (Board(..), _pieces)
-import Game.Expression (Signal(..))
-import Game.Location (CardinalDirection, allDirections)
+import Game.Direction (CardinalDirection)
 import Game.Piece (class Piece, APiece(..), PieceId(..), Port, eval, getPort, idPiece)
-import Game.RulesEngine (Rule)
+import Game.Signal (Signal(..))
 import Type.Proxy (Proxy(..))
 import Web.DOM.ParentNode (QuerySelector(..))
 

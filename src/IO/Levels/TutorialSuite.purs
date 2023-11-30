@@ -1,4 +1,4 @@
-module IO.Puzzles.TutorialSuite where
+module IO.Levels.TutorialSuite where
 
 import Prelude
 
@@ -9,18 +9,18 @@ import Data.Lens ((.~))
 import Data.Maybe (Maybe(..))
 import Data.Set as S
 import Foreign.Object (fromHomogeneous)
+import Game.Direction as Direction
 import Game.GameEvent (count, firstTime, latest, pieceAdded, pieceMovedTo, secondTime)
+import Game.Level (LevelSuite, binaryTestInputs, defaultLevel)
+import Game.Level.RulesEngine (Rule(..))
 import Game.Location (location)
-import Game.Location as Direction
 import Game.Message (_selector, addDelay, fromGuide)
 import Game.Piece (name, idPiece)
-import Game.Puzzle (PuzzleSuite, binaryTestInputs, defaultPuzzle)
-import Game.RulesEngine (Rule(..))
 
-tutorialSuite :: PuzzleSuite
+tutorialSuite :: LevelSuite
 tutorialSuite = fromHomogeneous
   { "From A to B":
-    defaultPuzzle
+    defaultLevel
       { problem =
         { goal: idPiece
         , title: "From A to B"

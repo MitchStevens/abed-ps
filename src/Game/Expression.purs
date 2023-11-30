@@ -8,9 +8,7 @@ import Data.Enum (enumFromThenTo, enumFromTo)
 import Data.Foldable (class Foldable, and)
 import Data.Function (on)
 import Data.HeytingAlgebra (ff, tt)
-import Data.Int (binary, even, hexadecimal, odd, toStringAs)
-import Data.Int.Bits (complement, shl, shr, xor, (.&.), (.|.))
-import Data.Int.Bits as Bits
+import Data.Int.Bits (xor)
 import Data.Map (Map)
 import Data.Map as M
 import Data.Maybe (Maybe(..), fromMaybe)
@@ -19,32 +17,8 @@ import Data.String.CodeUnits (fromCharArray)
 import Data.Traversable (class Traversable)
 import Data.Tuple (Tuple(..))
 import Data.Unfoldable (unfoldr)
-import Game.Location (CardinalDirection)
-
-newtype Signal = Signal Int
-
---todo: improve this implementation
-instance Eq Signal where
-  eq (Signal s1) (Signal s2) = show s1 == show s2
-
-instance Show Signal where
-  --show signal = fromCharArray $ (if _ then '1' else '0') <$> signalAsBits signal
-  show (Signal s)  = fold $ [12, 8, 4, 0] <#> \shift ->
-    toStringAs hexadecimal ((shr s shift) .&. 15)
-
-instance HeytingAlgebra Signal where
-  ff = Signal 0
-  tt = Signal (-1)
-  not (Signal a) = Signal (complement a)
-  implies (Signal a) (Signal b) = Signal (complement a .|. b)
-  disj (Signal a) (Signal b) = Signal (a .|. b)
-  conj (Signal a) (Signal b) = Signal (a .&. b)
-
-raw :: Int -> Expression
-raw s = Raw (Signal s)
-
-ref :: CardinalDirection -> Expression
-ref = Ref
+import Game.Direction (CardinalDirection)
+import Game.Signal (Signal(..))
 
 data Expression
   = Raw Signal
@@ -71,6 +45,13 @@ instance HeytingAlgebra Expression where
   implies a b = Or (Not a) b
   disj = Or
   conj = And
+
+
+raw :: Int -> Expression
+raw s = Raw (Signal s)
+
+ref :: CardinalDirection -> Expression
+ref = Ref
 
 simplify :: Expression -> Expression
 simplify exp = case exp of

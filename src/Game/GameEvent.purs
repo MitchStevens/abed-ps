@@ -9,8 +9,9 @@ import Data.Map as M
 import Data.Maybe (Maybe(..), maybe)
 import Data.Predicate (Predicate(..))
 import Data.Tuple (Tuple(..))
-import Game.Location (Location(..), Rotation(..))
+import Game.Location (Location(..))
 import Game.Piece (PieceId(..))
+import Game.Rotation (Rotation(..))
 import Halogen.Store.Select (Selector(..))
 
 data GameEvent

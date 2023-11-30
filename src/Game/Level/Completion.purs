@@ -1,4 +1,4 @@
-module Game.Problem.Completion where
+module Game.Level.Completion where
 
 import Prelude
 
@@ -9,10 +9,10 @@ import Data.Foldable (for_)
 import Data.Map (Map)
 import Data.Maybe (Maybe)
 import Game.Board (Board(..))
-import Game.Expression (Signal(..))
-import Game.Location (CardinalDirection, allDirections)
+import Game.Direction (CardinalDirection, allDirections)
+import Game.Level.Problem (Problem)
 import Game.Piece (APiece, Port, eval, getPort)
-import Game.ProblemDescription (Problem)
+import Game.Signal (Signal(..))
 
 data CompletionStatus
   = NotStarted

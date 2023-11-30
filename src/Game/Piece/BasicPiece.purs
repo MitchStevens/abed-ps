@@ -12,12 +12,13 @@ import Data.Newtype (class Newtype)
 import Data.Traversable (class Foldable, traverse)
 import Data.Tuple (Tuple(..))
 import Data.Unfoldable (fromMaybe)
-import Game.Expression (Expression(..), Signal(..), evaluate, raw, ref)
-import Game.Location (CardinalDirection(..), Rotation(..))
-import Game.Location as Direction
+import Game.Direction (CardinalDirection(..))
+import Game.Direction as Direction
+import Game.Expression (Expression(..), evaluate, ref)
 import Game.Piece.APiece (APiece(..), mkPiece)
 import Game.Piece.Class (class Piece, PieceId(..))
 import Game.Piece.Port (Capacity(..), Port(..), isInput)
+import Game.Rotation (Rotation(..))
 
 data BasicPort = BasicInput | BasicOutput Expression
 

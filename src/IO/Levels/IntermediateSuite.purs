@@ -1,4 +1,4 @@
-module IO.Puzzles.IntermediateSuite where
+module IO.Levels.IntermediateSuite where
 
 import Prelude
 
@@ -6,19 +6,17 @@ import Component.DataAttribute (nullSelector, selector)
 import Component.DataAttribute as DataAttr
 import Data.Set as S
 import Foreign.Object (fromHomogeneous)
+import Game.Direction as Direction
 import Game.GameEvent (count, firstTime, latest, pieceAdded, pieceMovedTo, secondTime)
-import Game.Location (location)
-import Game.Location as Direction
+import Game.Level (LevelSuite, binaryTestInputs, defaultLevel)
 import Game.Message (addDelay, message)
 import Game.Piece (name)
 import Game.Piece.BasicPiece (allBasicPieces, crossPiece, xorPiece)
-import Game.Puzzle (PuzzleSuite, binaryTestInputs, defaultPuzzle)
-import Game.RulesEngine (Rule(..))
 
-intermediateSuite :: PuzzleSuite
+intermediateSuite :: LevelSuite
 intermediateSuite = fromHomogeneous
   { "Criss(t) cross":
-    defaultPuzzle
+    defaultLevel
       { problem =
         { goal: crossPiece
         , title: "Cross over"

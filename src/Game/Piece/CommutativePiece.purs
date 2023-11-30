@@ -14,9 +14,9 @@ import Data.Maybe (fromMaybe)
 import Data.Newtype (class Newtype, over2)
 import Data.Semigroup.Commutative (class Commutative)
 import Data.Tuple (Tuple(..))
-import Game.Expression (Signal(..))
-import Game.Location (CardinalDirection)
-import Game.Location as Direction
+import Game.Signal (Signal(..))
+import Game.Direction (CardinalDirection)
+import Game.Direction as Direction
 import Game.Piece.APiece (APiece(..))
 import Game.Piece.Class (class Piece, PieceId(..), preserveStandardPorts)
 import Game.Piece.Port (Capacity(..), Port, isInput, isOutput)
