@@ -9,21 +9,19 @@ import Data.Map (Map, fromFoldable)
 import Data.Map as M
 import Data.Maybe (Maybe(..))
 import Data.Tuple (Tuple(..), uncurry)
-import Game.Expression (Expression, Signal(..), evaluate, raw, ref, simplify)
-import Game.Location (CardinalDirection(..))
-import Test.Unit (Test, TestSuite, describe, it, test)
-import Test.Unit.Assert (shouldEqual)
+import Game.Direction (CardinalDirection(..))
+import Game.Expression (Expression, evaluate, raw, ref, simplify)
+import Game.Signal (Signal(..))
+import Test.Spec (Spec, describe, it)
+import Test.Spec.Assertions (shouldEqual, shouldNotEqual)
+import Test.Spec.QuickCheck (quickCheck)
 
-tests :: TestSuite
-tests = do
-  describe "Signal" do
-    it "show" do
-      show (Signal 0)  `shouldEqual` "0000"
-      show (Signal 1)  `shouldEqual` "0001"
-      show (Signal 15) `shouldEqual` "000f"
-      show (Signal 16) `shouldEqual` "0010"
-      show (Signal (-1)) `shouldEqual` "ffff"
+spec :: Spec Unit
+spec = do
   describe "Expression" do
+    --describe "matchingRelativeEdge" do
+    --  it "" $
+    --    matchingRelativeEdge (relative (location 0 1) Direction.Left) `shouldReturn` (relative (location (-1) 1) Direction.Right)
     it "simplify" $ traverse_ (uncurry simplifyTest) $
       [ Tuple (raw 0) (raw 0)
       , Tuple (raw 1 || raw 2) (raw 3)
@@ -38,10 +36,8 @@ tests = do
       , Tuple (ref Right || raw 2) (Signal 3)
       ]
 
-simplifyTest :: Expression -> Expression -> Test
 simplifyTest complex expectedSimplification = simplify complex `shouldEqual` expectedSimplification
 
-evaluateTest :: Expression -> Signal -> Test
 evaluateTest expression expectedSignal = evaluate stdin expression `shouldEqual` expectedSignal
   where
     stdin = M.fromFoldable

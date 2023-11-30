@@ -2,6 +2,8 @@ module Game.Piece.Port where
 
 import Prelude
 
+import Data.Maybe (Maybe(..))
+
 data Capacity = OneBit | TwoBit | FourBit | EightBit
 derive instance Eq Capacity
 
@@ -12,6 +14,21 @@ instance Show Capacity where
     FourBit  -> " Capacity 4"
     EightBit -> " Capacity 8"
 
+doubleCapacity :: Capacity -> Maybe Capacity
+doubleCapacity = case _ of
+  OneBit   -> Just TwoBit
+  TwoBit   -> Just FourBit
+  FourBit  -> Just EightBit
+  EightBit -> Nothing
+
+
+halveCapacity :: Capacity -> Maybe Capacity
+halveCapacity = case _ of
+  OneBit   -> Nothing
+  TwoBit   -> Just OneBit
+  FourBit  -> Just TwoBit
+  EightBit -> Just FourBit
+
 data Port
   = Input Capacity
   | Output Capacity
@@ -21,6 +38,13 @@ instance Show Port where
   show = case _ of
     Input capacity -> "Input " <> show capacity
     Output capacity -> "Output " <> show capacity
+
+inputPort :: Capacity -> Port
+inputPort = Input
+
+outputPort :: Capacity -> Port
+outputPort = Output
+
 
 isInput :: Port -> Boolean
 isInput (Input _) = true

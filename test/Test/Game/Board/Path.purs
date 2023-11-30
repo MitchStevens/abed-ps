@@ -3,21 +3,36 @@ module Test.Game.Board.Path where
 import Prelude
 
 import Control.Extend (duplicate, extend)
-import Data.List (List(..))
+import Control.Monad.State (put)
+import Data.Either (either)
+import Data.List (List(..), (:))
 import Data.Maybe (Maybe(..))
 import Data.Zipper (Zipper(..))
 import Data.Zipper as Z
-import Game.Board (standardBoard)
+import Game.Board (Board(..), standardBoard)
+import Game.Board.Operation (addPiece, execBoardM, rotatePieceBy)
+import Game.Board.Path (boardPath)
+import Game.Direction as Direction
 import Game.GameEvent (BoardEvent(..))
-import Game.Location (location, rotation)
-import Game.Piece (name)
-import Game.Piece.BasicPiece (idPiece, leftPiece, rightPiece)
-import Test.Game.Board (runBoardTest)
-import Test.Unit (TestSuite, describe, it)
-import Test.Unit.AssertExtra (assertLeft, assertNothing, assertRight, equal, notEqual, shouldBeBefore, shouldContain, shouldEqual)
+import Game.Location (location)
+import Game.Piece (PieceId(..), andPiece, crossPiece, idPiece, leftPiece, name, notPiece, rightPiece)
+import Game.Rotation (rotation)
+import Partial.Unsafe (unsafeCrashWith)
+import Test.Game.Board (testBoard, toAff)
+import Test.Spec (Spec, before, describe, hoistSpec, it)
+import Test.Spec.Assertions (shouldEqual, shouldReturn)
 
-tests :: TestSuite
-tests = do
+pathTestBoard :: Board
+pathTestBoard = either (show >>> unsafeCrashWith) identity $ 
+  flip execBoardM standardBoard do
+    addPiece (location 0 1) notPiece
+    addPiece (location 2 1) notPiece
+    addPiece (location 1 0) idPiece
+    rotatePieceBy (location 1 0) (rotation 1)
+    addPiece (location 1 1) andPiece
+
+spec :: Spec Unit
+spec = do
   let l0 = location 0 0
   let l1 = location 1 0
   let l2 = location 2 0
@@ -43,95 +58,100 @@ tests = do
       Z.fromFoldable [ 0, 1 ] `shouldEqual` Just (Zipper (Cons 0 Nil) 1 Nil)
       Z.fromFoldable [ 0, 1, 2 ] `shouldEqual` Just (Zipper (Cons 1 (Cons 0 Nil)) 2 Nil)
 
-{-
-    it "small zippers" do
-      pieceBoardEvent (Zipper Nil l1 Nil) `shouldEqual` Nothing
-      pieceBoardEvent (Zipper (Cons l0 Nil) l1 Nil) `shouldEqual` Just Nil
-      pieceBoardEvent (Zipper Nil l1 (Cons l2 Nil)) `shouldEqual` Just Nil
-      pieceBoardEvent (Zipper (Cons l0 Nil) l1 (Cons l0 Nil)) `shouldEqual` Nothing
+    --it "small" do
+    --k  createWi (Zipper Nil l1 Nil) `shouldEqual` Nothing
+    --  pieceBoardEvent (Zipper (Cons l0 Nil) l1 Nil) `shouldEqual` Just Nil
+    --  pieceBoardEvent (Zipper Nil l1 (Cons l2 Nil)) `shouldEqual` Just Nil
+    --  pieceBoardEvent (Zipper (Cons l0 Nil) l1 (Cons l0 Nil)) `shouldEqual` Nothing
 
-      pieceBoardEvent (Zipper Nil l0 (Cons l1 (Cons l2 Nil))) `shouldEqual`
-        Just Nil
-      pieceBoardEvent (Zipper (Cons l0 Nil) l1 (Cons l2 Nil)) `shouldEqual`
-        Just (
-          Cons (AddedPiece l1 (name idPiece)) $
-          Cons (RotatedPiece l1 (rotation 0)) $
-          Nil
-        )
-      pieceBoardEvent (Zipper (Cons l1 (Cons l0 Nil)) l2 Nil) `shouldEqual`
-        Just Nil
+    --  pieceBoardEvent (Zipper Nil l0 (Cons l1 (Cons l2 Nil))) `shouldEqual`
+    --    Just Nil
+    --  pieceBoardEvent (Zipper (Cons l0 Nil) l1 (Cons l2 Nil)) `shouldEqual`
+    --    Just (
+    --      Cons (AddedPiece l1 (name idPiece)) $
+    --      Cons (RotatedPiece l1 (rotation 0)) $
+    --      Nil
+    --    )
+    --  pieceBoardEvent (Zipper (Cons l1 (Cons l0 Nil)) l2 Nil) `shouldEqual`
+    --    Just Nil
 
-      pieceBoardEvent (Zipper (Cons a0 Nil) a1 (Cons a2 Nil)) `shouldEqual`
-        Just (
-          Cons (AddedPiece a1 (name idPiece)) $
-          Cons (RotatedPiece a1 (rotation 1)) $
-          Nil
-        )
-      pieceBoardEvent (Zipper (Cons l2 Nil) l1 (Cons l0 Nil)) `shouldEqual`
-        Just (
-          Cons (AddedPiece l1 (name idPiece)) $
-          Cons (RotatedPiece l1 (rotation 2)) $
-          Nil
-        )
-      pieceBoardEvent (Zipper (Cons a2 Nil) a1 (Cons a0 Nil)) `shouldEqual`
-        Just (
-          Cons (AddedPiece a1 (name idPiece)) $
-          Cons (RotatedPiece a1 (rotation 3)) $
-          Nil
-        )
+    --  pieceBoardEvent (Zipper (Cons a0 Nil) a1 (Cons a2 Nil)) `shouldEqual`
+    --    Just (
+    --      Cons (AddedPiece a1 (name idPiece)) $
+    --      Cons (RotatedPiece a1 (rotation 1)) $
+    --      Nil
+    --    )
+    --  pieceBoardEvent (Zipper (Cons l2 Nil) l1 (Cons l0 Nil)) `shouldEqual`
+    --    Just (
+    --      Cons (AddedPiece l1 (name idPiece)) $
+    --      Cons (RotatedPiece l1 (rotation 2)) $
+    --      Nil
+    --    )
+    --  pieceBoardEvent (Zipper (Cons a2 Nil) a1 (Cons a0 Nil)) `shouldEqual`
+    --    Just (
+    --      Cons (AddedPiece a1 (name idPiece)) $
+    --      Cons (RotatedPiece a1 (rotation 3)) $
+    --      Nil
+    --    )
+  hoistSpec identity (\_ -> toAff) do
+    describe "boardPath" do
+      it "should create a single path" do
+        boardPath Direction.Left [] Direction.Right `shouldReturn`  Nothing
 
-  describe "boardPath" do
-    it "small path" $ runBoardTest standardBoard do
-      p0 <- boardPath [ l0 ]
-      p0 `shouldEqual` Nothing
+        boardPath Direction.Left [ l0 ] Direction.Right `shouldReturn`
+          Just (AddedPiece l0 (name idPiece) : Nil)
 
-      p1 <- boardPath [ l0, l1 ]
-      p1 `shouldEqual` Just Nil
+        boardPath Direction.Right [ l0 ] Direction.Left `shouldReturn`
+          Just (AddedPiece l0 (name idPiece) : RotatedPiece l0 (rotation 2) : Nil)
 
-      p2 <- boardPath [ l0, l1, l2 ]
-      p2 `shouldEqual`
-        Just (
-          Cons (AddedPiece l1 (name idPiece)) $
-          Cons (RotatedPiece l1 (rotation 0)) $
-          Nil
-        )
+      it "should create corner paths" do
+        boardPath Direction.Up [ l0 ] Direction.Right `shouldReturn`
+          Just (AddedPiece l0 (name leftPiece) : RotatedPiece l0 (rotation 1) : Nil)
 
-      p3 <- boardPath [ a0, a1, a2 ]
-      p3 `shouldEqual`
-        Just (
-          Cons (AddedPiece a1 (name idPiece)) $
-          Cons (RotatedPiece a1 (rotation 1)) $
-          Nil
-        )
+        boardPath Direction.Down [ l0 ] Direction.Right `shouldReturn`
+          Just (AddedPiece l0 (name rightPiece) : RotatedPiece l0 (rotation 3) : Nil)
 
-      p4 <- boardPath [ a1, c, l1 ]
-      p4 `shouldEqual`
-        Just (
-          Cons (AddedPiece c (name leftPiece)) $
-          Cons (RotatedPiece c (rotation 0)) $
-          Nil
-        )
+      it "should create larger paths" do
+        boardPath Direction.Left [ l0, l1, l2 ] Direction.Right `shouldReturn`
+          Just (
+            AddedPiece l0 (name idPiece)
+            : AddedPiece l1 (name idPiece)
+            : AddedPiece l2 (name idPiece)
+            : Nil
+          )
 
-      p5 <- boardPath [ l1, c, a1 ]
-      p5 `shouldEqual`
-        Just (
-          Cons (AddedPiece c (name rightPiece)) $
-          Cons (RotatedPiece c (rotation 1)) $
-          Nil
-        )
-      
-      p6 <- boardPath [ a1, c, l1, l2 ]
-      p6 `shouldEqual`
-        Just (
-          Cons (AddedPiece c (name leftPiece)) $
-          Cons (RotatedPiece c (rotation 0)) $
-          Cons (AddedPiece l1 (name rightPiece)) $
-          Cons (RotatedPiece l1 (rotation 3)) $
-          Nil
-        )
-        -}
+        boardPath Direction.Up [ l1, c, a1 ] Direction.Left `shouldReturn`
+          Just (
+            AddedPiece l1 (name idPiece)
+            : RotatedPiece l1 (rotation 1)
+            : AddedPiece c (name rightPiece)
+            : RotatedPiece c (rotation 1)
+            : AddedPiece a1 (name idPiece)
+            : RotatedPiece a1 (rotation 2)
+            : Nil
+          )
 
+        boardPath Direction.Left [ a1, c, l1, l2 ] Direction.Right `shouldReturn`
+          Just (
+            AddedPiece a1 (name idPiece)
+            : AddedPiece c (name leftPiece)
+            : AddedPiece l1 (name rightPiece)
+            : RotatedPiece l1 (rotation 3)
+            : AddedPiece l2 (name idPiece)
+            : Nil
+          )
 
-
---boardPath :: forall m. MonadState Board m => Array Location -> m (Maybe (List BoardEvent))
---pieceBoardEvent :: Zipper Location -> Maybe (List BoardEvent) 
+      it "should fail on loops" do
+        boardPath Direction.Right [ l0 ] Direction.Right `shouldReturn` Nothing
+        boardPath Direction.Left [ l0, l0 ] Direction.Right `shouldReturn` Nothing
+        boardPath Direction.Left [ l0, l1, l0 ] Direction.Right `shouldReturn` Nothing
+      before (put pathTestBoard) do
+        it "should create cross overs"  do
+          boardPath Direction.Left [ l0, l1, l2 ] Direction.Right `shouldReturn`
+            Just (
+              AddedPiece l0 (name idPiece)
+              : RemovedPiece l1 (PieceId "whatever")
+              : AddedPiece l1 (name crossPiece)
+              : AddedPiece l2 (name idPiece)
+              : Nil
+            )

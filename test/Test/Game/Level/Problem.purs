@@ -1,4 +1,4 @@
-module Test.Game.Level.Problem (tests) where
+module Test.Game.Level.Problem where
 
 import Prelude
 
@@ -16,14 +16,17 @@ import Data.Set as S
 import Data.Tuple (Tuple(..), uncurry)
 import Effect.Aff (Aff, error)
 import Effect.Exception (error)
-import Game.Board (standardBoard)
+import Game.Board (Board(..), standardBoard)
 import Game.Board.Operation (BoardT, addPiece, emptyBoard, evalBoardM, execBoardM, rotatePieceBy)
-import Game.Expression (Expression, Signal(..), evaluate, raw, ref, simplify)
-import Test.Game.Board (runBoardTest)
-import Test.Unit (Test, TestSuite, describe, it, test, testOnly)
-import Test.Unit.Assert (equal, shouldEqual)
+import Game.Direction as Direction
+import Game.Level.Problem (Problem)
+import Game.Piece (idPiece)
+import Test.Spec (Spec, SpecT)
+import Test.Spec (Spec, describe, it)
+import Test.Spec.Assertions (shouldEqual, shouldNotEqual)
+import Test.Spec.QuickCheck (quickCheck)
 
-problemDescription :: ProblemDescription
+problemDescription :: Problem
 problemDescription =
   { goal: idPiece
   , title: "Double negation"
@@ -34,21 +37,27 @@ problemDescription =
   , otherRestrictions: []
   }
 
+--spec :: forall m. MonadState Board m => SpecT Aff Unit m Unit
+--spec = describe "Problem" do
+--  describe "solvedBy" do
+--    it "different ports config" $ runBoardTest standardBoard do
+--      b0 <- get
+--      let (s0 :: Aff (Either _ _)) = runExceptT $ solvedBy problemDescription b0 
+--      let err0 = DifferentPortConfiguration { dir: Direction.Right , received: Nothing , expected: Just (Output (Capacity 1)) }
+--      lift $ equal (Left err0) =<< s0
+--      addPiece (location 2 1) notPiece
+--      b1 <- get
+--      let s1 = runExceptT $ solvedBy problemDescription b1
+--      let err1 = DifferentPortConfiguration { dir: Direction.Left , received: Nothing , expected: Just (Input (Capacity 1)) }
+--      lift $ equal (Left err0) =<< s0
+--      lift $ equal (Left err1) =<< s1
+
+
+
+{-
 tests :: TestSuite
 tests = do
   describe "ProblemDescription" do
-    describe "solvedBy" do
-      it "different ports config" $ runBoardTest standardBoard do
-        b0 <- get
-        let (s0 :: Aff (Either _ _)) = runExceptT $ solvedBy problemDescription b0 
-        let err0 = DifferentPortConfiguration { dir: Direction.Right , received: Nothing , expected: Just (Output (Capacity 1)) }
-        lift $ equal (Left err0) =<< s0
-        addPiece (location 2 1) notPiece
-        b1 <- get
-        let s1 = runExceptT $ solvedBy problemDescription b1
-        let err1 = DifferentPortConfiguration { dir: Direction.Left , received: Nothing , expected: Just (Input (Capacity 1)) }
-        lift $ equal (Left err0) =<< s0
-        lift $ equal (Left err1) =<< s1
       it "different port" $ runBoardTest standardBoard do
         addPiece (location 2 1) notPiece
         rotatePieceBy (location 2 1) (rotation 2)

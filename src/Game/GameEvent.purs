@@ -48,10 +48,10 @@ derive instance Ord BoardEvent
 
 instance Show BoardEvent where
   show = case _ of
-    AddedPiece loc pieceId -> "Added " <> show loc <> " at " <> show pieceId
-    RemovedPiece loc pieceId -> "Removed " <> show loc <> " at " <> show pieceId
+    AddedPiece loc pieceId -> "Added " <> show pieceId <> " at " <> show loc
+    RemovedPiece loc pieceId -> "Removed " <> show pieceId <> " at " <> show loc
     MovedPiece src dst -> "Moved piece from " <> show src <> " to " <> show dst
-    RotatedPiece loc rot -> "Rotated by " <> show rot <> " at " <> show loc
+    RotatedPiece loc rot -> "Rotated piece by " <> show rot <> " at " <> show loc
     UndoBoardEvent -> "Undo last boardEvent"
     IncrementSize -> "Incremented board size"
     DecrementSize -> "Decremented board size"

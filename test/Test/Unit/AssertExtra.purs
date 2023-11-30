@@ -9,10 +9,9 @@ import Data.Foldable (class Foldable, elem, foldr)
 import Data.FoldableWithIndex (foldMapWithIndex)
 import Data.Maybe (Maybe(..))
 import Effect.Aff.Class (class MonadAff, liftAff)
-import Test.Unit (Test, failure, success)
-import Test.Unit.Assert (shouldEqual)
-import Test.Unit.Assert as Test.Unit
 
+
+{-
 assertRight :: forall m a b. MonadAff m => Show a => Either a b -> m Unit
 assertRight either = liftAff $ case either of
   Right _ -> success

@@ -29,7 +29,6 @@ import Data.Tuple.Nested (Tuple3, tuple3, uncurry3, (/\))
 import Data.Unfoldable (unfoldr)
 import Data.Zipper (Zipper(..))
 import Data.Zipper as Z
-import Debug (debugger, trace)
 import Effect.Aff (Aff, error)
 import Game.Board (Board(..), PieceInfo, _pieces, buildBoardGraph)
 import Game.Board.Query (directPredecessors, directSuccessors)
@@ -160,19 +159,22 @@ triples = case _ of
 boardPath :: forall m. MonadState Board m
   => CardinalDirection -> Array Location -> CardinalDirection -> m (Maybe (List BoardEvent))
 boardPath initialDir path terminalDir = hush <$> do
-  e <- runExceptT (boardPathWithError initialDir path terminalDir)
-  trace (show e) \_ -> pure e
+  runExceptT (boardPathWithError initialDir path terminalDir)
 
 
 boardPathWithError :: forall m. MonadError PathError m => MonadState Board m => Alt m
   => CardinalDirection -> Array Location -> CardinalDirection -> m (List BoardEvent)
-boardPathWithError initialDir path terminalDir = do
+boardPathWithError initialDir path terminalDir = removeZeroRotations <$> do
   h <- liftEither $ note PathIsEmpty (head path)
   l <- liftEither $ note PathIsEmpty (last path)
   let initial  = followDirection h initialDir
   let terminal = followDirection l terminalDir
   let locations =  L.fromFoldable $ [ initial ] <> path <> [ terminal ]
   join <$> traverse (uncurry3 createBoardEvents) (triples locations) -- m (List (List ))
+  where
+    removeZeroRotations = L.filter $ case _ of
+      RotatedPiece _ (Rotation 0) -> false
+      _ -> true
   
 
   --boardEvents :: (List BoardEvent) <- map join <<< traverse wirePiece $ wires 
