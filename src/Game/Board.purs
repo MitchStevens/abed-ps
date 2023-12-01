@@ -30,7 +30,7 @@ import Game.Direction (CardinalDirection, allDirections, rotateDirection)
 import Game.Direction as Direction
 import Game.Edge (Edge(..), edge, matchEdge)
 import Game.Location (Location(..), location)
-import Game.Piece (class Piece, PieceId(..), Port, eval, getOutputDirs, getPort, getPorts, isInput)
+import Game.Piece (class Piece, PieceId(..), Port, eval, getCapacity, getOutputDirs, getPort, getPorts, isInput, portType)
 import Game.Piece.APiece (APiece(..))
 import Game.Piece.Port as Port
 import Game.Rotation (Rotation(..))
@@ -180,9 +180,9 @@ buildConnectionMap board@(Board {size, pieces}) = M.union edgeConnections intern
       let internal = evalState (toRelativeEdge absEdge) board
       let external = evalState (matchingRelativeEdge internal) board
       let maybePort = evalState (getPortOnEdge internal) board
-      case maybePort of
-        Just (Port.Input _)  -> [ Tuple internal external ]
-        Just (Port.Output _) -> [ Tuple external internal ]
+      case portType <$> maybePort of
+        Just (Port.Input)  -> [ Tuple internal external ]
+        Just (Port.Output) -> [ Tuple external internal ]
         Nothing -> []
     
     internalConnections = M.fromFoldable do
@@ -230,8 +230,10 @@ toGlobalInputs loc = unsafeMapKey (relative loc)
 instance Piece Board where
   name _ = PieceId "board"
   eval board inputs = evalState (evalBoardScratch inputs >>= extractOutputs) board
+  getCapacity _ = Nothing
+  updateCapacity _ _ = Nothing
   getPorts = evalState portsBoard
-  updatePort _ _ p = p
+  updatePort _ _ _ = Nothing
 
 
 evalLocation :: forall m. MonadState Board m 

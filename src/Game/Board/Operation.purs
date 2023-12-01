@@ -26,7 +26,7 @@ import Game.Direction (allDirections)
 import Game.Edge (Edge(..))
 import Game.GameEvent (BoardEvent(..))
 import Game.Location (Location(..), location)
-import Game.Piece (APiece(..), Port, pieceLookup, updatePort)
+import Game.Piece (APiece(..), Port, PortType, pieceLookup, portType, updatePort)
 import Game.Rotation (Rotation(..), rotation)
 import Type.Proxy (Proxy(..))
 
@@ -114,9 +114,11 @@ getPiece loc = (_.piece) <$> getPieceInfo loc
 isInsideBoard :: forall m. MonadError BoardError m => MonadState Board m => Location -> m Unit
 isInsideBoard loc = whenM (not <$> insideBoard loc) (throwError (InvalidLocation loc))
 
-updateRelEdge :: forall m. MonadState Board m => RelativeEdge -> Maybe Port -> m Unit
-updateRelEdge (Relative (Edge {dir, loc})) port = 
-  _pieces <<< ix loc <<< prop (Proxy :: Proxy "piece") %= updatePort dir port
+updateRelEdge :: forall m. MonadState Board m => RelativeEdge -> Maybe PortType -> m Unit
+updateRelEdge (Relative (Edge {dir, loc})) portType = do
+  use (_pieces <<< at loc) >>= traverse_ \info -> do
+    for_ (updatePort dir portType info.piece) \piece ->
+      _pieces <<< ix loc <<< prop (Proxy :: Proxy "piece") .= piece
 
 updatePortsAround :: forall m. MonadState Board m => Location -> m Unit
 updatePortsAround loc = do
@@ -125,7 +127,7 @@ updatePortsAround loc = do
     --relEdge <- toRelativeEdge (absolute loc dir)
     maybePort <- getPortOnEdge relEdge
     relEdge' <- matchingRelativeEdge relEdge
-    updateRelEdge relEdge' maybePort
+    updateRelEdge relEdge' (portType <$> maybePort)
 
 
 addPiece :: forall m. MonadError BoardError m => MonadState Board m => Location -> APiece -> m Unit

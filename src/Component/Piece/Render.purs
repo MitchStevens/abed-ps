@@ -13,7 +13,7 @@ import Data.Maybe (maybe)
 import Data.Tuple (Tuple(..))
 import Game.Board.PortInfo (PortInfo)
 import Game.Direction (CardinalDirection, allDirections, rotateDirection)
-import Game.Piece (PieceId(..), name)
+import Game.Piece (PieceId(..), name, portType)
 import Game.Piece as Port
 import Halogen.HTML (ClassName(..), PlainHTML)
 import Halogen.HTML as HH
@@ -66,15 +66,15 @@ renderPort direction {connected, port, signal} = SE.g []
   , portShape
   ]
   where
-    portShape = case port of
-      (Port.Input n) ->
+    portShape = case portType port of
+      (Port.Input) ->
         SE.polyline
           [ SA.points portShapePoints
           , SA.classes [ClassName "port-in", ClassName "port"]
           , DataAttr.attr DataAttr.connected connected
           , SA.fillGradient (if signal /= ff then "#port-in-gradient" else "#port-in-gradient-off")
           ]
-      (Port.Output n) ->
+      (Port.Output) ->
         SE.polyline
           [ SA.points portShapePoints
           , DataAttr.attr DataAttr.connected connected
@@ -82,8 +82,8 @@ renderPort direction {connected, port, signal} = SE.g []
           , SA.fillGradient (if signal /= ff then "#port-out-gradient" else "#port-out-gradient-off")
           ]
 
-    portShapePoints = case port of
-      (Port.Input n) ->
+    portShapePoints = case portType port of
+      (Port.Input) ->
         [ Tuple 10.0  0.0
         , Tuple 10.0  12.0
         , Tuple 0.0   12.0
@@ -92,7 +92,7 @@ renderPort direction {connected, port, signal} = SE.g []
         , Tuple 40.0  12.0
         , Tuple 40.0  0.0
         ]
-      (Port.Output n) ->
+      (Port.Output) ->
         [ Tuple 10.0  0.0
         , Tuple 10.0  25.0
         , Tuple 40.0  25.0

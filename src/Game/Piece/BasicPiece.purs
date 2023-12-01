@@ -16,8 +16,8 @@ import Game.Direction (CardinalDirection(..))
 import Game.Direction as Direction
 import Game.Expression (Expression(..), evaluate, ref)
 import Game.Piece.APiece (APiece(..), mkPiece)
-import Game.Piece.Class (class Piece, PieceId(..))
-import Game.Piece.Port (Capacity(..), Port(..), isInput)
+import Game.Piece.Class (class Piece, PieceId(..), defaultGetCapacity, defaultUpdateCapacity, getCapacity, updateCapacity)
+import Game.Piece.Port (Capacity(..), Port(..), inputPort, isInput, outputPort)
 import Game.Rotation (Rotation(..))
 
 data BasicPort = BasicInput | BasicOutput Expression
@@ -35,10 +35,12 @@ instance Piece BasicPiece where
   eval (Basic piece) inputs = flip M.mapMaybe piece.ports $ case _ of
     BasicInput  -> Nothing
     BasicOutput expression -> Just (evaluate inputs expression)
+  getCapacity = defaultGetCapacity
+  updateCapacity = defaultUpdateCapacity
   getPorts (Basic piece) = piece.ports <#> case _ of
-    BasicInput -> Input piece.capacity
-    BasicOutput _ -> Output piece.capacity
-  updatePort _ _ p = p
+    BasicInput -> inputPort piece.capacity
+    BasicOutput _ -> outputPort piece.capacity
+  updatePort _ _ _ = Nothing
 
 
 

@@ -7,7 +7,7 @@ import Data.Map as M
 import Data.Maybe (Maybe(..))
 import Data.Tuple (Tuple(..))
 import Game.Direction as Direction
-import Game.Piece (Capacity(..), andPiece, eval, getPorts, notPiece, orPiece, xorPiece)
+import Game.Piece (Capacity(..), andPiece, eval, getPorts, inputPort, notPiece, orPiece, outputPort, xorPiece)
 import Game.Piece as Port
 import Test.Spec (Spec, describe, it)
 import Test.Spec.Assertions (shouldEqual, shouldNotEqual)
@@ -16,8 +16,8 @@ spec :: Spec Unit
 spec = do
   describe "Basic Piece" do
     let f x y = M.fromFoldable [ Tuple Direction.Left x, Tuple Direction.Up y ]
-    let inputPort = Port.Input OneBit
-    let outputPort = Port.Output OneBit
+    let inPort = inputPort OneBit
+    let outPort = outputPort OneBit
     describe "NotPiece" do
       it "eval" do
         eval notPiece (f ff ff) `shouldEqual` M.singleton Direction.Right tt
@@ -25,8 +25,8 @@ spec = do
         eval notPiece (f tt tt) `shouldEqual` M.singleton Direction.Right ff
       it "ports" do
         getPorts notPiece `shouldEqual` M.fromFoldable
-          [ Tuple Direction.Left inputPort
-          , Tuple Direction.Right outputPort
+          [ Tuple Direction.Left inPort
+          , Tuple Direction.Right outPort
           ]
     describe "OrPiece" do
       it "eval" do
@@ -35,9 +35,9 @@ spec = do
         eval orPiece (f tt tt) `shouldEqual` M.singleton Direction.Right tt
       it "ports" do
         getPorts orPiece `shouldEqual` M.fromFoldable
-          [ Tuple Direction.Left inputPort
-          , Tuple Direction.Up inputPort
-          , Tuple Direction.Right outputPort
+          [ Tuple Direction.Left inPort
+          , Tuple Direction.Up inPort
+          , Tuple Direction.Right outPort
           ]
     describe "andPiece" do
       it "eval" do
@@ -46,9 +46,9 @@ spec = do
         eval andPiece (f tt tt) `shouldEqual` M.singleton Direction.Right tt
       it "ports" do
         getPorts andPiece `shouldEqual` M.fromFoldable
-          [ Tuple Direction.Left inputPort
-          , Tuple Direction.Up inputPort
-          , Tuple Direction.Right outputPort
+          [ Tuple Direction.Left inPort
+          , Tuple Direction.Up inPort
+          , Tuple Direction.Right outPort
           ]
     describe "xorPiece" do
       it "eval" do
@@ -58,8 +58,8 @@ spec = do
         eval xorPiece (f tt tt) `shouldEqual` M.singleton Direction.Right ff
       it "ports" do
         getPorts xorPiece `shouldEqual` M.fromFoldable
-          [ Tuple Direction.Left inputPort
-          , Tuple Direction.Up inputPort
-          , Tuple Direction.Right outputPort
+          [ Tuple Direction.Left inPort
+          , Tuple Direction.Up inPort
+          , Tuple Direction.Right outPort
           ]
 

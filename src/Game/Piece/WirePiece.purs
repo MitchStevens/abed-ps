@@ -7,16 +7,17 @@ import Data.Foldable (all, length)
 import Data.Map (Map)
 import Data.Map as M
 import Data.Maybe (fromMaybe, maybe)
+import Data.Newtype (class Newtype)
 import Data.Set (Set)
 import Data.Set as S
 import Data.Tuple (Tuple(..))
-import Game.Signal (Signal(..))
 import Game.Direction (CardinalDirection)
 import Game.Direction as Direction
 import Game.Piece.APiece (APiece(..), mkPiece)
-import Game.Piece.Class (class Piece, PieceId(..))
-import Game.Piece.Port (Capacity(..), isInput, isOutput)
+import Game.Piece.Class (class Piece, PieceId(..), defaultGetCapacity, defaultUpdateCapacity, getCapacity, updateCapacity)
+import Game.Piece.Port (Capacity(..), PortType(..), inputPort, isInput, isOutput, outputPort)
 import Game.Piece.Port as Port
+import Game.Signal (Signal(..))
 
 
 {-
@@ -30,16 +31,19 @@ newtype WirePiece = Wire
   , capacity :: Capacity
   , outputPorts :: Map CardinalDirection Unit
   }
+derive instance Newtype WirePiece _
 
 instance Piece WirePiece where
   name (Wire piece) = piece.pieceId
   eval (Wire piece) inputs = piece.outputPorts $> signal
     where signal = fromMaybe (Signal 0) (M.lookup Direction.Left inputs)
-  getPorts (Wire piece) = M.insert Direction.Left (Port.Input piece.capacity) 
-    (piece.outputPorts $> Port.Output piece.capacity)
-  updatePort dir port (Wire piece) = fromMaybe (Wire piece) do
+  getCapacity = defaultGetCapacity
+  updateCapacity = defaultUpdateCapacity
+  getPorts (Wire piece) = M.insert Direction.Left (inputPort piece.capacity) 
+    (piece.outputPorts $> outputPort piece.capacity)
+  updatePort dir port (Wire piece) = do
     guard (dir /= Direction.Left)
-    guard (all isInput port)
+    guard (all (eq Input) port)
     let outputPorts = maybe (M.delete dir) (\_ -> M.insert dir unit) port $ piece.outputPorts 
     if M.isEmpty outputPorts
       then pure $ Wire (piece { outputPorts = M.singleton Direction.Right unit} )
