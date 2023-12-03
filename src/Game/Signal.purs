@@ -5,6 +5,7 @@ import Prelude
 import Data.Array (fold)
 import Data.Int (hexadecimal, toStringAs)
 import Data.Int.Bits (complement, shr, (.&.), (.|.))
+import Data.String (toUpper)
 
 newtype Signal = Signal Int
 
@@ -14,7 +15,7 @@ instance Eq Signal where
 
 instance Show Signal where
   --show signal = fromCharArray $ (if _ then '1' else '0') <$> signalAsBits signal
-  show (Signal s)  = fold $ [12, 8, 4, 0] <#> \shift ->
+  show (Signal s) = toUpper $ fold $ [12, 8, 4, 0] <#> \shift ->
     toStringAs hexadecimal ((shr s shift) .&. 15)
 
 instance HeytingAlgebra Signal where

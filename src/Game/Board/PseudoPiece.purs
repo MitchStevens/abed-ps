@@ -8,22 +8,30 @@ module Game.Board.PseudoPiece where
 
 import Prelude
 
+import Data.Array (elem)
 import Data.Map as M
 import Data.Maybe (Maybe(..))
+import Data.String (Pattern(..))
+import Data.String as String
 import Game.Direction as Direction
-import Game.Piece (class Piece, APiece, PieceId(..), Port(..), mkPiece, portCapacity, updateCapacity)
+import Game.Piece (class Piece, APiece, PieceId(..), Port(..), mkPiece, name, portCapacity, portType, updateCapacity)
 import Game.Piece as Port
 
 -- used for board evaluation, outputs
 newtype PseudoPiece = Pseudo Port
 
 instance Piece PseudoPiece where
-  name _ = PieceId "psuedo"
+  name (Pseudo port) = case portType port of
+    Port.Input -> PieceId "psuedo-input"
+    Port.Output -> PieceId "psuedo-output"
   eval _ _ = M.empty
   getCapacity (Pseudo port) = Just (portCapacity port)
   updateCapacity  _ _ = Nothing
-  getPorts (Pseudo port) = M.singleton Direction.Left port
+  getPorts (Pseudo port) = M.singleton Direction.Right port
   updatePort _ _ _ = Nothing
 
 psuedoPiece :: Port -> APiece
 psuedoPiece port = mkPiece (Pseudo port)
+
+isPseudoPiece :: forall p. Piece p => p -> Boolean
+isPseudoPiece piece = name piece `elem` [ PieceId "psuedo-input", PieceId "psuedo-output" ]

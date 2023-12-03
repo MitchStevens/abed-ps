@@ -176,36 +176,6 @@ tests = do
     it "empty" $ runBoardTest standardBoard do
       pure unit -- do this later
 
-  describe "addPiece" do
-    it "can add a piece" do
-      assertRight $ flip evalBoardM standardBoard do
-        addPiece (location 0 0) andPiece
-    it "will fail on adding a piece to the same location" $ do
-      assertLeft $ flip evalBoardM standardBoard do
-        addPiece (location 0 0) andPiece
-        addPiece (location 0 0) andPiece
-    it "will recognise a new port created" $ runBoardTest standardBoard do
-      b0 <- get
-      getPort b0 Direction.Right `shouldEqual` Nothing
-
-      addPiece (location 2 1) andPiece
-      b1 <- get
-      getPort b1 Direction.Right `shouldEqual` Just (Output (Capacity 1))
-  describe "removePiece" do
-    it "can remove a piece" do
-      assertRight $ flip evalBoardM standardBoard do
-        addPiece (location 0 0) andPiece
-        removePiece (location 0 0)
-    it "will fail on removing a piece if the location doesn't contain a piece" do
-      assertLeft $ flip evalBoardM standardBoard do
-        removePiece (location 0 0)
-    it "will recognise a port has been removed" $ runBoardTest standardBoard do
-      addPiece (location 2 1) andPiece
-      b0 <- get
-      lift $ ports b0 `shouldEqual` M.singleton Direction.Right (Output (Capacity 1))
-      _ <- removePiece (location 2 1)
-      b1 <- get
-      lift $ ports b1 `shouldEqual` M.empty
   describe "getPieceInfo" do
     it "" $ runBoardTest testBoard do
       piece10 <- getPieceInfo (location 1 0)
@@ -232,16 +202,6 @@ tests = do
       length allPorts `shouldEqual` 9
 
       --equal portsOnBoard =<< allPortsOnBoard
-  describe "board size change" do
-    it "validBoardSize" do
-      validBoardSize 3 `shouldEqual` Right 3
-      validBoardSize 5 `shouldEqual` Right 5
-      validBoardSize 2 `shouldEqual` Left (BadBoardSize 2)
-      validBoardSize 4 `shouldEqual` Left (BadBoardSize 4)
-      validBoardSize 11 `shouldEqual` Left (BadBoardSize 11)
-    it "should allow board size increment and decrement" $ runBoardTest testBoard do
-      increaseSize
-      decreaseSize
   describe "buildBoardGraph" do
     let boardGraph = evalState buildBoardGraph testBoard
     it "topological sort" do

@@ -13,6 +13,6 @@ spec = do
     it "show" do
       show (Signal 0)  `shouldEqual` "0000"
       show (Signal 1)  `shouldEqual` "0001"
-      show (Signal 15) `shouldEqual` "000f"
+      show (Signal 15) `shouldEqual` "000F"
       show (Signal 16) `shouldEqual` "0010"
-      show (Signal (-1)) `shouldEqual` "ffff"
+      show (Signal (-1)) `shouldEqual` "FFFF"

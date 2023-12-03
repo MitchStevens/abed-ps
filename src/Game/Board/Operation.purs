@@ -13,17 +13,21 @@ import Data.Int (even, odd)
 import Data.Lens.At (at)
 import Data.Lens.Index (ix)
 import Data.Lens.Record (prop)
+import Data.List (List(..))
+import Data.List as L
+import Data.Map (Map)
 import Data.Map as M
 import Data.Maybe (Maybe(..), isJust, isNothing, maybe)
 import Data.Newtype (class Newtype, unwrap)
+import Data.Set as S
 import Data.Tuple (Tuple(..), fst, snd)
-import Debug (trace)
 import Effect.Aff.Class (class MonadAff)
 import Effect.Class (class MonadEffect)
-import Game.Board (Board(..), PieceInfo, RelativeEdge(..), _pieces, _rotation, absolute, getPortOnEdge, matchingRelativeEdge, relative, toRelativeEdge, unsafeMapKey)
-import Game.Board.Query (insideBoard)
+import Game.Board (Board(..), PieceInfo, RelativeEdge(..), _pieces, _rotation, absolute, getPortOnEdge, matchingRelativeEdge, relative, relativeEdgeLocation, toRelativeEdge, unsafeMapKey)
+import Game.Board.Query (isInsideBoard)
 import Game.Direction (allDirections)
-import Game.Edge (Edge(..))
+import Game.Direction as Direction
+import Game.Edge (Edge(..), edgeLocation)
 import Game.GameEvent (BoardEvent(..))
 import Game.Location (Location(..), location)
 import Game.Piece (APiece(..), Port, PortType, pieceLookup, portType, updatePort)
@@ -36,7 +40,7 @@ data BoardError
   | InvalidLocation Location
   | InvalidBoardInitialisation Int
   | BadBoardSize Int
-  | Cyclic Location
+  | Cyclic
 derive instance Eq BoardError
 
 instance Show BoardError where
@@ -46,7 +50,7 @@ instance Show BoardError where
     InvalidLocation loc -> "Location " <> show loc <> " is outside range of the board"
     InvalidBoardInitialisation n -> "Invalid Board Initialisation: " <> show n <> " is not a valid board size"
     BadBoardSize n -> "Boards of size " <>  show n <>" are not valid"
-    Cyclic _ -> "ABED does not admit cyclic boards"
+    Cyclic -> "ABED does not admit cyclic boards"
 
 newtype BoardT m a = BoardT (StateT Board (ExceptT BoardError m) a)
 derive instance Newtype (BoardT m a) _
@@ -111,8 +115,8 @@ getPiece loc = (_.piece) <$> getPieceInfo loc
   Very useful to seperate the board operations this way.
 -}
 
-isInsideBoard :: forall m. MonadError BoardError m => MonadState Board m => Location -> m Unit
-isInsideBoard loc = whenM (not <$> insideBoard loc) (throwError (InvalidLocation loc))
+checkInsideBoard :: forall m. MonadError BoardError m => MonadState Board m => Location -> m Unit
+checkInsideBoard loc = whenM (not <$> isInsideBoard loc) (throwError (InvalidLocation loc))
 
 updateRelEdge :: forall m. MonadState Board m => RelativeEdge -> Maybe PortType -> m Unit
 updateRelEdge (Relative (Edge {dir, loc})) portType = do
@@ -132,7 +136,7 @@ updatePortsAround loc = do
 
 addPiece :: forall m. MonadError BoardError m => MonadState Board m => Location -> APiece -> m Unit
 addPiece loc piece = do
-  isInsideBoard loc
+  checkInsideBoard loc
   pieceInfo <- use (_pieces <<< at loc)
   case pieceInfo of
     Nothing -> _pieces <<< at loc .= Just { piece, rotation: rotation 0 }
@@ -141,7 +145,7 @@ addPiece loc piece = do
 
 removePiece :: forall m. MonadError BoardError m => MonadState Board m => Location -> m APiece
 removePiece loc = do
-  isInsideBoard loc
+  checkInsideBoard loc
   maybePieceInfo <- use (_pieces <<< at loc)
   case maybePieceInfo of
     Nothing -> throwError (LocationNotOccupied loc)
@@ -168,6 +172,7 @@ movePiece src dst = do
 
 rotatePieceBy :: forall m. MonadError BoardError m => MonadState Board m => Location -> Rotation -> m Unit
 rotatePieceBy loc rot = do
+  checkInsideBoard loc
   _ <- getPiece loc
   _pieces <<< ix loc <<< _rotation <>= rot
   updatePortsAround loc
@@ -200,6 +205,15 @@ increaseSize = do
   put $ Board
     { size: newSize
     , pieces: unsafeMapKey (\(Location {x, y}) -> location (x+1) (y+1)) pieces }
+
+--buildEvaluationOrder :: forall m. MonadError BoardError m =>
+--  Map RelativeEdge RelativeEdge -> m (List Location)
+--buildEvaluationOrder M.Leaf = pure Nil
+--buildEvaluationOrder connections = pure Nil
+--  -- get locations with no incoming nodes
+
+
+
 
 applyBoardEvent :: forall m. MonadState Board m => MonadError BoardError m => BoardEvent -> m Unit
 applyBoardEvent = case _ of

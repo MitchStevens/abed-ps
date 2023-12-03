@@ -16,3 +16,19 @@ signal on/off -> grey vs blue gradient
 - evaluate the board
 
 `Board -> Map RelativeEdge { isConnected :: Boolean, signal :: Signal }`
+
+
+```mermaid
+stateDiagram
+    direction BT
+    Board
+    PortInfo --> Board
+    Query --> Board
+    PseudoPiece --> Board
+    Operation --> Query
+    EvaluableBoard --> Operation
+    CompiledBoard --> Operation
+    EvaluableBoard --> PseudoPiece
+    CompiledBoard --> PseudoPiece
+    Path
+```

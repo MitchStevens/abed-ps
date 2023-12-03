@@ -40,7 +40,6 @@ import Game.Board (Board(..), RelativeEdge(..), _pieces, _size, evalBoardWithPor
 import Game.Board.Operation (BoardError, BoardM, addPiece, applyBoardEvent, decreaseSize, evalBoardM, getPieceInfo, increaseSize, movePiece, removePiece, rotatePieceBy, runBoardM)
 import Game.Board.Path (boardPath)
 import Game.Board.PortInfo (PortInfo)
-import Game.Board.Query (directPredecessors)
 import Game.Direction (CardinalDirection)
 import Game.Direction as Direction
 import Game.GameEvent (BoardEvent(..), GameEvent(..), GameEventStore, boardEventLocationsChanged)

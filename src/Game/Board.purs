@@ -211,6 +211,7 @@ buildBoardGraph = do
         , Tuple (relativeEdgeLocation rel') (Tuple unit Nil)
         ]
 
+
 -- should no be exported! only creates valid maps when f is increasing
 unsafeMapKey :: forall k l a. (k -> l) -> Map k a -> Map l a
 unsafeMapKey f = go

@@ -31,7 +31,6 @@ import Data.Zipper (Zipper(..))
 import Data.Zipper as Z
 import Effect.Aff (Aff, error)
 import Game.Board (Board(..), PieceInfo, _pieces, buildBoardGraph)
-import Game.Board.Query (directPredecessors, directSuccessors)
 import Game.Direction (CardinalDirection, allDirections, clockwiseRotation, rotateDirection)
 import Game.Direction as Direction
 import Game.GameEvent (BoardEvent(..))

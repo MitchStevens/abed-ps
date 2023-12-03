@@ -5,14 +5,25 @@ import Prelude
 import Control.Monad.Except (class MonadError, ExceptT, runExceptT, throwError)
 import Control.Monad.State (class MonadState, put)
 import Data.Either (Either(..))
+import Data.Graph (edges)
 import Data.Identity (Identity)
+import Data.List (List(..), (:))
+import Data.List as L
+import Data.Map as M
+import Data.Maybe (Maybe(..))
+import Data.Tuple (Tuple(..))
+import Debug (debugger, trace)
 import Effect.Aff.Class (class MonadAff, liftAff)
+import Effect.Class (class MonadEffect)
+import Effect.Class.Console (log)
 import Effect.Exception (Error, error)
-import Game.Board (Board(..), standardBoard)
+import Game.Board (Board(..), relativeEdgeLocation, standardBoard)
+import Game.Board.EvaluableBoard (topologicalSort)
 import Game.Board.Operation (BoardError(..), addPiece, decreaseSize, increaseSize, removePiece, validBoardSize)
+import Game.Board.Query (buildConnectionMap)
 import Game.Location (location)
 import Game.Piece (andPiece)
-import Test.Game.Board (toAff)
+import Test.Game.Board (testBoard, toAff)
 import Test.Spec (Spec, SpecT, before, beforeAll_, describe, hoistSpec, it)
 import Test.Spec.Assertions (expectError, shouldEqual, shouldReturn)
 
@@ -21,11 +32,10 @@ exceptToAff exceptT = runExceptT exceptT >>= case _ of
   Left e -> throwError (error (show e))
   Right a -> pure a
 
-
 spec :: Spec Unit
 spec = hoistSpec identity (\_ -> toAff) tests
 
-tests :: forall m. MonadState Board m => MonadError Error m
+tests :: forall m. MonadState Board m => MonadError Error m => MonadEffect m
   => SpecT m Unit Identity Unit
 tests = do
   describe "Operation" do
@@ -70,3 +80,18 @@ tests = do
         it "should allow board size increment and decrement" do
           exceptToAff increaseSize
           exceptToAff decreaseSize
+      
+      describe "topologicalSort" do
+        before (put testBoard) do
+          let getNodes edges =
+                edges
+                  # (M.toUnfoldable :: _ -> List _)
+                  # L.foldMap (\(Tuple a b) -> a : b : Nil)
+                  # map relativeEdgeLocation
+                  # L.nub
+          it "should sort good" do
+            edges <- buildConnectionMap
+            let nodes = getNodes edges
+            topologicalSort nodes edges `shouldEqual`
+              Just (L.fromFoldable [ location 1 0, location 0 1, location 1 1, location 2 1 ])
+
