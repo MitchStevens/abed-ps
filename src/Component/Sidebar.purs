@@ -117,10 +117,12 @@ component = H.mkComponent { eval , initialState , render }
       renderCompletionStatus = case state.completionStatus of
         NotStarted ->
           HH.div_ []
-        PortMismatch mismatch ->
-          HH.text "port mismatch, render later"
         FailedRestriction restriction ->
           HH.text "failed restriction, render later"
+        NotEvaluable boardError -> 
+          HH.text ("not evaluable due to: " <> show boardError)
+        PortMismatch mismatch ->
+          HH.text "port mismatch, render later"
         ReadyForTesting ->
           HH.span_
             [ HH.text "ports are looking good: "

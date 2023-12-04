@@ -6,8 +6,6 @@ import Control.Alternative (guard)
 import Control.Monad.State (class MonadState, gets)
 import Control.Monad.Writer (WriterT, execWriterT, tell)
 import Data.Array as A
-import Data.Graph (Graph)
-import Data.Graph as G
 import Data.Group (ginverse)
 import Data.Lens (use, view)
 import Data.Lens.At (at)

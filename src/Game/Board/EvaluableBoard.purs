@@ -12,9 +12,8 @@ import Data.Lens
 import Prelude
 
 import Control.Monad.Error.Class (class MonadError, throwError)
-import Control.Monad.State (class MonadState, State, evalState)
-import Data.Either (note)
-import Data.Graph as G
+import Control.Monad.State (class MonadState, State, evalState, evalStateT)
+import Data.Either (Either, note)
 import Data.HeytingAlgebra (ff)
 import Data.Lens (use)
 import Data.Lens.At (at)
@@ -28,12 +27,12 @@ import Data.Newtype (class Newtype)
 import Data.Traversable (for, for_, traverse, traverse_)
 import Data.Tuple (Tuple(..))
 import Debug (debugger, trace)
-import Game.Board (Board(..), RelativeEdge(..), absolute, matchingRelativeEdge, relative, relativeEdgeLocation)
+import Game.Board (Board(..), RelativeEdge(..), absolute, relative, relativeEdgeLocation)
 import Game.Board as Board
 import Game.Board.Operation (BoardError(..))
 import Game.Board.PortInfo (PortInfo)
 import Game.Board.PseudoPiece (isPseudoPiece, psuedoPiece)
-import Game.Board.Query (buildConnectionMap, getBoardEdgePseudoLocation, getPortOnEdge, toRelativeEdge)
+import Game.Board.Query (adjacentRelativeEdge, buildConnectionMap, getBoardEdgePseudoLocation, getPortOnEdge, toRelativeEdge)
 import Game.Direction (CardinalDirection, allDirections, clockwiseRotation, oppositeDirection)
 import Game.Direction as Direction
 import Game.Location (Location(..), followDirection)
@@ -56,6 +55,9 @@ derive instance Eq EvaluableBoard
 instance Show EvaluableBoard where
   show (EvaluableBoard evaluable) = show evaluable
 
+toEvaluableBoard :: Board -> Either BoardError EvaluableBoard
+toEvaluableBoard board = evalStateT (buildEvaluableBoard Nothing) board
+
 buildEvaluableBoard :: forall m. MonadState Board m => MonadError BoardError m
   => Maybe (Map CardinalDirection Port) -> m EvaluableBoard
 buildEvaluableBoard maybePorts = do
@@ -66,7 +68,7 @@ buildEvaluableBoard maybePorts = do
         M.catMaybes <<< M.fromFoldable <$>
           for allDirections \dir -> do
             loc <- getBoardEdgePseudoLocation dir
-            relEdge <- toRelativeEdge (absolute loc (oppositeDirection dir)) >>= matchingRelativeEdge
+            relEdge <- toRelativeEdge (absolute loc (oppositeDirection dir)) >>= adjacentRelativeEdge
             maybePort <- getPortOnEdge relEdge
             pure (Tuple dir maybePort)
       Just p -> pure p
@@ -116,6 +118,14 @@ instance Piece EvaluableBoard where
   -- todo: do this later maybe? do i actually ned this?
   updatePort _ _ _ = Nothing
 
+
+evalWithPortInfo :: forall m. MonadState (Map RelativeEdge PortInfo) m 
+  => EvaluableBoard -> Map CardinalDirection Signal -> m (Map CardinalDirection Signal)
+evalWithPortInfo board@(EvaluableBoard evaluable) inputs = do
+  injectInputs board inputs
+  traverse_ (evalWithPortInfoAt board) evaluable.evalOrder
+  extractOutputs board
+
 injectInputs :: forall m. MonadState (Map RelativeEdge PortInfo) m
   => EvaluableBoard -> Map CardinalDirection Signal -> m Unit
 injectInputs (EvaluableBoard evaluable) inputs = do
@@ -158,13 +168,6 @@ evalWithPortInfoAt board@(EvaluableBoard evaluable) loc = do
       for_ (M.toUnfoldable outputPorts :: List _) \(Tuple dir port) -> do
         let signal = fromMaybe ff (M.lookup dir outputs)
         at (relative loc dir) .= Just { connected: false, signal, port }
-
-evalWithPortInfo :: forall m. MonadState (Map RelativeEdge PortInfo) m 
-  => EvaluableBoard -> Map CardinalDirection Signal -> m (Map CardinalDirection Signal)
-evalWithPortInfo board@(EvaluableBoard evaluable) inputs = do
-  injectInputs board inputs
-  traverse_ (evalWithPortInfoAt board) evaluable.evalOrder
-  extractOutputs board
 
 extractOutputs :: forall m. MonadState (Map RelativeEdge PortInfo) m
   => EvaluableBoard -> m (Map CardinalDirection Signal)

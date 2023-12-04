@@ -5,7 +5,6 @@ import Prelude
 import Control.Monad.Except (class MonadError, ExceptT, runExceptT, throwError)
 import Control.Monad.State (class MonadState, put)
 import Data.Either (Either(..))
-import Data.Graph (edges)
 import Data.Identity (Identity)
 import Data.List (List(..), (:))
 import Data.List as L

@@ -10,7 +10,6 @@ import Data.Array as Array
 import Data.Either (Either(..), either, fromRight)
 import Data.Enum (enumFromTo)
 import Data.Foldable (for_, length, traverse_)
-import Data.Graph as G
 import Data.HeytingAlgebra (ff, tt)
 import Data.Identity (Identity)
 import Data.Map (Map)

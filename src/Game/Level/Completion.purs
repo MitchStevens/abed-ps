@@ -3,12 +3,15 @@ module Game.Level.Completion where
 import Prelude
 
 import Control.Monad.Error.Class (throwError)
+import Control.Monad.State (evalState)
 import Data.Bifunctor (lmap)
 import Data.Either (Either(..), fromLeft)
 import Data.Foldable (for_)
 import Data.Map (Map)
 import Data.Maybe (Maybe)
 import Game.Board (Board(..))
+import Game.Board.EvaluableBoard (EvaluableBoard(..), toEvaluableBoard)
+import Game.Board.Operation (BoardError)
 import Game.Direction (CardinalDirection, allDirections)
 import Game.Level.Problem (Problem)
 import Game.Piece (APiece, Port, eval, getPort)
@@ -16,8 +19,9 @@ import Game.Signal (Signal(..))
 
 data CompletionStatus
   = NotStarted
-  | PortMismatch PortMismatch
   | FailedRestriction FailedRestriction
+  | NotEvaluable BoardError
+  | PortMismatch PortMismatch
   | ReadyForTesting
   | FailedTestCase FailedTestCase
   | Completed
@@ -48,15 +52,20 @@ type FailedRestriction =
   , description :: String
   }
 
+-- todo: pass in evaluable so we don't have to convert to evaluable twice?
 isReadyForTesting :: Problem -> Board -> CompletionStatus
 isReadyForTesting problem board = fromLeft ReadyForTesting do
-  lmap PortMismatch $ checkPortMismatch problem board
+  evaluable <- checkEvaluable board
+  lmap PortMismatch $ checkPortMismatch problem evaluable
   lmap FailedRestriction $ checkOtherRestrictions problem board
 
-checkPortMismatch :: Problem -> Board -> Either PortMismatch Unit
-checkPortMismatch problem board = for_ allDirections \dir -> do
+checkEvaluable :: Board -> Either CompletionStatus EvaluableBoard
+checkEvaluable board = lmap NotEvaluable (toEvaluableBoard board)
+
+checkPortMismatch :: Problem -> EvaluableBoard -> Either PortMismatch Unit
+checkPortMismatch problem evaluable = for_ allDirections \dir -> do
   let expected = getPort problem.goal dir
-  let received = getPort board dir
+  let received = getPort evaluable dir
   when (expected /= received) do
     throwError { dir, expected, received }
 

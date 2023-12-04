@@ -17,14 +17,15 @@ import Data.List (List(..))
 import Data.List as L
 import Data.Map (Map)
 import Data.Map as M
+import Data.Map.Unsafe (unsafeMapKey)
 import Data.Maybe (Maybe(..), isJust, isNothing, maybe)
 import Data.Newtype (class Newtype, unwrap)
 import Data.Set as S
 import Data.Tuple (Tuple(..), fst, snd)
 import Effect.Aff.Class (class MonadAff)
 import Effect.Class (class MonadEffect)
-import Game.Board (Board(..), PieceInfo, RelativeEdge(..), _pieces, _rotation, absolute, getPortOnEdge, matchingRelativeEdge, relative, relativeEdgeLocation, toRelativeEdge, unsafeMapKey)
-import Game.Board.Query (isInsideBoard)
+import Game.Board (Board(..), PieceInfo, RelativeEdge(..), _pieces, _rotation, relative)
+import Game.Board.Query (adjacentRelativeEdge, getPortOnEdge, isInsideBoard)
 import Game.Direction (allDirections)
 import Game.Direction as Direction
 import Game.Edge (Edge(..), edgeLocation)
@@ -130,7 +131,7 @@ updatePortsAround loc = do
     let relEdge = relative loc dir
     --relEdge <- toRelativeEdge (absolute loc dir)
     maybePort <- getPortOnEdge relEdge
-    relEdge' <- matchingRelativeEdge relEdge
+    relEdge' <- adjacentRelativeEdge relEdge
     updateRelEdge relEdge' (portType <$> maybePort)
 
 

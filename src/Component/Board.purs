@@ -36,7 +36,8 @@ import Data.Zipper (Zipper)
 import Data.Zipper as Z
 import Effect.Class (class MonadEffect, liftEffect)
 import Effect.Class.Console (log, logShow)
-import Game.Board (Board(..), RelativeEdge(..), _pieces, _size, evalBoardWithPortInfo, extractBoardPorts, extractOutputs, relative, standardBoard, toLocalInputs)
+import Game.Board (Board(..), RelativeEdge, _pieces, _size, standardBoard, toLocalInputs)
+import Game.Board.EvaluableBoard (EvaluableBoard(..), buildEvaluableBoard, evalWithPortInfo, injectInputs, toEvaluableBoard)
 import Game.Board.Operation (BoardError, BoardM, addPiece, applyBoardEvent, decreaseSize, evalBoardM, getPieceInfo, increaseSize, movePiece, removePiece, rotatePieceBy, runBoardM)
 import Game.Board.Path (boardPath)
 import Game.Board.PortInfo (PortInfo)
@@ -44,7 +45,7 @@ import Game.Direction (CardinalDirection)
 import Game.Direction as Direction
 import Game.GameEvent (BoardEvent(..), GameEvent(..), GameEventStore, boardEventLocationsChanged)
 import Game.Location (Location(..), location)
-import Game.Piece (APiece(..), PieceId(..), Port, getPort, getPorts, isInput, matchingPort, name)
+import Game.Piece (APiece(..), PieceId(..), Port, getPort, getPorts, isInput, isOutput, matchingPort, name)
 import Game.Rotation (Rotation(..))
 import Game.Signal (Signal(..))
 import Halogen (AttrName(..), ClassName(..), Component, HalogenM(..), HalogenQ, Slot)
@@ -75,7 +76,7 @@ type State =
   { boardHistory :: Zipper Board
   , mouseOverLocation :: Maybe Location
   , goalPorts :: Map CardinalDirection PortInfo
-  , lastBoardEvaluation :: Map RelativeEdge PortInfo
+  , lastEvalWithPortInfo :: Map RelativeEdge PortInfo
   , isCreatingWire :: Maybe
     { initialDirection :: CardinalDirection
     , locations :: Array Location
@@ -131,12 +132,11 @@ component = H.mkComponent { eval , initialState , render }
   initialState :: Input -> State
   initialState maybeBoard =
     let board = fromMaybe standardBoard maybeBoard
-        inputPorts = getPorts board $> Signal 0
     in
       { boardHistory: Z.singleton board
       , mouseOverLocation: Nothing
       , goalPorts: M.empty
-      , lastBoardEvaluation: evalState (evalBoardWithPortInfo inputPorts) board
+      , lastEvalWithPortInfo: M.empty
       , isCreatingWire: Nothing
       }
 
@@ -189,10 +189,8 @@ component = H.mkComponent { eval , initialState , render }
       
       boardPorts :: forall p. Array (HTML p Action)
       boardPorts = do
-        let (ports :: Map CardinalDirection PortInfo) = evalState (extractBoardPorts state.lastBoardEvaluation) (state ^. _board)
         Tuple dir portInfo <- M.toUnfoldable state.goalPorts
         pure $ renderBoardPort dir portInfo
-
       
       renderBoardPort :: forall p. CardinalDirection -> PortInfo -> HTML p Action
       renderBoardPort dir portInfo = 
@@ -226,7 +224,7 @@ component = H.mkComponent { eval , initialState , render }
               else SA.viewBox 12.5 (-12.5) 25.0 50.0
 
       pieceHTML piece location =
-          let portStates = toLocalInputs location state.lastBoardEvaluation
+          let portStates = toLocalInputs location state.lastEvalWithPortInfo
           in HH.slot _piece location Piece.component { piece, location, portStates } PieceOutput
       
       emptyPieceHTML location = HH.text (show location)
@@ -402,14 +400,27 @@ updateBoard board = do
 
 evaluateBoard :: forall m. HalogenM State Action Slots Output m Unit
 evaluateBoard = do
-  inputs  <- M.mapMaybe (\info -> if isInput info.port then Just info.signal else Nothing) <$> gets (_.goalPorts)
-  signals <- evalState (evalBoardWithPortInfo inputs) <$> use _board
-  outputs <- evalState (extractOutputs signals) <$> use _board
-  H.modify_ $ \s -> s { lastBoardEvaluation = signals, goalPorts = mapWithIndex (\dir info -> fromMaybe info (M.lookup dir outputs)) s.goalPorts}
+  goalPorts <- use _goalPorts
+  let inputs = M.mapMaybe (\info -> if isInput info.port then Just info.signal else Nothing) goalPorts
+  eitherEvaluable <- evalBoardM (buildEvaluableBoard (Just $ (_.port) <$> goalPorts)) <$> use _board
+  for_ eitherEvaluable \evaluable ->  do
+    let Tuple output signals = runState (evalWithPortInfo evaluable inputs) M.empty
+    let updateGoalInfo dir info = 
+          if isOutput info.port
+            then info { signal = fromMaybe (Signal 0) (M.lookup dir output) }
+            else info
 
-  use (_board <<< _pieces <<< to M.keys) >>= traverse_ \loc -> do
-    let portStates = toLocalInputs loc signals
-    H.tell _piece loc (\_ -> Piece.SetPortStates portStates)
+    H.modify_ $ \s -> s
+      { lastEvalWithPortInfo = signals
+      , goalPorts = mapWithIndex updateGoalInfo s.goalPorts
+      }
+
+    use (_board <<< _pieces <<< to M.keys) >>= traverse_ \loc -> do
+      let portStates = toLocalInputs loc signals
+      H.tell _piece loc (\_ -> Piece.SetPortStates portStates)
+
+
+
 
 
 liftBoardM :: forall m a. BoardM a -> HalogenM State Action Slots Output m (Either BoardError (Tuple a Board))
