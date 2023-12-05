@@ -3,7 +3,7 @@ module Component.Piece.Render where
 import Prelude
 
 import Component.DataAttribute as DataAttr
-import Component.Piece.Types (State)
+import Component.Piece.Types (Action(..), State)
 import Data.Array as A
 import Data.Enum (fromEnum)
 import Data.HeytingAlgebra (ff)
@@ -15,8 +15,9 @@ import Game.Board.PortInfo (PortInfo)
 import Game.Direction (CardinalDirection, allDirections, rotateDirection)
 import Game.Piece (PieceId(..), name, portType)
 import Game.Piece as Port
-import Halogen.HTML (ClassName(..), PlainHTML)
+import Halogen.HTML (ClassName(..), HTML, PlainHTML, ComponentHTML)
 import Halogen.HTML as HH
+import Halogen.HTML.Events as HP
 import Halogen.Svg.Attributes (Color(..), Transform(..))
 import Halogen.Svg.Attributes as SA
 import Halogen.Svg.Elements as SE
@@ -24,18 +25,17 @@ import Halogen.Svg.Elements as SE
 electricBlue = RGB 62 207 207
 gunMetalGrey = RGB 204 226 237
 
-renderWire :: PlainHTML
+renderWire :: forall s m. ComponentHTML Action s m
 renderWire = HH.text "nothing yet..."
 
-renderPiece :: State -> PlainHTML
+renderPiece :: forall s m. State -> ComponentHTML Action s m
 renderPiece state =
   SE.svg
-    [ SA.viewBox 0.0 0.0 100.0 100.0
-    ]
-    (allPorts <> [ center ])
+    [ SA.viewBox 0.0 0.0 100.0 100.0 ]
+    [ allPorts, center ]
   where
 
-    allPorts = do
+    allPorts = SE.g [] do
       dir <- allDirections
       let r = fromEnum (rotateDirection dir state.rotation)
       pure $ SE.g 
@@ -53,14 +53,14 @@ renderPiece state =
         [ renderPieceCenter (name state.piece) ]
       ]
 
-renderPieceCenter :: PieceId -> PlainHTML
+renderPieceCenter :: forall p i. PieceId -> HTML p i
 renderPieceCenter (PieceId id) = SE.image
   [ SA.href ("./images/" <> id <> ".png") 
   , SA.width 40.0
   , SA.height 40.0 
   ]
 
-renderPort :: CardinalDirection -> PortInfo -> PlainHTML
+renderPort :: forall s m. CardinalDirection -> PortInfo -> ComponentHTML Action s m
 renderPort direction {connected, port, signal} = SE.g []
   [ SE.defs [] gradients
   , portShape
@@ -73,6 +73,8 @@ renderPort direction {connected, port, signal} = SE.g []
           , SA.classes [ClassName "port-in", ClassName "port"]
           , DataAttr.attr DataAttr.connected connected
           , SA.fillGradient (if signal /= ff then "#port-in-gradient" else "#port-in-gradient-off")
+          , HP.onMouseEnter (\_ -> PortOnMouseEnter direction)
+          , HP.onMouseLeave (\_ -> PortOnMouseLeave)
           ]
       (Port.Output) ->
         SE.polyline
@@ -80,6 +82,8 @@ renderPort direction {connected, port, signal} = SE.g []
           , DataAttr.attr DataAttr.connected connected
           , SA.classes [ClassName "port-out", ClassName "port"]
           , SA.fillGradient (if signal /= ff then "#port-out-gradient" else "#port-out-gradient-off")
+          , HP.onMouseEnter (\_ -> PortOnMouseEnter direction)
+          , HP.onMouseLeave (\_ -> PortOnMouseLeave)
           ]
 
     portShapePoints = case portType port of
@@ -99,7 +103,7 @@ renderPort direction {connected, port, signal} = SE.g []
         , Tuple 40.0  0.0
         ]
 
-gradients :: Array PlainHTML
+gradients :: forall p i. Array (HTML p i)
 gradients =
   [ SE.linearGradient
     [ SA.id "port-in-gradient" , SA.gradientTransform [ Rotate 90.0 0.0 0.0 ] ]

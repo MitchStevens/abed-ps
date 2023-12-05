@@ -6,6 +6,7 @@ import Data.Map (Map)
 import Data.Map as M
 import Data.Maybe (Maybe(..))
 import Data.Tuple (Tuple)
+import Game.Board (RelativeEdge)
 import Game.Board.PortInfo (PortInfo)
 import Game.Direction (CardinalDirection)
 import Game.Location (Location(..), location)
@@ -41,10 +42,14 @@ data Action
   | OnMouseDown MouseEvent
   | OnMouseMove MouseEvent
   | OnMouseUp Location MouseEvent
+  | PortOnMouseEnter CardinalDirection
+  | PortOnMouseLeave
 
 data Output
   = Rotated Location Rotation
   | Dropped Location
+  | NewMultimeterFocus (Maybe {info :: PortInfo, relativeEdge :: RelativeEdge })
+
 
 defaultState :: APiece -> State
 defaultState piece =

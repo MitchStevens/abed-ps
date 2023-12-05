@@ -13,11 +13,14 @@ data Capacity = OneBit | TwoBit | FourBit | EightBit
 derive instance Eq Capacity
 
 instance Show Capacity where
-  show = case _ of
-    OneBit   -> " Capacity 1"
-    TwoBit   -> " Capacity 2"
-    FourBit  -> " Capacity 4"
-    EightBit -> " Capacity 8"
+  show capacity = "Capacity " <> show (toInt capacity)
+
+toInt :: Capacity -> Int
+toInt = case _ of
+  OneBit   -> 1
+  TwoBit   -> 2
+  FourBit  -> 4
+  EightBit -> 8
 
 doubleCapacity :: Capacity -> Maybe Capacity
 doubleCapacity = case _ of
@@ -80,9 +83,9 @@ isOutput = not <<< isInput
 matchingPort :: Port -> Port
 matchingPort = _portType %~ matchingPortType
 
-
 portMatches :: Port -> Port -> Boolean
 portMatches port otherPort = port == matchingPort otherPort 
+
 
 portType :: Port -> PortType
 portType = view _portType

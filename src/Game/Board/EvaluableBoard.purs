@@ -14,6 +14,7 @@ import Prelude
 import Control.Monad.Error.Class (class MonadError, throwError)
 import Control.Monad.State (class MonadState, State, evalState, evalStateT)
 import Data.Either (Either, note)
+import Data.FoldableWithIndex (forWithIndex_)
 import Data.HeytingAlgebra (ff)
 import Data.Lens (use)
 import Data.Lens.At (at)
@@ -25,6 +26,7 @@ import Data.Map as M
 import Data.Maybe (Maybe(..), fromMaybe, maybe)
 import Data.Newtype (class Newtype)
 import Data.Traversable (for, for_, traverse, traverse_)
+import Data.TraversableWithIndex (forWithIndex)
 import Data.Tuple (Tuple(..))
 import Debug (debugger, trace)
 import Game.Board (Board(..), RelativeEdge(..), absolute, relative, relativeEdgeLocation)
@@ -81,7 +83,9 @@ buildEvaluableBoard maybePorts = do
   {- 
     add psuedo pieces to board when building connection map
   -}
-  for_ (M.toUnfoldable ports :: List _) \(Tuple dir port) -> do
+
+  --for_ (M.toUnfoldable ports :: List _) \(Tuple dir port) -> do
+  forWithIndex_ ports \dir port -> do
     loc <- getBoardEdgePseudoLocation dir
     let rotation = clockwiseRotation Direction.Left dir
     Board._pieces <<< at loc .= Just { piece: psuedoPiece (matchingPort port), rotation }
@@ -129,7 +133,7 @@ evalWithPortInfo board@(EvaluableBoard evaluable) inputs = do
 injectInputs :: forall m. MonadState (Map RelativeEdge PortInfo) m
   => EvaluableBoard -> Map CardinalDirection Signal -> m Unit
 injectInputs (EvaluableBoard evaluable) inputs = do
-  for_ (M.toUnfoldable evaluable.ports :: List _) \(Tuple dir port) -> do
+  forWithIndex_ evaluable.ports \dir port -> do
     when (isInput port) do
       for_ (M.lookup dir evaluable.portLocations) \relEdge -> do
         let signal = fromMaybe (Signal 0) (M.lookup dir inputs)
@@ -157,7 +161,7 @@ evalWithPortInfoAt board@(EvaluableBoard evaluable) loc = do
     let inputPorts = M.filter isInput ports
 
     inputs <- M.fromFoldable <$>
-      for (M.toUnfoldable inputPorts :: List _) \(Tuple dir port) ->
+      forWithIndex inputPorts \dir port ->
         Tuple dir <$> getInputOnEdge board (relative loc dir) (portCapacity port)
         
     -- don't evaluate psuedo pieces
@@ -165,7 +169,7 @@ evalWithPortInfoAt board@(EvaluableBoard evaluable) loc = do
       --trace (show (name piece) <> ": " <> show loc <> " --> " <> show inputs) \_ -> pure unit
       let outputs = eval piece inputs
       let outputPorts  = M.filter isOutput ports
-      for_ (M.toUnfoldable outputPorts :: List _) \(Tuple dir port) -> do
+      forWithIndex_ outputPorts \dir port -> do
         let signal = fromMaybe ff (M.lookup dir outputs)
         at (relative loc dir) .= Just { connected: false, signal, port }
 
@@ -173,7 +177,7 @@ extractOutputs :: forall m. MonadState (Map RelativeEdge PortInfo) m
   => EvaluableBoard -> m (Map CardinalDirection Signal)
 extractOutputs (EvaluableBoard evaluable) = M.fromFoldable <$> do
     let outputPorts = M.filter isOutput evaluable.ports
-    for (M.toUnfoldable outputPorts :: List _) \(Tuple dir port) -> do
+    forWithIndex outputPorts \dir port -> do
       maybeSignal <- join <$> for (M.lookup dir evaluable.portLocations) \relEdge -> do
         map (_.signal) <$> use (at relEdge)
       pure $ Tuple dir (fromMaybe (Signal 0) maybeSignal)

@@ -10,8 +10,8 @@ import Data.Map as M
 import Data.Maybe (Maybe(..))
 import Data.Tuple (Tuple(..))
 import Effect.Exception (Error)
-import Game.Board (Board(..), absolute, matchingRelativeEdge, relative)
-import Game.Board.Query (buildConnectionMap, getPortOnEdge, toAbsoluteEdge, toRelativeEdge)
+import Game.Board (Board(..), absolute, relative)
+import Game.Board.Query (adjacentRelativeEdge, buildConnectionMap, getPortOnEdge, toAbsoluteEdge, toRelativeEdge)
 import Game.Direction (allDirections)
 import Game.Direction as Direction
 import Game.Location (location)
@@ -58,9 +58,9 @@ tests = do
             (toRelativeEdge absEdge >>= toAbsoluteEdge) `shouldReturn` absEdge
       describe "matchingRelativeEdge" do
         it "matches" do
-          matchingRelativeEdge (relative (location 0 1) Direction.Right) `shouldReturn` relative (location 1 1) Direction.Left
-          matchingRelativeEdge (relative (location 1 1) Direction.Right) `shouldReturn` relative (location 2 1) Direction.Left
-          matchingRelativeEdge (relative (location 1 0) Direction.Right) `shouldReturn` relative (location 1 1) Direction.Up
+          adjacentRelativeEdge (relative (location 0 1) Direction.Right) `shouldReturn` relative (location 1 1) Direction.Left
+          adjacentRelativeEdge (relative (location 1 1) Direction.Right) `shouldReturn` relative (location 2 1) Direction.Left
+          adjacentRelativeEdge (relative (location 1 0) Direction.Right) `shouldReturn` relative (location 1 1) Direction.Up
       describe "buildConnectionMap" do
         it "builds connection map" do
           let l01 = location 0 1

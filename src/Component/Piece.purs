@@ -25,6 +25,7 @@ import Data.Tuple (Tuple(..))
 import Effect (Effect)
 import Effect.Class (class MonadEffect, liftEffect)
 import Effect.Class.Console (log, logShow)
+import Game.Board (relative)
 import Game.Direction as Direction
 import Game.Piece (class Piece, APiece(..), PieceId(..), getPort, name)
 import Game.Piece.Port (Port)
@@ -77,7 +78,7 @@ component = H.mkComponent { eval , initialState , render }
       , HE.onMouseMove OnMouseMove
       , HE.onMouseUp (OnMouseUp state.location)
       ]
-      [ fromPlainHTML (renderPiece state) ]
+      [ renderPiece state ]
     where
       isDraggable = isNothing state.isRotating
       currentRotation = maybe 0.0 (_.currentRotation) state.isRotating
@@ -145,6 +146,17 @@ component = H.mkComponent { eval , initialState , render }
             H.raise (Rotated loc rot)
           H.modify_ (_ { isRotating = Nothing })
           log "mouse UP???"
+        PortOnMouseEnter dir -> do
+          portStates <- H.gets (_.portStates)
+          loc <- H.gets (_.location)
+          pure unit
+          H.raise $ NewMultimeterFocus do
+            let relativeEdge = relative loc dir
+            info <- M.lookup dir portStates
+            pure { relativeEdge, info }
+        PortOnMouseLeave -> do
+          H.raise (NewMultimeterFocus Nothing)
+
     , handleQuery: case _ of
         SetPortStates portStates -> do
           H.modify_ $ _ { portStates = portStates }

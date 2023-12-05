@@ -27,6 +27,17 @@
 #board-component .board-port[data-direction='down'] svg {
   width: 50%;
 }
+#board-component #multimeter {
+  position: absolute;
+  width: 150px;
+  pointer-events: none;
+}
+#board-component #multimeter.display {
+  display: block;
+}
+#board-component #multimeter.hide {
+  display: none;
+}
 .piece-component {
   background-color: #F9F6EE;
   user-select: none;

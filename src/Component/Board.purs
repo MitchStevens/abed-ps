@@ -3,9 +3,11 @@ module Component.Board where
 import Data.Lens
 import Prelude
 
-import Capability.GlobalKeyDown (globalKeyDownEventEmitter)
+import Capability.GlobalEventEmmiters (globalKeyDownEventEmitter)
 import Component.DataAttribute (attr)
 import Component.DataAttribute as DataAttr
+import Component.MultimeterComponent as MultiMeter
+import Component.MultimeterComponent as Multimeter
 import Component.Piece as Piece
 import Component.Piece.Render (renderPort)
 import Control.Monad.Except (ExceptT, lift)
@@ -48,11 +50,12 @@ import Game.Location (Location(..), location)
 import Game.Piece (APiece(..), PieceId(..), Port, getPort, getPorts, isInput, isOutput, matchingPort, name)
 import Game.Rotation (Rotation(..))
 import Game.Signal (Signal(..))
-import Halogen (AttrName(..), ClassName(..), Component, HalogenM(..), HalogenQ, Slot)
+import Halogen (AttrName(..), ClassName(..), Component, HalogenM(..), HalogenQ, Slot, ComponentHTML)
 import Halogen as H
 import Halogen.HTML (HTML, PlainHTML, fromPlainHTML)
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
+import Halogen.HTML.Extras (mapActionOverHTML)
 import Halogen.HTML.Properties as HA
 import Halogen.HTML.Properties as HP
 import Halogen.Store.Monad (class MonadStore, updateStore)
@@ -96,6 +99,7 @@ data Query a
 data Action
   = Initialise
   | PieceOutput Piece.Output
+  | MultimeterOutput MultiMeter.Output
   | Undo
   | Redo
   | ToggleInput CardinalDirection
@@ -108,14 +112,18 @@ data Action
   | LocationOnDragOver Location DragEvent
   | LocationOnDragLeave DragEvent
   | LocationOnDrop Location DragEvent
-
+  | DoNothing
 
 data Output
   = NewBoardState Board
 
-type Slots = ( piece :: Slot Piece.Query Piece.Output Location )
+type Slots =
+  ( piece :: Slot Piece.Query Piece.Output Location
+  , multimeter :: Slot Multimeter.Query Multimeter.Output Unit
+  )
 
 _piece = Proxy :: Proxy "piece"
+_multimeter = Proxy :: Proxy "multimeter"
 
 _board :: Lens' State Board
 _board = prop (Proxy :: Proxy "boardHistory") <<< Z._head
@@ -151,7 +159,7 @@ component = H.mkComponent { eval , initialState , render }
         , "grid-template-rows:    " <> gridTemplate
         ]
       ] $
-      (pieces <> boardPorts)
+      (pieces <> boardPorts <> [multimeter])
     where
       gridTemplate = "25fr repeat(" <> show n <> ", 100fr) 25fr"
       board = Z.head state.boardHistory
@@ -187,12 +195,12 @@ component = H.mkComponent { eval , initialState , render }
           maybePiece = (_.piece) <$> hush eitherPieceInfo
           Rotation rot = foldMap (_.rotation) eitherPieceInfo
       
-      boardPorts :: forall p. Array (HTML p Action)
+      --boardPorts :: forall p. Array (HTML p Action)
       boardPorts = do
         Tuple dir portInfo <- M.toUnfoldable state.goalPorts
         pure $ renderBoardPort dir portInfo
       
-      renderBoardPort :: forall p. CardinalDirection -> PortInfo -> HTML p Action
+      renderBoardPort :: forall s m. CardinalDirection -> PortInfo -> ComponentHTML Action s m
       renderBoardPort dir portInfo = 
         HH.div
           [ HP.class_ (ClassName "board-port")
@@ -207,7 +215,7 @@ component = H.mkComponent { eval , initialState , render }
               [ SA.transform 
                 [ Rotate (toNumber (fromEnum dir + 2) * 90.0) 25.0 12.5 ]
               ]
-              [ fromPlainHTML $ renderPort dir (portInfo { port = matchingPort portInfo.port} ) ]
+              [ mapActionOverHTML (\_ -> DoNothing) (renderPort dir (portInfo { port = matchingPort portInfo.port} )) ]
             ]
           ]
         where
@@ -228,6 +236,8 @@ component = H.mkComponent { eval , initialState , render }
           in HH.slot _piece location Piece.component { piece, location, portStates } PieceOutput
       
       emptyPieceHTML location = HH.text (show location)
+
+      multimeter = HH.slot _multimeter unit Multimeter.component {} MultimeterOutput
 
 
   eval :: HalogenQ Query Action Input ~> HalogenM State Action Slots Output m
@@ -304,6 +314,13 @@ component = H.mkComponent { eval , initialState , render }
           liftBoardM (removePiece src) >>= traverse_ \(Tuple piece board) -> do
             updateStore (BoardEvent (RemovedPiece src (name piece)))
             updateBoard board
+    PieceOutput (Piece.NewMultimeterFocus focus) ->
+      H.tell _multimeter unit (\_ -> Multimeter.NewFocus focus)
+
+    MultimeterOutput (Multimeter.SetCapacity relativeEdge capacity) -> do
+      log ("set capacity: " <> show capacity)
+      pure unit
+
     Undo -> do
       maybeZipper <- Z.moveLeft <$> gets (_.boardHistory)
       for_ maybeZipper \t -> do
@@ -357,7 +374,6 @@ component = H.mkComponent { eval , initialState , render }
               Nothing -> do
                 log "no board events!!"
 
-
     -- can these events be simplified? do we need all of them?
     LocationOnDragEnter loc dragEvent -> do
       liftEffect $ preventDefault (toEvent dragEvent)
@@ -374,6 +390,9 @@ component = H.mkComponent { eval , initialState , render }
         handleAction Undo
       when (key ke == "y" && ctrlKey ke) do
         handleAction Redo
+      --when (key ke == "s") do
+      --  H.modify_ (\s -> s { displayMultimeter = not s.displayMultimeter } )
+    DoNothing -> pure unit
 
 -- assumes that DOMRect is squareish
 getDirectionClicked :: MouseEvent -> DOMRect -> CardinalDirection

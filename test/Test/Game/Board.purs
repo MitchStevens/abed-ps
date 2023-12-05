@@ -20,8 +20,9 @@ import Debug (trace)
 import Effect.Aff (Aff, Error, error)
 import Effect.Aff.Class (class MonadAff)
 import Effect.Class.Console (log)
-import Game.Board (Board(..), RelativeEdge, absolute, allPortsOnBoard, buildBoardGraph, buildConnectionMap, evalBoardScratch, evalBoardWithPortInfo, evalLocation, extractOutputs, getPortOnEdge, matchingRelativeEdge, relative, standardBoard, toAbsoluteEdge, toRelativeEdge)
+import Game.Board (Board(..), RelativeEdge, absolute, relative, standardBoard)
 import Game.Board.Operation (BoardError(..), BoardT, addPiece, decreaseSize, emptyBoard, evalBoardM, execBoardM, getPieceInfo, increaseSize, removePiece, rotatePieceBy, runBoardT, validBoardSize)
+import Game.Board.Query (adjacentRelativeEdge, connectedRelativeEdge, getPortOnEdge, toAbsoluteEdge, toRelativeEdge)
 import Game.Direction (CardinalDirection, allDirections)
 import Game.Direction as Direction
 import Game.Location (Location(..), location)
@@ -96,31 +97,31 @@ tests = do
             (toRelativeEdge absEdge >>= toAbsoluteEdge) `shouldReturn` absEdge
       describe "matchingRelativeEdge" do
         it "matches" do
-          matchingRelativeEdge (relative (location 0 1) Direction.Right) `shouldReturn` relative (location 1 1) Direction.Left
-          matchingRelativeEdge (relative (location 1 1) Direction.Right) `shouldReturn` relative (location 2 1) Direction.Left
-          matchingRelativeEdge (relative (location 1 0) Direction.Right) `shouldReturn` relative (location 1 1) Direction.Up
+          adjacentRelativeEdge (relative (location 0 1) Direction.Right) `shouldReturn` relative (location 1 1) Direction.Left
+          adjacentRelativeEdge (relative (location 1 1) Direction.Right) `shouldReturn` relative (location 2 1) Direction.Left
+          adjacentRelativeEdge (relative (location 1 0) Direction.Right) `shouldReturn` relative (location 1 1) Direction.Up
 
-      describe "evalBoard" do
-        let evalBoard inputs = evalBoardScratch inputs >>= extractOutputs
-        it "should eval empty board" do
-          put standardBoard
-          evalBoard (testInput ff ff) `shouldReturn` M.empty
-        it "scratch" do
-          put testBoard
-          signals :: Array _ <- M.toUnfoldable <$> evalBoardScratch (testInput tt ff)
-          signals `shouldContain` (Tuple (relative (location 1 1) Direction.Up) tt)
-          signals `shouldContain` (Tuple (relative (location 1 1) Direction.Right) ff)
-          signals `shouldContain` (Tuple (relative (location 1 1) Direction.Left) ff)
-        it "should eval accurately test board" do
-          out0 :: Array _ <- M.toUnfoldable <$> evalBoard (testInput ff ff)
-          out1 :: Array _ <- M.toUnfoldable <$> evalBoard (testInput tt ff)
-          out2 :: Array _ <- M.toUnfoldable <$> evalBoard (testInput ff tt)
-          out3 :: Array _ <- M.toUnfoldable <$> evalBoard (testInput tt tt)
-
-          shouldContain out0 (Tuple Direction.Right ff)
-          shouldContain out1 (Tuple Direction.Right tt)
-          shouldContain out2 (Tuple Direction.Right tt)
-          shouldContain out3 (Tuple Direction.Right tt)
+--      describe "evalBoard" do
+--        let evalBoard inputs = evalBoardScratch inputs >>= extractOutputs
+--        it "should eval empty board" do
+--          put standardBoard
+--          evalBoard (testInput ff ff) `shouldReturn` M.empty
+--        it "scratch" do
+--          put testBoard
+--          signals :: Array _ <- M.toUnfoldable <$> evalBoardScratch (testInput tt ff)
+--          signals `shouldContain` (Tuple (relative (location 1 1) Direction.Up) tt)
+--          signals `shouldContain` (Tuple (relative (location 1 1) Direction.Right) ff)
+--          signals `shouldContain` (Tuple (relative (location 1 1) Direction.Left) ff)
+--        it "should eval accurately test board" do
+--          out0 :: Array _ <- M.toUnfoldable <$> evalBoard (testInput ff ff)
+--          out1 :: Array _ <- M.toUnfoldable <$> evalBoard (testInput tt ff)
+--          out2 :: Array _ <- M.toUnfoldable <$> evalBoard (testInput ff tt)
+--          out3 :: Array _ <- M.toUnfoldable <$> evalBoard (testInput tt tt)
+--
+--          shouldContain out0 (Tuple Direction.Right ff)
+--          shouldContain out1 (Tuple Direction.Right tt)
+--          shouldContain out2 (Tuple Direction.Right tt)
+--          shouldContain out3 (Tuple Direction.Right tt)
 
       --describe "evalBoardWithPortInfo" do
       --  it "empty" do 

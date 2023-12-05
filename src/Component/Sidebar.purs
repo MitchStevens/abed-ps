@@ -17,6 +17,7 @@ import Component.Piece as Piece
 import Component.Piece.Render (renderPiece)
 import Control.Monad.Except (runExceptT)
 import Data.Array as A
+import Data.Bifunctor (bimap)
 import Data.Either (Either(..), blush, hush)
 import Data.Foldable (find, for_)
 import Data.Map as M
@@ -32,12 +33,14 @@ import Game.Level.Problem (Problem)
 import Game.Location (location)
 import Game.Piece (APiece(..), PieceId(..), name, pieceLookup)
 import Game.Piece.Port (isInput)
-import Halogen (ClassName(..), ComponentSlot, HalogenM, HalogenQ, liftAff)
+import Halogen (ClassName(..), ComponentSlot, HalogenM, HalogenQ, ComponentHTML, liftAff)
 import Halogen as H
 import Halogen.HTML (HTML, PlainHTML, fromPlainHTML)
 import Halogen.HTML as HH
+import Halogen.HTML.Extras (mapActionOverHTML)
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
+import Halogen.Query.HalogenM (mapAction)
 import Type.Proxy (Proxy(..))
 import Web.HTML.Event.DragEvent (DragEvent, dataTransfer, toEvent)
 import Web.UIEvent.MouseEvent (MouseEvent)
@@ -64,7 +67,17 @@ data Action
   | IncrementBoardSize
   | DecrementBoardSize
   | RunTestsClicked
-  | PieceOutput Piece.Output
+  {-
+    the sidebar creates little icons using the same piece rendering as pieces. the type of HTML used in piece rendering is:
+      `ComponentHTML Piece.Action s m`
+    
+    When the sidebar renders the little icons, it requires HTML of type
+      `ComponentHTML Sidebar.Action s m`
+    
+    We use the function `mapActionOverHTML :: (a -> a') -> ComponentHTML a s m -> ComponentHTML a' s m` to convert between the two HTML types, but this requires a mapping between between piece actions and sidebar actions. The simplest such function is:
+      (\_ -> DoNothing) :: Piece.Action -> Sidebar.Action)
+  -}
+  | DoNothing
 
 data Output
   = PieceDropped PieceId
@@ -110,7 +123,7 @@ component = H.mkComponent { eval , initialState , render }
             , HE.onClick (PieceOnClick pieceId)
             ]
             --[ HH.slot (Proxy :: Proxy "piece") pieceId Piece.component input PieceOutput
-            [ fromPlainHTML $ renderPiece (Piece.defaultState (pieceLookup pieceId))
+            [ mapActionOverHTML (\_ -> DoNothing) (renderPiece (Piece.defaultState (pieceLookup pieceId)))
             , HH.text (show pieceId) 
             ]
 
@@ -155,7 +168,7 @@ component = H.mkComponent { eval , initialState , render }
         IncrementBoardSize -> H.raise BoardSizeIncremented
         DecrementBoardSize -> H.raise BoardSizeDecremented
         RunTestsClicked -> H.raise TestsTriggered
-        PieceOutput _ -> pure unit -- we dont give a shit
+        DoNothing -> pure unit
     , handleQuery: case _ of
         SetCompletionStatus completionStatus -> do
           H.modify_ $ _ { completionStatus = completionStatus }

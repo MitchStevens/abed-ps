@@ -27,4 +27,18 @@
         &[data-direction='up'] svg { width: 50%; }
         &[data-direction='down'] svg { width: 50%; }
     }
+
+    & #multimeter {
+        position: absolute;
+        width: 150px;
+        pointer-events: none;
+
+        &.display {
+            display: block;
+        }
+
+        &.hide {
+            display: none;
+        }
+    }
 }
