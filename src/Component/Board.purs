@@ -38,11 +38,12 @@ import Data.Zipper (Zipper)
 import Data.Zipper as Z
 import Effect.Class (class MonadEffect, liftEffect)
 import Effect.Class.Console (log, logShow)
-import Game.Board (Board(..), RelativeEdge, _pieces, _size, standardBoard, toLocalInputs)
+import Game.Board (Board(..), RelativeEdge, _pieces, _size, relativeEdgeLocation, standardBoard, toLocalInputs)
 import Game.Board.EvaluableBoard (EvaluableBoard(..), buildEvaluableBoard, evalWithPortInfo, injectInputs, toEvaluableBoard)
 import Game.Board.Operation (BoardError, BoardM, addPiece, applyBoardEvent, decreaseSize, evalBoardM, getPieceInfo, increaseSize, movePiece, removePiece, rotatePieceBy, runBoardM)
 import Game.Board.Path (boardPath)
 import Game.Board.PortInfo (PortInfo)
+import Game.Board.Query (capacityRipple)
 import Game.Direction (CardinalDirection)
 import Game.Direction as Direction
 import Game.GameEvent (BoardEvent(..), GameEvent(..), GameEventStore, boardEventLocationsChanged)
@@ -103,6 +104,7 @@ data Action
   | Undo
   | Redo
   | ToggleInput CardinalDirection
+
   | GlobalOnKeyDown KeyboardEvent
   | BoardOnDragExit DragEvent
   | LocationOnMouseDown Location MouseEvent
@@ -317,9 +319,18 @@ component = H.mkComponent { eval , initialState , render }
     PieceOutput (Piece.NewMultimeterFocus focus) ->
       H.tell _multimeter unit (\_ -> Multimeter.NewFocus focus)
 
+    -- todo: fix this
     MultimeterOutput (Multimeter.SetCapacity relativeEdge capacity) -> do
-      log ("set capacity: " <> show capacity)
-      pure unit
+      let loc = relativeEdgeLocation relativeEdge
+      liftBoardM (capacityRipple loc capacity) >>= traverse_ \(Tuple _ board) -> do
+        updateBoard board
+        -- update the multimeter after the port has changed
+        signals <- gets (_.lastEvalWithPortInfo)
+        let focus = do
+              info <- M.lookup relativeEdge signals
+              pure { info, relativeEdge }
+        
+        H.tell _multimeter unit (\_ -> Multimeter.NewFocus focus)
 
     Undo -> do
       maybeZipper <- Z.moveLeft <$> gets (_.boardHistory)

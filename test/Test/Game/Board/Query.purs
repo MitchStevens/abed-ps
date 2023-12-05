@@ -4,18 +4,20 @@ import Prelude
 
 import Control.Monad.Error.Class (class MonadError)
 import Control.Monad.State (class MonadState, put)
-import Data.Foldable (for_)
+import Data.Foldable (for_, traverse_)
 import Data.Identity (Identity)
+import Data.Lens (use)
+import Data.Lens.At (at)
 import Data.Map as M
 import Data.Maybe (Maybe(..))
 import Data.Tuple (Tuple(..))
 import Effect.Exception (Error)
-import Game.Board (Board(..), absolute, relative)
-import Game.Board.Query (adjacentRelativeEdge, buildConnectionMap, getPortOnEdge, toAbsoluteEdge, toRelativeEdge)
+import Game.Board (Board(..), _pieces, absolute, relative)
+import Game.Board.Query (adjacentRelativeEdge, buildConnectionMap, capacityRipple, getPortOnEdge, toAbsoluteEdge, toRelativeEdge)
 import Game.Direction (allDirections)
 import Game.Direction as Direction
 import Game.Location (location)
-import Game.Piece (Capacity(..), inputPort, outputPort)
+import Game.Piece (Capacity(..), getCapacity, inputPort, outputPort)
 import Test.Game.Board (testBoard, toAff)
 import Test.Game.Location (allLocations)
 import Test.Spec (Spec, SpecT, before, beforeAll_, describe, hoistSpec, it)
@@ -73,3 +75,10 @@ tests = do
             , Tuple (relative l11 Direction.Up) (relative l10 Direction.Right)
             , Tuple (relative l21 Direction.Left) (relative l11 Direction.Right)
             ]
+        describe "capacityRipple" do
+          it "ripples" do
+            capacityRipple (location 1 1) TwoBit
+            use (_pieces <<< at (location 1 1)) >>= traverse_ \info ->
+              getCapacity info.piece `shouldEqual` Just TwoBit
+            use (_pieces <<< at (location 0 1)) >>= traverse_ \info ->
+              getCapacity info.piece `shouldEqual` Just TwoBit

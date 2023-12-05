@@ -7,7 +7,7 @@ import Control.Monad.State (class MonadState, gets)
 import Control.Monad.Writer (WriterT, execWriterT, tell)
 import Data.Array as A
 import Data.Group (ginverse)
-import Data.Lens (use, view)
+import Data.Lens (use, view, (.=))
 import Data.Lens.At (at)
 import Data.Lens.Index (ix)
 import Data.List (List(..))
@@ -15,14 +15,17 @@ import Data.List as L
 import Data.Map (Map)
 import Data.Map as M
 import Data.Maybe (Maybe(..))
+import Data.Set (Set)
+import Data.Set as S
 import Data.Traversable (for, for_, traverse_)
 import Data.Tuple (Tuple(..))
+import Debug (trace)
 import Game.Board (AbsoluteEdge, Board(..), RelativeEdge(..), _pieces, _rotation, _size, absolute, relative, relativeEdgeLocation)
 import Game.Direction (CardinalDirection, allDirections, oppositeDirection, rotateDirection)
 import Game.Direction as Direction
 import Game.Edge (Edge(..), matchEdge)
-import Game.Location (Location(..), location)
-import Game.Piece (getPort, portType)
+import Game.Location (Location(..), followDirection, location)
+import Game.Piece (Capacity, getPort, portType, updateCapacity)
 import Game.Piece as Port
 import Game.Piece.Port (Port(..), isInput, portMatches)
 import Game.Rotation (Rotation(..))
@@ -151,3 +154,28 @@ buildConnectionMapAt loc =
         Just Port.Output ->
             tell (L.singleton (Tuple adjRelEdge relEdge))
         Nothing -> pure unit
+
+--todo: fix this, looks like garbage
+capacityRipple :: forall m. MonadState Board m => Location -> Capacity -> m Unit
+capacityRipple loc capacity = capacityRippleAcc { openSet: L.singleton loc, closedSet: S.empty }
+  where
+    capacityRippleAcc :: { openSet :: List Location, closedSet :: Set Location } -> m Unit
+    capacityRippleAcc vars = trace (show vars.openSet) \_ -> case vars.openSet of
+      Nil -> pure unit
+      Cons l ls -> do
+        let closedSet = S.insert l vars.closedSet
+        use (_pieces <<< at l) >>= case _ of
+          Just info ->
+            case updateCapacity capacity info.piece of
+              Just p -> do                                        -- if the capacity can be changed...
+                _pieces <<< ix l .= (info { piece = p })          -- set the capacity at the location...
+                trace ("location: " <> show l) \_ -> pure unit
+
+                let adj = A.filter (\x -> not (S.member x closedSet)) $ followDirection l <$> allDirections
+                let openSet = L.fromFoldable adj <> ls            -- add the adjacent locations to the open set
+                capacityRippleAcc { openSet, closedSet } -- ripple the capacity
+              Nothing ->
+                capacityRippleAcc { openSet: ls, closedSet }
+          Nothing ->
+            capacityRippleAcc { openSet: ls, closedSet }
+        

@@ -15,7 +15,7 @@ import Effect.Class (class MonadEffect, liftEffect)
 import Effect.Class.Console (log)
 import Game.Board (RelativeEdge)
 import Game.Board.PortInfo (PortInfo)
-import Game.Piece (Capacity(..), Port(..), inputPort)
+import Game.Piece (Capacity(..), Port(..), inputPort, portCapacity, toInt)
 import Game.Signal (Signal(..), nthBit)
 import Halogen (ClassName(..), RefLabel(..), gets, modify_)
 import Halogen as H
@@ -43,7 +43,7 @@ leds =
   , { cx: 44.928719, cy: 23.000546, r: 1.9862779 }
   ]
 
-radialDial = { cx: 15.749074, cy: 44.965733, ry: 15.025925 }
+radialDial = { cx: 15.749074, cy: 44.965733, r: 15.025925 }
 
 display = { w: 39.88829 , h: 13.022614 , x: 7.0013809 , y: 6.4740133 }
 
@@ -89,6 +89,7 @@ component = H.mkComponent { eval, initialState, render }
             [ renderMultimeterImage
             , renderBits (maybe (Signal 0) (_.info.signal) state.focus)
             , renderDisplay ((_.info.signal) <$> state.focus)
+            , renderRotarySwitch (portCapacity <<< (_.info.port) <$> state.focus)
             ]
         ]
     
@@ -145,8 +146,12 @@ renderMultimeterImage =
     , SA.height height
     ]
 
-renderRotarySwitch :: Capacity -> PlainHTML
-renderRotarySwitch capaacity =
-  SE.circle
-    [ ]
+renderRotarySwitch :: Maybe Capacity -> PlainHTML
+renderRotarySwitch capacity =
+  SE.g []
+    [ SE.circle [ SA.cx radialDial.cx, SA.cy radialDial.cy, SA.r radialDial.r ]
+    , SE.text
+      [ SA.x radialDial.cx, SA.y radialDial.cy, SA.textAnchor AnchorMiddle, SA.fill (Named "lightgrey")]
+      [ HH.text (maybe "X" (show <<< toInt) capacity) ]
+    ]
   
