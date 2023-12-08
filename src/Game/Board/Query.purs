@@ -1,11 +1,13 @@
 module Game.Board.Query where
 
 import Prelude
+import Data.Lens
 
 import Control.Alternative (guard)
 import Control.Monad.State (class MonadState, gets)
 import Control.Monad.Writer (WriterT, execWriterT, tell)
 import Data.Array as A
+import Data.Filterable (filter)
 import Data.Group (ginverse)
 import Data.Lens (use, view, (.=))
 import Data.Lens.At (at)
@@ -19,13 +21,14 @@ import Data.Set (Set)
 import Data.Set as S
 import Data.Traversable (for, for_, traverse_)
 import Data.Tuple (Tuple(..))
+import Data.Witherable (wither)
 import Debug (trace)
-import Game.Board (AbsoluteEdge, Board(..), RelativeEdge(..), _pieces, _rotation, _size, absolute, relative, relativeEdgeLocation)
+import Game.Board (AbsoluteEdge, Board(..), RelativeEdge(..), _pieces, _rotation, _size, absolute, relative, relativeEdgeDirection, relativeEdgeLocation)
 import Game.Direction (CardinalDirection, allDirections, oppositeDirection, rotateDirection)
 import Game.Direction as Direction
 import Game.Edge (Edge(..), matchEdge)
 import Game.Location (Location(..), followDirection, location)
-import Game.Piece (Capacity, getPort, portType, updateCapacity)
+import Game.Piece (APiece, Capacity, getPort, portType, shouldRipple, updateCapacity)
 import Game.Piece as Port
 import Game.Piece.Port (Port(..), isInput, portMatches)
 import Game.Rotation (Rotation(..))
@@ -84,6 +87,10 @@ connectedRelativeEdge relEdge = do
   if (portMatches <$> port <*> adjPort) == Just true
     then pure (Just adjRelEdge)
     else pure Nothing
+
+allConnectedRelativeEdges :: forall m. MonadState Board m => Location -> m (Array RelativeEdge)
+allConnectedRelativeEdges loc =
+  wither connectedRelativeEdge (relative loc <$> allDirections)
 
 -- returns both board ports and piece ports
 getPortOnEdge :: forall m. MonadState Board m => RelativeEdge -> m (Maybe Port)
@@ -156,26 +163,33 @@ buildConnectionMapAt loc =
         Nothing -> pure unit
 
 --todo: fix this, looks like garbage
-capacityRipple :: forall m. MonadState Board m => Location -> Capacity -> m Unit
-capacityRipple loc capacity = capacityRippleAcc { openSet: L.singleton loc, closedSet: S.empty }
-  where
-    capacityRippleAcc :: { openSet :: List Location, closedSet :: Set Location } -> m Unit
-    capacityRippleAcc vars = trace (show vars.openSet) \_ -> case vars.openSet of
-      Nil -> pure unit
-      Cons l ls -> do
-        let closedSet = S.insert l vars.closedSet
-        use (_pieces <<< at l) >>= case _ of
-          Just info ->
-            case updateCapacity capacity info.piece of
-              Just p -> do                                        -- if the capacity can be changed...
-                _pieces <<< ix l .= (info { piece = p })          -- set the capacity at the location...
-                trace ("location: " <> show l) \_ -> pure unit
+{-
+  `capacityRipple` runs A* over the game board and updates the capacity on each piece (if capacity can be updated) 
+-}
+capacityRipple :: forall m. MonadState Board m => RelativeEdge -> Capacity -> m Unit
+capacityRipple relEdge capacity = capacityRippleAcc capacity { openSet: L.singleton relEdge, closedSet: S.empty }
 
-                let adj = A.filter (\x -> not (S.member x closedSet)) $ followDirection l <$> allDirections
-                let openSet = L.fromFoldable adj <> ls            -- add the adjacent locations to the open set
-                capacityRippleAcc { openSet, closedSet } -- ripple the capacity
-              Nothing ->
-                capacityRippleAcc { openSet: ls, closedSet }
-          Nothing ->
-            capacityRippleAcc { openSet: ls, closedSet }
+capacityRippleAcc :: forall m. MonadState Board m
+  => Capacity -> { openSet :: List RelativeEdge, closedSet :: Set Location } -> m Unit
+capacityRippleAcc capacity vars = case vars.openSet of
+  Nil -> pure unit
+  Cons relEdge otherEdges -> do
+    let loc = relativeEdgeLocation relEdge
+    let closedSet = S.insert loc vars.closedSet
+    maybePiece <- map (_.piece) <$> use (_pieces <<< at loc)
+    
+    case maybePiece >>= updateCapacity (relativeEdgeDirection relEdge) capacity of
+      Just p -> do                                        -- if the capacity can be changed...
+        connected <- allConnectedRelativeEdges loc
+        _pieces <<< ix loc %= (_ { piece = p })          -- set the capacity at the location...
+
+        if shouldRipple p
+          then do
+            let notInClosedSet r = not (S.member (relativeEdgeLocation r) vars.closedSet)
+            let openSet = L.fromFoldable (filter notInClosedSet connected) <> otherEdges            -- add the adjacent locations to the open set
+            capacityRippleAcc capacity { openSet, closedSet } -- ripple the capacity
+          else capacityRippleAcc capacity { openSet: otherEdges, closedSet }
+      Nothing ->
+        capacityRippleAcc capacity { openSet: otherEdges, closedSet }
+        
         

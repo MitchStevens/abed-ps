@@ -34,6 +34,7 @@ type State =
 
 data Query a
   = SetPortStates (Map CardinalDirection PortInfo)
+  | SetPiece APiece
 
 data Action
   = Initialise Input

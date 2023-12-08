@@ -31,6 +31,8 @@
     66% { box-shadow: 0 0 10px 10px #e74747; }
 }
 
+
+
 #abed {
     width: @board-width + @sidebar-width + 10px;
 
@@ -44,7 +46,31 @@
     }
 
     background-color: beige;
+
+    & textarea#title {
+        resize: none;
+        background: transparent;
+        border: none;
+        margin: 30px;
+
+        display: block;
+        margin-left: auto;
+        margin-right: auto;
+    }
+
 }
+
+#default-layout {
+    padding-left: 100px;
+    padding-right: 100px;
+
+    & textarea#title {
+        font-size: 14px;
+    }
+
+}
+
+
 
 #puzzle-select-component {
     & span[data-puzzle-progress="completed"] {
@@ -54,9 +80,6 @@
         color: yellow;
     }
 }
-
-
-
 
 span.red { color: @red }
 span.green { color: @green }
@@ -83,16 +106,13 @@ span.green { color: @green }
     justify-items: center;
     padding: 75px;
 
-    & #title {
-        resize: none;
-        background: transparent;
-        font-size: 20px;
-        border: none;
-        margin: 30px;
-    }
 
     & .link {
         font-size: 20px;
         font-family: monospace;
+    }
+
+    & #title {
+        font-size: 20px;
     }
 }

@@ -5,8 +5,9 @@ import Prelude
 
 import Control.Alternative (guard)
 import Control.Monad.State (class MonadState, evalState, get, gets)
-import Data.Array ((..))
+import Data.Array (intercalate, (..))
 import Data.Array as A
+import Data.FoldableWithIndex (foldMapWithIndex)
 import Data.Group (ginverse)
 import Data.Lens.At (at)
 import Data.Lens.Index (ix)
@@ -29,7 +30,7 @@ import Game.Direction (CardinalDirection, allDirections, rotateDirection)
 import Game.Direction as Direction
 import Game.Edge (Edge(..), edge, matchEdge)
 import Game.Location (Location(..), location)
-import Game.Piece (class Piece, PieceId(..), Port, eval, getCapacity, getOutputDirs, getPort, getPorts, isInput, portType)
+import Game.Piece (class Piece, PieceId(..), Port, eval, getCapacity, getOutputDirs, getPort, getPorts, isInput, name, portType)
 import Game.Piece.APiece (APiece(..))
 import Game.Piece.Port as Port
 import Game.Rotation (Rotation(..))
@@ -111,3 +112,17 @@ firstEmptyLocation board = do
         pure $ location i j
   let occupied = allOccupiedLocations board
   A.find (\loc -> S.member loc occupied) allLocations
+
+
+{-
+  would be nice to print a graphical version of the board
+ +━━━━━━━━━+ 
+ ┃    1    ┃
+ ┃ 1     1 ┃
+ ┃    1    ┃
+ +━━━━━━━━━+
+-}
+printBoard :: Board -> String
+printBoard (Board b) = intercalate "\n" $
+  flip foldMapWithIndex b.pieces \dir info ->
+    [ show dir <> " " <> show info.rotation <> ": "<> show (name info.piece) <>" OUTPUTS " <> show (getOutputDirs info.piece) ]

@@ -4,6 +4,8 @@ module Game.Piece
   , module Game.Piece.BasicPiece
   , module Game.Piece.Class
   , module Game.Piece.CommutativePiece
+  , module Game.Piece.FusePiece
+  , module Game.Piece.PieceSpec
   , module Game.Piece.Port
   , module Game.Piece.WirePiece
   ) where
@@ -12,6 +14,8 @@ import Game.Piece.APiece
 import Game.Piece.BasicPiece
 import Game.Piece.Class
 import Game.Piece.CommutativePiece
+import Game.Piece.FusePiece
+import Game.Piece.PieceSpec
 import Game.Piece.Port
 import Game.Piece.WirePiece
 import Prelude
@@ -26,7 +30,7 @@ import Game.Piece.Class (PieceId(..))
 import Partial.Unsafe (unsafeCrashWith)
 
 allPieces :: Array APiece
-allPieces = allBasicPieces <> allCommutativePieces <> allWirePieces
+allPieces = allBasicPieces <> allCommutativePieces <> allWirePieces <> allFusePieces
 
 pieceVault :: Map PieceId APiece
 pieceVault = M.fromFoldable $ map (\p -> Tuple (name p) p) allPieces

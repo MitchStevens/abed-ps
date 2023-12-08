@@ -27,6 +27,7 @@ import Game.Direction as Direction
 import Game.Level (binaryTestInputs)
 import Game.Location (location)
 import Game.Piece (Capacity(..), andPiece, eval, inputPort, notPiece, orPiece, outputPort)
+import Game.Signal (Signal(..))
 import Test.Game.Board (testBoard, toAff)
 import Test.Game.Board.Operation (exceptToAff)
 import Test.Spec (Spec, SpecT, describe, describeOnly, hoistSpec, it, itOnly)
@@ -94,29 +95,29 @@ tests = do
       get `shouldReturn` M.empty
       injectInputs testEvaluableBoard inputs
       get `shouldReturn` M.fromFoldable
-        [ Tuple inRelEdge1 { connected: false, port: outputPort OneBit, signal: tt}
-        , Tuple inRelEdge2 { connected: false, port: outputPort OneBit, signal: tt}
+        [ Tuple inRelEdge1 { connected: false, port: outputPort OneBit, signal: Signal 1}
+        , Tuple inRelEdge2 { connected: false, port: outputPort OneBit, signal: Signal 1}
         ]
     it "evalWithPortInfoAt" do
       get `shouldReturn` M.empty
       injectInputs testEvaluableBoard inputs
-      use (at inRelEdge1) `shouldReturn` Just { connected: false, port: outputPort OneBit, signal: tt}
-      use (at inRelEdge2) `shouldReturn` Just { connected: false, port: outputPort OneBit, signal: tt}
+      use (at inRelEdge1) `shouldReturn` Just { connected: false, port: outputPort OneBit, signal: Signal 1}
+      use (at inRelEdge2) `shouldReturn` Just { connected: false, port: outputPort OneBit, signal: Signal 1}
 
       evalWithPortInfoAt testEvaluableBoard (location (-1) 1)
       evalWithPortInfoAt testEvaluableBoard (location 1 (-1))
-      use (at inRelEdge1) `shouldReturn` Just { connected: false, port: outputPort OneBit, signal: tt }
-      use (at inRelEdge2) `shouldReturn` Just { connected: false, port: outputPort OneBit, signal: tt }
+      use (at inRelEdge1) `shouldReturn` Just { connected: false, port: outputPort OneBit, signal: Signal 1 }
+      use (at inRelEdge2) `shouldReturn` Just { connected: false, port: outputPort OneBit, signal: Signal 1 }
 
       evalWithPortInfoAt testEvaluableBoard (location 0 1)
       use (at (relative (location 0 1) Direction.Left)) `shouldReturn`
-        Just { connected: true, port: inputPort OneBit, signal: tt }
+        Just { connected: true, port: inputPort OneBit, signal: Signal 1 }
       use (at (relative (location 0 1) Direction.Right)) `shouldReturn`
         Just { connected: false, port: outputPort OneBit, signal: ff }
       
       evalWithPortInfoAt testEvaluableBoard (location 1 0)
       use (at (relative (location 1 0) Direction.Left)) `shouldReturn`
-        Just { connected: true, port: inputPort OneBit, signal: tt }
+        Just { connected: true, port: inputPort OneBit, signal: Signal 1 }
       use (at (relative (location 1 0) Direction.Right)) `shouldReturn`
         Just { connected: false, port: outputPort OneBit, signal: ff }
 
@@ -132,17 +133,17 @@ tests = do
       use (at (relative (location 2 1) Direction.Left)) `shouldReturn`
         Just { connected: true, port: inputPort OneBit, signal: ff }
       use (at (relative (location 2 1) Direction.Right)) `shouldReturn`
-        Just { connected: false, port: outputPort OneBit, signal: tt }
+        Just { connected: false, port: outputPort OneBit, signal: Signal 1 }
 
       evalWithPortInfoAt testEvaluableBoard (location 3 1)
       use (at (relative (location 2 1) Direction.Right)) `shouldReturn`
-        Just { connected: true, port: outputPort OneBit, signal: tt }
+        Just { connected: true, port: outputPort OneBit, signal: Signal 1 }
       use (at (relative (location 3 1) Direction.Right)) `shouldReturn`
-        Just { connected: true, port: inputPort OneBit, signal: tt }
+        Just { connected: true, port: inputPort OneBit, signal: Signal 1 }
     it "evalWithPortInfo" do
       let inputs = M.fromFoldable [ Tuple Direction.Left tt, Tuple Direction.Up tt ]
       outputs <- evalWithPortInfo testEvaluableBoard inputs
-      outputs `shouldEqual` M.singleton Direction.Right tt
+      outputs `shouldEqual` M.singleton Direction.Right (Signal 1)
     it "eval" do
       for_ (binaryTestInputs [Direction.Left, Direction.Up]) \inputs ->
         eval testEvaluableBoard inputs `shouldEqual` eval orPiece inputs

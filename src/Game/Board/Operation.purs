@@ -6,14 +6,15 @@ import Prelude
 import Control.Monad.Error.Class (class MonadError, class MonadThrow, throwError)
 import Control.Monad.Except (ExceptT, runExceptT)
 import Control.Monad.State (class MonadState, class MonadTrans, StateT, get, gets, lift, put, runStateT)
+import Data.Array (foldMap)
 import Data.Either (Either(..))
-import Data.Foldable (all, find, for_, traverse_)
+import Data.Foldable (all, find, foldr, for_, traverse_)
 import Data.Identity (Identity)
 import Data.Int (even, odd)
 import Data.Lens.At (at)
 import Data.Lens.Index (ix)
 import Data.Lens.Record (prop)
-import Data.List (List(..))
+import Data.List (List(..), (:))
 import Data.List as L
 import Data.Map (Map)
 import Data.Map as M
@@ -22,6 +23,7 @@ import Data.Maybe (Maybe(..), isJust, isNothing, maybe)
 import Data.Newtype (class Newtype, unwrap)
 import Data.Set as S
 import Data.Tuple (Tuple(..), fst, snd)
+import Debug (trace)
 import Effect.Aff.Class (class MonadAff)
 import Effect.Class (class MonadEffect)
 import Game.Board (Board(..), PieceInfo, RelativeEdge(..), _pieces, _rotation, relative)
@@ -132,17 +134,28 @@ updatePortsAround loc = do
     --relEdge <- toRelativeEdge (absolute loc dir)
     maybePort <- getPortOnEdge relEdge
     relEdge' <- adjacentRelativeEdge relEdge
-    updateRelEdge relEdge' (portType <$> maybePort)
-
+    trace ("update reledge: " <> show relEdge' <> " with adj port " <> show ( portType <$> maybePort)) \_ ->
+      updateRelEdge relEdge' (portType <$> maybePort)
 
 addPiece :: forall m. MonadError BoardError m => MonadState Board m => Location -> APiece -> m Unit
-addPiece loc piece = do
+addPiece loc piece = addPieceWithRotation loc piece (rotation 0)      --trace ("added piece at " <>  show loc) \_ -> do
+  -- checkInsideBoard loc
+  -- pieceInfo <- use (_pieces <<< at loc)
+  -- case pieceInfo of
+  --   Nothing -> _pieces <<< at loc .= Just { piece, rotation: rotation 0 }
+  --   Just _ -> throwError (LocationOccupied loc)
+  -- updatePortsAround loc
+
+addPieceWithRotation :: forall m. MonadError BoardError m => MonadState Board m
+  => Location -> APiece -> Rotation -> m Unit
+addPieceWithRotation loc piece rotation = do
   checkInsideBoard loc
   pieceInfo <- use (_pieces <<< at loc)
   case pieceInfo of
-    Nothing -> _pieces <<< at loc .= Just { piece, rotation: rotation 0 }
+    Nothing -> _pieces <<< at loc .= Just { piece, rotation }
     Just _ -> throwError (LocationOccupied loc)
   updatePortsAround loc
+
 
 removePiece :: forall m. MonadError BoardError m => MonadState Board m => Location -> m APiece
 removePiece loc = do
@@ -219,10 +232,26 @@ increaseSize = do
 applyBoardEvent :: forall m. MonadState Board m => MonadError BoardError m => BoardEvent -> m Unit
 applyBoardEvent = case _ of
   AddedPiece loc pieceId -> addPiece loc (pieceLookup pieceId)
+  AddedPieceWithRotation loc pieceId rot -> addPieceWithRotation loc (pieceLookup pieceId) rot
   RemovedPiece loc _ -> void $ removePiece loc
   MovedPiece src dst -> movePiece src dst
   RotatedPiece loc rot -> rotatePieceBy loc rot
   UndoBoardEvent -> pure unit
   IncrementSize -> increaseSize
   DecrementSize -> decreaseSize
-  Multiple boardEvents -> for_ boardEvents applyBoardEvent 
+  {-
+    for some 
+  -}
+  Multiple boardEvents -> do
+--    let a = flip map boardEvents \e -> trace ("AAAA: " <> show e) \_ -> 0
+--
+--    b <- for_ boardEvents \e -> trace ("BBBB: " <> show e) \_ -> pure unit
+--
+--    let c = L.foldMap (\e -> trace ("CCCC: " <> show e) \_ -> unit) boardEvents
+--
+--    let d = foldr (\e _ -> trace ("DDDD: " <> show e) \_ -> unit) unit boardEvents
+--
+--    trace (show $ foldr L.Cons (1 : 2 : 3 : Nil) Nil) \_ -> pure unit
+--
+    trace ("board events: " <> show boardEvents) \_ -> for_ (boardEvents) \boardEvent ->
+      trace ("applying board event " <> show boardEvent) \_ -> applyBoardEvent boardEvent

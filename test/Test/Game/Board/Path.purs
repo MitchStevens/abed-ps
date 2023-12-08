@@ -6,12 +6,13 @@ import Control.Extend (duplicate, extend)
 import Control.Monad.State (put)
 import Data.Either (either)
 import Data.List (List(..), (:))
+import Data.List as L
 import Data.Maybe (Maybe(..))
 import Data.Zipper (Zipper(..))
 import Data.Zipper as Z
 import Game.Board (Board(..), standardBoard)
 import Game.Board.Operation (addPiece, execBoardM, rotatePieceBy)
-import Game.Board.Path (boardPath)
+import Game.Board.Path (boardPath, boardPathWithError)
 import Game.Direction as Direction
 import Game.GameEvent (BoardEvent(..))
 import Game.Location (location)
@@ -19,6 +20,7 @@ import Game.Piece (PieceId(..), andPiece, crossPiece, idPiece, leftPiece, name, 
 import Game.Rotation (rotation)
 import Partial.Unsafe (unsafeCrashWith)
 import Test.Game.Board (testBoard, toAff)
+import Test.Game.Board.Operation (exceptToAff)
 import Test.Spec (Spec, before, describe, hoistSpec, it)
 import Test.Spec.Assertions (shouldEqual, shouldReturn)
 
@@ -110,6 +112,17 @@ spec = do
 
         boardPath Direction.Down [ l0 ] Direction.Right `shouldReturn`
           Just (AddedPiece l0 (name rightPiece) : RotatedPiece l0 (rotation 3) : Nil)
+
+      before (put standardBoard) do
+        it "should create paths through the center of the board" do
+          path <- exceptToAff $ boardPathWithError Direction.Left [a1, c, l1] Direction.Up
+          path `shouldEqual`
+              ( AddedPiece a1 (name idPiece)
+              : AddedPiece c (name leftPiece)
+              : AddedPiece l1 (name idPiece)
+              : RotatedPiece l1 (rotation 3)
+              : Nil
+              )
 
       it "should create larger paths" do
         boardPath Direction.Left [ l0, l1, l2 ] Direction.Right `shouldReturn`

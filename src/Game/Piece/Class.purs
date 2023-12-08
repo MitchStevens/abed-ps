@@ -29,19 +29,31 @@ instance Show PieceId where
     a piece has a unique identifier
     a piece might have a capacity, and if it does, this capacity should be modifiable
 
-    We also need a way to tell if a piece changed after a port was updated. Originally `updatePort` had the type signature:
-      `updatePort :: Piece p => CardinalDirection -> Maybe Port -> p -> p`
-    
-    Unfortunately, from this type signature there was no was to tell whether the piece was actually modified when a port was updated. The new type of `updatePort` is:
-      `updatePort :: Piece p => CardinalDirection -> Maybe PortType -> p -> p`
-    
-    The function will now output `Just Piece` if the `Piece` was modified and `Nothing` if it's not modified. Also note that the `Maybe Port` parameter was changed to `Maybe PortType`, this was to ensure that `updatePort` cannot possibly change capacity (because the piece doesn't know what the adjacent port capacity is)
 -}
+
 class Piece p where
   name  :: p -> PieceId
   eval  :: p -> Map CardinalDirection Signal -> Map CardinalDirection Signal
+{-
+  When capacity of a piece is changed, we want to do one of the following:
+    - the capacity should change, and the capacity should ripple to adjacent pieces 
+    - the capacity should change, but the capacity should *not* ripple
+    - the capacity shouldn't change
+-}
   getCapacity :: p -> Maybe Capacity
-  updateCapacity :: Capacity -> p -> Maybe p
+  shouldRipple :: p -> Boolean
+  updateCapacity :: CardinalDirection -> Capacity -> p -> Maybe p
+{-
+  We also need a way to tell if a piece changed after a port was updated. Originally `updatePort` had the type signature:
+    `updatePort :: Piece p => CardinalDirection -> Maybe Port -> p -> p`
+  
+  Unfortunately, from this type signature there was no was to tell whether the piece was actually modified when a port was updated.
+
+    The new type of `updatePort` is:
+    `updatePort :: Piece p => CardinalDirection -> Maybe PortType -> p -> Maybe p`
+  
+  The function will now output `Just Piece` if the `Piece` was modified and `Nothing` if it's not modified. Also note that the `Maybe Port` parameter was changed to `Maybe PortType`, this was to ensure that `updatePort` cannot possibly change capacity (because the piece doesn't know what the adjacent port capacity is)
+-}
   getPorts :: p -> Map CardinalDirection Port
   updatePort :: CardinalDirection -> Maybe PortType -> p -> Maybe p
 
@@ -65,8 +77,8 @@ defaultGetCapacity :: forall p r. Newtype p { capacity :: Capacity | r }
 defaultGetCapacity piece = Just (unwrap piece).capacity
 
 defaultUpdateCapacity :: forall p r. Newtype p { capacity :: Capacity | r }
-  => Capacity -> p -> Maybe p
-defaultUpdateCapacity capacity piece = Just $ over wrap (_ { capacity = capacity }) piece
+  => CardinalDirection -> Capacity -> p -> Maybe p
+defaultUpdateCapacity _ capacity piece = Just $ over wrap (_ { capacity = capacity }) piece
 
 getPort :: forall p. Piece p => p -> CardinalDirection -> Maybe Port
 getPort p dir = M.lookup dir (getPorts p)

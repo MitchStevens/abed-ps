@@ -146,6 +146,22 @@
   animation-iteration-count: 1;
   animation-timing-function: linear;
 }
+#abed textarea#title {
+  resize: none;
+  background: transparent;
+  border: none;
+  margin: 30px;
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
+}
+#default-layout {
+  padding-left: 100px;
+  padding-right: 100px;
+}
+#default-layout textarea#title {
+  font-size: 14px;
+}
 #puzzle-select-component span[data-puzzle-progress="completed"] {
   color: green;
 }
@@ -177,14 +193,10 @@ span.green {
   justify-items: center;
   padding: 75px;
 }
-#home-component #title {
-  resize: none;
-  background: transparent;
-  font-size: 20px;
-  border: none;
-  margin: 30px;
-}
 #home-component .link {
   font-size: 20px;
   font-family: monospace;
+}
+#home-component #title {
+  font-size: 20px;
 }

@@ -14,7 +14,7 @@ import Data.Maybe (Maybe(..))
 import Data.String (Pattern(..))
 import Data.String as String
 import Game.Direction as Direction
-import Game.Piece (class Piece, APiece, PieceId(..), Port(..), mkPiece, name, portCapacity, portType, updateCapacity)
+import Game.Piece (class Piece, APiece, PieceId(..), Port(..), mkPiece, name, portCapacity, portType, shouldRipple, updateCapacity)
 import Game.Piece as Port
 
 -- used for board evaluation, outputs
@@ -25,8 +25,10 @@ instance Piece PseudoPiece where
     Port.Input -> PieceId "psuedo-input"
     Port.Output -> PieceId "psuedo-output"
   eval _ _ = M.empty
+
+  shouldRipple _ = false
   getCapacity (Pseudo port) = Just (portCapacity port)
-  updateCapacity  _ _ = Nothing
+  updateCapacity _ _ _ = Nothing
   getPorts (Pseudo port) = M.singleton Direction.Right port
   updatePort _ _ _ = Nothing
 

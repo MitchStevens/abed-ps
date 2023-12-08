@@ -3,19 +3,21 @@ module Component.MultimeterComponent where
 import Prelude
 
 import Capability.GlobalEventEmmiters (globalKeyDownEventEmitter, globalMouseMoveEventEmitter)
+import Data.Align (aligned)
 import Data.Array (elem, range)
 import Data.Array as A
-import Data.Foldable (for_)
+import Data.Foldable (foldMap, for_)
 import Data.FunctorWithIndex (mapWithIndex)
 import Data.Map.Internal (Map(..))
 import Data.Maybe (Maybe(..), maybe)
+import Data.These (These(..))
 import Data.TraversableWithIndex (forWithIndex)
 import Data.Unfoldable1 (iterateN)
 import Effect.Class (class MonadEffect, liftEffect)
 import Effect.Class.Console (log)
 import Game.Board (RelativeEdge)
-import Game.Board.PortInfo (PortInfo)
-import Game.Piece (Capacity(..), Port(..), inputPort, portCapacity, toInt)
+import Game.Board.PortInfo (PortInfo, getClampedSignal)
+import Game.Piece (Capacity(..), Port(..), clampedBits, inputPort, portCapacity, toInt)
 import Game.Signal (Signal(..), nthBit)
 import Halogen (ClassName(..), RefLabel(..), gets, modify_)
 import Halogen as H
@@ -33,14 +35,14 @@ width = 52.916666
 height = 66.675018
 
 leds =
-  [ { cx: 9.077261,  cy: 23.000546, r: 1.9862779 }
-  , { cx: 14.198897, cy: 23.000546, r: 1.9862779 }
-  , { cx: 19.320534, cy: 23.000546, r: 1.9862779 }
-  , { cx: 24.442171, cy: 23.000546, r: 1.9862779 }
-  , { cx: 29.563808, cy: 23.000546, r: 1.9862779 }
-  , { cx: 34.685444, cy: 23.000546, r: 1.9862779 }
+  [ { cx: 44.928719, cy: 23.000546, r: 1.9862779 }
   , { cx: 39.807083, cy: 23.000546, r: 1.9862779 }
-  , { cx: 44.928719, cy: 23.000546, r: 1.9862779 }
+  , { cx: 34.685444, cy: 23.000546, r: 1.9862779 }
+  , { cx: 29.563808, cy: 23.000546, r: 1.9862779 }
+  , { cx: 24.442171, cy: 23.000546, r: 1.9862779 }
+  , { cx: 19.320534, cy: 23.000546, r: 1.9862779 }
+  , { cx: 14.198897, cy: 23.000546, r: 1.9862779 }
+  , { cx: 9.077261,  cy: 23.000546, r: 1.9862779 }
   ]
 
 radialDial = { cx: 15.749074, cy: 44.965733, r: 15.025925 }
@@ -85,12 +87,11 @@ component = H.mkComponent { eval, initialState, render }
         [ SE.svg 
           [ SA.viewBox 0.0 0.0 width height
           ] $
-          map fromPlainHTML
+          map fromPlainHTML $
             [ renderMultimeterImage
-            , renderBits (maybe (Signal 0) (_.info.signal) state.focus)
-            , renderDisplay ((_.info.signal) <$> state.focus)
             , renderRotarySwitch (portCapacity <<< (_.info.port) <$> state.focus)
-            ]
+            ] <> foldMap renderDisplay ((_.info) <$> state.focus)
+              <> foldMap renderBits    ((_.info) <$> state.focus)
         ]
     
     eval = H.mkEval
@@ -108,6 +109,11 @@ component = H.mkComponent { eval, initialState, render }
             GlobalKeyDown ke -> do
               when (key ke == "s") do 
                 modify_ (\s -> s { display = not s.display})
+              
+              when (key ke == "=") do
+                log "increment"
+              when (key ke == "-") do
+                log "dec"
 
               when (key ke `elem` ["1", "2", "3", "4"]) do
                 maybeFocus <- gets (_.focus)
@@ -126,17 +132,24 @@ component = H.mkComponent { eval, initialState, render }
         }
       )
 
-renderDisplay :: Maybe Signal -> PlainHTML
-renderDisplay maybeSignal =
+renderDisplay :: PortInfo -> Array PlainHTML
+renderDisplay info = pure $
   SE.text
     [ SA.x (display.w + display.x), SA.y (display.h + display.y), SA.textAnchor AnchorEnd ]
-    [ HH.text (maybe ""  show maybeSignal) ]
+    [ HH.text (show (getClampedSignal info)) ]
 
-renderBits :: Signal -> PlainHTML
-renderBits signal =
-  SE.g [] $ flip mapWithIndex leds \i { cx, cy, r } -> 
-    let color = if nthBit signal (7-i) then Named "red" else Named "White"
-    in  SE.circle [ SA.cx cx, SA.cy cy, SA.r r, SA.fill color ]
+renderBits :: PortInfo -> Array PlainHTML
+renderBits info =
+  flip map (aligned leds (clampedBits (portCapacity info.port) info.signal)) $
+    case _ of
+      This { cx, cy, r } -> 
+        SE.circle [ SA.cx cx, SA.cy cy, SA.r r, SA.fill (Named "black") ]
+      That b -> SE.circle [] -- should never happen
+      Both { cx, cy, r } b ->
+        let color = if b then Named "red" else Named "white"
+        in  SE.circle [ SA.cx cx, SA.cy cy, SA.r r, SA.fill color ]
+
+
 
 renderMultimeterImage :: PlainHTML
 renderMultimeterImage =

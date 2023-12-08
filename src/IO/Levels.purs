@@ -17,6 +17,7 @@ import Game.Level (LevelId, LevelSuite)
 import Game.Piece (mkPiece, name)
 import IO.Levels.IntermediateSuite (intermediateSuite)
 import IO.Levels.TutorialSuite (tutorialSuite)
+import IO.Levels.TwoBitSuite (twoBitSuite)
 import Web.DOM.ParentNode (QuerySelector(..))
 import Web.HTML.Common (AttrName(..))
 
@@ -26,6 +27,7 @@ allLevels = fromHomogeneous
   { "Tutorial Suite": tutorialSuite
   , "Identity Suite": identitySuite
   , "Intermediate Suite": intermediateSuite
+  , "Two Bit Suite": twoBitSuite
   }
 
 getAllLevelProgress :: forall m. MonadEffect m => m (Map LevelId LevelProgress)

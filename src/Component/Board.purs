@@ -19,6 +19,7 @@ import Data.Bifunctor (lmap)
 import Data.Either (Either(..), blush, either, fromRight, hush, isRight)
 import Data.Enum (fromEnum)
 import Data.Foldable (foldMap, for_, traverse_)
+import Data.FoldableWithIndex (traverseWithIndex_)
 import Data.FunctorWithIndex (mapWithIndex)
 import Data.Int (toNumber)
 import Data.Lens.At (at)
@@ -36,14 +37,15 @@ import Data.Tuple (Tuple(..), uncurry)
 import Data.Tuple.Nested (Tuple3, tuple3, tuple4, (/\))
 import Data.Zipper (Zipper)
 import Data.Zipper as Z
+import Debug (trace)
 import Effect.Class (class MonadEffect, liftEffect)
 import Effect.Class.Console (log, logShow)
-import Game.Board (Board(..), RelativeEdge, _pieces, _size, relativeEdgeLocation, standardBoard, toLocalInputs)
+import Game.Board (Board(..), RelativeEdge, _pieces, _size, printBoard, relativeEdgeLocation, standardBoard, toLocalInputs)
 import Game.Board.EvaluableBoard (EvaluableBoard(..), buildEvaluableBoard, evalWithPortInfo, injectInputs, toEvaluableBoard)
 import Game.Board.Operation (BoardError, BoardM, addPiece, applyBoardEvent, decreaseSize, evalBoardM, getPieceInfo, increaseSize, movePiece, removePiece, rotatePieceBy, runBoardM)
 import Game.Board.Path (boardPath)
 import Game.Board.PortInfo (PortInfo)
-import Game.Board.Query (capacityRipple)
+import Game.Board.Query (capacityRipple, getBoardRelEdge)
 import Game.Direction (CardinalDirection)
 import Game.Direction as Direction
 import Game.GameEvent (BoardEvent(..), GameEvent(..), GameEventStore, boardEventLocationsChanged)
@@ -114,6 +116,8 @@ data Action
   | LocationOnDragOver Location DragEvent
   | LocationOnDragLeave DragEvent
   | LocationOnDrop Location DragEvent
+  | BoardPortOnMouseEnter CardinalDirection
+  | BoardPortOnMouseLeave
   | DoNothing
 
 data Output
@@ -217,10 +221,17 @@ component = H.mkComponent { eval , initialState , render }
               [ SA.transform 
                 [ Rotate (toNumber (fromEnum dir + 2) * 90.0) 25.0 12.5 ]
               ]
-              [ mapActionOverHTML (\_ -> DoNothing) (renderPort dir (portInfo { port = matchingPort portInfo.port} )) ]
+              [ mapActionOverHTML pieceActionToBoardAction (renderPort dir (portInfo { port = matchingPort portInfo.port} )) ]
             ]
           ]
         where
+          pieceActionToBoardAction :: Piece.Action -> Action
+          pieceActionToBoardAction = case _ of
+            Piece.PortOnMouseEnter dir -> BoardPortOnMouseEnter dir
+            Piece.PortOnMouseLeave -> BoardPortOnMouseLeave
+            _ -> DoNothing
+
+
           m = n+2
           Tuple x y = case dir of
             Direction.Up    -> Tuple 1 (m `div` 2 + 1)
@@ -296,7 +307,6 @@ component = H.mkComponent { eval , initialState , render }
     Initialise -> do
       emitter <- liftEffect $ globalKeyDownEventEmitter
       void $ H.subscribe (GlobalOnKeyDown <$> emitter)
-
       H.raise =<< NewBoardState <$> use _board
     PieceOutput (Piece.Rotated loc rot) ->
       liftBoardM (rotatePieceBy loc rot) >>= traverse_ \(Tuple _ board) -> do
@@ -321,8 +331,7 @@ component = H.mkComponent { eval , initialState , render }
 
     -- todo: fix this
     MultimeterOutput (Multimeter.SetCapacity relativeEdge capacity) -> do
-      let loc = relativeEdgeLocation relativeEdge
-      liftBoardM (capacityRipple loc capacity) >>= traverse_ \(Tuple _ board) -> do
+      liftBoardM (capacityRipple relativeEdge capacity) >>= traverse_ \(Tuple _ board) -> do
         updateBoard board
         -- update the multimeter after the port has changed
         signals <- gets (_.lastEvalWithPortInfo)
@@ -377,6 +386,9 @@ component = H.mkComponent { eval , initialState , render }
             case maybeBoardEvents of
               Just boardEvents -> do
                 let boardEvent = Multiple boardEvents
+
+                trace (show boardEvent) \_ -> pure unit
+
                 liftBoardM (applyBoardEvent boardEvent) >>= traverse_ \(Tuple _ board) -> do
                   updateStore (BoardEvent boardEvent)
                   updateBoard board
@@ -401,8 +413,14 @@ component = H.mkComponent { eval , initialState , render }
         handleAction Undo
       when (key ke == "y" && ctrlKey ke) do
         handleAction Redo
-      --when (key ke == "s") do
-      --  H.modify_ (\s -> s { displayMultimeter = not s.displayMultimeter } )
+    
+    BoardPortOnMouseEnter dir -> do
+      relativeEdge <- evalState (getBoardRelEdge dir) <$> use _board
+      signals <- gets (_.lastEvalWithPortInfo)
+      let focus = { info: _, relativeEdge } <$> M.lookup relativeEdge signals
+      H.tell _multimeter unit (\_ -> Multimeter.NewFocus focus)
+    BoardPortOnMouseLeave -> do
+      H.tell _multimeter unit (\_ -> Multimeter.NewFocus Nothing)
     DoNothing -> pure unit
 
 -- assumes that DOMRect is squareish
@@ -425,6 +443,9 @@ updateBoard board = do
   pieces <- use (_board <<< _pieces)
   evaluateBoard
 
+  b <- use _board
+  trace (printBoard b) \_ -> pure unit
+
   -- tell puzzle component that board state has been changed
   H.raise (NewBoardState board)
 
@@ -445,12 +466,10 @@ evaluateBoard = do
       , goalPorts = mapWithIndex updateGoalInfo s.goalPorts
       }
 
-    use (_board <<< _pieces <<< to M.keys) >>= traverse_ \loc -> do
+    use (_board <<< _pieces) >>= traverseWithIndex_ \loc info -> do
+      H.tell _piece loc (\_ -> Piece.SetPiece info.piece)
       let portStates = toLocalInputs loc signals
       H.tell _piece loc (\_ -> Piece.SetPortStates portStates)
-
-
-
 
 
 liftBoardM :: forall m a. BoardM a -> HalogenM State Action Slots Output m (Either BoardError (Tuple a Board))

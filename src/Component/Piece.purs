@@ -161,6 +161,9 @@ component = H.mkComponent { eval , initialState , render }
         SetPortStates portStates -> do
           H.modify_ $ _ { portStates = portStates }
           pure Nothing
+        SetPiece piece -> do
+          H.modify_ (_ {piece = piece})
+          pure Nothing
     , initialize: Nothing
     , receive: \_ -> Nothing --Just <<< Initialise -- :: input -> Maybe action
     }

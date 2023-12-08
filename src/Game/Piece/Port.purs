@@ -2,11 +2,14 @@ module Game.Piece.Port where
 
 import Prelude
 
+import Data.Array (range)
+import Data.Int.Bits (shl, (.&.))
 import Data.Lens (Lens', has, is, only, view, (%~))
 import Data.Lens.Iso.Newtype (_Newtype)
 import Data.Lens.Record (prop)
 import Data.Maybe (Maybe(..))
 import Data.Newtype (class Newtype)
+import Game.Signal (Signal(..), nthBit)
 import Type.Proxy (Proxy(..))
 
 data Capacity = OneBit | TwoBit | FourBit | EightBit
@@ -36,6 +39,23 @@ halveCapacity = case _ of
   TwoBit   -> Just OneBit
   FourBit  -> Just TwoBit
   EightBit -> Just FourBit
+
+maxValue :: Capacity -> Signal
+maxValue = case _ of
+  OneBit   -> Signal 1
+  TwoBit   -> Signal 3
+  FourBit  -> Signal 15
+  EightBit -> Signal 255
+
+clampSignal :: Capacity -> Signal -> Signal
+clampSignal capacity (Signal s) =
+  Signal (s .&. (shl 1 (toInt capacity) - 1))
+
+-- from lowest to highest bits
+clampedBits :: Capacity -> Signal -> Array Boolean
+clampedBits capacity signal  =
+  nthBit signal <$> range 0 (toInt capacity - 1)
+
 
 data PortType = Input | Output
 derive instance Eq PortType

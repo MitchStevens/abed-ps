@@ -48,5 +48,5 @@ type LevelSuite = Object Level
 
 binaryTestInputs :: Array CardinalDirection -> Array (Map CardinalDirection Signal)
 binaryTestInputs directions = do
-  inputs <- traverse (\_ -> [ff, tt]) directions
+  inputs <- traverse (\_ -> [Signal 0, Signal 1]) directions
   pure $ M.fromFoldable (zip directions inputs)

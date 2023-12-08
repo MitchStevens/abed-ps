@@ -16,7 +16,7 @@ import Game.Direction (CardinalDirection(..))
 import Game.Direction as Direction
 import Game.Expression (Expression(..), evaluate, ref)
 import Game.Piece.APiece (APiece(..), mkPiece)
-import Game.Piece.Class (class Piece, PieceId(..), defaultGetCapacity, defaultUpdateCapacity, getCapacity, updateCapacity)
+import Game.Piece.Class (class Piece, PieceId(..), defaultGetCapacity, defaultUpdateCapacity, getCapacity, shouldRipple, updateCapacity)
 import Game.Piece.Port (Capacity(..), Port(..), inputPort, isInput, outputPort)
 import Game.Rotation (Rotation(..))
 
@@ -35,6 +35,8 @@ instance Piece BasicPiece where
   eval (Basic piece) inputs = flip M.mapMaybe piece.ports $ case _ of
     BasicInput  -> Nothing
     BasicOutput expression -> Just (evaluate inputs expression)
+  
+  shouldRipple _  = true
   getCapacity = defaultGetCapacity
   updateCapacity = defaultUpdateCapacity
   getPorts (Basic piece) = piece.ports <#> case _ of
@@ -46,32 +48,11 @@ instance Piece BasicPiece where
 
 allBasicPieces :: Array APiece
 allBasicPieces =
-  [ leftPiece, rightPiece, superPiece
-  , notPiece, orPiece, andPiece
+  [ notPiece, orPiece, andPiece
   , crossPiece, cornerCutPiece, chickenPiece
   , xorPiece
   ]
 
-
-leftPiece :: APiece
-leftPiece = mkPiece $ Basic
-  { name: "left"
-  , capacity: OneBit
-  , ports: M.fromFoldable
-    [ Tuple Left $ BasicInput
-    , Tuple Up $ BasicOutput (ref Left)
-    ]
-  }
-
-rightPiece :: APiece
-rightPiece = mkPiece $ Basic
-  { name: "right"
-  , capacity: OneBit
-  , ports: M.fromFoldable
-    [ Tuple Left $ BasicInput
-    , Tuple Down $ BasicOutput (ref Left)
-    ]
-  }
 
 notPiece :: APiece
 notPiece = mkPiece $ Basic 
@@ -105,27 +86,15 @@ andPiece = mkPiece $ Basic
     ]
   }
 
-superPiece :: APiece
-superPiece = mkPiece $ Basic
-  { name: "super"
+crossPiece :: APiece
+crossPiece = mkPiece $ Basic
+  { name: "cross"
   , capacity: OneBit
   , ports: M.fromFoldable
     [ Tuple Left BasicInput
-    , Tuple Up    $ BasicOutput (ref Left)
+    , Tuple Up   BasicInput
     , Tuple Right $ BasicOutput (ref Left)
-    , Tuple Down  $ BasicOutput (ref Left)
-    ]
-  }
-
-crossPiece :: APiece
-crossPiece = mkPiece $ Basic
-  { name: "cross" 
-  , capacity: OneBit
-  , ports: M.fromFoldable
-    [ Tuple Left $ BasicInput  
-    , Tuple Up $ BasicInput 
-    , Tuple Right $ BasicOutput (ref Left)
-    , Tuple Down $ BasicOutput (ref Up)
+    , Tuple Down  $ BasicOutput (ref Up)
     ]
   }
 
@@ -151,6 +120,18 @@ chickenPiece = mkPiece $ Basic
     , Tuple Right $ BasicInput 
     , Tuple Up $ BasicOutput  (ref Right)
     , Tuple Down $ BasicOutput (ref Left) 
+    ]
+  }
+
+reverseChickenPiece :: APiece
+reverseChickenPiece = mkPiece $ Basic
+  { name: "chicken"
+  , capacity: OneBit
+  , ports: M.fromFoldable
+    [ Tuple Left $ BasicInput 
+    , Tuple Right $ BasicInput 
+    , Tuple Up $ BasicOutput  (ref Left)
+    , Tuple Down $ BasicOutput (ref Right) 
     ]
   }
 

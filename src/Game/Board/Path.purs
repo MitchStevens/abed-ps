@@ -29,6 +29,7 @@ import Data.Tuple.Nested (Tuple3, tuple3, uncurry3, (/\))
 import Data.Unfoldable (unfoldr)
 import Data.Zipper (Zipper(..))
 import Data.Zipper as Z
+import Debug (trace)
 import Effect.Aff (Aff, error)
 import Game.Board (Board(..), PieceInfo, _pieces)
 import Game.Direction (CardinalDirection, allDirections, clockwiseRotation, rotateDirection)
@@ -88,8 +89,8 @@ overlayWires wire Nothing = do
     Rotation 3 -> pure $ name rightPiece
     _ -> throwError (WireInputEqualsOutput wire.inputDirection wire.outputDirection)
   pure $
-    AddedPiece wire.location pieceId : RotatedPiece wire.location (clockwiseRotation Direction.Left wire.inputDirection) : Nil
---- fuckkk
+    AddedPieceWithRotation wire.location pieceId (clockwiseRotation Direction.Left wire.inputDirection) : Nil
+--- fugg
 -- start by finding the rotation such that there is one input on the left and one input on the side
 -- then figure out whether it's a crossover or a corner cut
 overlayWires wire (Just extant) = do
@@ -115,8 +116,8 @@ overlayWires wire (Just extant) = do
         _ -> throwError (noOverlay)
       pure $
         RemovedPiece extant.location (PieceId "whatever")
-        : AddedPiece extant.location (name crossPiece)
-        : RotatedPiece extant.location rot : Nil
+        : AddedPieceWithRotation extant.location (name crossPiece) rot
+        : Nil
 
     isCornerCut :: m (List BoardEvent)
     isCornerCut = do
@@ -127,8 +128,8 @@ overlayWires wire (Just extant) = do
         _ -> throwError (noOverlay)
       pure $
         RemovedPiece extant.location (PieceId "whatever")
-        : AddedPiece extant.location (name cornerCutPiece)
-        : RotatedPiece extant.location rot : Nil
+        : AddedPieceWithRotation extant.location (name cornerCutPiece) rot
+        : Nil
 
     isChicken :: m (List BoardEvent)
     isChicken = do
@@ -136,8 +137,8 @@ overlayWires wire (Just extant) = do
       let rot = clockwiseRotation wire.inputDirection Direction.Left
       pure $
         RemovedPiece extant.location (PieceId "whatever")
-        : AddedPiece extant.location (name chickenPiece)
-        : RotatedPiece extant.location rot : Nil
+        : AddedPieceWithRotation extant.location (name chickenPiece) rot
+        : Nil
 
 
 
@@ -158,7 +159,9 @@ triples = case _ of
 boardPath :: forall m. MonadState Board m
   => CardinalDirection -> Array Location -> CardinalDirection -> m (Maybe (List BoardEvent))
 boardPath initialDir path terminalDir = hush <$> do
-  runExceptT (boardPathWithError initialDir path terminalDir)
+  a <- runExceptT (boardPathWithError initialDir path terminalDir)
+  trace (show a) \_ -> pure unit
+  pure a
 
 
 boardPathWithError :: forall m. MonadError PathError m => MonadState Board m => Alt m

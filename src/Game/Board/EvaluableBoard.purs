@@ -19,7 +19,7 @@ import Data.HeytingAlgebra (ff)
 import Data.Lens (use)
 import Data.Lens.At (at)
 import Data.Lens.Index (ix)
-import Data.List (List(..), find)
+import Data.List (List(..), find, fold, foldMap)
 import Data.List as L
 import Data.Map (Map)
 import Data.Map as M
@@ -32,13 +32,13 @@ import Debug (debugger, trace)
 import Game.Board (Board(..), RelativeEdge(..), absolute, relative, relativeEdgeLocation)
 import Game.Board as Board
 import Game.Board.Operation (BoardError(..))
-import Game.Board.PortInfo (PortInfo)
+import Game.Board.PortInfo (PortInfo, getClampedSignal)
 import Game.Board.PseudoPiece (isPseudoPiece, psuedoPiece)
 import Game.Board.Query (adjacentRelativeEdge, buildConnectionMap, getBoardEdgePseudoLocation, getPortOnEdge, toRelativeEdge)
 import Game.Direction (CardinalDirection, allDirections, clockwiseRotation, oppositeDirection)
 import Game.Direction as Direction
 import Game.Location (Location(..), followDirection)
-import Game.Piece (class Piece, APiece, Capacity, PieceId(..), Port(..), eval, getPorts, inputPort, isInput, isOutput, matchingPort, name, outputPort, portCapacity, portType)
+import Game.Piece (class Piece, APiece, Capacity, PieceId(..), Port(..), clampSignal, eval, getPorts, inputPort, isInput, isOutput, matchingPort, name, outputPort, portCapacity, portType, shouldRipple)
 import Game.Piece as Port
 import Game.Signal (Signal(..))
 import Halogen.Svg.Attributes (m)
@@ -116,8 +116,9 @@ instance Piece EvaluableBoard where
   eval evaluable inputs = flip evalState M.empty do
     injectInputs evaluable inputs
     evalWithPortInfo evaluable inputs
+  shouldRipple _ = false
   getCapacity _ = Nothing
-  updateCapacity _ _ = Nothing
+  updateCapacity _ _ _ = Nothing
   getPorts (EvaluableBoard evaluable) = evaluable.ports
   -- todo: do this later maybe? do i actually ned this?
   updatePort _ _ _ = Nothing
@@ -136,7 +137,7 @@ injectInputs (EvaluableBoard evaluable) inputs = do
   forWithIndex_ evaluable.ports \dir port -> do
     when (isInput port) do
       for_ (M.lookup dir evaluable.portLocations) \relEdge -> do
-        let signal = fromMaybe (Signal 0) (M.lookup dir inputs)
+        let signal = foldMap (clampSignal (portCapacity port)) (M.lookup dir inputs)
         at relEdge .= Just { port: matchingPort port, connected: false, signal }
 
 getInputOnEdge :: forall m. MonadState (Map RelativeEdge PortInfo) m
@@ -145,9 +146,10 @@ getInputOnEdge (EvaluableBoard evaluable) inRelEdge capacity = do
   case (M.lookup inRelEdge evaluable.connections) of
     Just outRelEdge -> do
       maybeSignal <- use (at outRelEdge) >>= traverse \info -> do
-        at inRelEdge  .= Just { connected: true, signal: info.signal, port: inputPort  capacity }
-        at outRelEdge .= Just { connected: true, signal: info.signal, port: outputPort capacity }
-        pure info.signal
+        let signal = getClampedSignal info
+        at inRelEdge  .= Just { connected: true, signal: signal, port: inputPort  capacity }
+        at outRelEdge .= Just { connected: true, signal: signal, port: outputPort capacity }
+        pure signal
       pure $ fromMaybe (Signal 0) maybeSignal
     Nothing -> do
       at inRelEdge .= Just { connected: false, signal: Signal 0, port: inputPort capacity }
@@ -170,7 +172,7 @@ evalWithPortInfoAt board@(EvaluableBoard evaluable) loc = do
       let outputs = eval piece inputs
       let outputPorts  = M.filter isOutput ports
       forWithIndex_ outputPorts \dir port -> do
-        let signal = fromMaybe ff (M.lookup dir outputs)
+        let signal = foldMap (clampSignal (portCapacity port)) (M.lookup dir outputs)
         at (relative loc dir) .= Just { connected: false, signal, port }
 
 extractOutputs :: forall m. MonadState (Map RelativeEdge PortInfo) m

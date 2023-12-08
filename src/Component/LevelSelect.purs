@@ -6,6 +6,7 @@ import Capability.Navigate (Route(..), navigateTo)
 import Capability.Progress (LevelProgress(..), saveLevelProgress)
 import Component.DataAttribute (attr)
 import Component.DataAttribute as DataAttr
+import Component.Layout.DefaultLayout (defaultLayout)
 import Data.Map (Map)
 import Data.Map as M
 import Data.Maybe (Maybe(..))
@@ -39,16 +40,17 @@ component = H.mkComponent { eval , initialState , render }
   initialState _ = { levelProgress: M.empty } 
 
   render state =  
-    HH.div [ HP.id "puzzle-select-component" ]
-      [ HH.h1_ [ HH.text "Level Select" ] 
-      , HH.div_  do
-          Tuple suiteName levelSuite <- O.toUnfoldable allLevels
-          [ HH.h2_ [ HH.text suiteName ]
-          , HH.ul_ do
-            Tuple levelName _ <- O.toUnfoldable levelSuite
-            [ HH.li_ [ renderPuzzle suiteName levelName ] ]
-          ]
-      ]
+    defaultLayout $
+      HH.div [ HP.id "puzzle-select-component" ]
+        [ HH.h1_ [ HH.text "Level Select" ] 
+        , HH.div_  do
+            Tuple suiteName levelSuite <- O.toUnfoldable allLevels
+            [ HH.h2_ [ HH.text suiteName ]
+            , HH.ul_ do
+              Tuple levelName _ <- O.toUnfoldable levelSuite
+              [ HH.li_ [ renderPuzzle suiteName levelName ] ]
+            ]
+        ]
 
     where
     renderPuzzle suiteName levelName =
