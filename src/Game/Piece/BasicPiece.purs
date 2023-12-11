@@ -56,7 +56,7 @@ allBasicPieces =
 
 notPiece :: APiece
 notPiece = mkPiece $ Basic 
-  { name: "not"
+  { name: "not-piece"
   , capacity: OneBit
   , ports: M.fromFoldable
     [ Tuple Left $ BasicInput
@@ -66,7 +66,7 @@ notPiece = mkPiece $ Basic
 
 orPiece :: APiece
 orPiece = mkPiece $ Basic 
-  { name: "or"
+  { name: "or-piece"
   , capacity: OneBit
   , ports: M.fromFoldable
     [ Tuple Left $ BasicInput  
@@ -77,7 +77,7 @@ orPiece = mkPiece $ Basic
 
 andPiece :: APiece
 andPiece = mkPiece $ Basic 
-  { name: "and" 
+  { name: "and-piece" 
   , capacity: OneBit
   , ports: M.fromFoldable
     [ Tuple Left $ BasicInput  
@@ -88,7 +88,7 @@ andPiece = mkPiece $ Basic
 
 crossPiece :: APiece
 crossPiece = mkPiece $ Basic
-  { name: "cross"
+  { name: "cross-piece"
   , capacity: OneBit
   , ports: M.fromFoldable
     [ Tuple Left BasicInput
@@ -100,7 +100,7 @@ crossPiece = mkPiece $ Basic
 
 cornerCutPiece :: APiece
 cornerCutPiece = mkPiece $ Basic
-  { name: "corner-cut"
+  { name: "corner-cut-piece"
   , capacity: OneBit
   , ports: M.fromFoldable
     [ Tuple Left $ BasicInput
@@ -113,7 +113,7 @@ cornerCutPiece = mkPiece $ Basic
 
 chickenPiece :: APiece
 chickenPiece = mkPiece $ Basic
-  { name: "chicken"
+  { name: "chicken-piece"
   , capacity: OneBit
   , ports: M.fromFoldable
     [ Tuple Left $ BasicInput 
@@ -137,7 +137,7 @@ reverseChickenPiece = mkPiece $ Basic
 
 xorPiece :: APiece
 xorPiece = mkPiece $ Basic 
-  { name: "xor" 
+  { name: "xor-piece" 
   , capacity: OneBit
   , ports: M.fromFoldable
     [ Tuple Left $ BasicInput

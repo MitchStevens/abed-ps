@@ -22,8 +22,8 @@ import Effect.Class.Console (log)
 import Effect.Exception (Error, error)
 import Game.Board (Board(..), _pieces, relativeEdgeLocation, standardBoard)
 import Game.Board.EvaluableBoard (topologicalSort)
-import Game.Board.Operation (BoardError(..), addPiece, addPieceWithRotation, applyBoardEvent, decreaseSize, increaseSize, removePiece, rotatePieceBy, updatePortsAround, validBoardSize)
-import Game.Board.Path (boardPath, boardPathWithError)
+import Game.Board.Operation (BoardError(..), addPiece, addPieceNoUpdate, applyBoardEvent, decreaseSize, increaseSize, removePiece, rotatePieceBy, updatePortsAround, validBoardSize)
+import Game.Board.Path (addBoardPath)
 import Game.Board.Query (buildConnectionMap)
 import Game.Direction as Direction
 import Game.GameEvent (BoardEvent(..))
@@ -65,7 +65,7 @@ tests = do
         it " weird edgecase" do
           exceptToAff do
            addPiece (location 0 1) leftPiece
-           addPieceWithRotation (location 0 0) idPiece (rotation 3)
+           addPieceNoUpdate (location 0 0) idPiece (rotation 3)
            --rotatePieceBy (location 0 0) (rotation 3)
 
         --  _pieces <<< at (location 0 1) .= Just { piece: leftPiece, rotation: rotation 0 }
@@ -135,31 +135,9 @@ tests = do
                 getOutputDirs info.piece `shouldEqual` S.fromFoldable [ Direction.Up ]
               Nothing -> throwError (error "left piece was not added")
 
-
-
           it "RemovedPiece" do
             exceptToAff (applyBoardEvent (AddedPiece loc (name idPiece)))
             use (_pieces <<< at loc) `shouldReturn` Just { piece: idPiece, rotation: rotation 0}
 
             exceptToAff (applyBoardEvent (RemovedPiece loc (name idPiece)))
             use (_pieces <<< at loc) `shouldReturn` Nothing
-          
-          it "Multiple" do
-            path <- exceptToAff $ boardPathWithError Direction.Left [ location 0 1, location 0 0 ] Direction.Up
-
-            exceptToAff (applyBoardEvent (Multiple path))
-            maybeLeft <- use (_pieces <<< at (location 0 1))
-            case maybeLeft of
-              Just info -> do
-                info.piece `shouldEqual` leftPiece
-                info.rotation `shouldEqual` rotation 0
-                getOutputDirs info.piece `shouldEqual` S.fromFoldable [ Direction.Up ]
-              Nothing -> throwError (error "left piece was not added")
-            
-            --`shouldReturn` Just { piece: leftPiece, rotation: rotation 0}
-            use (_pieces <<< at (location 0 0)) `shouldReturn` Just { piece: idPiece, rotation: rotation 3}
-
-
-
-
-

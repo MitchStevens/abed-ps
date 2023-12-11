@@ -5,32 +5,36 @@ import Prelude
 
 import Control.Alternative (guard)
 import Control.Monad.State (class MonadState, evalState, get, gets)
-import Data.Array (intercalate, (..))
+import Data.Align (align)
+import Data.Array (foldr, (..))
 import Data.Array as A
+import Data.Foldable (intercalate, surround)
 import Data.FoldableWithIndex (foldMapWithIndex)
 import Data.Group (ginverse)
 import Data.Lens.At (at)
 import Data.Lens.Index (ix)
 import Data.Lens.Iso.Newtype (_Newtype)
 import Data.Lens.Record (prop)
-import Data.List (List(..), any)
+import Data.List (List(..), any, foldMap, (:))
 import Data.List as L
 import Data.Map (Map)
 import Data.Map as M
 import Data.Map.Internal as Map
 import Data.Map.Unsafe (unsafeMapKey)
 import Data.Maybe (Maybe(..), fromMaybe, isJust, maybe)
+import Data.Monoid (power)
 import Data.Newtype (class Newtype)
 import Data.Set (Set)
 import Data.Set as S
-import Data.Traversable (for, sequence)
+import Data.Traversable (for, sequence, traverse)
 import Data.Tuple (Tuple(..))
+import Data.Unfoldable (replicate)
 import Game.Board.PortInfo (PortInfo)
-import Game.Direction (CardinalDirection, allDirections, rotateDirection)
+import Game.Direction (CardinalDirection, allDirections, oppositeDirection, rotateDirection)
 import Game.Direction as Direction
 import Game.Edge (Edge(..), edge, matchEdge)
 import Game.Location (Location(..), location)
-import Game.Piece (class Piece, PieceId(..), Port, eval, getCapacity, getOutputDirs, getPort, getPorts, isInput, name, portType)
+import Game.Piece (class Piece, PieceId(..), Port, PortType, eval, getCapacity, getOutputDirs, getPort, getPorts, isInput, name, portCapacity, portType, toInt)
 import Game.Piece.APiece (APiece(..))
 import Game.Piece.Port as Port
 import Game.Rotation (Rotation(..))
@@ -80,8 +84,7 @@ newtype Board = Board
 derive instance Newtype Board _
 derive instance Eq Board
 instance Show Board where
-  show (Board {size, pieces}) = "Board " <> show size <> " " <>
-    show pieces
+  show = printBoard
 
 _size :: Lens' Board Int
 _size = _Newtype <<< prop (Proxy :: Proxy "size")
@@ -116,13 +119,65 @@ firstEmptyLocation board = do
 
 {-
   would be nice to print a graphical version of the board
- +━━━━━━━━━+ 
+ +━━━━∧ 
  ┃    1    ┃
- ┃ 1     1 ┃
+ > 1     1 >
  ┃    1    ┃
- +━━━━━━━━━+
+ +━━━━∨ ━━━+
 -}
 printBoard :: Board -> String
-printBoard (Board b) = intercalate "\n" $
-  flip foldMapWithIndex b.pieces \dir info ->
-    [ show dir <> " " <> show info.rotation <> ": "<> show (name info.piece) <>" OUTPUTS " <> show (getOutputDirs info.piece) ]
+printBoard (Board b) = "SHOW BOARD\n" <> (foldMap (_ <> "\n") $ interleave colEdges rows )
+  where
+    rows = L.range 0 (b.size - 1) <#> \x -> printRow x
+    colEdges = L.range 0 b.size <#> \y -> 
+      surround "+" $ (L.range 0 (b.size - 1)) <#> \x -> printColEdge x y
+
+    printPiece :: Map CardinalDirection Port -> Rotation -> Location -> List String
+    printPiece ports rot loc = L.fromFoldable
+      [ "   " <> port Direction.Up <> "   "
+      , port Direction.Left <> " " <> printLocation loc <> " " <> port Direction.Right
+      , "   " <> port Direction.Down <> "   "
+      ]
+      where
+        port :: CardinalDirection -> String
+        port dir = 
+          let dir' = rotateDirection dir (ginverse rot)
+          in maybe " " (printPort dir) (M.lookup dir' ports)
+    
+    printLocation :: Location -> String
+    printLocation (Location {x, y}) = show x <> "," <> show y
+
+    printRow :: Int -> String
+    printRow y = intercalate "\n" $ L.foldr (L.zipWith append) (replicate 3 "")  $ interleave edges pieces
+      where
+        pieces =
+          L.range 0 (b.size - 1) <#> \x -> 
+            let loc = location x y
+            in case M.lookup loc b.pieces of
+              Just { piece, rotation } -> printPiece (getPorts piece) rotation loc
+              Nothing -> L.fromFoldable ["       ", "  " <> printLocation loc <> "  ", "       " ]
+
+        edges = L.range 0 b.size <#> \x -> printRowEdge x y
+    
+
+    printPort :: CardinalDirection -> Port -> String
+    printPort dir port = case if isInput port then oppositeDirection dir else dir of
+      Direction.Up -> "∧"
+      Direction.Right -> ">"
+      Direction.Down -> "∨"
+      Direction.Left -> "<"
+    
+    printRowEdge :: Int -> Int -> List String
+    printRowEdge 0 _ = replicate 3 "┃"
+    printRowEdge x y = replicate 3 "┃" -- todo:
+
+    printColEdge :: Int -> Int -> String
+    printColEdge _ 0 = power "━" 7
+    printColEdge x y = power "━" 7 --todo:
+
+    interleave :: forall a. List a -> List a -> List a
+    interleave (Cons x xs) (Cons y ys) = Cons x $ Cons y (interleave xs ys)
+    interleave Nil ys = ys
+    interleave xs Nil = xs
+
+

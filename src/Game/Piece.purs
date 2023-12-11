@@ -1,5 +1,6 @@
 module Game.Piece
   ( pieceLookup
+  , pieceVault
   , module Game.Piece.APiece
   , module Game.Piece.BasicPiece
   , module Game.Piece.Class

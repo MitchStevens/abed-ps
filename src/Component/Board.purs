@@ -43,7 +43,7 @@ import Effect.Class.Console (log, logShow)
 import Game.Board (Board(..), RelativeEdge, _pieces, _size, printBoard, relativeEdgeLocation, standardBoard, toLocalInputs)
 import Game.Board.EvaluableBoard (EvaluableBoard(..), buildEvaluableBoard, evalWithPortInfo, injectInputs, toEvaluableBoard)
 import Game.Board.Operation (BoardError, BoardM, addPiece, applyBoardEvent, decreaseSize, evalBoardM, getPieceInfo, increaseSize, movePiece, removePiece, rotatePieceBy, runBoardM)
-import Game.Board.Path (boardPath)
+import Game.Board.Path (addBoardPath)
 import Game.Board.PortInfo (PortInfo)
 import Game.Board.Query (capacityRipple, getBoardRelEdge)
 import Game.Direction (CardinalDirection)
@@ -231,7 +231,6 @@ component = H.mkComponent { eval , initialState , render }
             Piece.PortOnMouseLeave -> BoardPortOnMouseLeave
             _ -> DoNothing
 
-
           m = n+2
           Tuple x y = case dir of
             Direction.Up    -> Tuple 1 (m `div` 2 + 1)
@@ -382,20 +381,29 @@ component = H.mkComponent { eval , initialState , render }
           for_ (fromEventTarget eventTarget) \element -> do
             bb <- liftEffect (getBoundingClientRect element)
             let terminalDirection = getDirectionClicked me bb
-            maybeBoardEvents <- evalState (boardPath creatingWire.initialDirection creatingWire.locations terminalDirection) <$> use _board
-            case maybeBoardEvents of
-              Just boardEvents -> do
-                let boardEvent = Multiple boardEvents
 
-                trace (show boardEvent) \_ -> pure unit
+            Tuple pathAdded board <- runState (addBoardPath creatingWire.initialDirection creatingWire.locations terminalDirection) <$> use _board
 
-                liftBoardM (applyBoardEvent boardEvent) >>= traverse_ \(Tuple _ board) -> do
-                  updateStore (BoardEvent boardEvent)
-                  updateBoard board
+            when pathAdded do
+              --updateStore (BoardEvent boardEvent)
+              updateBoard board
 
-                H.modify_ $ \s -> s { isCreatingWire = Nothing }
-              Nothing -> do
-                log "no board events!!"
+            H.modify_ $ \s -> s { isCreatingWire = Nothing }
+
+            --maybeBoardEvents <- evalState (boardPath creatingWire.initialDirection creatingWire.locations terminalDirection) <$> use _board
+            --case maybeBoardEvents of
+            --  Just boardEvents -> do
+            --    let boardEvent = Multiple boardEvents
+
+            --    trace (show boardEvent) \_ -> pure unit
+
+            --    liftBoardM (applyBoardEvent boardEvent) >>= traverse_ \(Tuple _ board) -> do
+            --      updateStore (BoardEvent boardEvent)
+            --      updateBoard board
+
+            --    H.modify_ $ \s -> s { isCreatingWire = Nothing }
+            --  Nothing -> do
+            --    log "no board events!!"
 
     -- can these events be simplified? do we need all of them?
     LocationOnDragEnter loc dragEvent -> do
@@ -444,7 +452,7 @@ updateBoard board = do
   evaluateBoard
 
   b <- use _board
-  trace (printBoard b) \_ -> pure unit
+  trace (show board) \_ -> pure unit
 
   -- tell puzzle component that board state has been changed
   H.raise (NewBoardState board)

@@ -10,7 +10,7 @@ import Game.Direction as Direction
 import Game.GameEvent (count, firstTime, latest, pieceAdded, pieceMovedTo, secondTime)
 import Game.Level (LevelSuite, binaryTestInputs, defaultLevel)
 import Game.Message (addDelay, message)
-import Game.Piece (name)
+import Game.Piece (idPiece, leftPiece, name, rightPiece, superPiece, xorPiece)
 import Game.Piece.BasicPiece (allBasicPieces, crossPiece, xorPiece)
 
 intermediateSuite :: LevelSuite
@@ -23,7 +23,7 @@ intermediateSuite = fromHomogeneous
         , description: "Propogate the signal on the left to the right, and the top to the bottom"
         , testCases: binaryTestInputs [ Direction.Left, Direction.Up ]
         , requiresAutomaticTesting: false
-        , pieceSet: S.fromFoldable (map name allBasicPieces)
+        , pieceSet: S.fromFoldable (map name [idPiece, superPiece, leftPiece, rightPiece, xorPiece])
         , otherRestrictions: []
         }
       , boardDeltaRulesEngine = []

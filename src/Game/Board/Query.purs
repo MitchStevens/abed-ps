@@ -192,4 +192,3 @@ capacityRippleAcc capacity vars = case vars.openSet of
       Nothing ->
         capacityRippleAcc capacity { openSet: otherEdges, closedSet }
         
-        

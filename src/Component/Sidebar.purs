@@ -19,9 +19,13 @@ import Control.Monad.Except (runExceptT)
 import Data.Array as A
 import Data.Bifunctor (bimap)
 import Data.Either (Either(..), blush, hush)
+import Data.Filterable (eitherBool)
 import Data.Foldable (find, for_)
+import Data.List (List(..), (:))
+import Data.List as L
 import Data.Map as M
 import Data.Maybe (Maybe(..), fromMaybe, maybe)
+import Data.String (Pattern(..), split)
 import Data.Traversable (for)
 import Effect.Aff.Class (class MonadAff)
 import Effect.Class (class MonadEffect, liftEffect)
@@ -31,14 +35,14 @@ import Game.GameEvent (pieceId)
 import Game.Level.Completion (CompletionStatus(..))
 import Game.Level.Problem (Problem)
 import Game.Location (location)
-import Game.Piece (APiece(..), PieceId(..), name, pieceLookup)
+import Game.Piece (APiece(..), PieceId(..), name, pieceLookup, pieceVault)
 import Game.Piece.Port (isInput)
-import Halogen (ClassName(..), ComponentSlot, HalogenM, HalogenQ, ComponentHTML, liftAff)
+import Halogen (ClassName(..), ComponentHTML, ComponentSlot, HalogenM, HalogenQ, liftAff)
 import Halogen as H
 import Halogen.HTML (HTML, PlainHTML, fromPlainHTML)
 import Halogen.HTML as HH
-import Halogen.HTML.Extras (mapActionOverHTML)
 import Halogen.HTML.Events as HE
+import Halogen.HTML.Extras (mapActionOverHTML)
 import Halogen.HTML.Properties as HP
 import Halogen.Query.HalogenM (mapAction)
 import Type.Proxy (Proxy(..))
@@ -98,7 +102,8 @@ component = H.mkComponent { eval , initialState , render }
     HH.div 
       [ HP.id "sidebar-component" ]
       [ HH.h2_ [ HH.text state.problem.title ]
-      , HH.h3_ [ HH.text state.problem.description ]
+      , HH.span_ [ renderDescription state.problem.description ]
+      , HH.br_
       , renderCompletionStatus -- maybe problemComplete renderError state.error
       , HH.h3_ [ HH.text "Available pieces:"]
       , HH.span [ HP.class_ (ClassName "pieces") ] $
@@ -201,3 +206,21 @@ component = H.mkComponent { eval , initialState , render }
 --
 --    renderDirection dir = HH.span [ HP.class_ (ClassName "direction")]
 --      [ HH.text (show dir) ]
+
+-- adds markup
+renderDescription :: forall p i. String -> HTML p i
+renderDescription = HH.div_ <<< A.fromFoldable <<< map asHTML <<< reduceStrings <<< map filterPieceNames <<< L.fromFoldable <<< split (Pattern " ")
+  where
+    filterPieceNames :: String -> Either String String 
+    filterPieceNames = eitherBool \s -> not (M.member (PieceId s) pieceVault)
+
+    reduceStrings :: List (Either String String) -> List (Either String String)
+    reduceStrings (Right s1 : Right s2 : sn) = reduceStrings (Right (s1 <> " " <> s2) : sn)
+    reduceStrings (Left p   : Right s2 : sn) = Left p : reduceStrings (Right (" " <> s2) : sn)
+    reduceStrings (Right s1 : Left p   : sn) = Right (s1 <> " ") : Left p : reduceStrings sn
+    reduceStrings (s : sn) = s : reduceStrings sn
+    reduceStrings Nil = Nil
+
+    asHTML :: Either String String -> HTML p i
+    asHTML (Left pieceName) = HH.span [ HP.class_ (ClassName "piece-name") ] [ HH.text pieceName ]
+    asHTML (Right text) = HH.text text

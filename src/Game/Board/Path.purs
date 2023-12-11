@@ -6,15 +6,16 @@ import Control.Alt (class Alt, alt, (<|>))
 import Control.Alternative (guard)
 import Control.Extend (extend)
 import Control.Monad.Error.Class (class MonadError, liftEither, throwError)
-import Control.Monad.Except (runExcept, runExceptT)
+import Control.Monad.Except (ExceptT(..), runExcept, runExceptT, withExceptT)
 import Control.Monad.List.Trans (ListT, lift, nil)
 import Control.Monad.List.Trans as ListT
 import Control.Monad.Maybe.Trans (MaybeT)
 import Control.Monad.State (class MonadState, StateT, evalState, evalStateT)
-import Data.Array (cons, find, foldMap, head, last, length, snoc, (!!))
+import Control.Monad.Writer (class MonadWriter)
+import Data.Array (cons, find, foldr, head, last, length, snoc, (!!))
 import Data.Array as A
-import Data.Either (Either(..), either, hush, note)
-import Data.Foldable (fold, null)
+import Data.Either (Either(..), either, hush, isRight, note)
+import Data.Foldable (fold, foldMap, null, traverse_)
 import Data.Lens (use)
 import Data.Lens.At (at)
 import Data.List (List(..), (:))
@@ -32,11 +33,11 @@ import Data.Zipper as Z
 import Debug (trace)
 import Effect.Aff (Aff, error)
 import Game.Board (Board(..), PieceInfo, _pieces)
+import Game.Board.Operation (BoardError, BoardM, addPieceNoUpdate, removePieceNoUpdate)
 import Game.Direction (CardinalDirection, allDirections, clockwiseRotation, rotateDirection)
 import Game.Direction as Direction
-import Game.GameEvent (BoardEvent(..))
 import Game.Location (Location(..), directionTo, followDirection)
-import Game.Piece (APiece(..), PieceId(..), getPort, name, chickenPiece, cornerCutPiece, crossPiece, leftPiece, rightPiece, idPiece)
+import Game.Piece (APiece(..), PieceId(..), chickenPiece, cornerCutPiece, crossPiece, getPort, idPiece, leftPiece, name, rightPiece)
 import Game.Piece.Port (isInput)
 import Game.Rotation (Rotation(..), rotation)
 
@@ -46,6 +47,7 @@ data PathError
   | PathIsEmpty
   | WireInputEqualsOutput CardinalDirection CardinalDirection
   | NoOverlay Wire Wire
+  | BoardError BoardError
   | Other String
 derive instance Eq PathError
 -- TODO: improve error messages
@@ -56,6 +58,7 @@ instance Show PathError where
     PathIsEmpty -> "path is empty"
     WireInputEqualsOutput inputDirection outputDirection -> "expected that " <> show inputDirection <> " and " <> show outputDirection <> " are not equal"
     NoOverlay wire extant -> "no overlay between " <> show wire <> " and " <> show extant
+    BoardError _ -> "boarderr "
     Other str -> "patherror: " <> str
 instance Semigroup PathError where
   append a _ = a
@@ -68,7 +71,7 @@ type Wire =
   }
 
 
-getWireAt :: forall m. MonadError PathError m => MonadState Board m => Location -> m (Maybe Wire)
+getWireAt :: forall m. MonadState Board m => Location -> ExceptT PathError m (Maybe Wire)
 getWireAt location = do
   (maybePieceInfo :: Maybe PieceInfo) <- use (_pieces <<< at location)
   for maybePieceInfo \info -> do
@@ -81,16 +84,17 @@ getWireAt location = do
       then pure { inputDirection, outputDirection: rotateDirection Direction.Down info.rotation, location }
     else throwError (ObstructedByAnotherPiece location)
 
-overlayWires :: forall m. MonadError PathError m => Alt m => Wire -> Maybe Wire -> m (List BoardEvent)
+overlayWires :: forall m. MonadState Board m
+  => Wire -> Maybe Wire -> ExceptT PathError m Unit
 overlayWires wire Nothing = do
-  pieceId <- case clockwiseRotation wire.inputDirection wire.outputDirection of
-    Rotation 1 -> pure $ name leftPiece
-    Rotation 2 -> pure $ name idPiece
-    Rotation 3 -> pure $ name rightPiece
+  piece <- case clockwiseRotation wire.inputDirection wire.outputDirection of
+    Rotation 1 -> pure leftPiece
+    Rotation 2 -> pure idPiece
+    Rotation 3 -> pure rightPiece
     _ -> throwError (WireInputEqualsOutput wire.inputDirection wire.outputDirection)
-  pure $
-    AddedPieceWithRotation wire.location pieceId (clockwiseRotation Direction.Left wire.inputDirection) : Nil
---- fugg
+  withExceptT BoardError do
+    addPieceNoUpdate wire.location piece (clockwiseRotation Direction.Left wire.inputDirection)
+--- fug
 -- start by finding the rotation such that there is one input on the left and one input on the side
 -- then figure out whether it's a crossover or a corner cut
 overlayWires wire (Just extant) = do
@@ -102,45 +106,45 @@ overlayWires wire (Just extant) = do
     wireRotation = clockwiseRotation wire.inputDirection wire.outputDirection
     extantRotation = clockwiseRotation extant.inputDirection extant.outputDirection
 
-    ensureAllPortsFilled :: m Unit
-    ensureAllPortsFilled =
+    ensureAllPortsFilled :: ExceptT PathError m Unit
+    ensureAllPortsFilled = do
       unless (S.fromFoldable [wire.inputDirection, wire.outputDirection, extant.inputDirection, extant.outputDirection] == S.fromFoldable allDirections) do
         throwError (Other "all ports not filled")
 
-    isCrossOver :: m (List BoardEvent)
+    isCrossOver :: ExceptT PathError m Unit
     isCrossOver = do
       unless (wireRotation == rotation 2 && extantRotation == rotation 2) (throwError (Other "not a cross over"))
       rot <- case clockwiseRotation wire.inputDirection extant.inputDirection of
-        Rotation 1 -> pure (clockwiseRotation wire.inputDirection Direction.Left)
-        Rotation 3 -> pure (clockwiseRotation extant.inputDirection Direction.Left)
+        Rotation 1 -> pure (clockwiseRotation Direction.Left wire.inputDirection)
+        Rotation 3 -> pure (clockwiseRotation Direction.Left extant.inputDirection)
         _ -> throwError (noOverlay)
-      pure $
-        RemovedPiece extant.location (PieceId "whatever")
-        : AddedPieceWithRotation extant.location (name crossPiece) rot
-        : Nil
+      withExceptT BoardError do
+        _ <- removePieceNoUpdate extant.location
+        addPieceNoUpdate extant.location crossPiece rot
 
-    isCornerCut :: m (List BoardEvent)
+    isCornerCut :: ExceptT PathError m Unit
     isCornerCut = do
       unless (wireRotation <> extantRotation == rotation 0) (throwError (Other ("not a cornercut" <> (show $ wireRotation <> extantRotation))))
       rot <- case clockwiseRotation wire.inputDirection extant.inputDirection of
-        Rotation 1 -> pure (clockwiseRotation wire.inputDirection Direction.Left)
-        Rotation 3 -> pure (clockwiseRotation extant.inputDirection Direction.Left)
+        Rotation 1 -> pure (clockwiseRotation Direction.Left wire.inputDirection)
+        Rotation 3 -> pure (clockwiseRotation Direction.Left extant.inputDirection)
         _ -> throwError (noOverlay)
-      pure $
-        RemovedPiece extant.location (PieceId "whatever")
-        : AddedPieceWithRotation extant.location (name cornerCutPiece) rot
-        : Nil
+      withExceptT BoardError do
+        _ <- removePieceNoUpdate extant.location
+        addPieceNoUpdate extant.location cornerCutPiece rot
 
-    isChicken :: m (List BoardEvent)
+    isChicken :: ExceptT PathError m Unit
     isChicken = do
       unless (wireRotation == extantRotation) (throwError (Other "not a chicken"))
       let rot = clockwiseRotation wire.inputDirection Direction.Left
-      pure $
-        RemovedPiece extant.location (PieceId "whatever")
-        : AddedPieceWithRotation extant.location (name chickenPiece) rot
-        : Nil
+      withExceptT BoardError do
+        _ <- removePieceNoUpdate extant.location
+        addPieceNoUpdate extant.location chickenPiece rot
 
-
+{-
+  ExceptT (State s (Either e a))
+  = 
+-}
 
 rotateWire :: Rotation -> Wire -> Wire
 rotateWire rot wire = wire { inputDirection = rotateDirection wire.inputDirection rot, outputDirection = rotateDirection wire.outputDirection rot}
@@ -156,45 +160,34 @@ triples = case _ of
   3. ensure that every piece can be added to the board
   4. return the list of board events
 -}
-boardPath :: forall m. MonadState Board m
-  => CardinalDirection -> Array Location -> CardinalDirection -> m (Maybe (List BoardEvent))
-boardPath initialDir path terminalDir = hush <$> do
-  a <- runExceptT (boardPathWithError initialDir path terminalDir)
-  trace (show a) \_ -> pure unit
-  pure a
+addBoardPath :: forall m. MonadState Board m
+  => CardinalDirection -> Array Location -> CardinalDirection -> m Boolean
+addBoardPath initialDir path terminalDir = do
+  eee <- (boardPathWithError initialDir path terminalDir)
+  trace (show eee) \_ -> pure unit
+  pure (isRight eee)
 
 
-boardPathWithError :: forall m. MonadError PathError m => MonadState Board m => Alt m
-  => CardinalDirection -> Array Location -> CardinalDirection -> m (List BoardEvent)
-boardPathWithError initialDir path terminalDir = removeZeroRotations <$> do
+boardPathWithError :: forall m. MonadState Board m 
+  => CardinalDirection -> Array Location -> CardinalDirection -> m (Either PathError Unit)
+boardPathWithError initialDir path terminalDir = runExceptT do
   h <- liftEither $ note PathIsEmpty (head path)
   l <- liftEither $ note PathIsEmpty (last path)
   let initial  = followDirection h initialDir
   let terminal = followDirection l terminalDir
   let locations =  L.fromFoldable $ [ initial ] <> path <> [ terminal ]
-  join <$> traverse (uncurry3 createBoardEvents) (triples locations) -- m (List (List ))
-  where
-    removeZeroRotations = L.filter $ case _ of
-      RotatedPiece _ (Rotation 0) -> false
-      _ -> true
-  
+  L.foldr (*>) (pure unit) $ map (uncurry3 singleWirePiece) (triples locations)
 
-  --boardEvents :: (List BoardEvent) <- map join <<< traverse wirePiece $ wires 
-  --pure boardEvents
-
--- wirePiece :: Wire -> m (List BoardEvent)
--- overlayWires :: forall m. MonadError PathError m => Alt m => Wire -> Maybe Wire -> m (List BoardEvent)
--- getWireAt :: forall m. MonadError PathError m => MonadState Board m => Location -> m (Maybe Wire)
-
-createBoardEvents :: forall m. MonadError PathError m => MonadState Board m => Alt m =>
-  Location -> Location -> Location -> m (List BoardEvent)
-createBoardEvents l v r = do
+--singleWirePiece :: forall m. MonadState Board m => MonadWriter (Array Location) m => Alt m =>
+singleWirePiece :: forall m. MonadState Board m 
+  => Location -> Location -> Location -> ExceptT PathError m Unit
+singleWirePiece l v r = do
   wire <- createWire l v r
   maybeExtant <- getWireAt v
   overlayWires wire maybeExtant
 
 
-createWire :: forall m. MonadError PathError m => Location -> Location -> Location -> m Wire
+createWire :: forall m. Monad m => Location -> Location -> Location -> ExceptT PathError m Wire
 createWire l v r = liftEither do
   inputDirection  <- note (LocationsAreNotAdjacent v l) (directionTo v l)
   outputDirection <- note (LocationsAreNotAdjacent v r) (directionTo v r)

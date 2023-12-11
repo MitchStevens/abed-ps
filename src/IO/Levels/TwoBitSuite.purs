@@ -24,7 +24,7 @@ twoBitSuite = fromHomogeneous
     { problem = defaultProblem
       { goal = fusePiece
       , title = "Lovers Lake"
-      , description = "Use a multiplexer to combine the inputs from the top and left, output the result to the right"
+      , description = "Use a fuse-piece to combine the inputs from the top and left, output the result to the right"
       , pieceSet = S.fromFoldable (map name [fusePiece, idPiece])
       , testCases =
         [ M.singleton Direction.Left (Signal 0)
@@ -38,7 +38,7 @@ twoBitSuite = fromHomogeneous
     { problem = defaultProblem
       { goal = twoBitCrossOver
       , title = "Two bit criss cross"
-      , description = "Sever the input on the left, cross over the signals, fuse them back together"
+      , description = "Sever the input on the left with a sever-piece, cross over the signals, fuse them back together"
       , pieceSet = S.fromFoldable (map name [severPiece, fusePiece, idPiece])
       , testCases =
         [ M.singleton Direction.Left (Signal 0)

@@ -2,27 +2,34 @@ module Test.Game.Board.Path where
 
 import Prelude
 
+import Component.Board (_board)
 import Control.Extend (duplicate, extend)
-import Control.Monad.State (put)
+import Control.Monad.State (get, put)
 import Data.Either (either)
+import Data.Foldable (traverse_)
+import Data.Lens (use)
+import Data.Lens.At (at)
 import Data.List (List(..), (:))
 import Data.List as L
+import Data.Map as M
 import Data.Maybe (Maybe(..))
+import Data.Tuple (Tuple(..))
 import Data.Zipper (Zipper(..))
 import Data.Zipper as Z
-import Game.Board (Board(..), standardBoard)
+import Debug (trace)
+import Game.Board (Board(..), _pieces, standardBoard)
 import Game.Board.Operation (addPiece, execBoardM, rotatePieceBy)
-import Game.Board.Path (boardPath, boardPathWithError)
+import Game.Board.Path (addBoardPath)
 import Game.Direction as Direction
 import Game.GameEvent (BoardEvent(..))
 import Game.Location (location)
-import Game.Piece (PieceId(..), andPiece, crossPiece, idPiece, leftPiece, name, notPiece, rightPiece)
+import Game.Piece (PieceId(..), andPiece, crossPiece, getOutputDirs, idPiece, leftPiece, name, notPiece, rightPiece)
 import Game.Rotation (rotation)
 import Partial.Unsafe (unsafeCrashWith)
 import Test.Game.Board (testBoard, toAff)
 import Test.Game.Board.Operation (exceptToAff)
 import Test.Spec (Spec, before, describe, hoistSpec, it)
-import Test.Spec.Assertions (shouldEqual, shouldReturn)
+import Test.Spec.Assertions (shouldContain, shouldEqual, shouldReturn)
 
 pathTestBoard :: Board
 pathTestBoard = either (show >>> unsafeCrashWith) identity $ 
@@ -35,15 +42,15 @@ pathTestBoard = either (show >>> unsafeCrashWith) identity $
 
 spec :: Spec Unit
 spec = do
-  let l0 = location 0 0
-  let l1 = location 1 0
-  let l2 = location 2 0
-
-  let a0 = location 0 0
-  let a1 = location 0 1
-  let a2 = location 0 2
-
-  let c = location 1 1
+  let l00 = location 0 0
+  let l01 = location 0 1
+  let l02 = location 0 2
+  let l10 = location 1 0
+  let l11 = location 1 1
+  let l12 = location 1 2
+  let l20 = location 2 0
+  let l21 = location 2 1
+  let l22 = location 2 2
 
   describe "pieceBoardEvent" do
     it "zipper test" do
@@ -96,75 +103,113 @@ spec = do
     --      Nil
     --    )
   hoistSpec identity (\_ -> toAff) do
-    describe "boardPath" do
-      it "should create a single path" do
-        boardPath Direction.Left [] Direction.Right `shouldReturn`  Nothing
+    describe "addBoardPath" do
+      describe "Basic Paths" do
+        it "should fail if no locations are provided" do
+          addBoardPath Direction.Left [] Direction.Right `shouldReturn` false
 
-        boardPath Direction.Left [ l0 ] Direction.Right `shouldReturn`
-          Just (AddedPiece l0 (name idPiece) : Nil)
+        it "should create a single path" do
+          addBoardPath Direction.Left [ l00 ] Direction.Right `shouldReturn` true
+          use (_pieces) `shouldReturn` M.singleton l00 { piece: idPiece, rotation: rotation 0 }
 
-        boardPath Direction.Right [ l0 ] Direction.Left `shouldReturn`
-          Just (AddedPiece l0 (name idPiece) : RotatedPiece l0 (rotation 2) : Nil)
+        it "should create a single path from right to left" do
+          addBoardPath Direction.Right [ l00 ] Direction.Left `shouldReturn` true
+          use (_pieces) `shouldReturn` M.singleton l00 { piece: idPiece, rotation: rotation 2 }
 
-      it "should create corner paths" do
-        boardPath Direction.Up [ l0 ] Direction.Right `shouldReturn`
-          Just (AddedPiece l0 (name leftPiece) : RotatedPiece l0 (rotation 1) : Nil)
+        it "should create corner paths" do
+          addBoardPath Direction.Up [ l00 ] Direction.Right `shouldReturn` true
+          use _pieces `shouldReturn` M.singleton l00 { piece: leftPiece, rotation: rotation 1 }
 
-        boardPath Direction.Down [ l0 ] Direction.Right `shouldReturn`
-          Just (AddedPiece l0 (name rightPiece) : RotatedPiece l0 (rotation 3) : Nil)
+        it "should create right corner paths" do
+          addBoardPath Direction.Down [ l00 ] Direction.Right `shouldReturn` true
+          use _pieces `shouldReturn` M.singleton l00 { piece: rightPiece, rotation: rotation 3 }
 
-      before (put standardBoard) do
+        it "should create larger paths" do
+          addBoardPath Direction.Left [ l00, l10, l20 ] Direction.Right `shouldReturn` true
+          use _pieces `shouldReturn` M.fromFoldable
+            [ Tuple l00 { piece: idPiece, rotation: rotation 0 }
+            , Tuple l10 { piece: idPiece, rotation: rotation 0 }
+            , Tuple l20 { piece: idPiece, rotation: rotation 0 }
+            ]
+
         it "should create paths through the center of the board" do
-          path <- exceptToAff $ boardPathWithError Direction.Left [a1, c, l1] Direction.Up
-          path `shouldEqual`
-              ( AddedPiece a1 (name idPiece)
-              : AddedPiece c (name leftPiece)
-              : AddedPiece l1 (name idPiece)
-              : RotatedPiece l1 (rotation 3)
-              : Nil
-              )
+          addBoardPath Direction.Left [l01, l11, l10] Direction.Up `shouldReturn` true
+          use _pieces `shouldReturn` M.fromFoldable
+            [ Tuple l01 { piece: idPiece, rotation: rotation 0 }
+            , Tuple l11 { piece: leftPiece, rotation: rotation 0 }
+            , Tuple l10 { piece: idPiece, rotation: rotation 3 }
+            ]
+        
+        it "should create complex paths" do
+          addBoardPath Direction.Up [ l10, l11, l01 ] Direction.Left `shouldReturn` true
+          use _pieces `shouldReturn` M.fromFoldable
+            [ Tuple l10 { piece: idPiece, rotation: rotation 1 }
+            , Tuple l11  { piece: rightPiece, rotation: rotation 1 }
+            , Tuple l01 { piece: idPiece, rotation: rotation 2 }
+            ]
 
-      it "should create larger paths" do
-        boardPath Direction.Left [ l0, l1, l2 ] Direction.Right `shouldReturn`
-          Just (
-            AddedPiece l0 (name idPiece)
-            : AddedPiece l1 (name idPiece)
-            : AddedPiece l2 (name idPiece)
-            : Nil
-          )
+        it "should create length 4 paths" do
+          addBoardPath Direction.Left [ l01, l11, l10, l20 ] Direction.Right `shouldReturn` true
+          use _pieces `shouldReturn` M.fromFoldable
+            [ Tuple l01 { piece: idPiece, rotation: rotation 0 }
+            , Tuple l11  { piece: leftPiece, rotation: rotation 0 }
+            , Tuple l10 { piece: rightPiece, rotation: rotation 3 }
+            , Tuple l20 { piece: idPiece, rotation: rotation 0 }
+            ]
 
-        boardPath Direction.Up [ l1, c, a1 ] Direction.Left `shouldReturn`
-          Just (
-            AddedPiece l1 (name idPiece)
-            : RotatedPiece l1 (rotation 1)
-            : AddedPiece c (name rightPiece)
-            : RotatedPiece c (rotation 1)
-            : AddedPiece a1 (name idPiece)
-            : RotatedPiece a1 (rotation 2)
-            : Nil
-          )
+        it "should fail on when initial dir == terminal " do
+          addBoardPath Direction.Right [ l00 ] Direction.Right `shouldReturn` false
 
-        boardPath Direction.Left [ a1, c, l1, l2 ] Direction.Right `shouldReturn`
-          Just (
-            AddedPiece a1 (name idPiece)
-            : AddedPiece c (name leftPiece)
-            : AddedPiece l1 (name rightPiece)
-            : RotatedPiece l1 (rotation 3)
-            : AddedPiece l2 (name idPiece)
-            : Nil
-          )
+        it "should fail when path has same location twice" do
+          addBoardPath Direction.Left [ l00, l00 ] Direction.Right `shouldReturn` false
 
-      it "should fail on loops" do
-        boardPath Direction.Right [ l0 ] Direction.Right `shouldReturn` Nothing
-        boardPath Direction.Left [ l0, l0 ] Direction.Right `shouldReturn` Nothing
-        boardPath Direction.Left [ l0, l1, l0 ] Direction.Right `shouldReturn` Nothing
-      before (put pathTestBoard) do
-        it "should create cross overs"  do
-          boardPath Direction.Left [ l0, l1, l2 ] Direction.Right `shouldReturn`
-            Just (
-              AddedPiece l0 (name idPiece)
-              : RemovedPiece l1 (PieceId "whatever")
-              : AddedPiece l1 (name crossPiece)
-              : AddedPiece l2 (name idPiece)
-              : Nil
-            )
+        it "should fail on loops" do
+          addBoardPath Direction.Left [ l00, l10, l00 ] Direction.Right `shouldReturn` false
+
+        it "should fail when obstructed  by other pieces" do
+          addBoardPath Direction.Left [ l00 ] Direction.Right `shouldReturn` true
+          addBoardPath Direction.Left [ l00 ] Direction.Right `shouldReturn` false
+
+      describe "Paths requiring removal" do
+        it "should create a cross over with no rotation" do
+          addBoardPath Direction.Up [ l10, l11, l12 ] Direction.Down `shouldReturn` true
+          addBoardPath Direction.Left [ l01, l11, l21 ] Direction.Right `shouldReturn` true
+          use (_pieces <<< at l11) `shouldReturn` Just { piece: crossPiece, rotation: rotation 0}
+
+
+        it "should create a cross over with rotation 1" do
+          addBoardPath Direction.Right [ l21, l11, l01 ] Direction.Left `shouldReturn` true
+          addBoardPath Direction.Up [ l10, l11, l12 ] Direction.Down `shouldReturn` true
+          b <- get
+          trace (show b) \_ -> pure unit
+          use (_pieces <<< at l11) `shouldReturn` Just { piece: crossPiece, rotation: rotation 1 }
+          use (_pieces <<< at l10) `shouldReturn` Just { piece: idPiece, rotation: rotation 1 }
+
+        it "should create a cross over with rotation 2" do
+          addBoardPath Direction.Right [ l21, l11, l01 ] Direction.Left `shouldReturn` true
+          addBoardPath Direction.Down [ l12, l11, l10 ] Direction.Up `shouldReturn` true
+          use (_pieces <<< at l11) `shouldReturn` Just { piece: crossPiece, rotation: rotation 2 }
+
+        it "should create a cross over with rotation 3" do
+          addBoardPath Direction.Down [ l12, l11, l10 ] Direction.Up `shouldReturn` true
+          addBoardPath Direction.Left [ l01, l11, l21 ] Direction.Right `shouldReturn` true
+          use (_pieces <<< at l11) `shouldReturn` Just { piece: crossPiece, rotation: rotation 3 }
+
+      describe "Weird edge cases" do
+        it "cruz" do
+          addBoardPath Direction.Left [ l00, l10, l11, l12 ] Direction.Down `shouldReturn` true
+          addBoardPath Direction.Left [ l01, l11, l21 ] Direction.Right `shouldReturn` true
+          use (_pieces <<< at l11) `shouldReturn` Just { piece: crossPiece, rotation: rotation 0 }
+          use (_pieces <<< at l10) >>= traverse_ \info ->
+            getOutputDirs info.piece `shouldContain` Direction.Down
+
+          --`shouldReturn` Just { piece: rightPiece, rotation: rotation 0 }
+
+
+
+      --before (put pathTestBoard) do
+      --  it "should create cross overs"  do
+      --    addBoardPath Direction.Left [ l0, l1, l2 ] Direction.Right `shouldReturn` true
+      --    use (_pieces <<< at l0) `shouldReturn` Just { piece: idPiece, rotation: rotation 0 }
+      --    use (_pieces <<< at l1) `shouldReturn` Just { piece: crossPiece, rotation: rotation 0 }
+      --    use (_pieces <<< at l2) `shouldReturn` Just { piece: idPiece, rotation: rotation 0 }

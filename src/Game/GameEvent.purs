@@ -36,7 +36,6 @@ cons gameEvent store =
 
 data BoardEvent
   = AddedPiece Location PieceId
-  | AddedPieceWithRotation Location PieceId Rotation
   | RemovedPiece Location PieceId
   | MovedPiece Location Location
   | RotatedPiece Location Rotation
@@ -50,7 +49,6 @@ derive instance Ord BoardEvent
 instance Show BoardEvent where
   show = case _ of
     AddedPiece loc pieceId -> "Added " <> show pieceId <> " at " <> show loc
-    AddedPieceWithRotation _ _ _  -> "added piece wth rotation" -- todo: fix
     RemovedPiece loc pieceId -> "Removed " <> show pieceId <> " at " <> show loc
     MovedPiece src dst -> "Moved piece from " <> show src <> " to " <> show dst
     RotatedPiece loc rot -> "Rotated piece by " <> show rot <> " at " <> show loc
@@ -67,7 +65,6 @@ instance Show BoardEvent where
 boardEventLocationsChanged :: BoardEvent -> Maybe (Array Location)
 boardEventLocationsChanged = case _ of
   AddedPiece loc _     -> Just [loc]
-  AddedPieceWithRotation loc _ _     -> Just [loc]
   RemovedPiece loc _   -> Just [loc]
   MovedPiece src dst   -> Just [src, dst]
   RotatedPiece loc _   -> Just [loc]

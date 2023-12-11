@@ -1,5 +1,50 @@
 ## component eval board
 
+## How do we add/remove/move/rotate pieces?
+```mermaid
+flowchart TD
+    start((start))
+    perform_operation[Perform operation]
+    update_ports[Update ports on \nadjacent pieces]
+    board_error((Board Error))
+    finish((finish))
+
+    start --> add_piece
+    add_piece --> check_add{Is location \noccupied?}
+    check_add -- yes --> board_error
+    check_add -- no --> perform_operation
+
+    start --> remove_piece
+    remove_piece --> check_remove{Is location \noccupied?}
+    check_remove -- no --> board_error
+    check_remove -- yes --> perform_operation
+
+    start --> move_piece
+    move_piece --> check_move{Is src \noccupied and dst \nnot occupied?}
+    check_move -- no --> board_error
+    check_move -- yes --> perform_operation
+
+    start --> rotate_piece
+    rotate_piece --> check_rotate{Is location \noccupied?}
+    check_rotate -- no --> board_error
+    check_rotate -- yes --> perform_operation
+
+    perform_operation --> update_ports
+    update_ports --> finish
+```
+
+## How do we add a wire piece
+- which ports should be updated?
+```mermaid
+flowchart TD
+    start
+    finish
+
+```
+
+
+
+## How do we check that the board meets the spec?
 ```mermaid
 flowchart TD
     start(((Board changed)))

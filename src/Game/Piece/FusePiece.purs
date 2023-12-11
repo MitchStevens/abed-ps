@@ -22,7 +22,7 @@ allFusePieces = [ fusePiece, severPiece ]
 newtype FusePiece = Fuse { inputCapacity :: Capacity }
 
 instance Piece FusePiece where
-  name _ = PieceId "fuse"
+  name _ = PieceId "fuse-piece"
   eval (Fuse { inputCapacity }) m = M.singleton Direction.Right (fuseSignals inputCapacity high low)
     where
       high = fold (M.lookup Direction.Up m)

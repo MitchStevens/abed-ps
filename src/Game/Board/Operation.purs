@@ -67,6 +67,9 @@ derive newtype instance Monad m => MonadThrow BoardError (BoardT m)
 derive newtype instance Monad m => MonadError BoardError (BoardT m)
 derive newtype instance MonadEffect m => MonadEffect (BoardT m)
 derive newtype instance MonadAff m => MonadAff (BoardT m)
+derive newtype instance (Monad m, Semigroup a) => Semigroup (BoardT m a)
+derive newtype instance (Monad m, Monoid a) => Monoid (BoardT m a)
+
 instance MonadTrans BoardT where
   lift m = BoardT (lift $ lift m)
 
@@ -137,36 +140,36 @@ updatePortsAround loc = do
     trace ("update reledge: " <> show relEdge' <> " with adj port " <> show ( portType <$> maybePort)) \_ ->
       updateRelEdge relEdge' (portType <$> maybePort)
 
-addPiece :: forall m. MonadError BoardError m => MonadState Board m => Location -> APiece -> m Unit
-addPiece loc piece = addPieceWithRotation loc piece (rotation 0)      --trace ("added piece at " <>  show loc) \_ -> do
-  -- checkInsideBoard loc
-  -- pieceInfo <- use (_pieces <<< at loc)
-  -- case pieceInfo of
-  --   Nothing -> _pieces <<< at loc .= Just { piece, rotation: rotation 0 }
-  --   Just _ -> throwError (LocationOccupied loc)
-  -- updatePortsAround loc
-
-addPieceWithRotation :: forall m. MonadError BoardError m => MonadState Board m
+addPieceNoUpdate :: forall m. MonadError BoardError m => MonadState Board m 
   => Location -> APiece -> Rotation -> m Unit
-addPieceWithRotation loc piece rotation = do
+addPieceNoUpdate loc piece rotation = do
   checkInsideBoard loc
   pieceInfo <- use (_pieces <<< at loc)
   case pieceInfo of
     Nothing -> _pieces <<< at loc .= Just { piece, rotation }
     Just _ -> throwError (LocationOccupied loc)
-  updatePortsAround loc
 
+addPiece :: forall m. MonadError BoardError m => MonadState Board m => Location -> APiece -> m Unit
+addPiece loc piece = do
+   addPieceNoUpdate loc piece (rotation 0)
+   updatePortsAround loc
 
-removePiece :: forall m. MonadError BoardError m => MonadState Board m => Location -> m APiece
-removePiece loc = do
+removePieceNoUpdate :: forall m. MonadError BoardError m => MonadState Board m => Location -> m APiece
+removePieceNoUpdate loc = do
   checkInsideBoard loc
   maybePieceInfo <- use (_pieces <<< at loc)
   case maybePieceInfo of
     Nothing -> throwError (LocationNotOccupied loc)
     Just pieceInfo -> do
       _pieces <<< at loc .= Nothing
-      updatePortsAround loc
       pure pieceInfo.piece
+
+removePiece :: forall m. MonadError BoardError m => MonadState Board m => Location -> m APiece
+removePiece loc = do
+  piece <- removePieceNoUpdate loc
+  updatePortsAround loc
+  pure piece
+
 
 movePiece :: forall m. MonadError BoardError m => MonadState Board m => Location -> Location -> m Unit
 movePiece src dst = do
@@ -232,7 +235,7 @@ increaseSize = do
 applyBoardEvent :: forall m. MonadState Board m => MonadError BoardError m => BoardEvent -> m Unit
 applyBoardEvent = case _ of
   AddedPiece loc pieceId -> addPiece loc (pieceLookup pieceId)
-  AddedPieceWithRotation loc pieceId rot -> addPieceWithRotation loc (pieceLookup pieceId) rot
+  --AddedPieceWithRotation loc pieceId rot -> addPieceWithRotation loc (pieceLookup pieceId) rot
   RemovedPiece loc _ -> void $ removePiece loc
   MovedPiece src dst -> movePiece src dst
   RotatedPiece loc rot -> rotatePieceBy loc rot

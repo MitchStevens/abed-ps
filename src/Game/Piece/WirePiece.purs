@@ -70,13 +70,13 @@ allWirePieces :: Array APiece
 allWirePieces = [ idPiece, leftPiece, rightPiece, superPiece ]
 
 idPiece :: APiece
-idPiece = mkPiece $ wirePiece (PieceId "id") (S.fromFoldable [ Direction.Right ])
+idPiece = mkPiece $ wirePiece (PieceId "id-piece") (S.fromFoldable [ Direction.Right ])
 
 leftPiece :: APiece
-leftPiece = mkPiece $ wirePiece (PieceId "left") (S.fromFoldable [Direction.Up])
+leftPiece = mkPiece $ wirePiece (PieceId "left-piece") (S.fromFoldable [Direction.Up])
 
 rightPiece :: APiece
-rightPiece = mkPiece $ wirePiece (PieceId "right") (S.fromFoldable [Direction.Down])
+rightPiece = mkPiece $ wirePiece (PieceId "right-piece") (S.fromFoldable [Direction.Down])
 
 superPiece :: APiece
-superPiece = mkPiece $ wirePiece (PieceId "super") (S.fromFoldable [Direction.Up, Direction.Right, Direction.Down])
+superPiece = mkPiece $ wirePiece (PieceId "super-piece") (S.fromFoldable [Direction.Up, Direction.Right, Direction.Down])
