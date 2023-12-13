@@ -11,13 +11,16 @@ import Data.Tuple (Tuple(..))
 import Game.Direction (CardinalDirection)
 import Game.Direction as Direction
 import Game.Piece.APiece (APiece, mkPiece)
-import Game.Piece.Class (class Piece, PieceId(..), getCapacity, shouldRipple, updateCapacity, updatePort)
+import Game.Piece.Class (class Piece, PieceId(..), complexity, getCapacity, shouldRipple, updateCapacity, updatePort)
+import Game.Piece.Complexity (Complexity)
+import Game.Piece.Complexity as Complexity
 import Game.Piece.Port (Capacity(..), Port(..), PortType, inputPort, outputPort, portType)
 import Game.Signal (Signal(..), nthBit)
 
 newtype PieceSpec = PieceSpec
   { name :: PieceId
   , eval :: Map CardinalDirection Signal -> Map CardinalDirection Signal
+  , complexity :: Complexity
 
   , shouldRipple :: Boolean
   , getCapacity :: Maybe Capacity
@@ -31,6 +34,7 @@ derive instance Newtype PieceSpec _
 instance Piece PieceSpec where
   name (PieceSpec spec) = spec.name
   eval (PieceSpec spec) = spec.eval
+  complexity (PieceSpec spec) = spec.complexity
 
   shouldRipple (PieceSpec spec) = spec.shouldRipple
   getCapacity (PieceSpec spec) = spec.getCapacity
@@ -46,6 +50,7 @@ twoBitCrossOver = mkPiece $ PieceSpec
       let s = fold (M.lookup Direction.Left m)
           output = Signal $ (if nthBit s 0 then 2 else 0) + (if nthBit s 1 then 1 else 0)
       in M.singleton Direction.Right output
+  , complexity: Complexity.space 20.0
   
   , shouldRipple: false
   , getCapacity: Nothing

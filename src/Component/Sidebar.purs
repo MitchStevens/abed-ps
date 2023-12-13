@@ -32,12 +32,13 @@ import Effect.Class (class MonadEffect, liftEffect)
 import Effect.Class.Console (log)
 import Game.Board (Board(..))
 import Game.GameEvent (pieceId)
-import Game.Level.Completion (CompletionStatus(..))
+import Game.Level.Completion (CompletionStatus(..), FailedTestCase)
 import Game.Level.Problem (Problem)
 import Game.Location (location)
-import Game.Piece (APiece(..), PieceId(..), name, pieceLookup, pieceVault)
+import Game.Piece (APiece(..), PieceId(..), Port(..), PortType(..), name, pieceLookup, pieceVault, toInt)
+import Game.Piece as Port
 import Game.Piece.Port (isInput)
-import Halogen (ClassName(..), ComponentHTML, ComponentSlot, HalogenM, HalogenQ, liftAff)
+import Halogen (ClassName(..), ComponentSlot, HalogenM, HalogenQ, ComponentHTML, liftAff)
 import Halogen as H
 import Halogen.HTML (HTML, PlainHTML, fromPlainHTML)
 import Halogen.HTML as HH
@@ -104,7 +105,7 @@ component = H.mkComponent { eval , initialState , render }
       [ HH.h2_ [ HH.text state.problem.title ]
       , HH.span_ [ renderDescription state.problem.description ]
       , HH.br_
-      , renderCompletionStatus -- maybe problemComplete renderError state.error
+      , renderCompletionStatus state.completionStatus
       , HH.h3_ [ HH.text "Available pieces:"]
       , HH.span [ HP.class_ (ClassName "pieces") ] $
         A.fromFoldable state.problem.pieceSet <#> renderAvailablePiece
@@ -130,32 +131,6 @@ component = H.mkComponent { eval , initialState , render }
             --[ HH.slot (Proxy :: Proxy "piece") pieceId Piece.component input PieceOutput
             [ mapActionOverHTML (\_ -> DoNothing) (renderPiece (Piece.defaultState (pieceLookup pieceId)))
             , HH.text (show pieceId) 
-            ]
-
-      renderCompletionStatus = case state.completionStatus of
-        NotStarted ->
-          HH.div_ []
-        FailedRestriction restriction ->
-          HH.text "failed restriction, render later"
-        NotEvaluable boardError -> 
-          HH.text ("not evaluable due to: " <> show boardError)
-        PortMismatch mismatch ->
-          HH.text "port mismatch, render later"
-        ReadyForTesting ->
-          HH.span_
-            [ HH.text "ports are looking good: "
-            , HH.button
-                [ HE.onClick (\_ -> RunTestsClicked) ]
-                [ HH.text "run tests"]
-            ]
-        FailedTestCase testCase ->
-          HH.text "failed test case, render later"
-        Completed ->
-          HH.div_
-            [ HH.text "game completed!"
-            , HH.button
-                [ HE.onClick (\_ -> BackToLevelSelect) ]
-                [ HH.text "new level"]
             ]
 
 
@@ -224,3 +199,56 @@ renderDescription = HH.div_ <<< A.fromFoldable <<< map asHTML <<< reduceStrings 
     asHTML :: Either String String -> HTML p i
     asHTML (Left pieceName) = HH.span [ HP.class_ (ClassName "piece-name") ] [ HH.text pieceName ]
     asHTML (Right text) = HH.text text
+
+
+renderCompletionStatus :: forall s m. CompletionStatus -> ComponentHTML Action s m
+renderCompletionStatus = case _ of
+  NotStarted ->
+    HH.div_ []
+  FailedRestriction restriction -> 
+    HH.span_
+      [ HH.text $ "This level has a special restriction: "
+      , HH.b_ [ HH.text restriction.name ]
+      , HH.br_
+      , HH.text restriction.description
+      ]
+  NotEvaluable boardError -> 
+    HH.text ("not evaluable due to: " <> show boardError)
+  PortMismatch mismatch ->
+    HH.div_
+      [ HH.b_ [ HH.text "Port mismatch:" ]
+      , HH.text $ "Expected " <> renderMaybePort mismatch.expected <> " on the " <> show mismatch.dir <> ", but found " <> renderMaybePort mismatch.received
+      ]
+  ReadyForTesting ->
+    HH.span_
+      [ HH.text "Ready for testing: "
+      , HH.button
+          [ HE.onClick (\_ -> RunTestsClicked) ]
+          [ HH.text "Run Tests"]
+      ]
+  FailedTestCase testCase ->
+    renderFailedTestCase testCase
+  Completed ->
+    HH.div_
+      [ HH.text "Level Complete!"
+      , HH.button
+          [ HE.onClick (\_ -> RunTestsClicked) ]
+          [ HH.text "Run Tests again"]
+      , HH.button
+          [ HE.onClick (\_ -> BackToLevelSelect) ]
+          [ HH.text "Back to Level Select "]
+      ]
+  where
+    renderMaybePort :: Maybe Port -> String
+    renderMaybePort = case _ of
+      Nothing -> "no port"
+      Just (Port {portType, capacity}) ->
+        "an " <> if portType == Port.Input then "input" else "output" <> " of capacity " <> show (toInt capacity)
+
+    renderFailedTestCase :: FailedTestCase -> ComponentHTML Action s m
+    renderFailedTestCase _ = -- todo:
+      HH.text "failed test case, render later"
+ {-
+    Expected (no port|a input with capacity n) on the Left, but found (no port|an in|output of capacity n)
+
+ -} 

@@ -16,6 +16,7 @@ import Data.String as String
 import Game.Direction as Direction
 import Game.Piece (class Piece, APiece, PieceId(..), Port(..), mkPiece, name, portCapacity, portType, shouldRipple, updateCapacity)
 import Game.Piece as Port
+import Game.Piece.Complexity as Complexity
 
 -- used for board evaluation, outputs
 newtype PseudoPiece = Pseudo Port
@@ -25,6 +26,7 @@ instance Piece PseudoPiece where
     Port.Input -> PieceId "psuedo-input"
     Port.Output -> PieceId "psuedo-output"
   eval _ _ = M.empty
+  complexity _ = Complexity.space 0.0
 
   shouldRipple _ = false
   getCapacity (Pseudo port) = Just (portCapacity port)

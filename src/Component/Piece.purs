@@ -99,7 +99,6 @@ component = H.mkComponent { eval , initialState , render }
     , handleAction: case _ of
         Initialise { piece, location, portStates } -> do
           H.modify_ $ _ { piece = piece, location = location, portStates = portStates }
-          log "initialising piece"
           pure unit
         OnDrop loc event -> do
           H.raise (Dropped loc)
@@ -112,10 +111,8 @@ component = H.mkComponent { eval , initialState , render }
             let Tuple x y = sub (getPosition me) c
             if r*r > x*x + y*y
               then do
-                log "moving"
                 H.modify_ (_ { isRotating = Nothing })
               else do
-                log "started rotation"
                 liftEffect $ setDraggable false he
                 H.modify_ (_ {
                   isRotating = Just { initialClickPosition: getPosition me, currentRotation: 0.0 }

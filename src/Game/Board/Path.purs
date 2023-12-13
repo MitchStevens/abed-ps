@@ -14,14 +14,14 @@ import Control.Monad.State (class MonadState, StateT, evalState, evalStateT)
 import Control.Monad.Writer (class MonadWriter)
 import Data.Array (cons, find, foldr, head, last, length, snoc, (!!))
 import Data.Array as A
-import Data.Either (Either(..), either, hush, isRight, note)
-import Data.Foldable (fold, foldMap, null, traverse_)
+import Data.Either (Either(..), blush, either, hush, isRight, note)
+import Data.Foldable (fold, foldMap, for_, null, traverse_)
 import Data.Lens (use)
 import Data.Lens.At (at)
 import Data.List (List(..), (:))
 import Data.List as L
 import Data.Map as M
-import Data.Maybe (Maybe(..))
+import Data.Maybe (Maybe(..), isNothing)
 import Data.PQueue as PQ
 import Data.Set as S
 import Data.Traversable (for, sequence, traverse)
@@ -33,7 +33,7 @@ import Data.Zipper as Z
 import Debug (trace)
 import Effect.Aff (Aff, error)
 import Game.Board (Board(..), PieceInfo, _pieces)
-import Game.Board.Operation (BoardError, BoardM, addPieceNoUpdate, removePieceNoUpdate)
+import Game.Board.Operation (BoardError, BoardM, addPieceNoUpdate, removePieceNoUpdate, updatePortsAround)
 import Game.Direction (CardinalDirection, allDirections, clockwiseRotation, rotateDirection)
 import Game.Direction as Direction
 import Game.Location (Location(..), directionTo, followDirection)
@@ -163,9 +163,11 @@ triples = case _ of
 addBoardPath :: forall m. MonadState Board m
   => CardinalDirection -> Array Location -> CardinalDirection -> m Boolean
 addBoardPath initialDir path terminalDir = do
-  eee <- (boardPathWithError initialDir path terminalDir)
-  trace (show eee) \_ -> pure unit
-  pure (isRight eee)
+  maybePathError <- blush <$> boardPathWithError initialDir path terminalDir
+  when (isNothing maybePathError) do
+    for_ (head path) updatePortsAround
+    for_ (last path) updatePortsAround
+  pure (isNothing maybePathError)
 
 
 boardPathWithError :: forall m. MonadState Board m 

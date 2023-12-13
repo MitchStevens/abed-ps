@@ -40,6 +40,8 @@ import Game.Direction as Direction
 import Game.Location (Location(..), followDirection)
 import Game.Piece (class Piece, APiece, Capacity, PieceId(..), Port(..), clampSignal, eval, getPorts, inputPort, isInput, isOutput, matchingPort, name, outputPort, portCapacity, portType, shouldRipple)
 import Game.Piece as Port
+import Game.Piece.Complexity (Complexity)
+import Game.Piece.Complexity as Complexity
 import Game.Signal (Signal(..))
 import Halogen.Svg.Attributes (m)
 
@@ -116,6 +118,8 @@ instance Piece EvaluableBoard where
   eval evaluable inputs = flip evalState M.empty do
     injectInputs evaluable inputs
     evalWithPortInfo evaluable inputs
+  complexity _ = Complexity.space 0.0
+
   shouldRipple _ = false
   getCapacity _ = Nothing
   updateCapacity _ _ _ = Nothing
@@ -183,20 +187,6 @@ extractOutputs (EvaluableBoard evaluable) = M.fromFoldable <$> do
       maybeSignal <- join <$> for (M.lookup dir evaluable.portLocations) \relEdge -> do
         map (_.signal) <$> use (at relEdge)
       pure $ Tuple dir (fromMaybe (Signal 0) maybeSignal)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 

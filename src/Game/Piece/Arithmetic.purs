@@ -8,7 +8,8 @@ import Data.Maybe (Maybe(..))
 import Data.Tuple (Tuple(..))
 import Game.Direction as Direction
 import Game.Piece.APiece (APiece, mkPiece)
-import Game.Piece.Class (PieceId(..))
+import Game.Piece.Class (PieceId(..), complexity)
+import Game.Piece.Complexity as Complexity
 import Game.Piece.PieceSpec (PieceSpec(..))
 import Game.Piece.Port (Capacity(..), inputPort, maxValue, outputPort)
 
@@ -21,6 +22,7 @@ succ capacity = PieceSpec
   , eval: \m ->
       let s = fold (M.lookup Direction.Left m)
       in  M.singleton Direction.Right (if s == maxValue capacity then zero else s + one)
+  , complexity: Complexity.space 10.0
 
   , shouldRipple: false
   , getCapacity: Just capacity

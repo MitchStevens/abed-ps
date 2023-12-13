@@ -15,6 +15,8 @@ import Game.Direction (CardinalDirection)
 import Game.Direction as Direction
 import Game.Piece.APiece (APiece(..), mkPiece)
 import Game.Piece.Class (class Piece, PieceId(..), defaultGetCapacity, defaultUpdateCapacity, getCapacity, updateCapacity)
+import Game.Piece.Complexity (Complexity)
+import Game.Piece.Complexity as Complexity
 import Game.Piece.Port (Capacity(..), PortType(..), inputPort, isInput, isOutput, outputPort)
 import Game.Piece.Port as Port
 import Game.Signal (Signal(..))
@@ -37,6 +39,7 @@ instance Piece WirePiece where
   name (Wire piece) = piece.pieceId
   eval (Wire piece) inputs = piece.outputPorts $> signal
     where signal = fromMaybe (Signal 0) (M.lookup Direction.Left inputs)
+  complexity _ = Complexity.space 1.0
   
   shouldRipple _ = true
   getCapacity = defaultGetCapacity

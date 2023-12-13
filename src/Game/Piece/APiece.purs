@@ -8,7 +8,7 @@ module Game.Piece.APiece
 import Prelude
 
 import Data.Function (on)
-import Game.Piece.Class (class Piece, eval, getCapacity, getPorts, name, shouldRipple, updateCapacity, updatePort)
+import Game.Piece.Class (class Piece, eval, getCapacity, getPorts, name, complexity, shouldRipple, updateCapacity, updatePort)
 
 -- abstract piece
 newtype APiece = APiece (forall r. (forall p. Piece p => p -> r) -> r)
@@ -29,9 +29,12 @@ unPiece f (APiece piece) = piece f
 instance Piece APiece where
   name = unPiece name
   eval = unPiece eval
+  complexity = unPiece complexity
+
   shouldRipple = unPiece shouldRipple
   getCapacity = unPiece getCapacity
   updateCapacity dir capacity (APiece piece) = piece (\p -> mkPiece <$> updateCapacity dir capacity p)
+
   getPorts = unPiece getPorts
   updatePort dir port (APiece piece) = piece (\p -> mkPiece <$> updatePort dir port p)
 

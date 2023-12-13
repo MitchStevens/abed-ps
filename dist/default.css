@@ -6,6 +6,7 @@
   box-sizing: border-box;
 }
 #board-component .piece {
+  box-sizing: border-box;
   display: block;
   height: 100%;
   width: 100%;

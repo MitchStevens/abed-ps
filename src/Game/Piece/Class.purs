@@ -11,6 +11,7 @@ import Data.Newtype (class Newtype, over, under, unwrap, wrap)
 import Data.Set (Set)
 import Game.Direction (CardinalDirection)
 import Game.Direction as Direction
+import Game.Piece.Complexity (Complexity)
 import Game.Piece.Port (Capacity, Port, PortType, isInput, isOutput)
 import Game.Signal (Signal(..))
 
@@ -34,6 +35,8 @@ instance Show PieceId where
 class Piece p where
   name  :: p -> PieceId
   eval  :: p -> Map CardinalDirection Signal -> Map CardinalDirection Signal
+  complexity :: p -> Complexity
+
 {-
   When capacity of a piece is changed, we want to do one of the following:
     - the capacity should change, and the capacity should ripple to adjacent pieces 
@@ -43,6 +46,7 @@ class Piece p where
   getCapacity :: p -> Maybe Capacity
   shouldRipple :: p -> Boolean
   updateCapacity :: CardinalDirection -> Capacity -> p -> Maybe p
+
 {-
   We also need a way to tell if a piece changed after a port was updated. Originally `updatePort` had the type signature:
     `updatePort :: Piece p => CardinalDirection -> Maybe Port -> p -> p`
@@ -58,19 +62,7 @@ class Piece p where
   updatePort :: CardinalDirection -> Maybe PortType -> p -> Maybe p
 
 {-
-  standard ports are
-    - an input on the left
-    - an output on the right
--}
---preserveStandardPorts :: forall p. (CardinalDirection -> Maybe Port -> p -> p) -> CardinalDirection -> Maybe Port -> p -> p
---preserveStandardPorts updatePort dir port p = case dir of
---  Direction.Left  -> if any isInput  port then updatePort dir port p else p
---  Direction.Right -> if any isOutput port then updatePort dir port p else p
---  _ -> updatePort dir port p
-
-
-{-
-  Most pieces are newtype wrappers over a record with a capacity field.
+  Many pieces are newtype wrappers over a record with a capacity field.
 -}
 defaultGetCapacity :: forall p r. Newtype p { capacity :: Capacity | r }
   => p -> Maybe Capacity

@@ -11,7 +11,8 @@ import Data.Maybe (Maybe(..), fromMaybe)
 import Data.Tuple (Tuple(..))
 import Game.Direction as Direction
 import Game.Piece.APiece (APiece, mkPiece)
-import Game.Piece.Class (class Piece, PieceId(..), updateCapacity)
+import Game.Piece.Class (class Piece, PieceId(..), complexity, updateCapacity)
+import Game.Piece.Complexity as Complexity
 import Game.Piece.Port (Capacity(..), doubleCapacity, halveCapacity, inputPort, outputPort, toInt)
 import Game.Signal (Signal(..))
 
@@ -27,6 +28,7 @@ instance Piece FusePiece where
     where
       high = fold (M.lookup Direction.Up m)
       low  = fold (M.lookup Direction.Down m)
+  complexity _ = Complexity.space 1.0
 
   shouldRipple _ = false
   getCapacity (Fuse { inputCapacity }) = Just inputCapacity
@@ -70,7 +72,7 @@ instance Piece SeverPiece where
       ]
     where
       Tuple high low = foldMap (severSignal outputCapacity) (M.lookup Direction.Left m)
-      --signal = fromMaybe (Signal 0) (M.lookup Direction.Left m)
+  complexity _ = Complexity.space 1.0
 
   shouldRipple _ = false
   getCapacity _ = Nothing
