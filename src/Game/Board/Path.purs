@@ -37,7 +37,7 @@ import Game.Board.Operation (BoardError, BoardM, addPieceNoUpdate, removePieceNo
 import Game.Direction (CardinalDirection, allDirections, clockwiseRotation, rotateDirection)
 import Game.Direction as Direction
 import Game.Location (Location(..), directionTo, followDirection)
-import Game.Piece (APiece(..), PieceId(..), chickenPiece, cornerCutPiece, crossPiece, getPort, idPiece, leftPiece, name, rightPiece)
+import Game.Piece (PieceId(..), chickenPiece, cornerCutPiece, crossPiece, getPort, idPiece, leftPiece, name, rightPiece)
 import Game.Piece.Port (isInput)
 import Game.Rotation (Rotation(..), rotation)
 

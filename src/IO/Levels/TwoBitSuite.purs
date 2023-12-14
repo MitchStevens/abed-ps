@@ -12,10 +12,7 @@ import Game.GameEvent (count, firstTime, latest, pieceAdded, pieceMovedTo, secon
 import Game.Level (LevelSuite, binaryTestInputs, defaultLevel)
 import Game.Level.Problem (defaultProblem)
 import Game.Message (addDelay, message)
-import Game.Piece (idPiece, name, notPiece, severPiece, twoBitCrossOver, xorPiece)
-import Game.Piece.Arithmetic (succPiece)
-import Game.Piece.BasicPiece (allBasicPieces, crossPiece, xorPiece)
-import Game.Piece.FusePiece (fusePiece)
+import Game.Piece (fusePiece, idPiece, notPiece, severPiece, succPiece, twoBitCrossOver, xorPiece)
 import Game.Signal (Signal(..))
 
 twoBitSuite :: LevelSuite
@@ -25,7 +22,7 @@ twoBitSuite = fromHomogeneous
       { goal = fusePiece
       , title = "Lovers Lake"
       , description = "Use a fuse-piece to combine the inputs from the top and left, output the result to the right"
-      , pieceSet = S.fromFoldable (map name [fusePiece, idPiece])
+      , availablePieces = [fusePiece, idPiece]
       , testCases =
         [ M.singleton Direction.Left (Signal 0)
         , M.singleton Direction.Left (Signal 1)
@@ -39,7 +36,7 @@ twoBitSuite = fromHomogeneous
       { goal = twoBitCrossOver
       , title = "Two bit criss cross"
       , description = "Sever the input on the left with a sever-piece, cross over the signals, fuse them back together"
-      , pieceSet = S.fromFoldable (map name [severPiece, fusePiece, idPiece])
+      , availablePieces = [severPiece, fusePiece, idPiece]
       , testCases =
         [ M.singleton Direction.Left (Signal 0)
         , M.singleton Direction.Left (Signal 1)
@@ -53,7 +50,7 @@ twoBitSuite = fromHomogeneous
       { goal = succPiece
       , title = "Increment"
       , description = "Add one to the two bit input signal. if the input is 3 (which has no successor), output signal 0"
-      , pieceSet = S.fromFoldable (map name [xorPiece, notPiece, fusePiece, severPiece])
+      , availablePieces = [xorPiece, notPiece, fusePiece, severPiece]
       , testCases =
         [ M.singleton Direction.Left (Signal 0)
         , M.singleton Direction.Left (Signal 1)

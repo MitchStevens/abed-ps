@@ -10,11 +10,11 @@ import Data.Foldable (for_)
 import Data.Map (Map)
 import Data.Maybe (Maybe)
 import Game.Board (Board(..))
-import Game.Board.EvaluableBoard (EvaluableBoard(..), toEvaluableBoard)
+import Game.Board.EvaluableBoard (EvaluableBoard(..), evaluableBoardPiece, toEvaluableBoard)
 import Game.Board.Operation (BoardError)
 import Game.Direction (CardinalDirection, allDirections)
 import Game.Level.Problem (Problem)
-import Game.Piece (APiece, Port, eval, getPort)
+import Game.Piece (Piece(..), Port, eval, getPort)
 import Game.Signal (Signal(..))
 
 data CompletionStatus
@@ -56,13 +56,13 @@ type FailedRestriction =
 isReadyForTesting :: Problem -> Board -> CompletionStatus
 isReadyForTesting problem board = fromLeft ReadyForTesting do
   evaluable <- checkEvaluable board
-  lmap PortMismatch $ checkPortMismatch problem evaluable
+  lmap PortMismatch $ checkPortMismatch problem (evaluableBoardPiece evaluable)
   lmap FailedRestriction $ checkOtherRestrictions problem board
 
 checkEvaluable :: Board -> Either CompletionStatus EvaluableBoard
 checkEvaluable board = lmap NotEvaluable (toEvaluableBoard board)
 
-checkPortMismatch :: Problem -> EvaluableBoard -> Either PortMismatch Unit
+checkPortMismatch :: Problem -> Piece -> Either PortMismatch Unit
 checkPortMismatch problem evaluable = for_ allDirections \dir -> do
   let expected = getPort problem.goal dir
   let received = getPort evaluable dir
@@ -75,7 +75,7 @@ checkOtherRestrictions problem board = for_ problem.otherRestrictions \r ->
     throwError { name: r.name, description: r.description }
 
 runSingleTest :: forall m. Monad m
-  => APiece -> Map CardinalDirection Signal -> (Map CardinalDirection Signal -> m (Map CardinalDirection Signal)) -> m (Either FailedTestCase Unit)
+  => Piece -> Map CardinalDirection Signal -> (Map CardinalDirection Signal -> m (Map CardinalDirection Signal)) -> m (Either FailedTestCase Unit)
 runSingleTest piece inputs testEval = do
   let expected = eval piece inputs
   recieved <- testEval inputs

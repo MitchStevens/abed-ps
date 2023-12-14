@@ -15,7 +15,7 @@ import Game.Level (LevelSuite, binaryTestInputs, defaultLevel)
 import Game.Level.RulesEngine (Rule(..))
 import Game.Location (location)
 import Game.Message (_selector, addDelay, fromGuide)
-import Game.Piece (name, idPiece)
+import Game.Piece (idPiece)
 
 tutorialSuite :: LevelSuite
 tutorialSuite = fromHomogeneous
@@ -27,7 +27,7 @@ tutorialSuite = fromHomogeneous
         , description: "Propagate the signal inputed on the Left to the Right"
         , testCases: binaryTestInputs [ Direction.Left ]
         , requiresAutomaticTesting: false
-        , pieceSet: S.fromFoldable [ name idPiece ]
+        , availablePieces: [ idPiece ]
         , otherRestrictions: []
         }
       , boardDeltaRulesEngine =
@@ -40,7 +40,7 @@ tutorialSuite = fromHomogeneous
               _selector .~ Just (selector DataAttr.location l1)
           , Rule (firstTime (pieceMovedTo l1)) $
             fromGuide "add another piece" #
-              _selector .~ Just (selector DataAttr.availablePiece (name idPiece))
+              _selector .~ Just (selector DataAttr.availablePiece idPiece)
           --, Rule (secondTime pieceAdded) $
           --  guiding "move piece to (0, 1)" $
           --    selector DataAttr.location l2

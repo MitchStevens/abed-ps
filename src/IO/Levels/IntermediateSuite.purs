@@ -23,7 +23,7 @@ intermediateSuite = fromHomogeneous
         , description: "Propogate the signal on the left to the right, and the top to the bottom"
         , testCases: binaryTestInputs [ Direction.Left, Direction.Up ]
         , requiresAutomaticTesting: false
-        , pieceSet: S.fromFoldable (map name [idPiece, superPiece, leftPiece, rightPiece, xorPiece])
+        , availablePieces: [idPiece, superPiece, leftPiece, rightPiece, xorPiece]
         , otherRestrictions: []
         }
       , boardDeltaRulesEngine = []

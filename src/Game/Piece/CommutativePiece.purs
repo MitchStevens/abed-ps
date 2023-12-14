@@ -16,9 +16,9 @@ import Data.Semigroup.Commutative (class Commutative)
 import Data.Tuple (Tuple(..))
 import Game.Direction (CardinalDirection)
 import Game.Direction as Direction
-import Game.Piece.APiece (APiece(..))
 import Game.Piece.Port (Capacity(..), Port, PortType, isInput, isOutput)
 import Game.Piece.Port as Port
+import Game.Piece.Types (Piece(..))
 import Game.Signal (Signal(..))
 
 {-
@@ -60,7 +60,7 @@ import Game.Signal (Signal(..))
 --  , eval
 --  }
 
-allCommutativePieces :: Array APiece
+allCommutativePieces :: Array Piece
 allCommutativePieces = [  ]
 
 --orPiece :: APiece

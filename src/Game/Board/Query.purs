@@ -1,7 +1,7 @@
 module Game.Board.Query where
 
-import Prelude
 import Data.Lens
+import Prelude
 
 import Control.Alternative (guard)
 import Control.Monad.State (class MonadState, gets)
@@ -28,7 +28,7 @@ import Game.Direction (CardinalDirection, allDirections, oppositeDirection, rota
 import Game.Direction as Direction
 import Game.Edge (Edge(..), matchEdge)
 import Game.Location (Location(..), followDirection, location)
-import Game.Piece (APiece, Capacity, getPort, portType, shouldRipple, updateCapacity)
+import Game.Piece (Capacity, Piece(..), getPort, portType)
 import Game.Piece as Port
 import Game.Piece.Port (Port(..), isInput, portMatches)
 import Game.Rotation (Rotation(..))
@@ -178,12 +178,12 @@ capacityRippleAcc capacity vars = case vars.openSet of
     let closedSet = S.insert loc vars.closedSet
     maybePiece <- map (_.piece) <$> use (_pieces <<< at loc)
     
-    case maybePiece >>= updateCapacity (relativeEdgeDirection relEdge) capacity of
-      Just p -> do                                        -- if the capacity can be changed...
+    case maybePiece >>= \(Piece p) -> p.updateCapacity (relativeEdgeDirection relEdge) capacity of
+      Just (Piece p') -> do                                        -- if the capacity can be changed...
         connected <- allConnectedRelativeEdges loc
-        _pieces <<< ix loc %= (_ { piece = p })          -- set the capacity at the location...
+        _pieces <<< ix loc %= (_ { piece = Piece p' })          -- set the capacity at the location...
 
-        if shouldRipple p
+        if p'.shouldRipple
           then do
             let notInClosedSet r = not (S.member (relativeEdgeLocation r) vars.closedSet)
             let openSet = L.fromFoldable (filter notInClosedSet connected) <> otherEdges            -- add the adjacent locations to the open set

@@ -50,7 +50,7 @@ import Game.Direction (CardinalDirection)
 import Game.Direction as Direction
 import Game.GameEvent (BoardEvent(..), GameEvent(..), GameEventStore, boardEventLocationsChanged)
 import Game.Location (Location(..), location)
-import Game.Piece (APiece(..), PieceId(..), Port, getPort, getPorts, isInput, isOutput, matchingPort, name)
+import Game.Piece (PieceId(..), Port, getPort, isInput, isOutput, matchingPort, name, Piece(..))
 import Game.Rotation (Rotation(..))
 import Game.Signal (Signal(..))
 import Halogen (AttrName(..), ClassName(..), Component, HalogenM(..), HalogenQ, Slot, ComponentHTML)
@@ -91,7 +91,7 @@ type State =
 
 data Query a
   = GetBoard (Board -> a)
-  | AddPiece Location APiece
+  | AddPiece Location Piece
   | RemovePiece Location
   | GetMouseOverLocation (Location -> a)
   | SetGoalPorts (Map CardinalDirection Port)

@@ -35,7 +35,7 @@ import Game.GameEvent (pieceId)
 import Game.Level.Completion (CompletionStatus(..), FailedTestCase)
 import Game.Level.Problem (Problem)
 import Game.Location (location)
-import Game.Piece (APiece(..), PieceId(..), Port(..), PortType(..), name, pieceLookup, pieceVault, toInt)
+import Game.Piece (PieceId(..), Port(..), PortType(..), name, pieceLookup, pieceVault, toInt)
 import Game.Piece as Port
 import Game.Piece.Port (isInput)
 import Halogen (ClassName(..), ComponentSlot, HalogenM, HalogenQ, ComponentHTML, liftAff)
@@ -99,6 +99,7 @@ component = H.mkComponent { eval , initialState , render }
     , completionStatus: NotStarted
     , boardSize }
 
+  render :: forall s m. State -> ComponentHTML Action s m
   render state = 
     HH.div 
       [ HP.id "sidebar-component" ]
@@ -108,7 +109,8 @@ component = H.mkComponent { eval , initialState , render }
       , renderCompletionStatus state.completionStatus
       , HH.h3_ [ HH.text "Available pieces:"]
       , HH.span [ HP.class_ (ClassName "pieces") ] $
-        A.fromFoldable state.problem.pieceSet <#> renderAvailablePiece
+          renderAvailablePiece <$>
+            A.fromFoldable state.problem.availablePieces
       , HH.h3_ [ HH.text "Board size" ]
       , HH.span_
         [ HH.button [ HE.onClick (\_ -> DecrementBoardSize) ] [ HH.text "-" ]
@@ -119,17 +121,17 @@ component = H.mkComponent { eval , initialState , render }
     where
 
       --renderAvailablePiece :: forall p. PieceId -> HTML (ComponentSlot Slots) Action
-      renderAvailablePiece pieceId =
-          let input = { piece: pieceLookup pieceId, location: location 0 0, portStates: M.empty }
+      renderAvailablePiece piece =
+          let input = { piece, location: location 0 0, portStates: M.empty }
+              pieceId = name piece
           in HH.div 
-            [ attr DataAttr.availablePiece pieceId
+            [ attr DataAttr.availablePiece piece
             , HP.draggable true
             , HP.classes [ ClassName "available-piece" ]
             , HE.onDragEnd (PieceOnDrop pieceId)
             , HE.onClick (PieceOnClick pieceId)
             ]
-            --[ HH.slot (Proxy :: Proxy "piece") pieceId Piece.component input PieceOutput
-            [ mapActionOverHTML (\_ -> DoNothing) (renderPiece (Piece.defaultState (pieceLookup pieceId)))
+            [ mapActionOverHTML (\_ -> DoNothing) (renderPiece (Piece.defaultState piece))
             , HH.text (show pieceId) 
             ]
 

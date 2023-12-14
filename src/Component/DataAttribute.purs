@@ -4,10 +4,11 @@ import Prelude
 
 import Capability.Progress (LevelProgress(..))
 import Data.Maybe (Maybe(..))
+import Data.Newtype (unwrap)
 import Data.String (toLower)
 import Game.Direction (CardinalDirection)
 import Game.Location (Location(..))
-import Game.Piece (PieceId(..))
+import Game.Piece (Piece(..), PieceId(..))
 import Halogen.HTML (IProp)
 import Halogen.HTML as HP
 import Web.DOM.ParentNode (QuerySelector(..))
@@ -30,8 +31,8 @@ attr (Attr attrName toStr) a = HP.attr attrName (toStr a)
 location :: DataAttribute Location
 location = Attr (AttrName "data-location") show
 
-availablePiece :: DataAttribute PieceId
-availablePiece = Attr (AttrName "data-available-piece") (\(PieceId id) -> id)
+availablePiece :: DataAttribute Piece
+availablePiece = Attr (AttrName "data-available-piece") (\(Piece p) -> unwrap p.name)
 
 chatUsername :: DataAttribute String
 chatUsername = Attr (AttrName "data-username") identity

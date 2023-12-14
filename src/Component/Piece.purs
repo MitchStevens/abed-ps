@@ -27,7 +27,7 @@ import Effect.Class (class MonadEffect, liftEffect)
 import Effect.Class.Console (log, logShow)
 import Game.Board (relative)
 import Game.Direction as Direction
-import Game.Piece (class Piece, APiece(..), PieceId(..), getPort, name)
+import Game.Piece (PieceId(..), getPort, name)
 import Game.Piece.Port (Port)
 import Game.Piece.Port as Port
 import Game.Rotation (rotation)

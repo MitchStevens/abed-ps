@@ -38,7 +38,7 @@ import Game.Board.Query (adjacentRelativeEdge, buildConnectionMap, getBoardEdgeP
 import Game.Direction (CardinalDirection, allDirections, clockwiseRotation, oppositeDirection)
 import Game.Direction as Direction
 import Game.Location (Location(..), followDirection)
-import Game.Piece (class Piece, APiece, Capacity, PieceId(..), Port(..), clampSignal, eval, getPorts, inputPort, isInput, isOutput, matchingPort, name, outputPort, portCapacity, portType, shouldRipple)
+import Game.Piece (Capacity, Piece(..), PieceId(..), Port(..), clampSignal, eval, inputPort, isInput, isOutput, matchingPort, name, outputPort, portCapacity, portType, shouldRipple)
 import Game.Piece as Port
 import Game.Piece.Complexity (Complexity)
 import Game.Piece.Complexity as Complexity
@@ -46,7 +46,7 @@ import Game.Signal (Signal(..))
 import Halogen.Svg.Attributes (m)
 
 newtype EvaluableBoard = EvaluableBoard
-  { pieces :: Map Location APiece
+  { pieces :: Map Location Piece
   -- maps input relEdges to output relEdges
   , connections :: Map RelativeEdge RelativeEdge
   -- topologically sorted list of locations
@@ -111,21 +111,21 @@ topologicalSort nodes edges = do
       edges' = M.filterWithKey (\k v -> relativeEdgeLocation v /= r) edges
   Cons r <$> topologicalSort nodes' edges'
 
+evaluableBoardPiece :: EvaluableBoard -> Piece
+evaluableBoardPiece evaluable@(EvaluableBoard e) = Piece
+  { name: PieceId "evaluable"
+  , eval:
+      \inputs -> flip evalState M.empty do
+        injectInputs evaluable inputs
+        evalWithPortInfo evaluable inputs
+  , complexity: Complexity.space 0.0
 
-instance Piece EvaluableBoard where
-  name _ = PieceId "evaluable"
-  -- finish this
-  eval evaluable inputs = flip evalState M.empty do
-    injectInputs evaluable inputs
-    evalWithPortInfo evaluable inputs
-  complexity _ = Complexity.space 0.0
+  , shouldRipple: false
+  , updateCapacity: \_ _ -> Nothing
 
-  shouldRipple _ = false
-  getCapacity _ = Nothing
-  updateCapacity _ _ _ = Nothing
-  getPorts (EvaluableBoard evaluable) = evaluable.ports
-  -- todo: do this later maybe? do i actually ned this?
-  updatePort _ _ _ = Nothing
+  , ports: e.ports
+  , updatePort: \_ _ -> Nothing
+  }
 
 
 evalWithPortInfo :: forall m. MonadState (Map RelativeEdge PortInfo) m 
@@ -162,19 +162,18 @@ getInputOnEdge (EvaluableBoard evaluable) inRelEdge capacity = do
 evalWithPortInfoAt :: forall m. MonadState (Map RelativeEdge PortInfo) m
   => EvaluableBoard -> Location -> m Unit
 evalWithPortInfoAt board@(EvaluableBoard evaluable) loc = do
-  for_ (M.lookup loc evaluable.pieces) \piece -> do
-    let ports = getPorts piece
-    let inputPorts = M.filter isInput ports
+  for_ (M.lookup loc evaluable.pieces) \(Piece p) -> do
+    let inputPorts = M.filter isInput p.ports
 
     inputs <- M.fromFoldable <$>
       forWithIndex inputPorts \dir port ->
         Tuple dir <$> getInputOnEdge board (relative loc dir) (portCapacity port)
         
     -- don't evaluate psuedo pieces
-    unless (isPseudoPiece piece) do
+    unless (isPseudoPiece (Piece p)) do
       --trace (show (name piece) <> ": " <> show loc <> " --> " <> show inputs) \_ -> pure unit
-      let outputs = eval piece inputs
-      let outputPorts  = M.filter isOutput ports
+      let outputs = p.eval inputs
+      let outputPorts = M.filter isOutput p.ports
       forWithIndex_ outputPorts \dir port -> do
         let signal = foldMap (clampSignal (portCapacity port)) (M.lookup dir outputs)
         at (relative loc dir) .= Just { connected: false, signal, port }

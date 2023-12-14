@@ -14,28 +14,28 @@ import Data.Maybe (Maybe(..))
 import Data.String (Pattern(..))
 import Data.String as String
 import Game.Direction as Direction
-import Game.Piece (class Piece, APiece, PieceId(..), Port(..), mkPiece, name, portCapacity, portType, shouldRipple, updateCapacity)
-import Game.Piece as Port
 import Game.Piece.Complexity as Complexity
+import Game.Piece.Port (Port(..), portType)
+import Game.Piece.Port as Port
+import Game.Piece.Types (Piece(..), PieceId(..))
 
 -- used for board evaluation, outputs
-newtype PseudoPiece = Pseudo Port
+type PseudoPiece = Port
 
-instance Piece PseudoPiece where
-  name (Pseudo port) = case portType port of
-    Port.Input -> PieceId "psuedo-input"
-    Port.Output -> PieceId "psuedo-output"
-  eval _ _ = M.empty
-  complexity _ = Complexity.space 0.0
+psuedoPiece :: Port -> Piece
+psuedoPiece port = Piece
+  { name: PieceId $ case portType port of
+      Port.Input  -> "psuedo-input"
+      Port.Output -> "psuedo-output"
+  , eval: \_ -> M.empty
+  , complexity: Complexity.space 0.0
 
-  shouldRipple _ = false
-  getCapacity (Pseudo port) = Just (portCapacity port)
-  updateCapacity _ _ _ = Nothing
-  getPorts (Pseudo port) = M.singleton Direction.Right port
-  updatePort _ _ _ = Nothing
+  , shouldRipple: false
+  , updateCapacity: \_ _ -> Nothing
 
-psuedoPiece :: Port -> APiece
-psuedoPiece port = mkPiece (Pseudo port)
+  , ports: M.singleton Direction.Right port
+  , updatePort: \_ _ -> Nothing
+  }
 
-isPseudoPiece :: forall p. Piece p => p -> Boolean
-isPseudoPiece piece = name piece `elem` [ PieceId "psuedo-input", PieceId "psuedo-output" ]
+isPseudoPiece :: Piece -> Boolean
+isPseudoPiece (Piece p) =  p.name `elem` [ PieceId "psuedo-input", PieceId "psuedo-output" ]

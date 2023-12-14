@@ -10,19 +10,19 @@ import Game.Board (RelativeEdge)
 import Game.Board.PortInfo (PortInfo)
 import Game.Direction (CardinalDirection)
 import Game.Location (Location(..), location)
-import Game.Piece (APiece)
+import Game.Piece (Piece(..))
 import Game.Rotation (Rotation(..), rotation)
 import Web.HTML.Event.DragEvent (DragEvent)
 import Web.UIEvent.MouseEvent (MouseEvent)
 
 type Input =
-  { piece :: APiece
+  { piece :: Piece
   , location :: Location
   , portStates :: Map CardinalDirection PortInfo
   }
 
 type State = 
-  { piece :: APiece
+  { piece :: Piece
   , location :: Location
   , rotation  :: Rotation
   , isRotating :: Maybe
@@ -34,7 +34,7 @@ type State =
 
 data Query a
   = SetPortStates (Map CardinalDirection PortInfo)
-  | SetPiece APiece
+  | SetPiece Piece
 
 data Action
   = Initialise Input
@@ -52,7 +52,7 @@ data Output
   | NewMultimeterFocus (Maybe {info :: PortInfo, relativeEdge :: RelativeEdge })
 
 
-defaultState :: APiece -> State
+defaultState :: Piece -> State
 defaultState piece =
   { piece
   , location: location 0 0

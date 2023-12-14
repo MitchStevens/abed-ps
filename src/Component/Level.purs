@@ -38,7 +38,7 @@ import Game.GameEvent (GameEvent, GameEventStore)
 import Game.Level (LevelId, Level)
 import Game.Level.Completion (CompletionStatus(..), FailedTestCase, isReadyForTesting, runSingleTest)
 import Game.Message (Message(..), green, htmlMessage, message, red)
-import Game.Piece (APiece, getPorts, pieceLookup)
+import Game.Piece (Piece(..), pieceLookup)
 import Game.Signal (Signal(..))
 import GlobalState (GlobalState)
 import Halogen (ClassName(..), Component, HalogenM, HalogenQ, Slot, gets)
@@ -111,8 +111,8 @@ component = H.mkComponent { eval , initialState , render }
       putQueuedMessages initialConversation
 
       -- make the board component display goal ports
-      piece <- H.gets (_.level.problem.goal)
-      H.tell _board unit (\_ -> Board.SetGoalPorts (getPorts piece))
+      Piece piece <- H.gets (_.level.problem.goal)
+      H.tell _board unit (\_ -> Board.SetGoalPorts piece.ports)
     LevelComplete -> do
       H.tell _sidebar unit (\_ -> Sidebar.SetCompletionStatus Completed)
 
@@ -156,7 +156,7 @@ component = H.mkComponent { eval , initialState , render }
 
 -- this should be CPS but it's fine for small number of inputs
 runAllTests :: forall m. MonadAff m => MonadAsk GlobalState m
-  => APiece -> List (Map CardinalDirection Signal) -> (Map CardinalDirection Signal -> m (Map CardinalDirection Signal)) -> m (Either FailedTestCase Unit)
+  => Piece -> List (Map CardinalDirection Signal) -> (Map CardinalDirection Signal -> m (Map CardinalDirection Signal)) -> m (Either FailedTestCase Unit)
 runAllTests piece inputs testEval = runTestsAcc 1 inputs
   where
     totalTestDurationMs = 2000

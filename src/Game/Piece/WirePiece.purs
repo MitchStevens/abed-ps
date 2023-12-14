@@ -4,6 +4,7 @@ import Prelude
 
 import Control.Alternative (guard)
 import Data.Foldable (all, length)
+import Data.Int (toNumber)
 import Data.Map (Map)
 import Data.Map as M
 import Data.Maybe (Maybe(..), fromMaybe, maybe)
@@ -13,12 +14,12 @@ import Data.Set as S
 import Data.Tuple (Tuple(..))
 import Game.Direction (CardinalDirection)
 import Game.Direction as Direction
-import Game.Piece.APiece (APiece(..), mkPiece)
-import Game.Piece.Class (class Piece, PieceId(..), defaultGetCapacity, defaultUpdateCapacity, getCapacity, updateCapacity)
 import Game.Piece.Complexity (Complexity)
 import Game.Piece.Complexity as Complexity
+import Game.Piece.Port (Capacity(..))
 import Game.Piece.Port (Capacity(..), PortType(..), inputPort, isInput, isOutput, outputPort)
 import Game.Piece.Port as Port
+import Game.Piece.Types (Piece(..), PieceId(..))
 import Game.Signal (Signal(..))
 
 
@@ -28,58 +29,69 @@ import Game.Signal (Signal(..))
   - have at least 1 output
   - send the input signal directly to all of th  outputs
 -}
-newtype WirePiece = Wire
-  { pieceId :: PieceId
+type WirePiece =
+  { name :: PieceId
   , capacity :: Capacity
-  , outputPorts :: Map CardinalDirection Unit
-  }
-derive instance Newtype WirePiece _
-
-instance Piece WirePiece where
-  name (Wire piece) = piece.pieceId
-  eval (Wire piece) inputs = piece.outputPorts $> signal
-    where signal = fromMaybe (Signal 0) (M.lookup Direction.Left inputs)
-  complexity _ = Complexity.space 1.0
-  
-  shouldRipple _ = true
-  getCapacity = defaultGetCapacity
-  updateCapacity = defaultUpdateCapacity
-
-  getPorts (Wire piece) = M.insert Direction.Left (inputPort piece.capacity) 
-    (piece.outputPorts $> outputPort piece.capacity)
-  updatePort Direction.Left _ _ = Nothing
-  updatePort dir portType (Wire piece) = do
-    case portType of
-      Just Input -> do
-        let newOutputs = M.insert dir unit piece.outputPorts 
-        guard (piece.outputPorts /= newOutputs)
-        pure $ Wire (piece { outputPorts = newOutputs })
-      Just Output -> Nothing
-      Nothing -> do
-        let newOutputs = M.delete dir piece.outputPorts 
-        guard (piece.outputPorts /= newOutputs)
-        if M.isEmpty newOutputs
-          then pure $ Wire (piece { outputPorts = M.singleton Direction.Right unit} )
-          else pure $ Wire (piece { outputPorts = newOutputs })
-
-wirePiece :: PieceId -> Set CardinalDirection -> WirePiece
-wirePiece pieceId directions = Wire
-  { pieceId
-  , capacity: OneBit
-  , outputPorts: S.toMap directions
+  , outputs :: Set CardinalDirection
   }
 
-allWirePieces :: Array APiece
+wirePiece :: WirePiece -> Piece
+wirePiece wire = Piece
+  { name: wire.name
+  , eval: \inputs -> 
+      let signal = fromMaybe (Signal 0) (M.lookup Direction.Left inputs)
+      in S.toMap wire.outputs $> signal
+  , complexity: Complexity.space (toNumber (length wire.outputs))
+
+  , shouldRipple: true
+  , updateCapacity: \_ capacity -> Just (wirePiece (wire { capacity = capacity }))
+
+  , ports: M.insert Direction.Left (inputPort wire.capacity) 
+      (S.toMap wire.outputs $> outputPort wire.capacity)
+
+  , updatePort: \dir portType -> case dir, portType of
+      Direction.Left, _ -> Nothing
+      _, Just Input -> do
+          let newOutputs = S.insert dir wire.outputs 
+          guard (wire.outputs /= newOutputs)
+          pure $ wirePiece (wire { outputs = newOutputs })
+      _, Just Output -> Nothing
+      _, Nothing -> do
+          let newOutputs = S.delete dir wire.outputs 
+          guard (wire.outputs /= newOutputs)
+          if S.isEmpty newOutputs
+            then pure $ wirePiece (wire { outputs = S.singleton Direction.Right} )
+            else pure $ wirePiece (wire { outputs = newOutputs })
+  }
+
+
+allWirePieces :: Array Piece
 allWirePieces = [ idPiece, leftPiece, rightPiece, superPiece ]
 
-idPiece :: APiece
-idPiece = mkPiece $ wirePiece (PieceId "id-piece") (S.fromFoldable [ Direction.Right ])
+idPiece :: Piece
+idPiece = wirePiece
+  { name: PieceId "id-piece"
+  , capacity: OneBit
+  , outputs: S.fromFoldable [ Direction.Right ]
+  }
 
-leftPiece :: APiece
-leftPiece = mkPiece $ wirePiece (PieceId "left-piece") (S.fromFoldable [Direction.Up])
+leftPiece :: Piece
+leftPiece = wirePiece
+  { name: PieceId "left-piece"
+  , capacity: OneBit 
+  , outputs: S.fromFoldable [Direction.Up]
+  }
 
-rightPiece :: APiece
-rightPiece = mkPiece $ wirePiece (PieceId "right-piece") (S.fromFoldable [Direction.Down])
+rightPiece :: Piece
+rightPiece = wirePiece 
+  { name: PieceId "right-piece"
+  , capacity: OneBit
+  , outputs: S.fromFoldable [Direction.Down]
+  }
 
-superPiece :: APiece
-superPiece = mkPiece $ wirePiece (PieceId "super-piece") (S.fromFoldable [Direction.Up, Direction.Right, Direction.Down])
+superPiece :: Piece
+superPiece = wirePiece 
+  { name: PieceId "super-piece"
+  , capacity: OneBit
+  , outputs: S.fromFoldable [Direction.Up, Direction.Right, Direction.Down]
+  }

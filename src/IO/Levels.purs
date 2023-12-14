@@ -14,7 +14,6 @@ import Effect.Class (class MonadEffect)
 import Foreign.Object (Object, fromHomogeneous)
 import Foreign.Object as O
 import Game.Level (LevelId, LevelSuite)
-import Game.Piece (mkPiece, name)
 import IO.Levels.IntermediateSuite (intermediateSuite)
 import IO.Levels.TutorialSuite (tutorialSuite)
 import IO.Levels.TwoBitSuite (twoBitSuite)

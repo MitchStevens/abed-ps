@@ -24,18 +24,18 @@ import Effect.Aff (Aff, Milliseconds(..), delay)
 import Effect.Aff.Class (class MonadAff, liftAff)
 import Game.Board (Board(..), _pieces)
 import Game.Direction (CardinalDirection)
-import Game.Piece (class Piece, APiece(..), PieceId(..), Port, eval, getPort, idPiece)
+import Game.Piece (Piece(..), PieceId(..), Port, getPort, idPiece)
 import Game.Signal (Signal(..))
 import Type.Proxy (Proxy(..))
 import Web.DOM.ParentNode (QuerySelector(..))
 
 type Problem = 
-  { goal :: APiece
+  { goal :: Piece
   , title :: String
   , description :: String
   , testCases :: Array (Map CardinalDirection Signal)
   , requiresAutomaticTesting :: Boolean
-  , pieceSet :: Set PieceId
+  , availablePieces :: Array Piece
   , otherRestrictions :: Array
     { name :: String
     , restriction :: Board -> Boolean
@@ -52,7 +52,7 @@ defaultProblem =
   , description: "default description"
   , testCases: []
   , requiresAutomaticTesting: false
-  , pieceSet: Set.empty
+  , availablePieces: []
   , otherRestrictions: []
   }
 
@@ -60,8 +60,8 @@ defaultProblem =
 showMismatch :: forall r a. Show a => { received :: a, expected :: a | r } -> String
 showMismatch r = "received: " <> show r.received <> ", expected: " <> show r.expected
 
-countPiecesOfType :: Board -> APiece -> Int
-countPiecesOfType (Board board) piece = length $ M.filter (\p -> piece == p.piece) board.pieces
+--countPiecesOfType :: Board -> Piece -> Int
+--countPiecesOfType (Board board) (Piece piece) = length $ M.filter (\p -> piece == p.piece) board.pieces
 
 
 

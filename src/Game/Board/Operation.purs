@@ -33,7 +33,7 @@ import Game.Direction as Direction
 import Game.Edge (Edge(..), edgeLocation)
 import Game.GameEvent (BoardEvent(..))
 import Game.Location (Location(..), location)
-import Game.Piece (APiece(..), Port, PortType, pieceLookup, portType, updatePort)
+import Game.Piece (Piece(..), Port, PortType, pieceLookup, portType, updatePort)
 import Game.Rotation (Rotation(..), rotation)
 import Type.Proxy (Proxy(..))
 
@@ -106,7 +106,7 @@ getPieceInfo loc =
   use (_pieces <<< at loc) >>= 
     maybe (throwError (LocationNotOccupied loc)) pure
 
-getPiece :: forall m. MonadState Board m => MonadError BoardError m => Location -> m APiece
+getPiece :: forall m. MonadState Board m => MonadError BoardError m => Location -> m Piece
 getPiece loc = (_.piece) <$> getPieceInfo loc
 
 {- 
@@ -141,7 +141,7 @@ updatePortsAround loc = do
       updateRelEdge relEdge' (portType <$> maybePort)
 
 addPieceNoUpdate :: forall m. MonadError BoardError m => MonadState Board m 
-  => Location -> APiece -> Rotation -> m Unit
+  => Location -> Piece -> Rotation -> m Unit
 addPieceNoUpdate loc piece rotation = do
   checkInsideBoard loc
   pieceInfo <- use (_pieces <<< at loc)
@@ -149,12 +149,12 @@ addPieceNoUpdate loc piece rotation = do
     Nothing -> _pieces <<< at loc .= Just { piece, rotation }
     Just _ -> throwError (LocationOccupied loc)
 
-addPiece :: forall m. MonadError BoardError m => MonadState Board m => Location -> APiece -> m Unit
+addPiece :: forall m. MonadError BoardError m => MonadState Board m => Location -> Piece -> m Unit
 addPiece loc piece = do
    addPieceNoUpdate loc piece (rotation 0)
    updatePortsAround loc
 
-removePieceNoUpdate :: forall m. MonadError BoardError m => MonadState Board m => Location -> m APiece
+removePieceNoUpdate :: forall m. MonadError BoardError m => MonadState Board m => Location -> m Piece
 removePieceNoUpdate loc = do
   checkInsideBoard loc
   maybePieceInfo <- use (_pieces <<< at loc)
@@ -164,7 +164,7 @@ removePieceNoUpdate loc = do
       _pieces <<< at loc .= Nothing
       pure pieceInfo.piece
 
-removePiece :: forall m. MonadError BoardError m => MonadState Board m => Location -> m APiece
+removePiece :: forall m. MonadError BoardError m => MonadState Board m => Location -> m Piece
 removePiece loc = do
   piece <- removePieceNoUpdate loc
   updatePortsAround loc

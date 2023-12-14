@@ -15,42 +15,41 @@ import Data.Unfoldable (fromMaybe)
 import Game.Direction (CardinalDirection(..))
 import Game.Direction as Direction
 import Game.Expression (Expression(..), evaluate, ref)
-import Game.Piece.APiece (APiece(..), mkPiece)
-import Game.Piece.Class (class Piece, PieceId(..), defaultGetCapacity, defaultUpdateCapacity, getCapacity, shouldRipple, updateCapacity)
 import Game.Piece.Complexity (Complexity)
 import Game.Piece.Complexity as Complexity
 import Game.Piece.Port (Capacity(..), Port(..), inputPort, isInput, outputPort)
+import Game.Piece.Types (Piece(..), PieceId(..))
 import Game.Rotation (Rotation(..))
 
 data BasicPort = BasicInput | BasicOutput Expression
 
-newtype BasicPiece = Basic
-  { name :: String
+type BasicPiece =
+  { name :: PieceId
   , capacity :: Capacity
   , complexity :: Complexity
   , ports :: Map CardinalDirection BasicPort
   }
 
-derive instance Newtype BasicPiece _
+basicPiece :: BasicPiece -> Piece
+basicPiece basic = Piece
+  { name: basic.name
+  , eval: \inputs -> flip M.mapMaybe basic.ports $ case _ of
+      BasicInput  -> Nothing
+      BasicOutput expression -> Just (evaluate inputs expression)
+  , complexity: basic.complexity
 
-instance Piece BasicPiece where
-  name (Basic piece) = PieceId piece.name
-  eval (Basic piece) inputs = flip M.mapMaybe piece.ports $ case _ of
-    BasicInput  -> Nothing
-    BasicOutput expression -> Just (evaluate inputs expression)
-  complexity (Basic piece) = piece.complexity
+  , shouldRipple: true
+  , updateCapacity: \_ capacity -> Just $ basicPiece (basic { capacity = capacity })
   
-  shouldRipple _  = true
-  getCapacity = defaultGetCapacity
-  updateCapacity = defaultUpdateCapacity
-  getPorts (Basic piece) = piece.ports <#> case _ of
-    BasicInput -> inputPort piece.capacity
-    BasicOutput _ -> outputPort piece.capacity
-  updatePort _ _ _ = Nothing
+  , ports: basic.ports <#> case _ of
+      BasicInput -> inputPort basic.capacity
+      BasicOutput _ -> outputPort basic.capacity
+  , updatePort: \_ _ -> Nothing
+  }
 
 
 
-allBasicPieces :: Array APiece
+allBasicPieces :: Array Piece
 allBasicPieces =
   [ notPiece, orPiece, andPiece
   , crossPiece, cornerCutPiece, chickenPiece
@@ -58,9 +57,9 @@ allBasicPieces =
   ]
 
 
-notPiece :: APiece
-notPiece = mkPiece $ Basic 
-  { name: "not-piece"
+notPiece :: Piece
+notPiece = basicPiece
+  { name: PieceId "not-piece"
   , capacity: OneBit
   , complexity: Complexity.space 2.0
   , ports: M.fromFoldable
@@ -69,9 +68,9 @@ notPiece = mkPiece $ Basic
     ]
   }
 
-orPiece :: APiece
-orPiece = mkPiece $ Basic 
-  { name: "or-piece"
+orPiece :: Piece
+orPiece = basicPiece
+  { name: PieceId "or-piece"
   , capacity: OneBit
   , complexity: Complexity.space 3.0
   , ports: M.fromFoldable
@@ -81,9 +80,9 @@ orPiece = mkPiece $ Basic
     ]
   }
 
-andPiece :: APiece
-andPiece = mkPiece $ Basic 
-  { name: "and-piece" 
+andPiece :: Piece
+andPiece = basicPiece
+  { name: PieceId "and-piece" 
   , capacity: OneBit
   , complexity: Complexity.space 3.0
   , ports: M.fromFoldable
@@ -93,9 +92,9 @@ andPiece = mkPiece $ Basic
     ]
   }
 
-crossPiece :: APiece
-crossPiece = mkPiece $ Basic
-  { name: "cross-piece"
+crossPiece :: Piece
+crossPiece = basicPiece
+  { name: PieceId "cross-piece"
   , capacity: OneBit
   , complexity: Complexity.space 2.0
   , ports: M.fromFoldable
@@ -106,9 +105,9 @@ crossPiece = mkPiece $ Basic
     ]
   }
 
-cornerCutPiece :: APiece
-cornerCutPiece = mkPiece $ Basic
-  { name: "corner-cut-piece"
+cornerCutPiece :: Piece
+cornerCutPiece = basicPiece
+  { name: PieceId "corner-cut-piece"
   , capacity: OneBit
   , complexity: Complexity.space 2.0
   , ports: M.fromFoldable
@@ -120,9 +119,9 @@ cornerCutPiece = mkPiece $ Basic
 
   }
 
-chickenPiece :: APiece
-chickenPiece = mkPiece $ Basic
-  { name: "chicken-piece"
+chickenPiece :: Piece
+chickenPiece = basicPiece
+  { name: PieceId "chicken-piece"
   , capacity: OneBit
   , complexity: Complexity.space 2.0
   , ports: M.fromFoldable
@@ -133,9 +132,9 @@ chickenPiece = mkPiece $ Basic
     ]
   }
 
-reverseChickenPiece :: APiece
-reverseChickenPiece = mkPiece $ Basic
-  { name: "chicken"
+reverseChickenPiece :: Piece
+reverseChickenPiece = basicPiece
+  { name: PieceId "chicken"
   , capacity: OneBit
   , complexity: Complexity.space 2.0
   , ports: M.fromFoldable
@@ -146,9 +145,9 @@ reverseChickenPiece = mkPiece $ Basic
     ]
   }
 
-xorPiece :: APiece
-xorPiece = mkPiece $ Basic 
-  { name: "xor-piece" 
+xorPiece :: Piece
+xorPiece = basicPiece 
+  { name: PieceId "xor-piece" 
   , capacity: OneBit
   , complexity: Complexity.space 5.0
   , ports: M.fromFoldable

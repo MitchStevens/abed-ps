@@ -34,8 +34,7 @@ import Game.Direction (CardinalDirection, allDirections, oppositeDirection, rota
 import Game.Direction as Direction
 import Game.Edge (Edge(..), edge, matchEdge)
 import Game.Location (Location(..), location)
-import Game.Piece (class Piece, PieceId(..), Port, PortType, eval, getCapacity, getOutputDirs, getPort, getPorts, isInput, name, portCapacity, portType, toInt)
-import Game.Piece.APiece (APiece(..))
+import Game.Piece (Piece(..), PieceId(..), Port, PortType, getOutputDirs, getPort, isInput, portCapacity, portType, toInt)
 import Game.Piece.Port as Port
 import Game.Rotation (Rotation(..))
 import Game.Signal (Signal(..))
@@ -69,7 +68,7 @@ absolute :: Location -> CardinalDirection -> AbsoluteEdge
 absolute = edge 
 
 type PieceInfo =
-  { piece :: APiece
+  { piece :: Piece
   , rotation :: Rotation 
   }
 
@@ -154,7 +153,7 @@ printBoard (Board b) = "SHOW BOARD\n" <> (foldMap (_ <> "\n") $ interleave colEd
           L.range 0 (b.size - 1) <#> \x -> 
             let loc = location x y
             in case M.lookup loc b.pieces of
-              Just { piece, rotation } -> printPiece (getPorts piece) rotation loc
+              Just { piece: Piece p, rotation } -> printPiece p.ports rotation loc
               Nothing -> L.fromFoldable ["       ", "  " <> printLocation loc <> "  ", "       " ]
 
         edges = L.range 0 b.size <#> \x -> printRowEdge x y
