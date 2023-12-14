@@ -33,7 +33,7 @@ problemDescription =
   , description: "create an idenity from not gate"
   , testCases: [ M.singleton Direction.Left ff, M.singleton Direction.Left tt ]
   , requiresAutomaticTesting: false
-  , pieceSet: S.empty
+  , availablePieces: []
   , otherRestrictions: []
   }
 

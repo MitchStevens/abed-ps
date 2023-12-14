@@ -110,7 +110,7 @@ component = H.mkComponent { eval , initialState , render }
       , HH.h3_ [ HH.text "Available pieces:"]
       , HH.span [ HP.class_ (ClassName "pieces") ] $
           renderAvailablePiece <$>
-            A.fromFoldable state.problem.availablePieces
+            A.nub state.problem.availablePieces
       , HH.h3_ [ HH.text "Board size" ]
       , HH.span_
         [ HH.button [ HE.onClick (\_ -> DecrementBoardSize) ] [ HH.text "-" ]

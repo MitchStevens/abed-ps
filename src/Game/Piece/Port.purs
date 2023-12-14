@@ -14,6 +14,7 @@ import Type.Proxy (Proxy(..))
 
 data Capacity = OneBit | TwoBit | FourBit | EightBit
 derive instance Eq Capacity
+derive instance Ord Capacity
 
 instance Show Capacity where
   show capacity = "Capacity " <> show (toInt capacity)
@@ -59,6 +60,7 @@ clampedBits capacity signal  =
 
 data PortType = Input | Output
 derive instance Eq PortType
+derive instance Ord PortType
 
 instance Show PortType where
   show = case _ of
@@ -74,6 +76,7 @@ matchingPortType = case _ of
 newtype Port = Port { portType :: PortType, capacity :: Capacity }
 derive instance Newtype Port _
 derive instance Eq Port
+derive instance Ord Port
 
 instance Show Port where
   show (Port { portType, capacity }) = show portType <> " " <> show capacity

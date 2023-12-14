@@ -20,7 +20,7 @@ import Effect.Class (class MonadEffect)
 import Effect.Class.Console (log)
 import Effect.Exception (Error)
 import Game.Board (Board(..), RelativeEdge, relative)
-import Game.Board.EvaluableBoard (EvaluableBoard(..), buildEvaluableBoard, evalWithPortInfo, evalWithPortInfoAt, injectInputs)
+import Game.Board.EvaluableBoard (EvaluableBoard(..), buildEvaluableBoard, evalWithPortInfo, evalWithPortInfoAt, evaluableBoardPiece, injectInputs)
 import Game.Board.PortInfo (PortInfo)
 import Game.Board.PseudoPiece (psuedoPiece)
 import Game.Direction as Direction
@@ -146,4 +146,4 @@ tests = do
       outputs `shouldEqual` M.singleton Direction.Right (Signal 1)
     it "eval" do
       for_ (binaryTestInputs [Direction.Left, Direction.Up]) \inputs ->
-        eval testEvaluableBoard inputs `shouldEqual` eval orPiece inputs
+        eval (evaluableBoardPiece testEvaluableBoard) inputs `shouldEqual` eval orPiece inputs

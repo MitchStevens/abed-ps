@@ -17,7 +17,7 @@ import Game.Board.Query (adjacentRelativeEdge, buildConnectionMap, capacityRippl
 import Game.Direction (allDirections)
 import Game.Direction as Direction
 import Game.Location (location)
-import Game.Piece (Capacity(..), getCapacity, inputPort, outputPort)
+import Game.Piece (Capacity(..), inputPort, outputPort, portCapacity, getPort)
 import Test.Game.Board (testBoard, toAff)
 import Test.Game.Location (allLocations)
 import Test.Spec (Spec, SpecT, before, beforeAll_, describe, describeOnly, hoistSpec, it)
@@ -79,6 +79,6 @@ tests = do
           it "ripples" do
             capacityRipple (relative (location 1 1) Direction.Up) TwoBit
             use (_pieces <<< at (location 1 1)) >>= traverse_ \info ->
-              getCapacity info.piece `shouldEqual` Just TwoBit
+              (portCapacity <$> getPort info.piece Direction.Left) `shouldEqual` Just TwoBit
             --use (_pieces <<< at (location 0 1)) >>= traverse_ \info ->
             --  getCapacity info.piece `shouldEqual` Just TwoBit

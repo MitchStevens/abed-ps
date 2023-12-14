@@ -2,7 +2,7 @@ module Game.Piece.Types where
 
 import Prelude
 
-import Data.Foldable (and)
+import Data.Foldable (and, fold)
 import Data.Map (Map)
 import Data.Map as M
 import Data.Maybe (Maybe)
@@ -64,6 +64,12 @@ instance Eq Piece where
     [ p1.name == p2.name
     , p1.ports == p2.ports
     ]
+instance Ord Piece where
+  compare (Piece p1) (Piece p2) = fold
+    [ compare p1.name p2.name
+    , compare p1.ports p2.ports
+    ]
+
 instance Show Piece where
   show (Piece p) = "(Piece " <> show p.name <> ")"
 
@@ -78,6 +84,9 @@ shouldRipple (Piece p) = p.shouldRipple
 
 updateCapacity :: CardinalDirection -> Capacity -> Piece -> Maybe Piece
 updateCapacity dir capacity (Piece p) = p.updateCapacity dir capacity
+
+getPorts :: Piece -> Map CardinalDirection Port
+getPorts (Piece p) = p.ports
 
 updatePort :: CardinalDirection -> Maybe PortType -> Piece -> Maybe Piece
 updatePort dir port (Piece p) = p.updatePort dir port
