@@ -4,8 +4,9 @@
   "scripts": {
     "postinstall": "spago install",
     "compile-css": "lessc dist/less/default.less dist/default.css",
-    "build": "spago bundle-app --main Main --to dist/abed.js --minify",
-    "test": "spago -x test.dhall test",
+    "build": "spago bundle-app --main Main --to dist/abed.js --purs-args '-g sourcemaps'",
+    "prod": "spago bundle-app --main Main --to dist/abed.js --minify",
+    "test": "spago -x test.dhall test --purs-args '-g sourcemaps'",
     "test-browser": "spago -x test.dhall bundle-app --main Test.Component.Main --to dist/test.js",
     "compile-css-watch": "nodemon --watch dist/less/* --exec 'npm run compile-css'",
     "build-watch": "npm run compile-css-watch & npm run build -- --watch",

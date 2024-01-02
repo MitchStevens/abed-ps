@@ -140,6 +140,11 @@ getBoardEdgePseudoLocation dir = do
     Direction.Down  -> location (n`div`2) (n)
     Direction.Left  -> location (-1)      (n`div`2)
 
+getBoardPort :: forall m. MonadState Board m => CardinalDirection -> m RelativeEdge
+getBoardPort dir = do
+  loc <- getBoardEdgePseudoLocation dir
+  toRelativeEdge (absolute loc dir)
+
 {-
   Create a bidirectional mapping from inputs to ouptuts ports
 -}

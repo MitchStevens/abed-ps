@@ -15,19 +15,20 @@ import Data.String (Pattern(..))
 import Data.String as String
 import Game.Direction as Direction
 import Game.Piece.Complexity as Complexity
-import Game.Piece.Port (Port(..), portType)
+import Game.Piece.Port (Port(..), isInput, portType)
 import Game.Piece.Port as Port
 import Game.Piece.Types (Piece(..), PieceId(..))
+import Game.Signal (Signal(..))
 
 -- used for board evaluation, outputs
-type PseudoPiece = Port
-
 psuedoPiece :: Port -> Piece
 psuedoPiece port = Piece
   { name: PieceId $ case portType port of
       Port.Input  -> "psuedo-input"
       Port.Output -> "psuedo-output"
-  , eval: \_ -> M.empty
+  , eval: case portType port of
+    Port.Input  -> \input -> input
+    Port.Output -> \_ -> M.empty
   , complexity: Complexity.space 0.0
 
   , shouldRipple: false
@@ -39,3 +40,6 @@ psuedoPiece port = Piece
 
 isPseudoPiece :: Piece -> Boolean
 isPseudoPiece (Piece p) =  p.name `elem` [ PieceId "psuedo-input", PieceId "psuedo-output" ]
+
+isPseudoInput :: Piece -> Boolean
+isPseudoInput (Piece p) = p.name == PieceId "psuedo-input"

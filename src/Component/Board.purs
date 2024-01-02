@@ -1,16 +1,19 @@
 module Component.Board where
 
+import Component.Board.Action
+import Component.Board.Types
 import Data.Lens
 import Prelude
 
 import Capability.GlobalEventEmmiters (globalKeyDownEventEmitter)
 import Component.DataAttribute (attr)
-import Component.DataAttribute as DataAttr
-import Component.MultimeterComponent as MultiMeter
+import Component.DataAttribute as DA
 import Component.MultimeterComponent as Multimeter
 import Component.Piece as Piece
-import Component.Piece.Render (renderPort)
+import Component.Rendering.Path (renderPathWithEvents)
+import Component.Rendering.Port (portPath)
 import Control.Monad.Except (ExceptT, lift)
+import Control.Monad.Maybe.Trans (MaybeT(..), runMaybeT)
 import Control.Monad.Reader (class MonadAsk, class MonadReader)
 import Control.Monad.State (class MonadState, evalState, execState, get, gets, modify, modify_, put, runState, runStateT)
 import Data.Array (elem, intercalate, last, (..))
@@ -19,7 +22,7 @@ import Data.Bifunctor (lmap)
 import Data.Either (Either(..), blush, either, fromRight, hush, isRight)
 import Data.Enum (fromEnum)
 import Data.Foldable (foldMap, for_, traverse_)
-import Data.FoldableWithIndex (traverseWithIndex_)
+import Data.FoldableWithIndex (forWithIndex_, traverseWithIndex_)
 import Data.FunctorWithIndex (mapWithIndex)
 import Data.Int (toNumber)
 import Data.Lens.At (at)
@@ -41,7 +44,7 @@ import Debug (trace)
 import Effect.Class (class MonadEffect, liftEffect)
 import Effect.Class.Console (log, logShow)
 import Game.Board (Board(..), RelativeEdge, _pieces, _size, printBoard, relativeEdgeLocation, standardBoard, toLocalInputs)
-import Game.Board.EvaluableBoard (EvaluableBoard(..), buildEvaluableBoard, evalWithPortInfo, injectInputs, toEvaluableBoard)
+import Game.Board.EvaluableBoard (EvaluableBoard(..), buildEvaluableBoard, evalWithPortInfo, extractOuterPortInfo, extractOutputs, injectInputs, toEvaluableBoard)
 import Game.Board.Operation (BoardError, BoardM, addPiece, applyBoardEvent, decreaseSize, evalBoardM, getPieceInfo, increaseSize, movePiece, removePiece, rotatePieceBy, runBoardM)
 import Game.Board.Path (addBoardPath)
 import Game.Board.PortInfo (PortInfo)
@@ -76,69 +79,6 @@ import Web.UIEvent.KeyboardEvent (KeyboardEvent, code, ctrlKey, fromEvent, key)
 import Web.UIEvent.MouseEvent (MouseEvent, clientX, clientY)
 import Web.UIEvent.MouseEvent as MouseEvent
 
-type Input = Maybe Board
-
-type State = 
-  { boardHistory :: Zipper Board
-  , mouseOverLocation :: Maybe Location
-  , goalPorts :: Map CardinalDirection PortInfo
-  , lastEvalWithPortInfo :: Map RelativeEdge PortInfo
-  , isCreatingWire :: Maybe
-    { initialDirection :: CardinalDirection
-    , locations :: Array Location
-    }
-  }
-
-data Query a
-  = GetBoard (Board -> a)
-  | AddPiece Location Piece
-  | RemovePiece Location
-  | GetMouseOverLocation (Location -> a)
-  | SetGoalPorts (Map CardinalDirection Port)
-  | SetInputs (Map CardinalDirection Signal) (Map CardinalDirection Signal -> a)
-  | IncrementBoardSize (Board -> a)
-  | DecrementBoardSize (Board -> a)
-
-data Action
-  = Initialise
-  | PieceOutput Piece.Output
-  | MultimeterOutput MultiMeter.Output
-  | Undo
-  | Redo
-  | ToggleInput CardinalDirection
-
-  | GlobalOnKeyDown KeyboardEvent
-  | BoardOnDragExit DragEvent
-  | LocationOnMouseDown Location MouseEvent
-  | LocationOnMouseOver Location MouseEvent
-  | LocationOnMouseUp Location MouseEvent
-  | LocationOnDragEnter Location DragEvent
-  | LocationOnDragOver Location DragEvent
-  | LocationOnDragLeave DragEvent
-  | LocationOnDrop Location DragEvent
-  | BoardPortOnMouseEnter CardinalDirection
-  | BoardPortOnMouseLeave
-  | DoNothing
-
-data Output
-  = NewBoardState Board
-
-type Slots =
-  ( piece :: Slot Piece.Query Piece.Output Location
-  , multimeter :: Slot Multimeter.Query Multimeter.Output Unit
-  )
-
-_piece = Proxy :: Proxy "piece"
-_multimeter = Proxy :: Proxy "multimeter"
-
-_board :: Lens' State Board
-_board = prop (Proxy :: Proxy "boardHistory") <<< Z._head
-
-_wireLocations :: Traversal' State (Array Location)
-_wireLocations = prop (Proxy :: Proxy "isCreatingWire") <<< _Just <<< prop (Proxy :: Proxy "locations")
-
-_goalPorts = prop (Proxy :: Proxy "goalPorts")
-
 --component :: forall m. MonadEffect m => GlobalKeyDown m => H.Component Query Input Output m
 component :: forall m. MonadStore GameEvent GameEventStore m => MonadEffect m => H.Component Query Input Output m
 component = H.mkComponent { eval , initialState , render }
@@ -171,16 +111,16 @@ component = H.mkComponent { eval , initialState , render }
       board = Z.head state.boardHistory
       n = board ^. _size
 
-      pieces :: Array (HTML (H.ComponentSlot Slots m Action) Action)
+      pieces :: Array (ComponentHTML Action Slots m)
       pieces = do
         i <- 0 .. (n-1)
         j <- 0 .. (n-1)
         pure $ renderPieceSlot i j
 
-      renderPieceSlot :: Int -> Int -> HTML (H.ComponentSlot Slots m Action) Action
+      renderPieceSlot :: Int -> Int -> ComponentHTML Action Slots m
       renderPieceSlot i j = 
         HH.div
-          [ attr DataAttr.location loc
+          [ DA.attr DA.location loc
           , HP.class_ (ClassName "piece")
           , HP.style $ intercalate "; "
             [ "transform: rotate("<> (show (rot * 90)) <>"deg)"
@@ -206,30 +146,24 @@ component = H.mkComponent { eval , initialState , render }
         Tuple dir portInfo <- M.toUnfoldable state.goalPorts
         pure $ renderBoardPort dir portInfo
       
-      renderBoardPort :: forall s m. CardinalDirection -> PortInfo -> ComponentHTML Action s m
+      renderBoardPort :: CardinalDirection -> PortInfo -> ComponentHTML Action Slots m
       renderBoardPort dir portInfo = 
         HH.div
           [ HP.class_ (ClassName "board-port")
           , HE.onClick (\_ -> ToggleInput dir)
-          , attr DataAttr.direction dir
+          , DA.attr DA.direction dir
           , HP.style $ intercalate "; "
             [ "grid-area: " <> show x <> " / " <> show y ]
           ]
           [ SE.svg
             [ viewBox ]
             [ SE.g 
-              [ SA.transform 
-                [ Rotate (toNumber (fromEnum dir + 2) * 90.0) 25.0 12.5 ]
-              ]
-              [ mapActionOverHTML pieceActionToBoardAction (renderPort dir (portInfo { port = matchingPort portInfo.port} )) ]
+              [ SA.transform [ Rotate (toNumber (fromEnum dir + 2) * 90.0) 25.0 12.5 ] ]
+              [ renderPathWithEvents path (BoardPortOnMouseEnter dir) (BoardPortOnMouseLeave) ]
             ]
           ]
         where
-          pieceActionToBoardAction :: Piece.Action -> Action
-          pieceActionToBoardAction = case _ of
-            Piece.PortOnMouseEnter dir -> BoardPortOnMouseEnter dir
-            Piece.PortOnMouseLeave -> BoardPortOnMouseLeave
-            _ -> DoNothing
+          path = portPath (portInfo { port = matchingPort portInfo.port })
 
           m = n+2
           Tuple x y = case dir of
@@ -276,16 +210,11 @@ component = H.mkComponent { eval , initialState , render }
           maybeDst <- H.gets (_.mouseOverLocation)
           pure (f <$> maybeDst)
         SetInputs signals f -> do
-          for_ (M.toUnfoldable signals :: Array _) \(Tuple dir signal) ->
-            _goalPorts <<< ix dir <<< prop (Proxy :: Proxy "signal") .= signal
+          forWithIndex_ signals \dir signal ->
+            _pieces <<< ix dir <<< prop (Proxy :: Proxy "signal") .= signal
           _ <- evaluateBoard
           outputs <- M.mapMaybe (\info -> if not (isInput info.port) then Just info.signal else Nothing) <$> gets (_.goalPorts)          
           pure <<< Just $ f outputs
-        SetGoalPorts goalPorts -> do
-          for_ (M.toUnfoldable goalPorts :: Array _) \(Tuple dir port) ->
-            _goalPorts <<< at dir .= Just { port, signal: Signal 0, connected: false}
-          _ <- evaluateBoard
-          pure Nothing
         IncrementBoardSize f -> do
           liftBoardM increaseSize >>= traverse_ \(Tuple _ board) -> do
             _ <- updateBoard board 
@@ -314,31 +243,27 @@ component = H.mkComponent { eval , initialState , render }
     PieceOutput (Piece.Dropped src) -> do
       -- when a piece is dropped, it can be dropped over a new location or outside the game board 
       maybeDst <- H.gets (_.mouseOverLocation)
-      case maybeDst of
-        -- if the piece is dropped over a new location, attempt to add the piece to the board
-        Just dst -> do 
-          liftBoardM (movePiece src dst) >>= traverse_ \(Tuple _ board) -> do
-            updateStore (BoardEvent (MovedPiece src dst))
-            updateBoard board
-        -- if the piece is dropped somewhere that is not a location, remove it from the board
-        Nothing -> do
-          liftBoardM (removePiece src) >>= traverse_ \(Tuple piece board) -> do
-            updateStore (BoardEvent (RemovedPiece src (name piece)))
-            updateBoard board
+      eitherPiece <- liftBoardM (pieceDropped src maybeDst)
+      case eitherPiece of
+        Left _ -> pure unit -- todo: what do we want to do here??
+        Right piece -> updateBoard <$> use _board
+
+
     PieceOutput (Piece.NewMultimeterFocus focus) ->
       H.tell _multimeter unit (\_ -> Multimeter.NewFocus focus)
 
     -- todo: fix this
     MultimeterOutput (Multimeter.SetCapacity relativeEdge capacity) -> do
-      liftBoardM (capacityRipple relativeEdge capacity) >>= traverse_ \(Tuple _ board) -> do
-        updateBoard board
+      board' <- runState (capacityRipple relativeEdge capacity) <$> use _board
+      updateBoard board'
+
         -- update the multimeter after the port has changed
-        signals <- gets (_.lastEvalWithPortInfo)
-        let focus = do
-              info <- M.lookup relativeEdge signals
-              pure { info, relativeEdge }
+      signals <- gets (_.lastEvalWithPortInfo)
+      let focus = do
+            info <- M.lookup relativeEdge signals
+            pure { info, relativeEdge }
         
-        H.tell _multimeter unit (\_ -> Multimeter.NewFocus focus)
+      H.tell _multimeter unit (\_ -> Multimeter.NewFocus focus)
 
     Undo -> do
       maybeZipper <- Z.moveLeft <$> gets (_.boardHistory)
@@ -352,8 +277,12 @@ component = H.mkComponent { eval , initialState , render }
         H.modify_ (_ { boardHistory = t })
         updateStore (BoardEvent UndoBoardEvent)
         evaluateBoard
+
     ToggleInput dir -> do
-      _goalPorts <<< ix dir <<< prop (Proxy :: Proxy "signal") %= not
+      portLocations <- gets (_.portLocations)
+      M.adjust ()
+      
+       <<< ix dir <<< prop (Proxy :: Proxy "signal") %= not
       _ <- evaluateBoard
       pure unit
 
@@ -361,49 +290,32 @@ component = H.mkComponent { eval , initialState , render }
       H.modify_ (_ { isCreatingWire = Nothing })
       log "cancel wire creation"
 
-    LocationOnMouseDown loc me -> do
-      for_ (target (MouseEvent.toEvent me)) \eventTarget ->
-        for_ (fromEventTarget eventTarget) \element -> do
-          bb <- liftEffect (getBoundingClientRect element)
-          let initialDirection = getDirectionClicked me bb
-          log (show initialDirection)
-
-          H.modify_ (_ { isCreatingWire = Just { initialDirection, locations: [loc] } })
+    LocationOnMouseDown loc me -> runMaybeT do
+      eventTarget <- MaybeT (target (MouseEvent.toEvent me))
+      element <- MaybeT (fromEventTarget eventTarget)
+      bb <- liftEffect (getBoundingClientRect element)
+      let initialDirection = getDirectionClicked me bb
+      log (show initialDirection)
+      H.modify_ (_ { isCreatingWire = Just { initialDirection, locations: [loc] } })
     LocationOnMouseOver loc _ -> do
       gets (_.isCreatingWire) >>= traverse_ \creatingWire -> do
         when (last creatingWire.locations /= Just loc) do
           log "modifying state of board"
           _wireLocations <>= [loc]
-    LocationOnMouseUp loc me -> do
+    LocationOnMouseUp loc me -> ?a $ runMaybeT do
       isCreatingWire <- gets (_.isCreatingWire)
-      for_ isCreatingWire \creatingWire -> do
-        for_ (target (MouseEvent.toEvent me)) \eventTarget ->
-          for_ (fromEventTarget eventTarget) \element -> do
-            bb <- liftEffect (getBoundingClientRect element)
-            let terminalDirection = getDirectionClicked me bb
+      eventTarget <- target (MouseEvent.toEvent me)
+      element <- fromEventTarget eventTarget
+      bb <- liftEffect (getBoundingClientRect element)
+      let terminalDirection = getDirectionClicked me bb
 
-            Tuple pathAdded board <- runState (addBoardPath creatingWire.initialDirection creatingWire.locations terminalDirection) <$> use _board
+      Tuple pathAdded board <- runState (addBoardPath creatingWire.initialDirection creatingWire.locations terminalDirection) <$> use _board
 
-            when pathAdded do
-              --updateStore (BoardEvent boardEvent)
-              updateBoard board
+      when pathAdded do
+        --updateStore (BoardEvent boardEvent)
+        updateBoard board
 
-            H.modify_ $ \s -> s { isCreatingWire = Nothing }
-
-            --maybeBoardEvents <- evalState (boardPath creatingWire.initialDirection creatingWire.locations terminalDirection) <$> use _board
-            --case maybeBoardEvents of
-            --  Just boardEvents -> do
-            --    let boardEvent = Multiple boardEvents
-
-            --    trace (show boardEvent) \_ -> pure unit
-
-            --    liftBoardM (applyBoardEvent boardEvent) >>= traverse_ \(Tuple _ board) -> do
-            --      updateStore (BoardEvent boardEvent)
-            --      updateBoard board
-
-            --    H.modify_ $ \s -> s { isCreatingWire = Nothing }
-            --  Nothing -> do
-            --    log "no board events!!"
+      H.modify_ $ \s -> s { isCreatingWire = Nothing }
 
     -- can these events be simplified? do we need all of them?
     LocationOnDragEnter loc dragEvent -> do
@@ -451,34 +363,34 @@ updateBoard board = do
   pieces <- use (_board <<< _pieces)
   evaluateBoard
 
-  b <- use _board
-  trace (show board) \_ -> pure unit
-
   -- tell puzzle component that board state has been changed
   H.raise (NewBoardState board)
 
 evaluateBoard :: forall m. HalogenM State Action Slots Output m Unit
 evaluateBoard = do
-  goalPorts <- use _goalPorts
-  let inputs = M.mapMaybe (\info -> if isInput info.port then Just info.signal else Nothing) goalPorts
-  eitherEvaluable <- evalBoardM (buildEvaluableBoard (Just $ (_.port) <$> goalPorts)) <$> use _board
-  for_ eitherEvaluable \evaluable ->  do
-    let Tuple output signals = runState (evalWithPortInfo evaluable inputs) M.empty
-    let updateGoalInfo dir info = 
-          if isOutput info.port
-            then info { signal = fromMaybe (Signal 0) (M.lookup dir output) }
-            else info
+  portLocations <- gets (_.portLocations)
+  let inputs = M.mapMaybe (\info -> if isInput info.port then Just info.signal else Nothing) portLocations
+  eitherEvaluable <- evalBoardM (buildEvaluableBoard (Just $ (_.port) <$> portLocations)) <$> use _board
 
-    H.modify_ $ \s -> s
-      { lastEvalWithPortInfo = signals
-      , goalPorts = mapWithIndex updateGoalInfo s.goalPorts
-      }
+  case eitherEvaluable of
+    Left _ -> pure unit -- todo: what should we do when an evaluable can't be created?
+    Right evaluable -> do
+      -- evaluate the evaulable
+      let Tuple output signals = runState (evalWithPortInfo evaluable inputs) M.empty
 
-    use (_board <<< _pieces) >>= traverseWithIndex_ \loc info -> do
-      H.tell _piece loc (\_ -> Piece.SetPiece info.piece)
-      let portStates = toLocalInputs loc signals
-      H.tell _piece loc (\_ -> Piece.SetPortStates portStates)
+      -- extract board port info
+      let portLocations' = evalState (extractOuterPortInfo evaluable) signals
 
+      H.modify_ $ _
+        { lastEvalWithPortInfo = signals
+        , portLocations = portLocations'
+        }
 
-liftBoardM :: forall m a. BoardM a -> HalogenM State Action Slots Output m (Either BoardError (Tuple a Board))
-liftBoardM boardM = runBoardM boardM <$> use _board
+      -- update pieces
+
+updatePieceComponents :: forall m. HalogenM State Action Slots Output m Unit
+updatePieceComponents = do
+  use (_board <<< _pieces) >>= traverseWithIndex_ \loc info -> do
+    H.tell _piece loc (\_ -> Piece.SetPiece info.piece)
+    let portStates = toLocalInputs loc signals
+    H.tell _piece loc (\_ -> Piece.SetPortStates portStates)

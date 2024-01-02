@@ -8,8 +8,7 @@ import Component.Piece.Types
 import Data.Lens
 import Prelude
 
-import Component.DataAttribute as DataAttr
-import Component.Piece.Render (renderPiece)
+import Component.Rendering.Piece (renderPiece)
 import Data.Array as A
 import Data.Enum (enumFromTo, fromEnum)
 import Data.Foldable (for_, traverse_)

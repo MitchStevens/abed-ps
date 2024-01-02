@@ -22,6 +22,7 @@ import Data.Map.Unsafe (unsafeMapKey)
 import Data.Maybe (Maybe(..), isJust, isNothing, maybe)
 import Data.Newtype (class Newtype, unwrap)
 import Data.Set as S
+import Data.Traversable (traverse)
 import Data.Tuple (Tuple(..), fst, snd)
 import Debug (trace)
 import Effect.Aff.Class (class MonadAff)
@@ -171,19 +172,22 @@ removePiece loc = do
   pure piece
 
 
-movePiece :: forall m. MonadError BoardError m => MonadState Board m => Location -> Location -> m Unit
+movePiece :: forall m. MonadError BoardError m => MonadState Board m
+  => Location -> Location -> m Piece
 movePiece src dst = do
-  pieceInfoSrc <- use (_pieces <<< at src)
-  when (isNothing pieceInfoSrc) do
-    throwError (LocationNotOccupied src)
+  use (_pieces <<< at src) >>= case _ of
+    Just pieceInfoSrc -> do
+      whenM (isJust <$> use (_pieces <<< at dst)) do
+        throwError (LocationOccupied dst)
 
-  whenM (isJust <$> use (_pieces <<< at dst)) do
-    throwError (LocationOccupied dst)
+      _pieces <<< at src .= Nothing
+      _pieces <<< at dst .= Just pieceInfoSrc
+      updatePortsAround src
+      updatePortsAround dst
+      pure $ pieceInfoSrc.piece
+    Nothing ->
+      throwError (LocationNotOccupied src)
 
-  _pieces <<< at src .= Nothing
-  _pieces <<< at dst .= pieceInfoSrc
-  updatePortsAround src
-  updatePortsAround dst
 
 
 
@@ -237,7 +241,7 @@ applyBoardEvent = case _ of
   AddedPiece loc pieceId -> addPiece loc (pieceLookup pieceId)
   --AddedPieceWithRotation loc pieceId rot -> addPieceWithRotation loc (pieceLookup pieceId) rot
   RemovedPiece loc _ -> void $ removePiece loc
-  MovedPiece src dst -> movePiece src dst
+  MovedPiece src dst -> void $ movePiece src dst
   RotatedPiece loc rot -> rotatePieceBy loc rot
   UndoBoardEvent -> pure unit
   IncrementSize -> increaseSize

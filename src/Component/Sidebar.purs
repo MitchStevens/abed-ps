@@ -14,7 +14,7 @@ import Capability.Navigate (Route(..), navigateTo)
 import Component.DataAttribute (attr)
 import Component.DataAttribute as DataAttr
 import Component.Piece as Piece
-import Component.Piece.Render (renderPiece)
+import Component.Rendering.Piece (renderPiece)
 import Control.Monad.Except (runExceptT)
 import Data.Array as A
 import Data.Bifunctor (bimap)
