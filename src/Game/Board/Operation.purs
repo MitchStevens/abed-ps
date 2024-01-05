@@ -138,8 +138,8 @@ updatePortsAround loc = do
     --relEdge <- toRelativeEdge (absolute loc dir)
     maybePort <- getPortOnEdge relEdge
     relEdge' <- adjacentRelativeEdge relEdge
-    trace ("update reledge: " <> show relEdge' <> " with adj port " <> show ( portType <$> maybePort)) \_ ->
-      updateRelEdge relEdge' (portType <$> maybePort)
+    --trace ("update reledge: " <> show relEdge' <> " with adj port " <> show ( portType <$> maybePort)) \_ ->
+    updateRelEdge relEdge' (portType <$> maybePort)
 
 addPieceNoUpdate :: forall m. MonadError BoardError m => MonadState Board m 
   => Location -> Piece -> Rotation -> m Unit

@@ -1,6 +1,7 @@
 module Component.Board.Action where
 
 import Component.Board.Types
+import Data.Lens
 import Prelude
 
 import Control.Monad.Error.Class (class MonadError)
@@ -8,11 +9,11 @@ import Control.Monad.State (class MonadState, gets, modify_)
 import Data.Either (Either)
 import Data.Foldable (traverse_)
 import Data.FoldableWithIndex (forWithIndex_, traverseWithIndex_)
-import Data.Lens (use)
 import Data.Map (Map)
 import Data.Map as M
 import Data.Maybe (Maybe(..))
-import Data.Traversable (for)
+import Data.Set as S
+import Data.TraversableWithIndex (forWithIndex)
 import Data.Tuple (Tuple(..))
 import Data.Zipper as Z
 import Effect.Class (class MonadEffect)
@@ -40,15 +41,14 @@ pieceDropped src maybeDst =
     Nothing -> removePiece src
 
 getBoardPorts :: forall m. MonadState State m => m (Map CardinalDirection PortInfo)
-getBoardPorts =
-  M.catMaybes $ M.fromFoldable $ for allDirections \dir -> (Tuple dir <$> use (_boardPort dir))
+getBoardPorts = M.catMaybes <$> 
+  forWithIndex (S.toMap (S.fromFoldable allDirections)) \dir _ -> use (_boardPort dir)
 
 getInputs :: forall m. MonadState State m => m (Map CardinalDirection Signal)
-getInputs = M.mapMaybe (\{port, connection, signal} -> if isInput port then Just signal else Nothing) <$> getBoardPorts
+getInputs = M.mapMaybe (\{port, connected, signal} -> if isInput port then Just signal else Nothing) <$> getBoardPorts
 
-setInputs :: forall m. MonadState State m => Map CardinalDirection Signals -> m Unit
-setInputs = traverseWithIndex_ \dir signal -> do
+setInputs :: forall m. MonadState State m => Map CardinalDirection Signal -> m Unit
+setInputs = traverseWithIndex_ \dir signal -> _boardPort dir <<< _Just %= _ { signal = signal }
   
-
 getOutputs :: forall m. MonadState State m => m (Map CardinalDirection Signal)
-getOutputs = M.mapMaybe (\{port, connection, signal} -> if isOutput port then Just signal else Nothing) <$> getBoardPorts
+getOutputs = M.mapMaybe (\{port, connected, signal} -> if isOutput port then Just signal else Nothing) <$> getBoardPorts

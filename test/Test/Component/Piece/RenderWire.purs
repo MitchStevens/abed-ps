@@ -15,7 +15,7 @@ import Test.Spec.Assertions (shouldEqual)
 spec :: Spec Unit
 spec = do
   describe "RenderWire" do
-    itOnly "wirePath" do
+    it "wirePath" do
       let signal = Signal 0
       let singleRightOutput = M.singleton Direction.Right {connected: false, port: outputPort OneBit, signal: Signal 0}
       let id = M.fromFoldable [ Tuple Direction.Left {connected: false, port: inputPort OneBit, signal} , Tuple Direction.Right {connected: false, port: outputPort OneBit, signal} ]

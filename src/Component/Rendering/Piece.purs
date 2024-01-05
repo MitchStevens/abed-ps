@@ -31,9 +31,6 @@ renderPiece state =
       | state.piece `elem` allWirePieces = renderWire state.portStates
       -- | state.piece == crossPiece = SE.svg [ SA.viewBox 0.0 0.0 100.0 100.0 ] [ renderCrossOver state ]
       | otherwise = renderDefaultPiece state
-    
-
-
 
 renderDefaultPiece :: forall s m. State -> ComponentHTML Action s m
 renderDefaultPiece state = SE.g [] (allPorts <> [ center ])

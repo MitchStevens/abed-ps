@@ -20,7 +20,7 @@ import Game.Board.PortInfo (PortInfo)
 import Game.Board.Query (getBoardPort)
 import Game.Direction (CardinalDirection)
 import Game.Location (Location(..))
-import Game.Piece (Piece(..), PieceId(..))
+import Game.Piece (Piece(..), PieceId(..), Port(..))
 import Game.Signal (Signal(..))
 import Halogen (Slot)
 import Type.Proxy (Proxy(..))
@@ -31,9 +31,12 @@ import Web.UIEvent.MouseEvent (MouseEvent)
 type Input = Maybe Board
 
 type State = 
-  { boardHistory :: Zipper Board
+  { boardHistory :: Zipper Board -- todo: limit the number of boards in this data structure
   , mouseOverLocation :: Maybe Location
+  , inputs :: Map CardinalDirection Signal
+  , outputs :: Map CardinalDirection Signal
   , lastEvalWithPortInfo :: Map RelativeEdge PortInfo
+  , goalPorts :: Map CardinalDirection Port
   , isCreatingWire :: Maybe
     { initialDirection :: CardinalDirection
     , locations :: Array Location
@@ -42,10 +45,11 @@ type State =
 
 data Query a
   = GetBoard (Board -> a)
-  | AddPiece Location Piece (Either BoardError Unit -> a)
-  | RemovePiece Location (Either BoardError PieceId -> a)
+  | AddPiece Location Piece
+  | RemovePiece Location 
   | GetMouseOverLocation (Location -> a)
   | SetInputs (Map CardinalDirection Signal) (Map CardinalDirection Signal -> a)
+  | SetGoalPorts (Map CardinalDirection Port)
   | IncrementBoardSize (Board -> a)
   | DecrementBoardSize (Board -> a)
 
@@ -83,6 +87,12 @@ _multimeter = Proxy :: Proxy "multimeter"
 
 _board :: Lens' State Board
 _board = prop (Proxy :: Proxy "boardHistory") <<< Z._head
+
+_inputs :: Lens' State (Map CardinalDirection Signal)
+_inputs = prop (Proxy :: Proxy "inputs")
+
+_outputs :: Lens' State (Map CardinalDirection Signal)
+_outputs = prop (Proxy :: Proxy "outputs")
 
 _wireLocations :: Traversal' State (Array Location)
 _wireLocations = prop (Proxy :: Proxy "isCreatingWire") <<< _Just <<< prop (Proxy :: Proxy "locations")
