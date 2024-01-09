@@ -32,3 +32,5 @@ stateDiagram
     CompiledBoard --> PseudoPiece
     Path
 ```
+
+## attempting to 

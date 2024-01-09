@@ -12,12 +12,26 @@ import Game.GameEvent (count, firstTime, latest, pieceAdded, pieceMovedTo, secon
 import Game.Level (LevelSuite, binaryTestInputs, defaultLevel)
 import Game.Level.Problem (defaultProblem)
 import Game.Message (addDelay, message)
-import Game.Piece (fusePiece, idPiece, notPiece, severPiece, succPiece, twoBitCrossOver, xorPiece)
+import Game.Piece (Capacity(..), fusePiece, idPiece, mkWirePiece, notPiece, severPiece, succPiece, twoBitCrossOver, xorPiece)
 import Game.Signal (Signal(..))
 
 twoBitSuite :: LevelSuite
 twoBitSuite = fromHomogeneous
-  { "Lovers Lake": defaultLevel
+  { "From 2A to 2B": defaultLevel
+    { problem = defaultProblem
+      { goal = mkWirePiece { capacity: TwoBit, outputs: S.singleton Direction.Right }
+      , title = "From 2A to 2B"
+      , description = "This looks familiar, but the input and output ports have a capacity of 2 bits! Build a path between the left and the right, then use the '2' key to increase the capacity of the path. The capacity of each port is colour coded, only ports with the same capacity can connect!"
+      , availablePieces = [ idPiece ]
+      , testCases =
+        [ M.singleton Direction.Left (Signal 0)
+        , M.singleton Direction.Left (Signal 1)
+        , M.singleton Direction.Left (Signal 2)
+        , M.singleton Direction.Left (Signal 3)
+        ]
+      }
+    }
+  , "Lovers Lake": defaultLevel
     { problem = defaultProblem
       { goal = fusePiece
       , title = "Lovers Lake"

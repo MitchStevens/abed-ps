@@ -134,7 +134,7 @@ chickenPiece = basicPiece
 
 reverseChickenPiece :: Piece
 reverseChickenPiece = basicPiece
-  { name: PieceId "chicken"
+  { name: PieceId "reverse-chicken-piece"
   , capacity: OneBit
   , complexity: Complexity.space 2.0
   , ports: M.fromFoldable

@@ -42,8 +42,6 @@ defaultLevel =
   , settings: defaultSettings
   }
 
-
-
 type LevelSuite = Object Level
 
 binaryTestInputs :: Array CardinalDirection -> Array (Map CardinalDirection Signal)

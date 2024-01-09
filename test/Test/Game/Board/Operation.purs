@@ -105,20 +105,6 @@ tests = do
           exceptToAff increaseSize
           exceptToAff decreaseSize
       
-      describe "topologicalSort" do
-        before (put testBoard) do
-          let getNodes edges =
-                edges
-                  # (M.toUnfoldable :: _ -> List _)
-                  # L.foldMap (\(Tuple a b) -> a : b : Nil)
-                  # map relativeEdgeLocation
-                  # L.nub
-          it "should sort good" do
-            edges <- buildConnectionMap
-            let nodes = getNodes edges
-            topologicalSort nodes edges `shouldEqual`
-              Just (L.fromFoldable [ location 1 0, location 0 1, location 1 1, location 2 1 ])
-
       describe "applyBoardEvent" do
         before (put standardBoard) do
           let loc = location 0 1

@@ -14,7 +14,7 @@ import Capability.Navigate (Route(..), navigateTo)
 import Component.DataAttribute (attr)
 import Component.DataAttribute as DataAttr
 import Component.Piece as Piece
-import Component.Piece.Render (renderPiece)
+import Component.Rendering.Piece (renderPiece)
 import Control.Monad.Except (runExceptT)
 import Data.Array as A
 import Data.Bifunctor (bimap)
@@ -131,7 +131,7 @@ component = H.mkComponent { eval , initialState , render }
             , HE.onDragEnd (PieceOnDrop pieceId)
             , HE.onClick (PieceOnClick pieceId)
             ]
-            [ mapActionOverHTML (\_ -> DoNothing) (renderPiece (Piece.defaultState piece))
+            [ mapActionOverHTML (\_ -> DoNothing) (renderPiece (Piece.initialState { piece, location: location 0 0 }))
             , HH.text (show pieceId) 
             ]
 
@@ -141,7 +141,7 @@ component = H.mkComponent { eval , initialState , render }
     { finalize: Nothing
     , handleAction: case _ of
         PieceOnDrop piece _ -> do
-          log "piece dropped!"
+          log "sidebar: piece dropped!"
           H.raise (PieceDropped piece)
         PieceOnClick piece _ ->
           H.raise (PieceAdded piece)

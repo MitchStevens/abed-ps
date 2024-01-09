@@ -8,8 +8,10 @@ import Component.Home as Home
 import Component.Instructions as Instructions
 import Component.Level as Level
 import Component.LevelSelect as LevelSelect
-import Control.Monad.Reader (class MonadAsk)
+import Control.Monad.Logger.Class (class MonadLogger, debug)
+import Control.Monad.Reader (class MonadAsk, lift)
 import Data.Foldable (oneOf)
+import Data.Map as M
 import Data.Maybe (Maybe(..), fromMaybe)
 import Effect.Aff.Class (class MonadAff)
 import Effect.Class.Console (log)
@@ -60,7 +62,8 @@ component
   :: forall m
    . MonadAff m
   => MonadAsk GlobalState m
-  => MonadStore GameEvent GameEventStore m
+  -- => MonadStore GameEvent GameEventStore m
+  => MonadLogger m
   => Component Query Unit Void m
 component = H.mkComponent { eval, initialState, render }
   where
@@ -93,7 +96,7 @@ component = H.mkComponent { eval, initialState, render }
         Navigate dest a -> do
           { route } <- H.get
           when (route /= Just dest) do
-            log "navigate"
+            lift $ debug M.empty ("Navigated to " <> show dest)
             H.modify_ (_ { route = Just dest })
           pure (Just a)
     , initialize: Nothing

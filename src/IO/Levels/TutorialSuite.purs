@@ -15,7 +15,7 @@ import Game.Level (LevelSuite, binaryTestInputs, defaultLevel)
 import Game.Level.RulesEngine (Rule(..))
 import Game.Location (location)
 import Game.Message (_selector, addDelay, fromGuide)
-import Game.Piece (idPiece)
+import Game.Piece (idPiece, notPiece)
 
 tutorialSuite :: LevelSuite
 tutorialSuite = fromHomogeneous
@@ -57,17 +57,18 @@ tutorialSuite = fromHomogeneous
         --  _selector .~ Just (selector DataAttr.availablePiece (name idPiece))
         --]
       }
-  --, "Negation":
-  --  { problemDescription:
-  --    { goal: mkPiece notPiece
-  --    , title: "Negation"
-  --    , description: "Negate the signal inputed on the Left and output it on the Right"
-  --    , testCases: basicTestCases
-  --    , requiresAutomaticTesting: false
-  --    , pieceSet: S.fromFoldable [ mkPiece idPiece ]
-  --    , otherRestrictions: []
-  --    }
-  --  , conversation: []
+  , "Negation":
+    defaultLevel
+      { problem =
+        { goal: notPiece
+        , title: "Negation"
+        , description: "Negate the signal inputed on the Left and output it on the Right"
+        , testCases: binaryTestInputs [Direction.Left]
+        , requiresAutomaticTesting: false
+        , availablePieces: [ idPiece, notPiece ]
+        , otherRestrictions: []
+        }
+      }
   --  }
   --, "Disjunction":
   --  { problemDescription:
