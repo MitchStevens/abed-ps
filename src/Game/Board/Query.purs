@@ -98,10 +98,10 @@ getPortOnEdge (Relative (Edge { loc, dir })) = do
   maybePieceInfo <- use (_pieces <<< at loc)
   pure $ maybePieceInfo >>= (\info -> getPort info.piece dir)
 
-getBoardRelEdge :: forall m. MonadState Board m => CardinalDirection -> m RelativeEdge
-getBoardRelEdge dir = do
-  loc <- getBoardEdgePseudoLocation dir
-  toRelativeEdge (absolute loc (oppositeDirection dir))
+--getBoardRelEdge :: forall m. MonadState Board m => CardinalDirection -> m RelativeEdge
+--getBoardRelEdge dir = do
+--  loc <- getBoardEdgePseudoLocation dir
+--  toRelativeEdge (absolute loc (oppositeDirection dir))
 
 isInsideBoard :: forall m. MonadState Board m => Location -> m Boolean
 isInsideBoard (Location {x, y}) = do
@@ -143,7 +143,7 @@ getBoardEdgePseudoLocation dir = do
 getBoardPort :: forall m. MonadState Board m => CardinalDirection -> m RelativeEdge
 getBoardPort dir = do
   loc <- getBoardEdgePseudoLocation dir
-  toRelativeEdge (absolute loc dir)
+  pure $ relative loc Direction.Right
 
 {-
   Create a bidirectional mapping from inputs to ouptuts ports

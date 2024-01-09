@@ -7,7 +7,7 @@ import Component.DataAttribute as DA
 import Component.Piece.Types as Piece
 import Component.Rendering.Gradient (createPortGradient)
 import Component.Rendering.Path (Path)
-import Component.Rendering.Wire (arrowPath, betweenPath, initialLocation)
+import Component.Rendering.Wire (arrowPath, betweenPath, initialLocation, stubPath)
 import Data.Foldable (intercalate)
 import Data.Tuple (Tuple(..))
 import Game.Board.PortInfo (PortInfo)
@@ -36,6 +36,5 @@ portPath info =
 
     headPath = case portType info.port, info.connected of
         Port.Input, _ -> arrowPath Direction.Down
-        --Port.Output, true -> stubPa Direction.Up
-        --Port.Output, false -> arrowPath Direction.Up
-        Port.Output, _ -> arrowPath Direction.Up
+        Port.Output, true -> stubPath Direction.Up
+        Port.Output, false -> arrowPath Direction.Up

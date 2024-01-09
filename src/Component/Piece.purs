@@ -21,6 +21,7 @@ import Data.Map as M
 import Data.Maybe (Maybe(..), fromMaybe, isJust, isNothing, maybe)
 import Data.Number (acos, atan2, pi, sqrt)
 import Data.Tuple (Tuple(..))
+import Debug (trace)
 import Effect (Effect)
 import Effect.Class (class MonadEffect, liftEffect)
 import Effect.Class.Console (log, logShow)
@@ -47,23 +48,10 @@ import Web.HTML.Event.DragEvent (DragEvent)
 import Web.HTML.HTMLElement (HTMLElement, fromElement, offsetHeight, offsetLeft, offsetTop, offsetWidth, setDraggable, toElement)
 import Web.UIEvent.MouseEvent (MouseEvent, clientX, clientY, screenX, screenY)
 
-
-_portStates = prop (Proxy :: Proxy "portStates")
-_signal = prop (Proxy :: Proxy "signal")
-_connected = prop (Proxy :: Proxy "connected")
-
 component :: forall m. MonadEffect m => H.Component Query Input Output m
 component = H.mkComponent { eval , initialState , render }
   where
-  initialState { piece, location, portStates } =
-    { piece
-    , location
-    , rotation: rotation 0
-    , isRotating: Nothing
-    , portStates 
-    }
-
-  render state =
+  render state = trace ("piece componetn state:" <> show state) \_ ->
     HH.div
       [ HP.classes
         [ ClassName "piece-component" ]
@@ -96,9 +84,8 @@ component = H.mkComponent { eval , initialState , render }
   eval = H.mkEval
     { finalize: Nothing
     , handleAction: case _ of
-        Initialise { piece, location, portStates } -> do
-          H.modify_ $ _ { piece = piece, location = location, portStates = portStates }
-          pure unit
+      -- not used, might use later
+        Initialise { piece, location } -> pure unit
         OnDrop loc event -> do
           H.raise (Dropped loc)
         OnDrag dragEvent -> 
@@ -125,12 +112,8 @@ component = H.mkComponent { eval , initialState , render }
               let p2 = getPosition me
               c <- liftEffect $ elementCenterClient e
 
-              let v1 = p1 - c
-              let v2 = p2 - c
-              let dot (Tuple x1 y1) (Tuple x2 y2) = x1*x2 + y1*y2
-              let det (Tuple x1 y1) (Tuple x2 y2) = x1*y2 - x2*y1
               -- find the angle between the initialClick and the current mouse position...
-              let angle = atan2 (v1 `det` v2) (v1 `dot` v2)
+              let angle = angleBetween (p1 - c) (p2 - c)
 
               -- rotate the piece by this angle
               H.modify_ (_ {
@@ -141,7 +124,6 @@ component = H.mkComponent { eval , initialState , render }
             let rot = rotation $ round (4.0 * currentRotation / (2.0 * pi))
             H.raise (Rotated loc rot)
           H.modify_ (_ { isRotating = Nothing })
-          log "mouse UP???"
         PortOnMouseEnter dir -> do
           portStates <- H.gets (_.portStates)
           loc <- H.gets (_.location)
@@ -163,3 +145,9 @@ component = H.mkComponent { eval , initialState , render }
     , initialize: Nothing
     , receive: \_ -> Nothing --Just <<< Initialise -- :: input -> Maybe action
     }
+
+angleBetween :: Tuple Number Number -> Tuple Number Number -> Number
+angleBetween  v1 v2 = atan2 (v1 `det` v2) (v1 `dot` v2)
+  where
+    dot (Tuple x1 y1) (Tuple x2 y2) = x1*x2 + y1*y2
+    det (Tuple x1 y1) (Tuple x2 y2) = x1*y2 - x2*y1

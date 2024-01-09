@@ -89,10 +89,12 @@ component = H.mkComponent { eval , initialState , render }
       ]
 
   showTime :: Time -> String -- break a leg :D
-  showTime time = intercalate ":" [pad2 (hour time), pad2 (minute time), pad2 (second time)]
-    where
-      pad2 :: forall a. BoundedEnum a => a -> String
-      pad2 n = let s = show (fromEnum n) in power "0" (2 - length s) <> s
+  showTime time = toLocaleString (fromEnum (hour time)) (fromEnum (minute time)) (fromEnum (second time))
+  
+  --intercalate ":" [pad2 (hour time), pad2 (minute time), pad2 (second time)]
+  --  where
+  --    pad2 :: forall a. BoundedEnum a => a -> String
+  --    pad2 n = let s = show (fromEnum n) in power "0" (2 - length s) <> s
 
   eval :: forall slots. HalogenQ Query Action Input ~> HalogenM State Action slots Output m
   eval = H.mkEval
@@ -141,7 +143,6 @@ component = H.mkComponent { eval , initialState , render }
     --      setScrollTop height element
 
 
-
-
+foreign import toLocaleString :: Int -> Int -> Int -> String
 
 

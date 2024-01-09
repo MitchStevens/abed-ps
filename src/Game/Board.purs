@@ -26,6 +26,7 @@ import Data.Monoid (power)
 import Data.Newtype (class Newtype)
 import Data.Set (Set)
 import Data.Set as S
+import Data.String as String
 import Data.Traversable (for, sequence, traverse)
 import Data.Tuple (Tuple(..))
 import Data.Unfoldable (replicate)
@@ -134,7 +135,7 @@ printBoard (Board b) = "SHOW BOARD\n" <> (foldMap (_ <> "\n") $ interleave colEd
     printPiece :: Map CardinalDirection Port -> Rotation -> Location -> List String
     printPiece ports rot loc = L.fromFoldable
       [ "   " <> port Direction.Up <> "   "
-      , port Direction.Left <> " " <> printLocation loc <> " " <> port Direction.Right
+      , port Direction.Left <> " " <> center <> " " <> port Direction.Right
       , "   " <> port Direction.Down <> "   "
       ]
       where
@@ -142,10 +143,11 @@ printBoard (Board b) = "SHOW BOARD\n" <> (foldMap (_ <> "\n") $ interleave colEd
         port dir = 
           let dir' = rotateDirection dir (ginverse rot)
           in maybe " " (printPort dir) (M.lookup dir' ports)
+        
+        center = case (_.piece) <$> M.lookup loc b.pieces of
+          Just (Piece p) -> String.take 3 (show p.name)
+          Nothing -> printLocation loc
     
-    printLocation :: Location -> String
-    printLocation (Location {x, y}) = show x <> "," <> show y
-
     printRow :: Int -> String
     printRow y = intercalate "\n" $ L.foldr (L.zipWith append) (replicate 3 "")  $ interleave edges pieces
       where
@@ -158,6 +160,7 @@ printBoard (Board b) = "SHOW BOARD\n" <> (foldMap (_ <> "\n") $ interleave colEd
 
         edges = L.range 0 b.size <#> \x -> printRowEdge x y
     
+    printLocation (Location {x, y}) = show x <> "," <> show y
 
     printPort :: CardinalDirection -> Port -> String
     printPort dir port = case if isInput port then oppositeDirection dir else dir of

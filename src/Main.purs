@@ -7,8 +7,12 @@ import Capability.ChatServer (runChatServer)
 import Capability.Navigate (Route(..), navigateTo, routeCodec)
 import Component.Routes as Routes
 import Control.Monad.Error.Class (throwError)
+import Control.Monad.Logger.Class (info)
+import Control.Monad.Logger.Trans (runLoggerT)
 import Control.Monad.Reader (ReaderT, runReaderT)
 import Data.Either (either, fromRight)
+import Data.Log.Level (LogLevel(..))
+import Data.Map as M
 import Data.Maybe (Maybe(..), maybe)
 import Effect (Effect)
 import Effect.Aff (Aff, error, launchAff_, runAff_)
@@ -17,18 +21,23 @@ import Effect.Exception (error, throw)
 import Halogen (Component, HalogenIO, liftEffect)
 import Halogen.Aff as HA
 import Halogen.VDom.Driver (runUI)
+import Logging (logMessage)
 import Routing.Duplex (parse)
 import Routing.Hash (matchesWith)
 import Web.DOM.ParentNode (QuerySelector(..))
 import Web.HTML (HTMLElement)
 
 main :: Effect Unit
-main = HA.runHalogenAff do
-  HA.awaitLoad
-  rootComponent <- runAppM Routes.component
-  { dispose, messages, query } <- runUI rootComponent unit =<< rootElement
-  liftEffect do
-    initialiseRouting (\route -> HA.runHalogenAff $ query (Routes.Navigate route unit))
+main = do
+  --args <- argv 
+  --log (show args)
+  HA.runHalogenAff do
+    runLoggerT (info M.empty "Starting ABED") (logMessage Info)
+    HA.awaitLoad
+    rootComponent <- runAppM Routes.component
+    { dispose, messages, query } <- runUI rootComponent unit =<< rootElement
+    liftEffect do
+      initialiseRouting (\route -> HA.runHalogenAff $ query (Routes.Navigate route unit))
 
 rootElement :: Aff HTMLElement
 rootElement =

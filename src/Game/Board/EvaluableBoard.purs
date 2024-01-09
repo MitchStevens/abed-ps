@@ -71,10 +71,10 @@ runEvaluableM evaluable evalM = runState (runReaderT evalM evaluable) M.empty
 
 getOuterPort :: forall m. MonadReader EvaluableBoard m => MonadState (Map RelativeEdge PortInfo) m =>
   CardinalDirection -> m (Maybe Signal)
-getOuterPort dir = runMaybeT do
-  loc <- MaybeT $ asks (unwrap >>> (_.psuedoPieceLocations) >>> M.lookup dir)
-  { port, connected, signal } <- MaybeT $ gets (M.lookup (relative loc dir))
-  pure signal
+getOuterPort dir = do
+  maybeLoc <- asks (unwrap >>> (_.psuedoPieceLocations) >>> M.lookup dir)
+  for maybeLoc \loc ->
+    maybe (Signal 0) (_.signal) <$> gets (M.lookup (relative loc Direction.Right))
 
 {-
   Note: you can only set an outer port if the pseudopiece is an input psuedopiece

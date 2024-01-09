@@ -1,21 +1,40 @@
-module Component.Board.Types where
+module Component.Board.Types
+  ( Action(..)
+  , Input
+  , Output(..)
+  , Query(..)
+  , Slots
+  , State
+  , _board
+  , _inputs
+  , _outputs
+  , _wireLocations
+  , boardPortInfo
+  , initialState
+  , liftBoardM
+  , slot
+  )
+  where
 
+import Data.Lens
 import Prelude
 
 import Component.MultimeterComponent as Multimeter
 import Component.Piece as Piece
-import Control.Monad.State (evalState, runState)
+import Control.Monad.State (class MonadState, evalState, gets, runState)
 import Data.Either (Either)
-import Data.Lens (Lens', Traversal', _Just, lens, lens')
-import Data.Lens.Index (ix)
+import Data.Foldable (for_)
 import Data.Lens.Record (prop)
 import Data.Map (Map)
 import Data.Map as M
-import Data.Maybe (Maybe)
+import Data.Maybe (Maybe(..), fromMaybe)
+import Data.Traversable (for)
+import Data.TraversableWithIndex (forWithIndex)
+import Data.Tuple (Tuple(..))
 import Data.Zipper (Zipper)
 import Data.Zipper as Z
-import Game.Board (Board(..), RelativeEdge)
-import Game.Board.Operation (BoardError)
+import Game.Board (Board(..), RelativeEdge, standardBoard)
+import Game.Board.Operation (BoardError, BoardM, runBoardM)
 import Game.Board.PortInfo (PortInfo)
 import Game.Board.Query (getBoardPort)
 import Game.Direction (CardinalDirection)
@@ -36,7 +55,7 @@ type State =
   , inputs :: Map CardinalDirection Signal
   , outputs :: Map CardinalDirection Signal
   , lastEvalWithPortInfo :: Map RelativeEdge PortInfo
-  , goalPorts :: Map CardinalDirection Port
+  , boardPorts :: Map CardinalDirection Port
   , isCreatingWire :: Maybe
     { initialDirection :: CardinalDirection
     , locations :: Array Location
@@ -82,8 +101,21 @@ type Slots =
   , multimeter :: Slot Multimeter.Query Multimeter.Output Unit
   )
 
-_piece = Proxy :: Proxy "piece"
-_multimeter = Proxy :: Proxy "multimeter"
+initialState :: Input -> State
+initialState maybeBoard = 
+  { boardHistory: Z.singleton (fromMaybe standardBoard maybeBoard)
+  , mouseOverLocation: Nothing
+  , boardPorts: M.empty
+  , inputs: M.empty
+  , outputs: M.empty
+  , lastEvalWithPortInfo: M.empty
+  , isCreatingWire: Nothing
+  }
+
+slot =
+  { piece: Proxy :: _ "piece"
+  , multimeter: Proxy :: _ "multimeter"
+  }
 
 _board :: Lens' State Board
 _board = prop (Proxy :: Proxy "boardHistory") <<< Z._head
@@ -97,16 +129,16 @@ _outputs = prop (Proxy :: Proxy "outputs")
 _wireLocations :: Traversal' State (Array Location)
 _wireLocations = prop (Proxy :: Proxy "isCreatingWire") <<< _Just <<< prop (Proxy :: Proxy "locations")
 
-_boardPort :: CardinalDirection -> Lens' State (Maybe PortInfo)
-_boardPort dir = lens getPort setPort
-  where
-    getPort state =
-      let board = Z.head state.boardHistory
-          relEdge = evalState (getBoardPort dir) board
-      in M.lookup relEdge state.lastEvalWithPortInfo
+boardPortInfo :: forall m. MonadState State m => m (Map CardinalDirection PortInfo)
+boardPortInfo = do
+  boardPorts <- gets (_.boardPorts)
+  board <- use _board
+  forWithIndex boardPorts \dir port -> do
+    let relEdge = evalState (getBoardPort dir) board
+    gets (_.lastEvalWithPortInfo >>> M.lookup relEdge >>> fromMaybe { connected: false, port, signal: Signal 0})
 
-    setPort :: State -> Maybe PortInfo -> State
-    setPort state maybePortInfo =
-      let board = Z.head state.boardHistory
-          relEdge = evalState (getBoardPort dir) board
-      in state { lastEvalWithPortInfo = M.alter (\_ -> maybePortInfo) relEdge state.lastEvalWithPortInfo }
+liftBoardM :: forall m a. MonadState State m => BoardM a -> m (Either BoardError (Tuple a Board))
+liftBoardM boardM = do
+  eitherBoard <- runBoardM boardM <$> use _board
+  for_ eitherBoard \(Tuple _ board) -> _board .= board
+  pure eitherBoard

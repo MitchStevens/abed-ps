@@ -1,5 +1,5 @@
 #board-component {
-  width: 700px;
+  width: 600px;
   aspect-ratio: 1 / 1;
   border-spacing: 0px;
   display: grid;
@@ -136,7 +136,7 @@
   }
 }
 #abed {
-  width: 1060px;
+  width: 960px;
   user-select: none;
   background-color: beige;
 }

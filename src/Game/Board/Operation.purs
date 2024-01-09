@@ -135,10 +135,8 @@ updatePortsAround :: forall m. MonadState Board m => Location -> m Unit
 updatePortsAround loc = do
   for_ allDirections \dir -> do
     let relEdge = relative loc dir
-    --relEdge <- toRelativeEdge (absolute loc dir)
     maybePort <- getPortOnEdge relEdge
     relEdge' <- adjacentRelativeEdge relEdge
-    --trace ("update reledge: " <> show relEdge' <> " with adj port " <> show ( portType <$> maybePort)) \_ ->
     updateRelEdge relEdge' (portType <$> maybePort)
 
 addPieceNoUpdate :: forall m. MonadError BoardError m => MonadState Board m 
@@ -188,7 +186,15 @@ movePiece src dst = do
     Nothing ->
       throwError (LocationNotOccupied src)
 
-
+pieceDropped :: forall m. MonadState Board m => MonadError BoardError m
+  => Location -> Maybe Location -> m Piece
+pieceDropped src maybeDst =
+  -- when a piece is dropped, it can be dropped over a new location or outside the game board 
+  case maybeDst of
+    -- if the piece is dropped over a new location, attempt to add the piece to the board
+    Just dst -> movePiece src dst 
+    -- if the piece is dropped somewhere that is not a location, remove it from the board
+    Nothing -> removePiece src
 
 
 rotatePieceBy :: forall m. MonadError BoardError m => MonadState Board m => Location -> Rotation -> m Unit
@@ -250,15 +256,5 @@ applyBoardEvent = case _ of
     for some 
   -}
   Multiple boardEvents -> do
---    let a = flip map boardEvents \e -> trace ("AAAA: " <> show e) \_ -> 0
---
---    b <- for_ boardEvents \e -> trace ("BBBB: " <> show e) \_ -> pure unit
---
---    let c = L.foldMap (\e -> trace ("CCCC: " <> show e) \_ -> unit) boardEvents
---
---    let d = foldr (\e _ -> trace ("DDDD: " <> show e) \_ -> unit) unit boardEvents
---
---    trace (show $ foldr L.Cons (1 : 2 : 3 : Nil) Nil) \_ -> pure unit
---
     trace ("board events: " <> show boardEvents) \_ -> for_ (boardEvents) \boardEvent ->
       trace ("applying board event " <> show boardEvent) \_ -> applyBoardEvent boardEvent

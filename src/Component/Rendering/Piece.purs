@@ -4,6 +4,7 @@ import Prelude
 
 import Component.Piece.Types (Action, State)
 import Component.Piece.Types as Piece
+import Component.Rendering.CrossOver (renderChicken, renderCornerCut, renderCrossOver)
 import Component.Rendering.Path (renderPathWithEvents)
 import Component.Rendering.Port (portPath)
 import Component.Rendering.Wire (renderWire)
@@ -11,9 +12,10 @@ import Data.Array (elem)
 import Data.Array as A
 import Data.Int (toNumber)
 import Data.Map as M
+import Debug (trace)
 import Game.Direction (allDirections, clockwiseRotation, rotateDirection)
 import Game.Direction as Direction
-import Game.Piece (PieceId(..), allWirePieces, crossPiece, name)
+import Game.Piece (PieceId(..), allWirePieces, chickenPiece, cornerCutPiece, crossPiece, isWirePiece, name)
 import Game.Rotation (Rotation(..))
 import Halogen (ComponentHTML)
 import Halogen.Svg.Attributes (Transform(..))
@@ -22,14 +24,16 @@ import Halogen.Svg.Elements as SE
 
 renderPiece :: forall s m. State -> ComponentHTML Action s m
 renderPiece state = 
-  SE.svg
-    [ SA.viewBox 0.0 0.0 100.0 100.0 ]
-    [ render ]
+    SE.svg
+      [ SA.viewBox 0.0 0.0 100.0 100.0 ]
+      [ render ]
 
   where
     render
-      | state.piece `elem` allWirePieces = renderWire state.portStates
-      -- | state.piece == crossPiece = SE.svg [ SA.viewBox 0.0 0.0 100.0 100.0 ] [ renderCrossOver state ]
+      | isWirePiece state.piece = renderWire state.portStates
+      | name state.piece == name crossPiece = renderCrossOver state.portStates
+      | name state.piece == name cornerCutPiece = renderCornerCut state.portStates
+      | name state.piece == name chickenPiece = renderChicken state.portStates
       | otherwise = renderDefaultPiece state
 
 renderDefaultPiece :: forall s m. State -> ComponentHTML Action s m

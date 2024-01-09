@@ -10,6 +10,7 @@ import Component.Sidebar as Sidebar
 import Control.Alt ((<|>))
 import Control.Monad.Cont (ContT(..), callCC, lift, runContT)
 import Control.Monad.Except (ExceptT(..), runExceptT)
+import Control.Monad.Logger.Class (class MonadLogger, debug, info)
 import Control.Monad.Reader (class MonadAsk, class MonadReader)
 import Data.Array (intercalate, intersperse)
 import Data.Array as A
@@ -79,7 +80,8 @@ _sidebar = Proxy :: Proxy "sidebar"
 component :: forall q o m
   . MonadAff m
   => MonadAsk GlobalState m
-  => MonadStore GameEvent GameEventStore m
+  -- => MonadStore GameEvent GameEventStore m
+  => MonadLogger m
   => Component q Input o m
 component = H.mkComponent { eval , initialState , render }
   where
@@ -106,6 +108,9 @@ component = H.mkComponent { eval , initialState , render }
   handleAction :: Action -> HalogenM State Action Slots o m Unit
   handleAction = case _ of
     Initialise -> do
+      levelId <- gets (_.levelId)
+      lift $ debug M.empty ("initialised level " <> show levelId)
+
       -- initialise the chat server with conversation text
       initialConversation <- H.gets (_.level.conversation)
       putQueuedMessages initialConversation

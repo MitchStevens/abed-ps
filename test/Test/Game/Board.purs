@@ -22,18 +22,19 @@ import Effect.Aff.Class (class MonadAff)
 import Effect.Class.Console (log)
 import Game.Board (Board(..), RelativeEdge, absolute, relative, standardBoard)
 import Game.Board.Operation (BoardError(..), BoardT, addPiece, decreaseSize, emptyBoard, evalBoardM, execBoardM, getPieceInfo, increaseSize, removePiece, rotatePieceBy, runBoardT, validBoardSize)
-import Game.Board.Query (adjacentRelativeEdge, connectedRelativeEdge, getPortOnEdge, toAbsoluteEdge, toRelativeEdge)
+import Game.Board.Path (addBoardPath)
+import Game.Board.Query (adjacentRelativeEdge, connectedRelativeEdge, getBoardPort, getPortOnEdge, toAbsoluteEdge, toRelativeEdge)
 import Game.Direction (CardinalDirection, allDirections)
 import Game.Direction as Direction
 import Game.Location (Location(..), location)
-import Game.Piece (Capacity(..), andPiece, inputPort, notPiece, outputPort)
+import Game.Piece (Capacity(..), andPiece, inputPort, notPiece, outputPort, xorPiece)
 import Game.Piece as Port
 import Game.Rotation (rotation)
 import Game.Signal (Signal(..))
 import Halogen.HTML (object)
 import Partial.Unsafe (unsafeCrashWith)
 import Test.Game.Location (allLocations)
-import Test.Spec (Spec, SpecT, before, describe, hoistSpec, it)
+import Test.Spec (Spec, SpecT, before, describe, hoistSpec, it, itOnly)
 import Test.Spec.Assertions (shouldContain, shouldEqual, shouldReturn)
 
 testBoard :: Board
@@ -44,6 +45,23 @@ testBoard = either (show >>> unsafeCrashWith) identity $
     addPiece (location 1 0) notPiece
     rotatePieceBy (location 1 0) (rotation 1)
     addPiece (location 1 1) andPiece
+
+testBoardCrossOver :: Board
+testBoardCrossOver = either (show >>> unsafeCrashWith) identity $
+  flip execBoardM standardBoard do
+    increaseSize
+    addPiece (location 2 2) xorPiece
+    addPiece (location 4 2) xorPiece
+    addPiece (location 2 4) xorPiece
+    rotatePieceBy (location 2 4) (rotation 1)
+    _ <- addBoardPath Direction.Left [ location 0 2, location 1 2 ] Direction.Right
+    _ <- addBoardPath Direction.Left [ location 3 2, location 4 2 ] Direction.Right
+    _ <- addBoardPath Direction.Up [ location 2 0, location 2 1 ] Direction.Down
+    _ <- addBoardPath Direction.Up [ location 3 3, location 3 4 ] Direction.Left
+    _ <- addBoardPath Direction.Left [ location 3 1, location 4 1 ] Direction.Down
+    _ <- addBoardPath Direction.Up [ location 1 3, location 2 3 ] Direction.Down
+    pure unit
+
 
 testInput :: Signal -> Signal -> Map CardinalDirection Signal
 testInput x y = M.fromFoldable $
@@ -67,7 +85,7 @@ spec = hoistSpec identity (\_ -> toAff) tests
 tests :: forall m. MonadState Board m => MonadError Error m
   => SpecT m Unit Identity Unit
 tests = do
-  describe "Board" do
+  describe "Game.Board" do
     before (put testBoard) do
       describe "getPortOnEdge" do
         it "should return empty if space is not occupied" do
@@ -100,6 +118,9 @@ tests = do
           adjacentRelativeEdge (relative (location 0 1) Direction.Right) `shouldReturn` relative (location 1 1) Direction.Left
           adjacentRelativeEdge (relative (location 1 1) Direction.Right) `shouldReturn` relative (location 2 1) Direction.Left
           adjacentRelativeEdge (relative (location 1 0) Direction.Right) `shouldReturn` relative (location 1 1) Direction.Up
+      it "getBoardPort" do
+        getBoardPort Direction.Right `shouldReturn` relative (location 3 1) Direction.Right
+        getBoardPort Direction.Left `shouldReturn` relative (location (-1) 1) Direction.Right
 
 --      describe "evalBoard" do
 --        let evalBoard inputs = evalBoardScratch inputs >>= extractOutputs

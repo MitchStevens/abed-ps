@@ -13,7 +13,7 @@ import Data.Foldable (find, for_, traverse_)
 import Data.FoldableWithIndex (findWithIndex)
 import Data.Map (Map)
 import Data.Map as M
-import Data.Maybe (fromMaybe)
+import Data.Maybe (fromMaybe, fromMaybe')
 import Data.Tuple (Tuple(..), fst, uncurry)
 import Game.Board.PortInfo (PortInfo)
 import Game.Direction (CardinalDirection)
@@ -27,8 +27,7 @@ import Partial.Unsafe (unsafeCrashWith)
 
 
 renderWire :: forall s m. Map CardinalDirection PortInfo -> ComponentHTML Piece.Action s m
-renderWire portStates = --fromMaybe (HH.div_ [ HH.text "couldn't render wire"]) $ do
-  renderPathWithEvents (wirePath portStates) (Piece.PortOnMouseEnter Direction.Left) Piece.PortOnMouseLeave -- todo: change direction.left to
+renderWire portStates = renderPathWithEvents (wirePath portStates) (Piece.PortOnMouseEnter Direction.Left) Piece.PortOnMouseLeave -- todo: change direction.left to
 
 initialLocation :: CardinalDirection -> Tuple Number Number
 initialLocation = case _ of
@@ -97,7 +96,8 @@ wirePath ports = { path, gradient, attrs }
 
     renderSide (Tuple from info) to = tell $ (if isInput info.port then stubPath from else outputPath info.connected from) <> betweenPath from to
 
-    info =  fromMaybe (unsafeCrashWith "assertion failed: wire path created with no inputs") (find (\portInfo -> isInput portInfo.port) ports)
+    info = fromMaybe' (\_ -> unsafeCrashWith $ "assertion failed: wire path created with no inputs. ports: " <> show ports) 
+              (find (\portInfo -> isInput portInfo.port) ports)
     gradient = createPortGradient info
     attrs = DA.attr DA.connected info.connected
 
