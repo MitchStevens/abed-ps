@@ -15,6 +15,7 @@ import Foreign.Object (Object, fromHomogeneous)
 import Foreign.Object as O
 import Game.Level (LevelId, LevelSuite)
 import IO.Levels.IntermediateSuite (intermediateSuite)
+import IO.Levels.ShiftingSuite (shiftingSuite)
 import IO.Levels.TutorialSuite (tutorialSuite)
 import IO.Levels.TwoBitSuite (twoBitSuite)
 import Web.DOM.ParentNode (QuerySelector(..))
@@ -27,6 +28,7 @@ allLevels = fromHomogeneous
   , "Identity Suite": identitySuite
   , "Intermediate Suite": intermediateSuite
   , "Two Bit Suite": twoBitSuite
+  , "Shifting Suite": shiftingSuite
   }
 
 getAllLevelProgress :: forall m. MonadEffect m => m (Map LevelId LevelProgress)

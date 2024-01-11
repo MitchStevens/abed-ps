@@ -4,7 +4,9 @@ import Prelude
 
 import Data.Enum (class BoundedEnum, class Enum, Cardinality(..))
 import Data.Group (class Group)
+import Data.Int (toNumber)
 import Data.Maybe (Maybe(..))
+import Data.Number (pi)
 
 newtype Rotation = Rotation Int
 derive instance Eq Rotation 
@@ -37,9 +39,14 @@ instance Monoid Rotation where
 instance Group Rotation where
   ginverse (Rotation n) = rotation (-n)
 
-
 allRotations :: Array Rotation
 allRotations = Rotation <$> [0, 1, 2, 3]
 
 rotation :: Int -> Rotation
 rotation n = Rotation (n `mod` 4)
+
+toDegrees :: Rotation -> Number
+toDegrees (Rotation n) = toNumber n * 90.0
+
+toRadians :: Rotation -> Number
+toRadians (Rotation n) = toNumber n * pi * 0.5

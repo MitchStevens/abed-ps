@@ -5,13 +5,15 @@ import Prelude
 import Capability.Navigate (Route(..), navigateTo)
 import Capability.Progress (LevelProgress(..), saveLevelProgress)
 import Component.DataAttribute (attr)
+import Component.DataAttribute as DA
 import Component.DataAttribute as DataAttr
 import Component.Layout.DefaultLayout (defaultLayout)
+import Data.FoldableWithIndex (foldMapWithIndex)
 import Data.Map (Map)
 import Data.Map as M
 import Data.Maybe (Maybe(..))
 import Data.Time.Duration (Milliseconds(..), Seconds(..), fromDuration)
-import Data.Traversable (for)
+import Data.Traversable (foldMap, for)
 import Data.Tuple (Tuple(..))
 import Effect.Aff.Class (class MonadAff)
 import Effect.Class (class MonadEffect, liftEffect)
@@ -45,7 +47,11 @@ component = H.mkComponent { eval , initialState , render }
         [ HH.h1_ [ HH.text "Level Select" ] 
         , HH.div_  do
             Tuple suiteName levelSuite <- O.toUnfoldable allLevels
-            [ HH.h2_ [ HH.text suiteName ]
+            let maybeTotalProgress = foldMap (\levelName -> M.lookup {suiteName, levelName} state.levelProgress) (O.keys levelSuite :: Array String)
+            [ HH.h2_
+              [ HH.text suiteName
+              , renderLevelProgress maybeTotalProgress
+              ]
             , HH.ul_ do
               Tuple levelName _ <- O.toUnfoldable levelSuite
               [ HH.li_ [ renderPuzzle suiteName levelName ] ]
@@ -57,11 +63,13 @@ component = H.mkComponent { eval , initialState , render }
       HH.a
         [ HE.onClick (\_ -> NavigateTo {suiteName, levelName}) ]
         [ HH.text levelName
-        , case M.lookup {suiteName, levelName} state.levelProgress of
-            Just Completed ->  HH.span [ attr DataAttr.progress Completed ]  [ HH.text "  ✔" ]
-            Just Incomplete -> HH.span [ attr DataAttr.progress Incomplete ] [ HH.text " ✶" ]
-            Nothing -> HH.text ""
+        , renderLevelProgress (M.lookup {suiteName, levelName} state.levelProgress)
         ]
+    
+    renderLevelProgress maybeProgress = case maybeProgress of
+      Just Completed ->  HH.span [ attr DataAttr.progress Completed ]  [ HH.text "  ✔" ]
+      Just Incomplete -> HH.span [ attr DataAttr.progress Incomplete ] [ HH.text " ✶" ]
+      Nothing -> HH.text ""
   
   eval :: forall slots. HalogenQ q Action i ~> HalogenM State Action slots o m
   eval = H.mkEval H.defaultEval

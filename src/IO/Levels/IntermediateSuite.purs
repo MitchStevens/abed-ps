@@ -2,7 +2,7 @@ module IO.Levels.IntermediateSuite where
 
 import Prelude
 
-import Component.DataAttribute (nullSelector, selector)
+import Component.DataAttribute (availablePiece, nullSelector, selector)
 import Component.DataAttribute as DataAttr
 import Data.Set as S
 import Foreign.Object (fromHomogeneous)
@@ -10,12 +10,12 @@ import Game.Direction as Direction
 import Game.GameEvent (count, firstTime, latest, pieceAdded, pieceMovedTo, secondTime)
 import Game.Level (LevelSuite, binaryTestInputs, defaultLevel)
 import Game.Message (addDelay, message)
-import Game.Piece (idPiece, leftPiece, name, rightPiece, superPiece, xorPiece)
+import Game.Piece (andPiece, crossPiece, idPiece, leftPiece, name, notPiece, orPiece, rightPiece, superPiece, xorPiece)
 import Game.Piece.BasicPiece (allBasicPieces, crossPiece, xorPiece)
 
 intermediateSuite :: LevelSuite
 intermediateSuite = fromHomogeneous
-  { "Criss(t) cross":
+  { "Criss cross":
     defaultLevel
       { problem =
         { goal: crossPiece
@@ -48,68 +48,17 @@ intermediateSuite = fromHomogeneous
         --      selector DataAttr.location l3
         --  ]
       , conversation = addDelay <$>
-        [ message "mitch" "criss cross" ]
+        [ message "test" "criss cross" ]
       }
-  --, "Negation":
-  --  { problemDescription:
-  --    { goal: mkPiece notPiece
-  --    , title: "Negation"
-  --    , description: "Negate the signal inputed on the Left and output it on the Right"
-  --    , testCases: basicTestCases
-  --    , requiresAutomaticTesting: false
-  --    , pieceSet: S.fromFoldable [ mkPiece idPiece ]
-  --    , otherRestrictions: []
-  --    }
-  --  , conversation: []
-  --  }
-  --, "Disjunction":
-  --  { problemDescription:
-  --    { goal: mkPiece orPiece
-  --    , title: "Disjunction"
-  --    , description: "dijunction"
-  --    , testCases: basicTestCases
-  --    , requiresAutomaticTesting: false
-  --    , pieceSet: S.fromFoldable [ mkPiece idPiece, mkPiece orPiece ]
-  --    , otherRestrictions: []
-  --    }
-  --  , conversation: []
-  --  }
-  --, "Conjugation":
-  --  { problemDescription:
-  --    { goal: mkPiece andPiece
-  --    , title: "Conjugation"
-  --    , description: "conj"
-  --    , testCases: basicTestCases
-  --    , requiresAutomaticTesting: false
-  --    , pieceSet: S.fromFoldable [ mkPiece idPiece, mkPiece andPiece ]
-  --    , otherRestrictions: []
-  --    }
-  --  , conversation: []
-  --  }
-  --, "Constant True":
-  --  { problemDescription:
-  --    { goal: mkPiece truePiece
-  --    , title: "True"
-  --    , description: "const true"
-  --    , testCases: basicTestCases
-  --    , requiresAutomaticTesting: false
-  --    , pieceSet: S.fromFoldable
-  --        [ mkPiece idPiece, mkPiece notPiece, mkPiece orPiece, mkPiece andPiece ]
-  --    , otherRestrictions: []
-  --    }
-  --  , conversation: []
-  --  }
-  --, "Constant False":
-  --  { problemDescription:
-  --    { goal: mkPiece notPiece
-  --    , title: "Constant False"
-  --    , description: ""
-  --    , testCases: basicTestCases
-  --    , requiresAutomaticTesting: false
-  --    , pieceSet: S.fromFoldable
-  --        [ mkPiece idPiece, mkPiece notPiece, mkPiece orPiece, mkPiece andPiece ]
-  --    , otherRestrictions: []
-  --    }
-  --  , conversation: []
-  --  }
+    , "Exclusive Or": defaultLevel
+      { problem =
+        { goal: xorPiece
+        , title: "Exclusive Or"
+        , description: "Output true when EXACTLY one input is true. If both inputs are true, output false"
+        , testCases: binaryTestInputs [ Direction.Left, Direction.Up ]
+        , requiresAutomaticTesting: false
+        , availablePieces: [ idPiece, notPiece, orPiece, andPiece, crossPiece ]
+        , otherRestrictions: []
+        }
+      }
     }

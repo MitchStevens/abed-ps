@@ -27,6 +27,7 @@ import Game.Rotation (Rotation(..), rotation)
 import Game.Signal (Signal(..))
 import Type.Proxy (Proxy(..))
 import Web.HTML.Event.DragEvent (DragEvent)
+import Web.UIEvent.KeyboardEvent (KeyboardEvent)
 import Web.UIEvent.MouseEvent (MouseEvent)
 
 type Input =
@@ -42,12 +43,14 @@ type State =
     { initialClickPosition :: Tuple Number Number
     , currentRotation :: Number 
     }
+  , isDragging :: Boolean
   , portStates :: Map CardinalDirection PortInfo
   }
 
 data Query a
   = SetPortStates (Map CardinalDirection PortInfo)
   | SetPiece Piece
+  | SetRotation Rotation
 
 data Action
   = Initialise Input
@@ -58,6 +61,7 @@ data Action
   | OnMouseUp Location MouseEvent
   | PortOnMouseEnter CardinalDirection
   | PortOnMouseLeave
+  | OnKeyDown KeyboardEvent
 
 data Output
   = Rotated Location Rotation
@@ -70,6 +74,7 @@ initialState { piece: Piece p, location } =
   , location
   , rotation: rotation 0
   , isRotating: Nothing
+  , isDragging: false
   , portStates: map (\port -> { port, signal: Signal 0, connected: false }) $ p.ports
   }
 

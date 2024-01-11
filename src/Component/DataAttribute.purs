@@ -51,4 +51,6 @@ connected = Attr (AttrName "data-connected") $
     then "connected"
     else "not-connected"
   
+isDragging :: DataAttribute Boolean
+isDragging = Attr (AttrName "data-is-dragging") show
 

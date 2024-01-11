@@ -8,6 +8,7 @@ import Component.Board.Types
 import Data.Lens
 import Prelude
 
+import Capability.Animate as Animate
 import Capability.GlobalEventEmmiters (globalKeyDownEventEmitter)
 import Component.DataAttribute (attr)
 import Component.DataAttribute as DA
@@ -49,6 +50,7 @@ import Data.Tuple.Nested (Tuple3, tuple3, tuple4, (/\))
 import Data.Zipper (Zipper)
 import Data.Zipper as Z
 import Debug (trace)
+import Effect.Aff.Class (class MonadAff)
 import Effect.Class (class MonadEffect, liftEffect)
 import Effect.Class.Console (log, logShow)
 import Game.Board (Board(..), RelativeEdge, _pieces, _size, printBoard, relativeEdgeLocation, standardBoard, toLocalInputs)
@@ -79,6 +81,7 @@ import Halogen.Svg.Elements as SE
 import Type.Proxy (Proxy(..))
 import Web.DOM.Document (toEventTarget)
 import Web.DOM.Element (DOMRect, fromEventTarget, getBoundingClientRect)
+import Web.DOM.ParentNode (QuerySelector(..))
 import Web.Event.Event (Event, preventDefault, target)
 import Web.Event.EventTarget (addEventListener, eventListener)
 import Web.HTML.Common (ClassName(..))
@@ -87,7 +90,9 @@ import Web.UIEvent.KeyboardEvent (KeyboardEvent, code, ctrlKey, fromEvent, key)
 import Web.UIEvent.MouseEvent (MouseEvent, clientX, clientY)
 import Web.UIEvent.MouseEvent as MouseEvent
 
-component :: forall m . MonadLogger m 
+component :: forall m
+  .  MonadLogger m 
+  => MonadAff m
   => H.Component Query Input Output m
 component = H.mkComponent { eval , initialState , render }
   where
@@ -120,8 +125,9 @@ component = H.mkComponent { eval , initialState , render }
           [ DA.attr DA.location (location i j)
           , HP.class_ (ClassName "piece")
           , HP.style $ intercalate "; "
-            [ "transform: rotate("<> (show (rot * 90)) <>"deg)"
-            , gridArea (Tuple i j )
+            [ --"transform: rotate("<> (show (rot * 90)) <>"deg)"
+            --, 
+            gridArea (Tuple i j )
             ]
           , HE.onMouseDown (LocationOnMouseDown loc)
           , HE.onMouseOver (LocationOnMouseOver loc)
@@ -201,11 +207,14 @@ component = H.mkComponent { eval , initialState , render }
     GetBoard f -> do
       Just <<< f <$> use _board
     AddPiece loc piece -> do
-      liftBoardM (addPiece loc piece) >>= traverse_ \(Tuple _ board) -> do
-        updateBoard board 
+      liftBoardM (addPiece loc piece) >>= case _ of
+        Left boardError -> do
+          Animate.headShake (DA.selector DA.location loc)
+        Right (Tuple _ board) -> do
         --updateStore (BoardEvent (AddedPiece loc (name piece)))
       -- raise as a board event so other components can be notified
-      pure $ Nothing
+          updateBoard board 
+      pure Nothing
     RemovePiece loc -> do
       liftBoardM (removePiece loc) >>= traverse_ \(Tuple piece board) -> do
         updateBoard board 
@@ -247,6 +256,7 @@ component = H.mkComponent { eval , initialState , render }
       H.raise =<< NewBoardState <$> use _board
     PieceOutput (Piece.Rotated loc rot) ->
       liftBoardM (rotatePieceBy loc rot) >>= traverse_ \(Tuple _ board) -> do
+        lift $ debug (tag "rotation" (show rot)) ("Piece rotated at " <> show loc)
         --updateStore (BoardEvent (RotatedPiece loc rot))
         updateBoard board
     PieceOutput (Piece.Dropped src) -> do
@@ -255,7 +265,9 @@ component = H.mkComponent { eval , initialState , render }
       maybeDst <- H.gets (_.mouseOverLocation)
       eitherPiece <- liftBoardM (pieceDropped src maybeDst)
       case eitherPiece of
-        Left boardError -> lift $ warn M.empty (show boardError) -- todo: what do we want to do here??
+        Left boardError -> do
+          lift $ warn M.empty (show boardError) -- todo: what do we want to do here??
+          Animate.headShake (DA.selector DA.location src)
         Right _ -> use _board >>= updateBoard
 
 
@@ -411,3 +423,4 @@ updatePieceComponents = do
     --lift $ debug (tag "port states" (show portStates)) ("update piece at :" <> show loc )
     H.tell slot.piece loc (\_ -> Piece.SetPortStates portStates)
     H.tell slot.piece loc (\_ -> Piece.SetPiece info.piece)
+    H.tell slot.piece loc (\_ -> Piece.SetRotation info.rotation)

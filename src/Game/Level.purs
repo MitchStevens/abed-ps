@@ -17,21 +17,23 @@ import Game.Signal (Signal(..))
 import Web.DOM.ParentNode (QuerySelector(..))
 import Web.HTML.Common (AttrName(..))
 
-type LevelSettings =
-  { enableBoardSizeChange :: Boolean }
+type LevelOptions =
+  { enableBoardSizeChange :: Boolean
+  , compulsory :: Boolean }
 
 type Level =
   { problem :: Problem
   , boardDeltaRulesEngine :: Array (Rule GameEventStore Message)
   , conversation :: Array Message
-  , settings :: LevelSettings
+  , options :: LevelOptions
   }
 
 type LevelId = { suiteName :: String, levelName :: String }
 
-defaultSettings :: LevelSettings
-defaultSettings =
+defaultLevelOptions :: LevelOptions
+defaultLevelOptions =
   { enableBoardSizeChange: true
+  , compulsory: false
   }
 
 defaultLevel :: Level
@@ -39,7 +41,7 @@ defaultLevel =
   { problem: defaultProblem
   , boardDeltaRulesEngine: []
   , conversation: []
-  , settings: defaultSettings
+  , options: defaultLevelOptions
   }
 
 type LevelSuite = Object Level

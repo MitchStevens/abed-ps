@@ -22,6 +22,9 @@ import Web.Storage.Storage (clear, getItem, setItem)
 --storing puzzle progress
 data LevelProgress = Incomplete | Completed
 derive instance Eq LevelProgress
+instance Semigroup LevelProgress where
+  append Completed Completed = Completed
+  append _ _ = Incomplete
 
 levelProgress :: Prism' String LevelProgress
 levelProgress = prism' toStr fromStr

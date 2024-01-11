@@ -8,27 +8,51 @@ import Component.Rendering.CrossOver (renderChicken, renderCornerCut, renderCros
 import Component.Rendering.Path (renderPathWithEvents)
 import Component.Rendering.Port (portPath)
 import Component.Rendering.Wire (renderWire)
+import Control.Alternative (guard)
 import Data.Array (elem)
 import Data.Array as A
 import Data.Int (toNumber)
 import Data.Map as M
+import Data.Maybe (Maybe(..), isJust, isNothing, maybe)
+import Data.Number (pi)
 import Debug (trace)
 import Game.Direction (allDirections, clockwiseRotation, rotateDirection)
 import Game.Direction as Direction
 import Game.Piece (PieceId(..), allWirePieces, chickenPiece, cornerCutPiece, crossPiece, isWirePiece, name)
-import Game.Rotation (Rotation(..))
+import Game.Rotation (Rotation(..), toDegrees, toRadians)
 import Halogen (ComponentHTML)
 import Halogen.Svg.Attributes (Transform(..))
 import Halogen.Svg.Attributes as SA
+import Halogen.Svg.Attributes.Duration (defaultDuration)
 import Halogen.Svg.Elements as SE
 
 renderPiece :: forall s m. State -> ComponentHTML Action s m
 renderPiece state = 
     SE.svg
-      [ SA.viewBox 0.0 0.0 100.0 100.0 ]
-      [ render ]
-
+      [ SA.viewBox 0.0 0.0 100.0 100.0
+      ]
+      [ SE.g
+        attributes
+        ([ render ] <> animations)
+      ]
   where
+    pieceRotation =   maybe (toDegrees state.rotation) (_.currentRotation >>> mul (180.0 / pi)) state.isRotating
+
+    attributes = [ SA.transform [Rotate pieceRotation 50.0 50.0] ]
+      --if (isJust state.isRotating)
+      --  then [ SA.transform [Rotate pieceRotation 50.0 50.0] ]
+      --  else []
+
+    animations = []
+    --animations = do
+    --  guard (isNothing state.isRotating)
+    --  pure $ SE.animateMotion
+    --    [ SA.attributeName "transform"
+    --    , SA.to ("rotate(" <> show pieceRotation <> ",50.0,50.0)")
+    --    , SA.dur (defaultDuration { milliseconds = Just 500.0 })
+    --    , SA.repeatCount "1"
+    --    ]
+
     render
       | isWirePiece state.piece = renderWire state.portStates
       | name state.piece == name crossPiece = renderCrossOver state.portStates
