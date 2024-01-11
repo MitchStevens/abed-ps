@@ -33,6 +33,10 @@
   width: 150px;
   pointer-events: none;
 }
+#board-component #multimeter text {
+  white-space: pre;
+  font-family: "Monogram", monogram, monospace;
+}
 #board-component #multimeter.display {
   display: block;
 }

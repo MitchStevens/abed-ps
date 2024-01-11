@@ -4,13 +4,19 @@ import Prelude
 
 import Capability.GlobalEventEmmiters (globalKeyDownEventEmitter, globalMouseMoveEventEmitter)
 import Data.Align (aligned)
-import Data.Array (elem, range)
+import Data.Array (elem, range, replicate)
 import Data.Array as A
+import Data.Enum (enumFromTo)
 import Data.Foldable (foldMap, for_)
 import Data.FunctorWithIndex (mapWithIndex)
+import Data.Int (decimal)
 import Data.Map.Internal (Map(..))
-import Data.Maybe (Maybe(..), maybe)
+import Data.Maybe (Maybe(..), fromMaybe, maybe)
+import Data.Monoid (power)
+import Data.String as String
+import Data.String.CodeUnits (fromCharArray)
 import Data.These (These(..))
+import Data.Traversable (sequence)
 import Data.TraversableWithIndex (forWithIndex)
 import Data.Unfoldable1 (iterateN)
 import Effect.Class (class MonadEffect, liftEffect)
@@ -21,33 +27,21 @@ import Game.Piece (Capacity(..), Port(..), clampedBits, inputPort, portCapacity,
 import Game.Signal (Signal(..), nthBit)
 import Halogen (ClassName(..), RefLabel(..), gets, modify_)
 import Halogen as H
-import Halogen.HTML (HTML, PlainHTML, fromPlainHTML)
+import Halogen.HTML (HTML(..), PlainHTML, fromPlainHTML)
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
 import Halogen.Svg.Attributes (Color(..), TextAnchor(..))
 import Halogen.Svg.Attributes as SA
 import Halogen.Svg.Elements as SE
+import Halogen.VDom as VDom
 import Web.UIEvent.KeyboardEvent (KeyboardEvent, key)
 import Web.UIEvent.MouseEvent (MouseEvent, pageX, pageY)
 
-width = 52.916666
-height = 66.675018
+width = 200.0
+height = 200.0
 
-leds =
-  [ { cx: 44.928719, cy: 23.000546, r: 1.9862779 }
-  , { cx: 39.807083, cy: 23.000546, r: 1.9862779 }
-  , { cx: 34.685444, cy: 23.000546, r: 1.9862779 }
-  , { cx: 29.563808, cy: 23.000546, r: 1.9862779 }
-  , { cx: 24.442171, cy: 23.000546, r: 1.9862779 }
-  , { cx: 19.320534, cy: 23.000546, r: 1.9862779 }
-  , { cx: 14.198897, cy: 23.000546, r: 1.9862779 }
-  , { cx: 9.077261,  cy: 23.000546, r: 1.9862779 }
-  ]
-
-radialDial = { cx: 15.749074, cy: 44.965733, r: 15.025925 }
-
-display = { w: 39.88829 , h: 13.022614 , x: 7.0013809 , y: 6.4740133 }
+textYPositions = [ 20.0, 40.0, 80.0, 100.0 ]
 
 type Input = {}
 
@@ -75,7 +69,7 @@ data Output
 component :: forall m. MonadEffect m => H.Component Query Input Output m
 component = H.mkComponent { eval, initialState, render }
   where
-    initialState {} = { focus: Nothing, display: false, currentPosition: zero }
+    initialState {} = { focus: Nothing, display: false, currentPosition: { x: 200.0, y: 200.0 } }
     --initialState {} = { info: Just {connected: true, signal: Signal 21, port: inputPort EightBit } , display: false, currentPosition: zero }
 
     render state =
@@ -85,14 +79,20 @@ component = H.mkComponent { eval, initialState, render }
         , HP.style ("left: " <> show state.currentPosition.x <> "px; top: " <> show state.currentPosition.y <> "px;")
         ]
         [ SE.svg 
-          [ SA.viewBox 0.0 0.0 width height
-          ] $
-          map fromPlainHTML $
-            [ renderMultimeterImage
-            , renderRotarySwitch (portCapacity <<< (_.info.port) <$> state.focus)
-            ] <> foldMap renderDisplay ((_.info) <$> state.focus)
-              <> foldMap renderBits    ((_.info) <$> state.focus)
+          [ SA.viewBox 0.0 0.0 width height ]
+          [ SE.g []
+            (A.zipWith createText textYPositions textLines)
+          ]
         ]
+      where
+        textLines = multimeterText (_.info <$> state.focus)
+        createText position line = SE.text
+          [ SA.fontFamily "monogram"
+          , SA.stroke (Named "black")
+          , SA.x 0.0
+          , SA.y position
+          ]
+          [ HTML (VDom.Text line) ]
     
     eval = H.mkEval
       (H.defaultEval
@@ -105,7 +105,8 @@ component = H.mkComponent { eval, initialState, render }
               void $ H.subscribe (GlobalKeyDown <$> keyDownEmitter)
 
             GlobalMouseMove me -> do
-              modify_ (_ { currentPosition = {x: pageX me, y: pageY me} })
+              -- modify_ (_ { currentPosition = {x: pageX me, y: pageY me} })
+              pure unit
             GlobalKeyDown ke -> do
               when (key ke == "s") do 
                 modify_ (\s -> s { display = not s.display})
@@ -132,39 +133,69 @@ component = H.mkComponent { eval, initialState, render }
         }
       )
 
-renderDisplay :: PortInfo -> Array PlainHTML
-renderDisplay info = pure $
-  SE.text
-    [ SA.x (display.w + display.x), SA.y (display.h + display.y), SA.textAnchor AnchorEnd ]
-    [ HH.text (show (getClampedSignal info)) ]
+multimeterText ::  Maybe PortInfo -> Array String
+multimeterText = A.zipWith ($) prefixes <<< maybe defaultValues multimeterTextValues
+  where
+    --space = "&nbsp;"
+    space = " "
 
-renderBits :: PortInfo -> Array PlainHTML
-renderBits info =
-  flip map (aligned leds (clampedBits (portCapacity info.port) info.signal)) $
-    case _ of
-      This { cx, cy, r } -> 
-        SE.circle [ SA.cx cx, SA.cy cy, SA.r r, SA.fill (Named "black") ]
-      That b -> SE.circle [] -- should never happen
-      Both { cx, cy, r } b ->
-        let color = if b then Named "red" else Named "white"
-        in  SE.circle [ SA.cx cx, SA.cy cy, SA.r r, SA.fill color ]
+    prefixes =
+      [ append ("BIN" <> power space 5)
+      , append ("DEC" <> power space 10)
+      , append ("Capacity:" <> space <> space)
+      , append ("Connected:" <> space)
+      ]
 
 
+multimeterTextValues :: PortInfo -> Array String
+multimeterTextValues info = [ binaryText , decimalText , capacityText , connectedText ]
+  where
+    binaryText =
+      (enumFromTo (toInt (portCapacity info.port) - 1) 0 :: Array _)
+        <#> nthBit info.signal
+        # foldMap (\b -> if b then "1" else "0")
+        # padStart ' ' 8
+    
+    decimalText =
+      let Signal n = info.signal
+      in padStart '0' 3 (show n)
 
-renderMultimeterImage :: PlainHTML
-renderMultimeterImage =
-  SE.image
-    [ SA.href ("./images/multimeter.png")
-    , SA.width width
-    , SA.height height
-    ]
+    capacityText = show (toInt (portCapacity info.port)) <> "bit"
+    connectedText = if info.connected then "true" else "fals"
 
-renderRotarySwitch :: Maybe Capacity -> PlainHTML
-renderRotarySwitch capacity =
-  SE.g []
-    [ SE.circle [ SA.cx radialDial.cx, SA.cy radialDial.cy, SA.r radialDial.r ]
-    , SE.text
-      [ SA.x radialDial.cx, SA.y radialDial.cy, SA.textAnchor AnchorMiddle, SA.fill (Named "lightgrey")]
-      [ HH.text (maybe "X" (show <<< toInt) capacity) ]
-    ]
+defaultValues :: Array String
+defaultValues =
+  [ "--------"
+  , "---"
+  , "----"
+  , "----"
+  ]
+
+--renderDisplay :: PortInfo -> Array PlainHTML
+--renderDisplay info = pure $
+--  SE.text
+--    [ SA.x (display.w + display.x), SA.y (display.h + display.y), SA.textAnchor AnchorEnd ]
+--    [ HH.text (show (getClampedSignal info)) ]
+--
+--renderBits :: PortInfo -> Array PlainHTML
+--renderBits info =
+--  flip map (aligned leds (clampedBits (portCapacity info.port) info.signal)) $
+--    case _ of
+--      This { cx, cy, r } -> 
+--        SE.circle [ SA.cx cx, SA.cy cy, SA.r r, SA.fill (Named "black") ]
+--      That b -> SE.circle [] -- should never happen
+--      Both { cx, cy, r } b ->
+--        let color = if b then Named "red" else Named "white"
+--        in  SE.circle [ SA.cx cx, SA.cy cy, SA.r r, SA.fill color ]
+--
+--renderRotarySwitch :: Maybe Capacity -> PlainHTML
+--renderRotarySwitch capacity =
+--  SE.g []
+--    [ SE.circle [ SA.cx radialDial.cx, SA.cy radialDial.cy, SA.r radialDial.r ]
+--    , SE.text
+--      [ SA.x radialDial.cx, SA.y radialDial.cy, SA.textAnchor AnchorMiddle, SA.fill (Named "lightgrey")]
+--      [ HH.text (maybe "X" (show <<< toInt) capacity) ]
+--    ]
   
+padStart :: Char -> Int -> String -> String
+padStart char n str = fromCharArray (replicate (String.length str - n) char) <> str
