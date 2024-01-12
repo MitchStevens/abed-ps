@@ -1,4 +1,4 @@
-module Component.MultimeterComponent where
+module Component.Multimeter where
 
 import Prelude
 
@@ -31,17 +31,14 @@ import Halogen.HTML (HTML(..), PlainHTML, fromPlainHTML)
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
-import Halogen.Svg.Attributes (Color(..), TextAnchor(..))
+import Halogen.Svg.Attributes (Color(..), TextAnchor(..), Transform(..))
+import Halogen.Svg.Attributes as BaseLine
 import Halogen.Svg.Attributes as SA
 import Halogen.Svg.Elements as SE
 import Halogen.VDom as VDom
 import Web.UIEvent.KeyboardEvent (KeyboardEvent, key)
 import Web.UIEvent.MouseEvent (MouseEvent, pageX, pageY)
 
-width = 200.0
-height = 200.0
-
-textYPositions = [ 20.0, 40.0, 80.0, 100.0 ]
 
 type Input = {}
 
@@ -69,8 +66,7 @@ data Output
 component :: forall m. MonadEffect m => H.Component Query Input Output m
 component = H.mkComponent { eval, initialState, render }
   where
-    initialState {} = { focus: Nothing, display: false, currentPosition: { x: 200.0, y: 200.0 } }
-    --initialState {} = { info: Just {connected: true, signal: Signal 21, port: inputPort EightBit } , display: false, currentPosition: zero }
+    initialState {} = { focus: Nothing, display: false, currentPosition: { x: 0, y: 0 } }
 
     render state =
       HH.div
@@ -80,19 +76,49 @@ component = H.mkComponent { eval, initialState, render }
         ]
         [ SE.svg 
           [ SA.viewBox 0.0 0.0 width height ]
-          [ SE.g []
-            (A.zipWith createText textYPositions textLines)
+          [ SE.g [] [ display ]
           ]
         ]
       where
+        width = 400.0
+        height = 400.0
+
+        screen = { x: (screenBorder.width - 270.0) * 0.5, y: (screenBorder.height - 165.0) * 0.5, width: 270.0 , height: 165.0 }
+
+        screenBorder = { width: 340.0 , height: 190.0 }
+
+        textXPosition = 10.0
+        textYPositions = map (\i -> 10.0 + i * 40.0) [ 0.0, 1.0, 2.0, 3.0 ]
+
         textLines = multimeterText (_.info <$> state.focus)
-        createText position line = SE.text
-          [ SA.fontFamily "monogram"
-          , SA.stroke (Named "black")
-          , SA.x 0.0
-          , SA.y position
+
+        createText textYPosition line = SE.text
+          [ --SA.fontFamily "monogram"
+           SA.stroke (Named "black")
+          , SA.x textXPosition
+          , SA.y textYPosition
+          , SA.dominantBaseline BaseLine.Hanging
           ]
           [ HTML (VDom.Text line) ]
+        
+        display = SE.g
+          []
+          [ SE.rect
+            [ SA.id "screen-border"
+            , SA.height screenBorder.height
+            , SA.width screenBorder.width
+            ]
+          , SE.g
+            [ SA.transform [ Translate screen.x screen.y ] ] 
+            [ SE.rect
+              [ SA.id "screen-background"
+              , SA.height screen.height
+              , SA.width screen.width
+              ]
+            , SE.g [] (A.zipWith createText textYPositions textLines)
+            ]
+          ]
+
     
     eval = H.mkEval
       (H.defaultEval
@@ -105,7 +131,7 @@ component = H.mkComponent { eval, initialState, render }
               void $ H.subscribe (GlobalKeyDown <$> keyDownEmitter)
 
             GlobalMouseMove me -> do
-              -- modify_ (_ { currentPosition = {x: pageX me, y: pageY me} })
+              modify_ (_ { currentPosition = {x: pageX me, y: pageY me} })
               pure unit
             GlobalKeyDown ke -> do
               when (key ke == "s") do 
@@ -142,8 +168,8 @@ multimeterText = A.zipWith ($) prefixes <<< maybe defaultValues multimeterTextVa
     prefixes =
       [ append ("BIN" <> power space 5)
       , append ("DEC" <> power space 10)
-      , append ("Capacity:" <> space <> space)
-      , append ("Connected:" <> space)
+      , append ("Capacity:" <> space <> space <> space)
+      , append ("Connected:" <> space <> space)
       ]
 
 
@@ -154,11 +180,11 @@ multimeterTextValues info = [ binaryText , decimalText , capacityText , connecte
       (enumFromTo (toInt (portCapacity info.port) - 1) 0 :: Array _)
         <#> nthBit info.signal
         # foldMap (\b -> if b then "1" else "0")
-        # padStart ' ' 8
+        # padStart " " 8
     
     decimalText =
       let Signal n = info.signal
-      in padStart '0' 3 (show n)
+      in padStart "0" 3 (show n)
 
     capacityText = show (toInt (portCapacity info.port)) <> "bit"
     connectedText = if info.connected then "true" else "fals"
@@ -197,5 +223,5 @@ defaultValues =
 --      [ HH.text (maybe "X" (show <<< toInt) capacity) ]
 --    ]
   
-padStart :: Char -> Int -> String -> String
-padStart char n str = fromCharArray (replicate (String.length str - n) char) <> str
+padStart :: String -> Int -> String -> String
+padStart s n str = power s (n - String.length str) <> str

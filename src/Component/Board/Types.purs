@@ -19,7 +19,7 @@ module Component.Board.Types
 import Data.Lens
 import Prelude
 
-import Component.MultimeterComponent as Multimeter
+import Component.Multimeter as Multimeter
 import Component.Piece as Piece
 import Control.Monad.State (class MonadState, evalState, gets, runState)
 import Data.Either (Either)

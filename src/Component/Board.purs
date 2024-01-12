@@ -11,7 +11,7 @@ import Prelude
 import Capability.GlobalEventEmmiters (globalKeyDownEventEmitter)
 import Component.DataAttribute (attr)
 import Component.DataAttribute as DA
-import Component.MultimeterComponent as Multimeter
+import Component.Multimeter as Multimeter
 import Component.Piece as Piece
 import Component.Rendering.Path (renderPathWithEvents)
 import Component.Rendering.Port (portPath)
@@ -293,6 +293,13 @@ component = H.mkComponent { eval , initialState , render }
       inputs <- gets (_.inputs)
       lift $ debug (tag "inputs" (show inputs)) ("Toggled " <> show dir <> " input")
       evaluateBoard
+
+
+      relativeEdge <- evalState (getBoardPort dir) <$> use _board
+      signals <- gets (_.lastEvalWithPortInfo)
+      let focus = { info: _, relativeEdge } <$> M.lookup relativeEdge signals
+      H.tell slot.multimeter unit (\_ -> Multimeter.NewFocus focus)
+
 
     BoardOnDragExit _ -> do
       H.modify_ (_ { isCreatingWire = Nothing })

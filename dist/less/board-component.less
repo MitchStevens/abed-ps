@@ -1,5 +1,7 @@
 @board-width: 600px;
 
+@import "fonts";
+
 #board-component {
     width: @board-width;
     aspect-ratio: 1 / 1;
@@ -31,12 +33,23 @@
 
     & #multimeter {
         position: absolute;
-        width: 150px;
+        width: 300px;
         pointer-events: none;
 
         text {
             white-space: pre;
-            font-family: "Monogram", monogram, monospace;
+            font-family: monogram, monospace;
+            font-size: 40px;
+            -webkit-font-smoothing: antialiased;
+            letter-spacing: 1px;
+        }
+
+        & #screen-background {
+            fill: #8AF85B;
+        }
+
+        & #screen-border {
+            fill: black;
         }
 
         &.display {
