@@ -1,4 +1,16 @@
 @charset "UTF-8";
+@font-face {
+  font-family: monogram;
+  src: url(./fonts/monogram.ttf);
+}
+@font-face {
+  font-family: retro-computer;
+  src: url(./fonts/retro_computer_personal_use.ttf);
+}
+@font-face {
+  font-family: boxxy;
+  src: url(./fonts/boxxy.bdf);
+}
 #board-component {
   aspect-ratio: 1 / 1;
   border-spacing: 0px;
@@ -29,8 +41,21 @@
 }
 #board-component #multimeter {
   position: absolute;
-  width: 150px;
+  width: 300px;
   pointer-events: none;
+}
+#board-component #multimeter text {
+  white-space: pre;
+  font-family: monogram, monospace;
+  font-size: 40px;
+  -webkit-font-smoothing: antialiased;
+  letter-spacing: 1px;
+}
+#board-component #multimeter #screen-background {
+  fill: #8AF85B;
+}
+#board-component #multimeter #screen-border {
+  fill: black;
 }
 #board-component #multimeter.display {
   display: block;

@@ -1,3 +1,5 @@
+@import "fonts";
+
 #board-component {
     aspect-ratio: 1 / 1;
     border-spacing: 0px;
@@ -27,8 +29,24 @@
 
     & #multimeter {
         position: absolute;
-        width: 150px;
+        width: 300px;
         pointer-events: none;
+
+        text {
+            white-space: pre;
+            font-family: monogram, monospace;
+            font-size: 40px;
+            -webkit-font-smoothing: antialiased;
+            letter-spacing: 1px;
+        }
+
+        & #screen-background {
+            fill: #8AF85B;
+        }
+
+        & #screen-border {
+            fill: black;
+        }
 
         &.display {
             display: block;

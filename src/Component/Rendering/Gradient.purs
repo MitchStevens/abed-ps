@@ -49,10 +49,10 @@ portColor port signal = (if signal == Signal 0 then shadeColor (-30) else identi
     FourBit   -> purple
     EightBit  -> pink
   where 
-    green   = RGB 117 208 191
-    blue    = RGB 120 204 250
-    purple  = RGB 208 135 221
-    pink    = RGB 228 100 156
+    green   = RGB 117 242 191 -- #7
+    blue    = RGB 120 204 250 -- #
+    purple  = RGB 208 135 221 -- #
+    pink    = RGB 228 100 156 -- #
 
 shadeColor :: Int -> Color -> Color
 shadeColor percentage = case _ of
