@@ -3,7 +3,6 @@ module Test.Component.Board.Types where
 import Game.Board
 import Game.Piece
 import Prelude
-import Prelude
 
 import Component.Board.Types (boardPortInfo)
 import Component.Board.Types as Board
