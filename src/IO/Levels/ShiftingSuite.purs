@@ -7,13 +7,12 @@ import Component.DataAttribute as DataAttr
 import Data.Map as M
 import Data.Set as S
 import Foreign.Object (fromHomogeneous)
+import Game.Capacity (Capacity(..))
 import Game.Direction as Direction
 import Game.GameEvent (count, firstTime, latest, pieceAdded, pieceMovedTo, secondTime)
 import Game.Level (LevelSuite, binaryTestInputs, defaultLevel)
 import Game.Message (addDelay, message)
-import Game.Piece (Capacity(..), andPiece, crossPiece, fusePiece, idPiece, leftPiece, name, notPiece, orPiece, rightPiece, severPiece, superPiece, xorPiece)
-import Game.Piece.BasicPiece (allBasicPieces, crossPiece, xorPiece)
-import Game.Piece.UnaryOperationPiece (mkShiftLeft)
+import Game.Piece (fusePiece, idPiece, leftPiece, mkShiftLeft, rightPiece, severPiece)
 import Game.Signal (Signal(..))
 
 shiftingSuite :: LevelSuite

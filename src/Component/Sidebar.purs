@@ -16,6 +16,7 @@ import Component.DataAttribute as DataAttr
 import Component.Piece as Piece
 import Component.Rendering.Piece (renderPiece)
 import Control.Monad.Except (runExceptT)
+import Control.Monad.State.Class (modify_, gets)
 import Data.Array as A
 import Data.Bifunctor (bimap)
 import Data.Either (Either(..), blush, hush)
@@ -30,16 +31,14 @@ import Data.Traversable (for)
 import Effect.Aff.Class (class MonadAff)
 import Effect.Class (class MonadEffect, liftEffect)
 import Effect.Class.Console (log)
-import Game.Board (Board(..))
-import Game.GameEvent (pieceId)
+import Game.Capacity (toInt)
 import Game.Level.Completion (CompletionStatus(..), FailedTestCase)
 import Game.Level.Problem (Problem)
 import Game.Location (location)
-import Game.Piece (PieceId(..), Port(..), PortType(..), name, pieceLookup, pieceVault, toInt)
-import Game.Piece as Port
-import Game.Piece.Port (isInput)
-import Halogen (ClassName(..), ComponentSlot, HalogenM, HalogenQ, ComponentHTML, liftAff)
-import Halogen as H
+import Game.Piece (PieceId(..), name, pieceVault)
+import Game.Port (Port(..))
+import Game.Port as Port
+import Halogen (ClassName(..), Component, ComponentHTML, ComponentSlot, HalogenM, HalogenQ, liftAff, mkComponent, mkEval, raise)
 import Halogen.HTML (HTML, PlainHTML, fromPlainHTML)
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
@@ -91,8 +90,8 @@ data Output
   | BoardSizeDecremented
   | TestsTriggered
 
-component :: forall m. MonadAff m => H.Component Query Input Output m
-component = H.mkComponent { eval , initialState , render }
+component :: forall m. MonadAff m => Component Query Input Output m
+component = mkComponent { eval , initialState , render }
   where
   initialState { problem, boardSize } =
     { problem
@@ -137,23 +136,22 @@ component = H.mkComponent { eval , initialState , render }
 
 
   eval :: forall slots. HalogenQ Query Action Input ~> HalogenM State Action slots Output m
-  eval = H.mkEval
+  eval = mkEval
     { finalize: Nothing
     , handleAction: case _ of
         PieceOnDrop piece _ -> do
-          log "sidebar: piece dropped!"
-          H.raise (PieceDropped piece)
+          raise (PieceDropped piece)
         PieceOnClick piece _ ->
-          H.raise (PieceAdded piece)
+          raise (PieceAdded piece)
         BackToLevelSelect -> do
           navigateTo LevelSelect
-        IncrementBoardSize -> H.raise BoardSizeIncremented
-        DecrementBoardSize -> H.raise BoardSizeDecremented
-        RunTestsClicked -> H.raise TestsTriggered
+        IncrementBoardSize -> raise BoardSizeIncremented
+        DecrementBoardSize -> raise BoardSizeDecremented
+        RunTestsClicked -> raise TestsTriggered
         DoNothing -> pure unit
     , handleQuery: case _ of
         SetCompletionStatus completionStatus -> do
-          H.modify_ $ _ { completionStatus = completionStatus }
+          modify_ $ _ { completionStatus = completionStatus }
           pure Nothing
         --IsProblemSolved board f -> do
         --  problemDescription <- H.gets (_.problem)
@@ -161,7 +159,7 @@ component = H.mkComponent { eval , initialState , render }
         --  H.modify_ (_ { error = blush isSolved })
         --  pure (f <$> blush isSolved)
         SetBoardSize boardSize -> do
-          H.modify_ $ _ { boardSize = boardSize }
+          modify_ $ _ { boardSize = boardSize }
           pure Nothing
     , initialize: Nothing
     , receive: const Nothing -- :: input -> Maybe action

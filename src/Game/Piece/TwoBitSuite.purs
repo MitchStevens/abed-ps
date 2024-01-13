@@ -5,11 +5,13 @@ import Prelude
 import Data.Foldable (fold)
 import Data.Map as M
 import Data.Maybe (Maybe(..))
+import Data.Posix.Signal (Signal)
 import Data.Tuple (Tuple(..))
+import Game.Capacity (Capacity(..))
 import Game.Direction as Direction
 import Game.Piece.Complexity as Complexity
-import Game.Piece.Port (Capacity(..), inputPort, outputPort)
 import Game.Piece.Types (Piece(..), PieceId(..))
+import Game.Port (inputPort, outputPort)
 import Game.Signal (Signal(..), nthBit)
 
 twoBitCrossOver :: Piece

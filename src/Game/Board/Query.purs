@@ -23,14 +23,17 @@ import Data.Traversable (for, for_, traverse_)
 import Data.Tuple (Tuple(..))
 import Data.Witherable (wither)
 import Debug (trace)
-import Game.Board (AbsoluteEdge, Board(..), RelativeEdge(..), _pieces, _rotation, _size, absolute, relative, relativeEdgeDirection, relativeEdgeLocation)
-import Game.Direction (CardinalDirection, allDirections, oppositeDirection, rotateDirection)
+import Game.Board.PieceInfo (_rotation)
+import Game.Board.RelativeEdge (AbsoluteEdge, RelativeEdge(..), absolute, relative, relativeEdgeDirection, relativeEdgeLocation)
+import Game.Board.Types (Board(..), _pieces, _size)
+import Game.Capacity (Capacity)
+import Game.Direction (CardinalDirection, allDirections, rotateDirection)
 import Game.Direction as Direction
 import Game.Edge (Edge(..), matchEdge)
-import Game.Location (Location(..), followDirection, location)
-import Game.Piece (Capacity, Piece(..), getPort, portType)
-import Game.Piece as Port
-import Game.Piece.Port (Port(..), isInput, portMatches)
+import Game.Location (Location(..), location)
+import Game.Piece (getPort, shouldRipple, updateCapacity)
+import Game.Port (Port(..), portMatches, portType)
+import Game.Port as Port
 import Game.Rotation (Rotation(..))
 
 {- 
@@ -57,13 +60,13 @@ import Game.Rotation (Rotation(..))
 -}
 toAbsoluteEdge :: forall m. MonadState Board m => RelativeEdge -> m AbsoluteEdge
 toAbsoluteEdge (Relative (Edge { loc, dir })) = do
-  (rot :: Rotation) <- gets (view $ _pieces <<< ix loc <<< _rotation) -- rotation is a monoid
+  rot <- gets (view (_pieces <<< ix loc <<< _rotation)) -- rotation is a monoid
   pure $ absolute loc (rotateDirection dir rot)
 
 -- if location is not accupied, reledge == absEdge
 toRelativeEdge :: forall m. MonadState Board m => AbsoluteEdge -> m RelativeEdge
 toRelativeEdge (Edge { loc, dir }) = do
-  (rot :: Rotation) <- gets (view $ _pieces <<< ix loc <<< _rotation)
+  rot <- gets (view $ _pieces <<< ix loc <<< _rotation)
   pure $ relative loc (rotateDirection dir (ginverse rot))
 
 {-
@@ -183,12 +186,12 @@ capacityRippleAcc capacity vars = case vars.openSet of
     let closedSet = S.insert loc vars.closedSet
     maybePiece <- map (_.piece) <$> use (_pieces <<< at loc)
     
-    case maybePiece >>= \(Piece p) -> p.updateCapacity (relativeEdgeDirection relEdge) capacity of
-      Just (Piece p') -> do                                        -- if the capacity can be changed...
+    case maybePiece >>= updateCapacity (relativeEdgeDirection relEdge) capacity of
+      Just piece -> do                                        -- if the capacity can be changed...
         connected <- allConnectedRelativeEdges loc
-        _pieces <<< ix loc %= (_ { piece = Piece p' })          -- set the capacity at the location...
+        _pieces <<< ix loc %= (_ { piece = piece })          -- set the capacity at the location...
 
-        if p'.shouldRipple
+        if shouldRipple piece
           then do
             let notInClosedSet r = not (S.member (relativeEdgeLocation r) vars.closedSet)
             let openSet = L.fromFoldable (filter notInClosedSet connected) <> otherEdges            -- add the adjacent locations to the open set

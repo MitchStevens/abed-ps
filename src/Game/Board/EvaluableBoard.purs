@@ -34,19 +34,18 @@ import Data.Traversable (for, for_, traverse, traverse_)
 import Data.TraversableWithIndex (forWithIndex)
 import Data.Tuple (Tuple(..), snd)
 import Debug (debugger, trace)
-import Game.Board (Board(..), RelativeEdge(..), absolute, relative, relativeEdgeLocation)
-import Game.Board as Board
-import Game.Board.Operation (BoardError(..), addPieceNoUpdate)
-import Game.Board.PortInfo (PortInfo, getClampedSignal)
 import Game.Board.PseudoPiece (getPsuedoPiecePort, isPseudoInput, isPseudoPiece, psuedoPiece)
 import Game.Board.Query (adjacentRelativeEdge, buildConnectionMap, getBoardEdgePseudoLocation, getPortOnEdge, toRelativeEdge)
+import Game.Board.RelativeEdge (RelativeEdge, absolute, relative, relativeEdgeLocation)
+import Game.Board.Types (Board(..), BoardError(..), _pieces)
+import Game.Capacity (Capacity, clampSignal)
 import Game.Direction (CardinalDirection, allDirections, clockwiseRotation, oppositeDirection)
 import Game.Direction as Direction
 import Game.Location (Location(..), followDirection)
-import Game.Piece (Capacity(..), Piece(..), PieceId(..), Port(..), PortType, clampSignal, eval, inputPort, isInput, isOutput, matchingPort, name, outputPort, portCapacity, portType, shouldRipple)
-import Game.Piece as Port
-import Game.Piece.Complexity (Complexity)
-import Game.Piece.Complexity as Complexity
+import Game.Piece (Piece(..), PieceId(..))
+import Game.Piece as Complexity
+import Game.Port (Port(..), inputPort, isInput, isOutput, matchingPort, outputPort, portCapacity)
+import Game.PortInfo (PortInfo, getClampedSignal)
 import Game.Signal (Signal(..))
 import Halogen.Svg.Attributes (m)
 
@@ -112,9 +111,9 @@ buildEvaluableBoard psuedoPiecePorts = evalStateT do
   forWithIndex_ psuedoPiecePorts \dir port -> do
     loc <- getBoardEdgePseudoLocation dir
     let rotation = clockwiseRotation Direction.Left dir
-    Board._pieces <<< at loc .= Just { piece: psuedoPiece port, rotation }
+    _pieces <<< at loc .= Just { piece: psuedoPiece port, rotation }
     --addPieceNoUpdate loc (psuedoPiece (matchingPort port)) rot
-  pieces <- map (_.piece) <$> use Board._pieces
+  pieces <- map (_.piece) <$> use _pieces
   connections <- buildConnectionMap
 
   -- psuedoPieceLocations :: Map CardinalDirection Location

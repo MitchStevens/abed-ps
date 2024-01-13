@@ -1,5 +1,6 @@
 module IO.Levels.TwoBitSuite where
 
+import Game
 import Prelude
 
 import Component.DataAttribute (nullSelector, selector)
@@ -7,12 +8,11 @@ import Component.DataAttribute as DataAttr
 import Data.Map as M
 import Data.Set as S
 import Foreign.Object (fromHomogeneous)
+import Game.Capacity (Capacity(..))
 import Game.Direction as Direction
-import Game.GameEvent (count, firstTime, latest, pieceAdded, pieceMovedTo, secondTime)
-import Game.Level (LevelSuite, binaryTestInputs, defaultLevel)
+import Game.Level (LevelSuite, defaultLevel)
 import Game.Level.Problem (defaultProblem)
-import Game.Message (addDelay, message)
-import Game.Piece (Capacity(..), fusePiece, idPiece, mkWirePiece, notPiece, severPiece, succPiece, twoBitCrossOver, xorPiece)
+import Game.Piece (fusePiece, idPiece, mkWirePiece, notPiece, severPiece, succPiece, twoBitCrossOver, xorPiece)
 import Game.Signal (Signal(..))
 
 twoBitSuite :: LevelSuite

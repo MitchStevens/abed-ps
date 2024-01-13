@@ -6,9 +6,11 @@ import Data.Int.Bits as Int
 import Data.Map as M
 import Data.Maybe (Maybe(..), fromMaybe)
 import Data.Tuple (Tuple(..))
+import Game.Capacity (Capacity, clampSignal)
 import Game.Direction as Direction
-import Game.Piece (Capacity, Piece(..), PieceId(..), clampSignal, inputPort, outputPort, updateCapacity)
+import Game.Piece.Types (Piece(..), PieceId(..))
 import Game.Piece.Complexity (space)
+import Game.Port (inputPort, outputPort)
 import Game.Signal (Signal(..))
 
 type UnaryOperation =

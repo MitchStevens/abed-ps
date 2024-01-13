@@ -11,9 +11,9 @@ import Data.Map (Map)
 import Data.Map as M
 import Data.Tuple (Tuple(..))
 import Debug (trace)
-import Game.Board.PortInfo (PortInfo)
 import Game.Direction (CardinalDirection, clockwiseRotation)
 import Game.Direction as Direction
+import Game.PortInfo (PortInfo)
 import Game.Rotation (Rotation(..))
 import Halogen (ComponentHTML)
 import Halogen.Svg.Attributes (Transform(..))

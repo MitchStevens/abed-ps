@@ -3,9 +3,11 @@ module Component.Rendering.Gradient where
 import Prelude
 
 import Data.Foldable (intercalate)
-import Game.Board.PortInfo (PortInfo)
-import Game.Piece (Capacity(..), Port(..), isInput, portCapacity, portType, toInt)
+import Game.Capacity (Capacity(..), toInt)
 import Game.Piece as Port
+import Game.Port (Port(..), isInput, portCapacity, portType)
+import Game.Port as Port
+import Game.PortInfo (PortInfo)
 import Game.Signal (Signal(..))
 import Halogen.HTML (HTML, PlainHTML)
 import Halogen.Svg.Attributes (Color(..), Transform(..))

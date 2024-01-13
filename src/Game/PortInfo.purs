@@ -1,10 +1,11 @@
-module Game.Board.PortInfo where
+module Game.PortInfo where
 
 import Prelude
 
 import Data.Array (range)
 import Data.Int.Bits (shl, (.&.))
-import Game.Piece (Port, clampSignal, portCapacity, toInt)
+import Game.Capacity (clampSignal)
+import Game.Port (Port(..), portCapacity)
 import Game.Signal (Signal(..), nthBit)
 
 -- used later for board evaluation

@@ -7,13 +7,11 @@ import Data.Map (Map)
 import Data.Map as M
 import Data.Maybe (Maybe(..))
 import Data.Tuple (Tuple(..))
-import Game.Direction (CardinalDirection)
+import Game.Capacity (Capacity(..), maxValue)
 import Game.Direction as Direction
 import Game.Piece.Complexity as Complexity
-import Game.Piece.Port (Capacity(..), inputPort, maxValue, outputPort)
 import Game.Piece.Types (Piece(..), PieceId(..))
-import Game.Signal (Signal(..))
-
+import Game.Port (inputPort, outputPort)
 
 succPiece :: Piece
 succPiece = mkSuccPiece TwoBit
