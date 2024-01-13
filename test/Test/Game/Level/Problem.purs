@@ -17,7 +17,6 @@ import Data.Tuple (Tuple(..), uncurry)
 import Effect.Aff (Aff, error)
 import Effect.Exception (error)
 import Game.Board (Board(..), standardBoard)
-import Game.Board.Operation (BoardT, addPiece, emptyBoard, evalBoardM, execBoardM, rotatePieceBy)
 import Game.Direction as Direction
 import Game.Level.Problem (Problem)
 import Game.Piece (idPiece)

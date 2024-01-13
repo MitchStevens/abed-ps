@@ -1,5 +1,7 @@
 module Test.Game.Board.EvaluableBoard where
 
+import Game.Board
+import Game.Piece
 import Prelude
 
 import Control.Monad.Error.Class (class MonadError)
@@ -24,15 +26,12 @@ import Effect.Aff (Aff)
 import Effect.Class (class MonadEffect)
 import Effect.Class.Console (log, logShow)
 import Effect.Exception (Error)
-import Game.Board (Board(..), RelativeEdge, relative, relativeEdgeLocation)
-import Game.Board.EvaluableBoard (EvaluableBoard(..), buildEvaluableBoard, evalWithPortInfo, evalWithPortInfoAt, evaluableBoardPiece, getOuterPort, getPort, getPorts, injectInputs, toEvaluableBoard, topologicalSort)
-import Game.Board.PortInfo (PortInfo)
-import Game.Board.PseudoPiece (isPseudoInput, psuedoPiece)
-import Game.Board.Query (buildConnectionMap)
+import Game.Capacity (Capacity(..))
 import Game.Direction as Direction
 import Game.Level (binaryTestInputs)
 import Game.Location (location)
-import Game.Piece (Capacity(..), andPiece, eval, inputPort, isOutput, notPiece, orPiece, outputPort)
+import Game.Port (inputPort, isOutput, outputPort)
+import Game.PortInfo (PortInfo)
 import Game.Signal (Signal(..))
 import Test.Game.Board (testBoard, testBoardCrossOver, toAff)
 import Test.Game.Board.Operation (exceptToAff)
@@ -153,13 +152,8 @@ tests = do
       it "eval" do
         for_ (binaryTestInputs [Direction.Left, Direction.Up]) \inputs ->
           eval (evaluableBoardPiece testEvaluableBoard) inputs `shouldEqual` eval orPiece inputs
-      it "getPort" do
-        getPort Direction.Up    `shouldReturn` Just (inputPort OneBit)
-        getPort Direction.Right `shouldReturn` Just (outputPort OneBit)
-        getPort Direction.Down  `shouldReturn` Nothing
-        getPort Direction.Left  `shouldReturn` Just (inputPort OneBit)
       it "getPorts" do
-        getPorts `shouldReturn` M.fromFoldable
+        asks (evaluableBoardPiece >>> getPorts) `shouldReturn` M.fromFoldable
           [ Tuple Direction.Up    (inputPort OneBit)
           , Tuple Direction.Right (outputPort OneBit)
           , Tuple Direction.Left  (inputPort OneBit)
@@ -186,14 +180,15 @@ tests = do
           , Tuple Direction.Down (location 2 5)
           ] 
 
-        getPorts `shouldReturn` M.fromFoldable
+        ports <- asks (evaluableBoardPiece >>> getPorts)
+        ports `shouldEqual` M.fromFoldable
           [ Tuple Direction.Up    (inputPort OneBit)
           , Tuple Direction.Right (outputPort OneBit)
           , Tuple Direction.Left  (inputPort OneBit)
           , Tuple Direction.Down (outputPort OneBit)
           ]
         
-        (M.filter isOutput <$> getPorts) `shouldReturn` M.fromFoldable
+        (M.filter isOutput ports) `shouldEqual` M.fromFoldable
           [ Tuple Direction.Right (outputPort OneBit)
           , Tuple Direction.Down (outputPort OneBit)
           ]

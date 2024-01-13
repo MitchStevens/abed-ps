@@ -6,9 +6,11 @@ import Data.HeytingAlgebra (ff, tt)
 import Data.Map as M
 import Data.Maybe (Maybe(..))
 import Data.Tuple (Tuple(..))
+import Game.Capacity (Capacity(..))
 import Game.Direction as Direction
-import Game.Piece (Capacity(..), andPiece, eval, getPorts, inputPort, notPiece, orPiece, outputPort, xorPiece)
+import Game.Piece (andPiece, eval, getPorts, notPiece, orPiece, xorPiece)
 import Game.Piece as Port
+import Game.Port (inputPort, outputPort)
 import Test.Spec (Spec, describe, it)
 import Test.Spec.Assertions (shouldEqual, shouldNotEqual)
 

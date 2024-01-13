@@ -17,13 +17,10 @@ import Data.Tuple (Tuple(..))
 import Data.Zipper (Zipper(..))
 import Data.Zipper as Z
 import Debug (trace)
-import Game.Board (Board(..), _pieces, standardBoard)
-import Game.Board.Operation (addPiece, execBoardM, rotatePieceBy)
-import Game.Board.Path (addBoardPath)
+import Game.Board 
 import Game.Direction as Direction
-import Game.GameEvent (BoardEvent(..))
 import Game.Location (location)
-import Game.Piece (PieceId(..), andPiece, crossPiece, getOutputDirs, idPiece, leftPiece, name, notPiece, rightPiece)
+import Game.Piece 
 import Game.Rotation (rotation)
 import Partial.Unsafe (unsafeCrashWith)
 import Test.Game.Board (testBoard, toAff)

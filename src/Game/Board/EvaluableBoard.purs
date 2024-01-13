@@ -6,7 +6,22 @@
   An `EvaluatableBoard` also generates information about the states of ports which is used in rendering. Generating extra information has an overhead cost, for the evaluation of board that don't need to provide internal port information, use `CompiledBoard` for better performance.
 -}
 
-module Game.Board.EvaluableBoard where
+module Game.Board.EvaluableBoard
+  ( EvaluableBoard(..)
+  , EvaluableM
+  , buildEvaluableBoard
+  , evalWithPortInfo
+  , evalWithPortInfoAt
+  , evaluableBoardPiece
+  , extractOutputs
+  , getInputOnEdge
+  , getOuterPort
+  , injectInputs
+  , runEvaluableM
+  , toEvaluableBoard
+  , topologicalSort
+  )
+  where
 
 import Data.Lens
 import Prelude
