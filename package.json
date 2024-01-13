@@ -5,11 +5,9 @@
     "postinstall": "spago install",
     "compile-css": "lessc dist/less/default.less dist/default.css",
     "compile-css-watch": "nodemon --watch dist/less/* --exec 'npm run compile-css'",
-
     "build": "spago bundle-app --main Main --to dist/abed.js",
     "build-watch": "npm run compile-css-watch & npm run build -- --watch",
-    "build-prod": "spago bundle-app --main Main --to dist/abed.js --minify & npm run compile-css",
-
+    "build-prod": "spago -x prod.dhall build && purs-backend-es bundle-app --no-build --minify --to dist/abed.js && npm run compile-css", 
     "test": "spago -x test.dhall test --purs-args '-g sourcemaps'",
     "test-watch": "npm run test -- --watch"
   },
@@ -18,9 +16,9 @@
     "less": "^4.2.0",
     "nodemon": "^3.0.1",
     "purescript": "^0.15.14",
-    "spago": "^0.21.0"
+    "spago": "^0.21.0",
+    "purs-backend-es": "^1.4.2"
   },
   "dependencies": {
-    "animate.css": "^4.1.1"
   }
 }
