@@ -12,7 +12,6 @@ import Data.Tuple (Tuple(..))
 import Game.Location (Location(..))
 import Game.Piece.Types (PieceId(..))
 import Game.Rotation (Rotation(..))
-import Halogen.Store.Select (Selector(..))
 
 data GameEvent
   = BoardEvent BoardEvent

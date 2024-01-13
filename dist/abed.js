@@ -12339,9 +12339,9 @@
               get: slot5.get,
               pop: slot5.pop,
               set: slot5.set,
+              component: hoist3(dictFunctor)(nat)(slot5.component),
               input: slot5.input,
-              output: slot5.output,
-              component: hoist3(dictFunctor)(nat)(slot5.component)
+              output: slot5.output
             }));
           })(v2.value0);
         }
@@ -13878,9 +13878,9 @@
       var v2 = uncons(state3.segments);
       if (v2 instanceof Just) {
         return new Success({
+          segments: v2.value0.tail,
           params: state3.params,
-          hash: state3.hash,
-          segments: v2.value0.tail
+          hash: state3.hash
         }, v2.value0.head);
       }
       ;
@@ -14029,9 +14029,9 @@
       var v2 = head(state3.segments);
       if (v2 instanceof Just && pre2 === v2.value0) {
         return new Success({
+          segments: drop(1)(state3.segments),
           params: state3.params,
-          hash: state3.hash,
-          segments: drop(1)(state3.segments)
+          hash: state3.hash
         }, unit);
       }
       ;
@@ -14288,9 +14288,9 @@
   var put2 = function(str2) {
     return function(state3) {
       return {
+        segments: snoc(state3.segments)(str2),
         params: state3.params,
-        hash: state3.hash,
-        segments: snoc(state3.segments)(str2)
+        hash: state3.hash
       };
     };
   };
@@ -15344,9 +15344,6 @@
       };
     };
     var $$eval2 = mkEval({
-      handleQuery: defaultEval.handleQuery,
-      receive: defaultEval.receive,
-      finalize: defaultEval.finalize,
       handleAction: function(v1) {
         if (v1 instanceof Initialise) {
           return whenM2(gets2(function(v2) {
@@ -15375,7 +15372,10 @@
         ;
         throw new Error("Failed pattern match at Component.Title (line 40, column 24 - line 47, column 63): " + [v1.constructor.name]);
       },
-      initialize: new Just(Initialise.value)
+      handleQuery: defaultEval.handleQuery,
+      receive: defaultEval.receive,
+      initialize: new Just(Initialise.value),
+      finalize: defaultEval.finalize
     });
     return mkComponent({
       "eval": $$eval2,
@@ -15552,16 +15552,16 @@
       return {};
     };
     var $$eval2 = mkEval({
-      handleQuery: defaultEval.handleQuery,
-      receive: defaultEval.receive,
-      initialize: defaultEval.initialize,
-      finalize: defaultEval.finalize,
       handleAction: function(v1) {
         return liftEffect10(function __do5() {
           var confirmDelete = bind14(windowImpl)(confirm("Really delete all progress?"))();
           return when3(confirmDelete)(deleteProgress2)();
         });
-      }
+      },
+      handleQuery: defaultEval.handleQuery,
+      receive: defaultEval.receive,
+      initialize: defaultEval.initialize,
+      finalize: defaultEval.finalize
     });
     return mkComponent({
       "eval": $$eval2,
@@ -15648,13 +15648,13 @@
       };
     };
     var $$eval2 = mkEval({
-      handleQuery: defaultEval.handleQuery,
-      receive: defaultEval.receive,
-      finalize: defaultEval.finalize,
       handleAction: function(v1) {
         return navigateTo2(v1.value0);
       },
-      initialize: Nothing.value
+      handleQuery: defaultEval.handleQuery,
+      receive: defaultEval.receive,
+      initialize: Nothing.value,
+      finalize: defaultEval.finalize
     });
     return mkComponent({
       "eval": $$eval2,
@@ -17300,15 +17300,15 @@
           var v2 = p2(x2);
           if (v2 instanceof Left) {
             return {
-              right: acc.right,
-              left: append13(acc.left)([v2.value0])
+              left: append13(acc.left)([v2.value0]),
+              right: acc.right
             };
           }
           ;
           if (v2 instanceof Right) {
             return {
-              left: acc.left,
-              right: append13(acc.right)([v2.value0])
+              right: append13(acc.right)([v2.value0]),
+              left: acc.left
             };
           }
           ;
@@ -18346,9 +18346,9 @@
         return function(capacity) {
           return new Just(basicPiece({
             name: basic.name,
+            capacity,
             complexity: basic.complexity,
-            ports: basic.ports,
-            capacity
+            ports: basic.ports
           }));
         };
       },
@@ -18633,8 +18633,8 @@
       updateCapacity: function(v2) {
         return function(capacity) {
           return new Just(mkWirePiece({
-            outputs: wire.outputs,
-            capacity
+            capacity,
+            outputs: wire.outputs
           }));
         };
       },
@@ -20373,9 +20373,6 @@
       };
     };
     var $$eval2 = mkEval({
-      receive: defaultEval.receive,
-      finalize: defaultEval.finalize,
-      initialize: new Just(Initialise3.value),
       handleAction: function(v1) {
         if (v1 instanceof Initialise3) {
           return bind19(liftEffect10(globalMouseMoveEventEmitter))(function(mouseMoveEmitter) {
@@ -20470,7 +20467,10 @@
             return pure16(Nothing.value);
           });
         });
-      }
+      },
+      receive: defaultEval.receive,
+      initialize: new Just(Initialise3.value),
+      finalize: defaultEval.finalize
     });
     return mkComponent({
       "eval": $$eval2,
@@ -22374,7 +22374,7 @@
         return Up2.value;
       }
       ;
-      throw new Error("Failed pattern match at Component.Board (line 361, column 29 - line 365, column 31): " + [isTopOrRight.constructor.name, isTopOrLeft.constructor.name]);
+      throw new Error("Failed pattern match at Component.Board (line 360, column 29 - line 364, column 31): " + [isTopOrRight.constructor.name, isTopOrLeft.constructor.name]);
     };
   };
   var evaluateBoard = function(dictMonadLogger) {
@@ -22420,7 +22420,7 @@
             });
           }
           ;
-          throw new Error("Failed pattern match at Component.Board (line 394, column 3 - line 409, column 28): " + [eitherEvaluable.constructor.name]);
+          throw new Error("Failed pattern match at Component.Board (line 393, column 3 - line 408, column 28): " + [eitherEvaluable.constructor.name]);
         });
       });
     });
@@ -22514,7 +22514,7 @@
               return new Tuple(div6(n)(2), n);
             }
             ;
-            throw new Error("Failed pattern match at Component.Board (line 167, column 31 - line 171, column 50): " + [v2.constructor.name]);
+            throw new Error("Failed pattern match at Component.Board (line 166, column 31 - line 170, column 50): " + [v2.constructor.name]);
           };
           return div3([class_("board-port"), onClick(function(v2) {
             return new ToggleInput(dir2);
@@ -22631,7 +22631,7 @@
         });
       }
       ;
-      throw new Error("Failed pattern match at Component.Board (line 200, column 17 - line 240, column 19): " + [v2.constructor.name]);
+      throw new Error("Failed pattern match at Component.Board (line 199, column 17 - line 239, column 19): " + [v2.constructor.name]);
     };
     var handleAction = function(v2) {
       if (v2 instanceof Initialise2) {
@@ -22662,7 +22662,7 @@
                 return bind24(use2(_board3))(updateBoard1);
               }
               ;
-              throw new Error("Failed pattern match at Component.Board (line 257, column 7 - line 259, column 46): " + [eitherPiece.constructor.name]);
+              throw new Error("Failed pattern match at Component.Board (line 256, column 7 - line 258, column 46): " + [eitherPiece.constructor.name]);
             });
           });
         });
@@ -22943,7 +22943,7 @@
         });
       }
       ;
-      throw new Error("Failed pattern match at Component.Board (line 243, column 18 - line 356, column 70): " + [v2.constructor.name]);
+      throw new Error("Failed pattern match at Component.Board (line 242, column 18 - line 355, column 70): " + [v2.constructor.name]);
     };
     var $$eval2 = mkEval({
       finalize: Nothing.value,
@@ -23830,13 +23830,13 @@
                           });
                         }
                         ;
-                        throw new Error("Failed pattern match at Component.Level (line 178, column 9 - line 184, column 35): " + [result.constructor.name]);
+                        throw new Error("Failed pattern match at Component.Level (line 176, column 9 - line 182, column 35): " + [result.constructor.name]);
                       });
                     });
                   });
                 }
                 ;
-                throw new Error("Failed pattern match at Component.Level (line 171, column 21 - line 184, column 35): " + [v2.constructor.name]);
+                throw new Error("Failed pattern match at Component.Level (line 169, column 21 - line 182, column 35): " + [v2.constructor.name]);
               };
             };
             return runTestsAcc(1)(inputs);
@@ -23970,7 +23970,7 @@
             });
           }
           ;
-          throw new Error("Failed pattern match at Component.Level (line 109, column 18 - line 156, column 35): " + [v2.constructor.name]);
+          throw new Error("Failed pattern match at Component.Level (line 107, column 18 - line 154, column 35): " + [v2.constructor.name]);
         };
         var $$eval2 = mkEval({
           finalize: Nothing.value,
@@ -24027,7 +24027,6 @@
   var intermediateSuite = /* @__PURE__ */ function() {
     return fromHomogeneous()({
       "Criss(t) cross": {
-        settings: defaultLevel.settings,
         problem: {
           goal: crossPiece,
           title: "Cross over",
@@ -24038,7 +24037,8 @@
           otherRestrictions: []
         },
         boardDeltaRulesEngine: [],
-        conversation: map(functorArray)(addDelay)([message2("mitch")("criss cross")])
+        conversation: map(functorArray)(addDelay)([message2("mitch")("criss cross")]),
+        settings: defaultLevel.settings
       }
     });
   }();
@@ -24063,7 +24063,6 @@
   var tutorialSuite = /* @__PURE__ */ function() {
     return fromHomogeneous()({
       "From A to B": {
-        settings: defaultLevel.settings,
         problem: {
           goal: idPiece,
           title: "From A to B",
@@ -24088,12 +24087,10 @@
             ;
             return addDelay(m2);
           };
-        })([])
+        })([]),
+        settings: defaultLevel.settings
       },
       Negation: {
-        boardDeltaRulesEngine: defaultLevel.boardDeltaRulesEngine,
-        conversation: defaultLevel.conversation,
-        settings: defaultLevel.settings,
         problem: {
           goal: notPiece,
           title: "Negation",
@@ -24102,7 +24099,10 @@
           requiresAutomaticTesting: false,
           availablePieces: [idPiece, notPiece],
           otherRestrictions: []
-        }
+        },
+        boardDeltaRulesEngine: defaultLevel.boardDeltaRulesEngine,
+        conversation: defaultLevel.conversation,
+        settings: defaultLevel.settings
       }
     });
   }();
@@ -24111,12 +24111,7 @@
   var twoBitSuite = /* @__PURE__ */ function() {
     return fromHomogeneous()({
       "From 2A to 2B": {
-        boardDeltaRulesEngine: defaultLevel.boardDeltaRulesEngine,
-        conversation: defaultLevel.conversation,
-        settings: defaultLevel.settings,
         problem: {
-          otherRestrictions: defaultProblem.otherRestrictions,
-          requiresAutomaticTesting: defaultProblem.requiresAutomaticTesting,
           goal: mkWirePiece({
             capacity: TwoBit.value,
             outputs: singleton8(Right2.value)
@@ -24124,50 +24119,55 @@
           title: "From 2A to 2B",
           description: "This looks familiar, but the input and output ports have a capacity of 2 bits! Build a path between the left and the right, then use the '2' key to increase the capacity of the path. The capacity of each port is colour coded, only ports with the same capacity can connect!",
           availablePieces: [idPiece],
-          testCases: [singleton7(Left2.value)(0), singleton7(Left2.value)(1), singleton7(Left2.value)(2), singleton7(Left2.value)(3)]
-        }
-      },
-      "Lovers Lake": {
+          testCases: [singleton7(Left2.value)(0), singleton7(Left2.value)(1), singleton7(Left2.value)(2), singleton7(Left2.value)(3)],
+          otherRestrictions: defaultProblem.otherRestrictions,
+          requiresAutomaticTesting: defaultProblem.requiresAutomaticTesting
+        },
         boardDeltaRulesEngine: defaultLevel.boardDeltaRulesEngine,
         conversation: defaultLevel.conversation,
-        settings: defaultLevel.settings,
+        settings: defaultLevel.settings
+      },
+      "Lovers Lake": {
         problem: {
-          otherRestrictions: defaultProblem.otherRestrictions,
-          requiresAutomaticTesting: defaultProblem.requiresAutomaticTesting,
           goal: fusePiece,
           title: "Lovers Lake",
           description: "Use a fuse-piece to combine the inputs from the top and left, output the result to the right",
           availablePieces: [fusePiece, idPiece],
-          testCases: [singleton7(Left2.value)(0), singleton7(Left2.value)(1), singleton7(Left2.value)(2), singleton7(Left2.value)(3)]
-        }
-      },
-      "Two bit criss cross": {
+          testCases: [singleton7(Left2.value)(0), singleton7(Left2.value)(1), singleton7(Left2.value)(2), singleton7(Left2.value)(3)],
+          otherRestrictions: defaultProblem.otherRestrictions,
+          requiresAutomaticTesting: defaultProblem.requiresAutomaticTesting
+        },
         boardDeltaRulesEngine: defaultLevel.boardDeltaRulesEngine,
         conversation: defaultLevel.conversation,
-        settings: defaultLevel.settings,
+        settings: defaultLevel.settings
+      },
+      "Two bit criss cross": {
         problem: {
-          otherRestrictions: defaultProblem.otherRestrictions,
-          requiresAutomaticTesting: defaultProblem.requiresAutomaticTesting,
           goal: twoBitCrossOver,
           title: "Two bit criss cross",
           description: "Sever the input on the left with a sever-piece, cross over the signals, fuse them back together",
           availablePieces: [severPiece, fusePiece, idPiece],
-          testCases: [singleton7(Left2.value)(0), singleton7(Left2.value)(1), singleton7(Left2.value)(2), singleton7(Left2.value)(3)]
-        }
-      },
-      Increment: {
+          testCases: [singleton7(Left2.value)(0), singleton7(Left2.value)(1), singleton7(Left2.value)(2), singleton7(Left2.value)(3)],
+          otherRestrictions: defaultProblem.otherRestrictions,
+          requiresAutomaticTesting: defaultProblem.requiresAutomaticTesting
+        },
         boardDeltaRulesEngine: defaultLevel.boardDeltaRulesEngine,
         conversation: defaultLevel.conversation,
-        settings: defaultLevel.settings,
+        settings: defaultLevel.settings
+      },
+      Increment: {
         problem: {
-          otherRestrictions: defaultProblem.otherRestrictions,
-          requiresAutomaticTesting: defaultProblem.requiresAutomaticTesting,
           goal: succPiece,
           title: "Increment",
           description: "Add one to the two bit input signal. if the input is 3 (which has no successor), output signal 0",
           availablePieces: [xorPiece, notPiece, fusePiece, severPiece],
-          testCases: [singleton7(Left2.value)(0), singleton7(Left2.value)(1), singleton7(Left2.value)(2), singleton7(Left2.value)(3)]
-        }
+          testCases: [singleton7(Left2.value)(0), singleton7(Left2.value)(1), singleton7(Left2.value)(2), singleton7(Left2.value)(3)],
+          otherRestrictions: defaultProblem.otherRestrictions,
+          requiresAutomaticTesting: defaultProblem.requiresAutomaticTesting
+        },
+        boardDeltaRulesEngine: defaultLevel.boardDeltaRulesEngine,
+        conversation: defaultLevel.conversation,
+        settings: defaultLevel.settings
       }
     });
   }();
@@ -24297,9 +24297,6 @@
       };
     };
     var $$eval2 = mkEval({
-      handleQuery: defaultEval.handleQuery,
-      receive: defaultEval.receive,
-      finalize: defaultEval.finalize,
       handleAction: function(v1) {
         if (v1 instanceof Initialise7) {
           return bind113(liftEffect10(getAllLevelProgress2))(function(progress3) {
@@ -24328,7 +24325,10 @@
         ;
         throw new Error("Failed pattern match at Component.LevelSelect (line 68, column 22 - line 75, column 65): " + [v1.constructor.name]);
       },
-      initialize: new Just(Initialise7.value)
+      handleQuery: defaultEval.handleQuery,
+      receive: defaultEval.receive,
+      initialize: new Just(Initialise7.value),
+      finalize: defaultEval.finalize
     });
     return mkComponent({
       "eval": $$eval2,
@@ -24432,14 +24432,14 @@
               }));
             }
             ;
-            throw new Error("Failed pattern match at Component.Routes (line 74, column 15 - line 87, column 56): " + [v2.route.value0.constructor.name]);
+            throw new Error("Failed pattern match at Component.Routes (line 72, column 15 - line 85, column 56): " + [v2.route.value0.constructor.name]);
           }
           ;
           if (v2.route instanceof Nothing) {
             return div_([text5("Oh no! That page wasn't found.")]);
           }
           ;
-          throw new Error("Failed pattern match at Component.Routes (line 73, column 22 - line 89, column 59): " + [v2.route.constructor.name]);
+          throw new Error("Failed pattern match at Component.Routes (line 71, column 22 - line 87, column 59): " + [v2.route.constructor.name]);
         };
         var initialState3 = function(v2) {
           return {
@@ -24727,6 +24727,7 @@
                 if (otherwise) {
                   return discard111(liftEffect6(write({
                     component: v22.component,
+                    state: v3.value1,
                     refs: v22.refs,
                     children: v22.children,
                     childrenIn: v22.childrenIn,
@@ -24740,8 +24741,7 @@
                     fresh: v22.fresh,
                     subscriptions: v22.subscriptions,
                     forks: v22.forks,
-                    lifecycleHandlers: v22.lifecycleHandlers,
-                    state: v3.value1
+                    lifecycleHandlers: v22.lifecycleHandlers
                   })(ref4)))(function() {
                     return discard111(handleLifecycle(v22.lifecycleHandlers)(render(v22.lifecycleHandlers)(ref4)))(function() {
                       return pure31(v3.value0);
@@ -24858,6 +24858,7 @@
             return {
               component: st.component,
               state: st.state,
+              refs: alter2($$const(v2.value1))(v2.value0)(st.refs),
               children: st.children,
               childrenIn: st.childrenIn,
               childrenOut: st.childrenOut,
@@ -24870,8 +24871,7 @@
               fresh: st.fresh,
               subscriptions: st.subscriptions,
               forks: st.forks,
-              lifecycleHandlers: st.lifecycleHandlers,
-              refs: alter2($$const(v2.value1))(v2.value0)(st.refs)
+              lifecycleHandlers: st.lifecycleHandlers
             };
           })));
         }
@@ -25089,6 +25089,7 @@
                   component: ds$prime.component,
                   state: ds$prime.state,
                   refs: ds$prime.refs,
+                  children: children2,
                   childrenIn: ds$prime.childrenIn,
                   childrenOut: ds$prime.childrenOut,
                   selfRef: ds$prime.selfRef,
@@ -25096,12 +25097,11 @@
                   pendingQueries: ds$prime.pendingQueries,
                   pendingOuts: ds$prime.pendingOuts,
                   pendingHandlers: ds$prime.pendingHandlers,
+                  rendering: new Just(rendering),
                   fresh: ds$prime.fresh,
                   subscriptions: ds$prime.subscriptions,
                   forks: ds$prime.forks,
-                  lifecycleHandlers: ds$prime.lifecycleHandlers,
-                  rendering: new Just(rendering),
-                  children: children2
+                  lifecycleHandlers: ds$prime.lifecycleHandlers
                 };
               }))();
               return when10(shouldProcessHandlers)(flip(tailRecM3)(unit)(function(v1) {

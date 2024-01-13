@@ -72,7 +72,6 @@ import Halogen.HTML.Events as HE
 import Halogen.HTML.Extras (mapActionOverHTML)
 import Halogen.HTML.Properties as HA
 import Halogen.HTML.Properties as HP
-import Halogen.Store.Monad (class MonadStore, updateStore)
 import Halogen.Svg.Attributes (Transform(..))
 import Halogen.Svg.Attributes as SA
 import Halogen.Svg.Elements as SE

@@ -30,7 +30,6 @@ to generate this file without the comments in this block.
   , "gen"
   , "group"
   , "halogen"
-  , "halogen-store"
   , "halogen-subscriptions"
   , "halogen-svg-elems"
   , "halogen-vdom"
