@@ -47,7 +47,6 @@ import Halogen as H
 import Halogen.HTML (PlainHTML)
 import Halogen.HTML as HH
 import Halogen.HTML.Properties as HP
-import Halogen.Store.Monad (class MonadStore)
 import Type.Proxy (Proxy(..))
 import Web.UIEvent.KeyboardEvent (KeyboardEvent)
 
@@ -80,7 +79,6 @@ _sidebar = Proxy :: Proxy "sidebar"
 component :: forall q o m
   . MonadAff m
   => MonadAsk GlobalState m
-  -- => MonadStore GameEvent GameEventStore m
   => MonadLogger m
   => Component q Input o m
 component = H.mkComponent { eval , initialState , render }

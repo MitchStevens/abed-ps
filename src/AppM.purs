@@ -17,7 +17,6 @@ import Game.GameEvent as GameEvent
 import GlobalState (GlobalState)
 import Halogen (Component, HalogenM)
 import Halogen as H
-import Halogen.Store.Monad (class MonadStore, StoreT, runStoreT)
 import Logging (logMessage)
 
  
