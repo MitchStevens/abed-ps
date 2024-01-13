@@ -57,6 +57,9 @@ clampedBits :: Capacity -> Signal -> Array Boolean
 clampedBits capacity signal  =
   nthBit signal <$> range 0 (toInt capacity - 1)
 
+maxSignal :: Capacity -> Signal
+maxSignal capacity =  clampSignal capacity (Signal top)
+
 
 data PortType = Input | Output
 derive instance Eq PortType

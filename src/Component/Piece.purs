@@ -169,7 +169,6 @@ component = H.mkComponent { eval , initialState , render }
           H.modify_ (_ {piece = piece})
           pure Nothing
         SetRotation rot -> do
-          log $ "piece set rotation: " <> show rot
           H.modify_ (_ { rotation = rot })
           pure Nothing
     , initialize: Nothing

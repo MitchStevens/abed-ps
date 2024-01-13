@@ -117,6 +117,8 @@ component = H.mkComponent { eval , initialState , render }
         , HH.text (show state.boardSize)
         , HH.button [ HE.onClick (\_ -> IncrementBoardSize) ] [ HH.text "+" ]
         ]
+      , HH.br_
+      , HH.p [ HE.onClick (\_ -> BackToLevelSelect)] [HH.text "I give up (choose another level)"]
       ]
     where
 
@@ -141,7 +143,6 @@ component = H.mkComponent { eval , initialState , render }
     { finalize: Nothing
     , handleAction: case _ of
         PieceOnDrop piece _ -> do
-          log "sidebar: piece dropped!"
           H.raise (PieceDropped piece)
         PieceOnClick piece _ ->
           H.raise (PieceAdded piece)
@@ -250,7 +251,3 @@ renderCompletionStatus = case _ of
     renderFailedTestCase :: FailedTestCase -> ComponentHTML Action s m
     renderFailedTestCase _ = -- todo:
       HH.text "failed test case, render later"
- {-
-    Expected (no port|a input with capacity n) on the Left, but found (no port|an in|output of capacity n)
-
- -} 

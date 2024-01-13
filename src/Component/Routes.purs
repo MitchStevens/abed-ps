@@ -11,8 +11,10 @@ import Component.LevelSelect as LevelSelect
 import Control.Monad.Logger.Class (class MonadLogger, debug)
 import Control.Monad.Reader (class MonadAsk, lift)
 import Data.Foldable (oneOf)
+import Data.Log.Tag (tag)
 import Data.Map as M
 import Data.Maybe (Maybe(..), fromMaybe)
+import Debug (trace)
 import Effect.Aff.Class (class MonadAff)
 import Effect.Class.Console (log)
 import Foreign.Object as Object
@@ -40,7 +42,7 @@ route = oneOf
 type Input = {}
 
 type State = 
-  { route :: Maybe Route }
+  { route :: Route }
 
 data Query a
   = Navigate Route a
@@ -67,12 +69,11 @@ component
   => Component Query Unit Void m
 component = H.mkComponent { eval, initialState, render }
   where
-  initialState _ = { route: Just Home }
+  initialState _ = { route: Home }
   
   render :: State -> H.ComponentHTML Action Slots m
-  render { route } = case route of
-    Just r -> case r of
-      Home -> 
+  render { route } = trace (show route) \_ -> case route of
+      Home ->
         HH.slot_ (Proxy :: _ "home") unit Home.component unit
       About ->
         HH.slot_ (Proxy :: _ "about") unit About.component unit
@@ -84,9 +85,7 @@ component = H.mkComponent { eval, initialState, render }
         levelSuite <- Object.lookup suiteName allLevels
         level <- Object.lookup levelName levelSuite
         pure $ HH.slot_ (Proxy :: _ "level") unit Level.component $
-           { levelId: { suiteName, levelName }, level }
-    Nothing ->
-      HH.div_ [ HH.text "Oh no! That page wasn't found." ]
+          { levelId: { suiteName, levelName }, level }
 
   eval = mkEval 
     { finalize: Nothing 
@@ -95,9 +94,9 @@ component = H.mkComponent { eval, initialState, render }
     , handleQuery: case _ of
         Navigate dest a -> do
           { route } <- H.get
-          when (route /= Just dest) do
+          when (route /= dest) do
             lift $ debug M.empty ("Navigated to " <> show dest)
-            H.modify_ (_ { route = Just dest })
+            H.modify_ (_ { route = dest })
           pure (Just a)
     , initialize: Nothing
     , receive: \_ -> Nothing

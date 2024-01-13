@@ -3779,6 +3779,8 @@
   }
 }
 .head-shake {
+  transition-duration: 800ms;
+  animation-duration: 800ms;
   --animate-duration: 800ms;
   -webkit-animation-duration: 1s;
   animation-duration: 1s;
@@ -3870,14 +3872,9 @@ body {
   margin: 0px;
 }
 #content {
-  height: 100vh;
-  display: grid;
-  overflow-y: scroll;
-  grid-template-columns: 1fr auto 1fr;
-  grid-template-rows: auto 1fr;
-}
-#content > * {
-  grid-area: 1 / 2;
+  min-height: 100vh;
+  display: inline-grid;
+  grid-template-columns: 1fr 1fr 1fr;
 }
 @keyframes blink {
   0% {
@@ -3892,8 +3889,8 @@ body {
 }
 #abed {
   user-select: none;
-  height: 100vh;
-  background-color: beige;
+  min-height: 100vh;
+  grid-area: 1 / 2;
 }
 #abed .spotlight {
   animation-name: blink;
@@ -3926,6 +3923,7 @@ body {
 #default-layout {
   padding-left: 100px;
   padding-right: 100px;
+  min-width: 700px;
 }
 #default-layout textarea#title {
   font-size: 14px;
@@ -3943,11 +3941,14 @@ span.green {
   color: #47e76a;
 }
 #puzzle-component {
-  display: grid;
-  grid-gap: 10px;
+  display: inline-grid;
   grid-template-columns: auto 350px;
-  grid-template-rows: 75% 25%;
-  height: 100%;
+  grid-template-rows: 75% auto;
+  padding: 10px;
+  grid-gap: 10px;
+  height: 100vh;
+  box-sizing: border-box;
+  background-color: beige;
 }
 #puzzle-component #board-component {
   grid-area: 1 / 1;
@@ -3959,7 +3960,6 @@ span.green {
   grid-area: 1 / 2 / span 2 / auto;
 }
 #home-component {
-  display: grid;
   justify-items: center;
   padding: 75px;
 }

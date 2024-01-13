@@ -16,9 +16,9 @@ defaultLayout inner =
     [ HP.id "default-layout" ]
     [ Title.html
     , HH.br_
-    , HH.a
-      [ HP.href "" ]
-      [ HH.text "<< Back to home" ]
-    , HH.br_
+    --, HH.a
+    --  [ HP.href "" ]
+    --  [ HH.text "<< Back to home" ]
+    --, HH.br_
     , HH.div_ [ inner ]
     ]

@@ -60,6 +60,7 @@ type State =
     { initialDirection :: CardinalDirection
     , locations :: Array Location
     }
+  , isMouseOverBoardPort :: Maybe CardinalDirection
   }
 
 data Query a
@@ -78,7 +79,10 @@ data Action
   | MultimeterOutput Multimeter.Output
   | Undo
   | Redo
+
   | ToggleInput CardinalDirection
+  | IncrementInput CardinalDirection
+  | DecrementInput CardinalDirection
 
   | GlobalOnKeyDown KeyboardEvent
   | BoardOnDragExit DragEvent
@@ -110,6 +114,7 @@ initialState maybeBoard =
   , outputs: M.empty
   , lastEvalWithPortInfo: M.empty
   , isCreatingWire: Nothing
+  , isMouseOverBoardPort: Nothing
   }
 
 slot =

@@ -73,9 +73,7 @@ component = H.mkComponent { eval , initialState , render }
       , HP.ref (RefLabel "chat-component")
       , HE.onScroll OnScroll
       ]
-      [ HH.table_ (map renderMessage state.messages)
-      , HH.div [ HP.id "anchor" ] [ HH.text (show state.scrollToBottom) ]
-      ]
+      [ HH.table_ (map renderMessage state.messages) ]
   
   renderMessage {timestamp, message: Message { user, message, selector, delayBy }} =
     HH.tr_
@@ -122,26 +120,20 @@ component = H.mkComponent { eval , initialState , render }
       --void $ H.subscribe (ComponentMutated <$> emitter)
 
     NewMessage message@(Message m) -> do
+      scrollToBottom <- gets (_.scrollToBottom)
       timestamp <- liftEffect nowTime
       _messages <>= [{ timestamp, message }]
+     -- when scrollToBottom $
+      H.getRef (RefLabel "chat-component") >>= traverse_ \element -> do
+        height <- liftEffect $ scrollHeight element
+        liftEffect $ setScrollTop height element
 
     OnScroll _ -> do
-      pure unit
-      --H.getHTMLElementRef (RefLabel "chat-component") >>= traverse_ \element -> do
-      --  height <- liftEffect $ scrollHeight (toElement element)
-      --  top <- liftEffect $ scrollTop (toElement element)
-      --  modify_ (_ { scrollToBottom = height == top} )
-
-    --ComponentMutated mutation -> do
-    --  {-
-    --    when a new messge is added, we want to scroll to the bottom of the screen to see the new message ONLY IF the div is already scrolled to the bottom. If the div is not at the bottom, the user is likely reading other messages.
-    --  -}
-    --  scrollToBottom <- gets (_.scrollToBottom)
-    --  when scrollToBottom do
-    --    H.getHTMLElementRef (RefLabel "chat-component") >>= traverse_ \element -> do
-    --      height <- scrollHeight element
-    --      setScrollTop height element
-
+      H.getHTMLElementRef (RefLabel "chat-component") >>= traverse_ \element -> do
+        height <- liftEffect $ scrollHeight (toElement element)
+        top <- liftEffect $ scrollTop (toElement element)
+        modify_ (_ { scrollToBottom = height == top} )
+        when (height == top) (log "we are at the bottom!!")
 
 foreign import toLocaleString :: Int -> Int -> Int -> String
 

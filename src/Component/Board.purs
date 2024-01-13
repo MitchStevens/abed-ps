@@ -63,7 +63,7 @@ import Game.Direction (CardinalDirection, allDirections)
 import Game.Direction as Direction
 import Game.GameEvent (BoardEvent(..), GameEvent(..), GameEventStore, boardEventLocationsChanged)
 import Game.Location (Location(..), location)
-import Game.Piece (Piece(..), PieceId(..), Port, getPort, isInput, isOutput, matchingPort, name)
+import Game.Piece (Piece(..), PieceId(..), Port, getPort, isInput, isOutput, matchingPort, maxSignal, name, portCapacity)
 import Game.Rotation (Rotation(..))
 import Game.Signal (Signal(..))
 import Halogen (AttrName(..), ClassName(..), Component, ComponentHTML, HalogenM(..), HalogenQ, Slot)
@@ -302,16 +302,18 @@ component = H.mkComponent { eval , initialState , render }
 
     ToggleInput dir -> do
       _inputs <<< ix dir %= \signal -> if signal == ff then tt else ff
-      inputs <- gets (_.inputs)
-      lift $ debug (tag "inputs" (show inputs)) ("Toggled " <> show dir <> " input")
       evaluateBoard
-
-
-      relativeEdge <- evalState (getBoardPort dir) <$> use _board
-      signals <- gets (_.lastEvalWithPortInfo)
-      let focus = { info: _, relativeEdge } <$> M.lookup relativeEdge signals
-      H.tell slot.multimeter unit (\_ -> Multimeter.NewFocus focus)
-
+      handleAction (BoardPortOnMouseEnter dir)
+    IncrementInput dir -> do
+      gets (_.boardPorts >>> M.lookup dir) >>= traverse_ \port ->
+        _inputs <<< ix dir %= \signal -> if signal == maxSignal (portCapacity port) then ff else signal <> one
+      evaluateBoard
+      handleAction (BoardPortOnMouseEnter dir)
+    DecrementInput dir -> do
+      gets (_.boardPorts >>> M.lookup dir) >>= traverse_ \port ->
+        _inputs <<< ix dir %= \(Signal n) -> if n == 0 then maxSignal (portCapacity port) else Signal (n-1)
+      evaluateBoard
+      handleAction (BoardPortOnMouseEnter dir)
 
     BoardOnDragExit _ -> do
       H.modify_ (_ { isCreatingWire = Nothing })
@@ -354,17 +356,23 @@ component = H.mkComponent { eval , initialState , render }
     LocationOnDragLeave _ -> do
       H.modify_ (_ { mouseOverLocation = Nothing } )
     GlobalOnKeyDown ke -> do
-      when (key ke == "z" && ctrlKey ke) do
-        handleAction Undo
-      when (key ke == "y" && ctrlKey ke) do
-        handleAction Redo
+      case key ke of
+        "z" -> when (ctrlKey ke) (handleAction Undo)
+        "y" -> when (ctrlKey ke) (handleAction Redo)
+        "e" -> H.gets (_.isMouseOverBoardPort) >>= traverse_ \dir ->
+          handleAction (IncrementInput dir)
+        "E" -> H.gets (_.isMouseOverBoardPort) >>= traverse_ \dir ->
+          handleAction (DecrementInput dir)
+        _ -> pure unit
     
     BoardPortOnMouseEnter dir -> do
+      H.modify_ (_ { isMouseOverBoardPort = Just dir })
       relativeEdge <- evalState (getBoardPort dir) <$> use _board
       signals <- gets (_.lastEvalWithPortInfo)
       let focus = { info: _, relativeEdge } <$> M.lookup relativeEdge signals
       H.tell slot.multimeter unit (\_ -> Multimeter.NewFocus focus)
     BoardPortOnMouseLeave -> do
+      H.modify_ (_ { isMouseOverBoardPort = Nothing })
       H.tell slot.multimeter unit (\_ -> Multimeter.NewFocus Nothing)
     --DoNothing -> pure unit
 

@@ -3,6 +3,7 @@ module Component.Home where
 import Prelude
 
 import Capability.Navigate (Route(..), navigateTo)
+import Component.Layout.DefaultLayout (defaultLayout)
 import Component.Title (abedTitleText)
 import Component.Title as Title
 import Data.Array (intercalate)
@@ -44,11 +45,11 @@ component = H.mkComponent { eval , initialState , render }
   initialState _ =
     { titleText: "" } 
 
-  render state =  
+  render state = defaultLayout $
     HH.div [ HP.id "home-component" ]
-      [ HH.slot_ (Proxy :: Proxy "title") unit Title.component { typeTitle: true }
-      , HH.br_
-      , HH.a 
+      [ --HH.slot_ (Proxy :: Proxy "title") unit Title.component { typeTitle: true }
+      --, HH.br_
+      HH.a 
         [ HE.onClick (\_ -> NavigateTo LevelSelect)
         , HP.class_ (ClassName "link")
         ]
