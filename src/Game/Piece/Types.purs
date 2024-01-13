@@ -8,9 +8,10 @@ import Data.Map as M
 import Data.Maybe (Maybe)
 import Data.Newtype (class Newtype)
 import Data.Set (Set)
+import Game.Capacity (Capacity)
 import Game.Direction (CardinalDirection)
 import Game.Piece.Complexity (Complexity)
-import Game.Piece.Port (Capacity, Port(..), PortType, isInput, isOutput)
+import Game.Port (Port(..), PortType, isInput, isOutput)
 import Game.Signal (Signal(..))
 
 

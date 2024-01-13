@@ -12,14 +12,14 @@ import Data.Newtype (class Newtype)
 import Data.Traversable (class Foldable, traverse)
 import Data.Tuple (Tuple(..))
 import Data.Unfoldable (fromMaybe)
+import Game.Capacity (Capacity(..), clampSignal)
 import Game.Direction (CardinalDirection(..))
 import Game.Direction as Direction
 import Game.Expression (Expression(..), evaluate, ref)
 import Game.Piece.Complexity (Complexity)
 import Game.Piece.Complexity as Complexity
-import Game.Piece.Port (Capacity(..), Port(..), inputPort, isInput, outputPort)
 import Game.Piece.Types (Piece(..), PieceId(..))
-import Game.Rotation (Rotation(..))
+import Game.Port (inputPort, outputPort)
 
 data BasicPort = BasicInput | BasicOutput Expression
 
@@ -35,7 +35,7 @@ basicPiece basic = Piece
   { name: basic.name
   , eval: \inputs -> flip M.mapMaybe basic.ports $ case _ of
       BasicInput  -> Nothing
-      BasicOutput expression -> Just (evaluate inputs expression)
+      BasicOutput expression -> Just (clampSignal basic.capacity $  evaluate inputs expression)
   , complexity: basic.complexity
 
   , shouldRipple: true

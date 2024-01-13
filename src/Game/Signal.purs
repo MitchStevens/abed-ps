@@ -44,3 +44,4 @@ instance Semiring Signal where
 
 nthBit :: Signal -> Int -> Boolean
 nthBit (Signal s) n = odd (shr s n)
+

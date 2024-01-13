@@ -1,8 +1,7 @@
 module Test.Component.Board.Types where
 
-import Prelude
-
-
+import Game.Board
+import Game.Piece
 import Prelude
 
 import Component.Board.Types (boardPortInfo)
@@ -13,9 +12,9 @@ import Data.Map as M
 import Data.Maybe (Maybe(..))
 import Data.Tuple (Tuple(..))
 import Data.Zipper as Z
-import Game.Board (standardBoard)
+import Game.Capacity (Capacity(..))
 import Game.Direction as Direction
-import Game.Piece (Capacity(..), getPorts, idPiece, inputPort, outputPort)
+import Game.Port (inputPort, outputPort)
 import Test.Game.Board (testBoard)
 import Test.Spec (Spec, describe, describeOnly, hoistSpec, it)
 import Test.Spec.Assertions (shouldReturn)

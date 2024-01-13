@@ -15,11 +15,10 @@ import Data.Maybe (Maybe(..))
 import Data.String (Pattern(..))
 import Data.String as String
 import Game.Direction as Direction
+import Game.Piece (Piece(..), PieceId(..))
 import Game.Piece.Complexity as Complexity
-import Game.Piece.Port (Port(..), isInput, matchingPort, portType)
-import Game.Piece.Port as Port
-import Game.Piece.Types (Piece(..), PieceId(..))
-import Game.Signal (Signal(..))
+import Game.Port (Port(..), matchingPort, portType)
+import Game.Port as Port
 import Partial.Unsafe (unsafeCrashWith)
 
 {-

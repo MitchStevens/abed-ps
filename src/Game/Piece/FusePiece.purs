@@ -9,10 +9,11 @@ import Data.Int.Bits (and, or, shl, shr)
 import Data.Map as M
 import Data.Maybe (Maybe(..), fromMaybe)
 import Data.Tuple (Tuple(..))
+import Game.Capacity (Capacity(..), doubleCapacity, halveCapacity, toInt)
 import Game.Direction as Direction
 import Game.Piece.Complexity as Complexity
-import Game.Piece.Port (Capacity(..), doubleCapacity, halveCapacity, inputPort, outputPort, toInt)
 import Game.Piece.Types (Piece(..), PieceId(..))
+import Game.Port (inputPort, outputPort)
 import Game.Signal (Signal(..))
 
 allFusePieces :: Array Piece
@@ -21,11 +22,8 @@ allFusePieces = [ fusePiece, severPiece ]
 fusePiece :: Piece
 fusePiece = mkFusePiece { inputCapacity: OneBit }
 
-
 severPiece :: Piece
 severPiece = mkSeverPiece { outputCapacity: OneBit }
-
---------------------------
 
 
 type FusePiece = { inputCapacity :: Capacity }

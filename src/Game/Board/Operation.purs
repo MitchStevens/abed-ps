@@ -27,73 +27,19 @@ import Data.Tuple (Tuple(..), fst, snd)
 import Debug (trace)
 import Effect.Aff.Class (class MonadAff)
 import Effect.Class (class MonadEffect)
-import Game.Board (Board(..), PieceInfo, RelativeEdge(..), _pieces, _rotation, relative)
+import Game.Board.PieceInfo (PieceInfo, _rotation)
 import Game.Board.Query (adjacentRelativeEdge, getPortOnEdge, isInsideBoard)
+import Game.Board.RelativeEdge (RelativeEdge(..), relative)
+import Game.Board.Types (Board(..), BoardError(..), _pieces)
 import Game.Direction (allDirections)
 import Game.Direction as Direction
 import Game.Edge (Edge(..), edgeLocation)
 import Game.GameEvent (BoardEvent(..))
 import Game.Location (Location(..), location)
-import Game.Piece (Piece(..), Port, PortType, pieceLookup, portType, updatePort)
+import Game.Piece (Piece(..), pieceLookup, updatePort)
+import Game.Port (PortType, portType)
 import Game.Rotation (Rotation(..), rotation)
 import Type.Proxy (Proxy(..))
-
-data BoardError
-  = LocationOccupied Location
-  | LocationNotOccupied Location
-  | InvalidLocation Location
-  | InvalidBoardInitialisation Int
-  | BadBoardSize Int
-  | Cyclic
-derive instance Eq BoardError
-
-instance Show BoardError where
-  show = case _ of
-    LocationOccupied loc -> "Location Occupied: " <> show loc
-    LocationNotOccupied loc ->  "Location Not Occupied: " <> show loc
-    InvalidLocation loc -> "Location " <> show loc <> " is outside range of the board"
-    InvalidBoardInitialisation n -> "Invalid Board Initialisation: " <> show n <> " is not a valid board size"
-    BadBoardSize n -> "Boards of size " <>  show n <>" are not valid"
-    Cyclic -> "ABED does not admit cyclic boards"
-
-newtype BoardT m a = BoardT (StateT Board (ExceptT BoardError m) a)
-derive instance Newtype (BoardT m a) _
-derive newtype instance Functor m => Functor (BoardT m)
-derive newtype instance Monad m => Apply (BoardT m)
-derive newtype instance Monad m => Applicative (BoardT m)
-derive newtype instance Monad m => Bind (BoardT m)
-derive newtype instance Monad m => Monad (BoardT m)
-derive newtype instance Monad m => MonadState Board (BoardT m)
-derive newtype instance Monad m => MonadThrow BoardError (BoardT m)
-derive newtype instance Monad m => MonadError BoardError (BoardT m)
-derive newtype instance MonadEffect m => MonadEffect (BoardT m)
-derive newtype instance MonadAff m => MonadAff (BoardT m)
-derive newtype instance (Monad m, Semigroup a) => Semigroup (BoardT m a)
-derive newtype instance (Monad m, Monoid a) => Monoid (BoardT m a)
-
-instance MonadTrans BoardT where
-  lift m = BoardT (lift $ lift m)
-
-type BoardM a = BoardT Identity a
-
-runBoardT :: forall m a. Monad m => BoardT m a -> Board -> m (Either BoardError (Tuple a Board))
-runBoardT boardM b = runExceptT $ runStateT (unwrap boardM) b
-
-evalBoardT :: forall m a. Monad m => BoardT m a -> Board -> m (Either BoardError a)
-evalBoardT boardM b = map fst <$> runBoardT boardM b
-
-execBoardT :: forall m a. Monad m => BoardT m a -> Board -> m (Either BoardError Board)
-execBoardT boardM b = map snd <$> runBoardT boardM b
-
-runBoardM :: forall a. BoardM a -> Board -> Either BoardError (Tuple a Board)
-runBoardM boardM b = unwrap $ runBoardT boardM b
-
-evalBoardM :: forall a. BoardM a -> Board -> Either BoardError a
-evalBoardM boardM b = unwrap $ evalBoardT boardM b
-
-execBoardM :: forall a. BoardM a -> Board -> Either BoardError Board
-execBoardM boardM b = unwrap $ execBoardT boardM b
-
 
 emptyBoard :: Int -> Either BoardError Board
 emptyBoard n = 

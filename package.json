@@ -4,25 +4,21 @@
   "scripts": {
     "postinstall": "spago install",
     "compile-css": "lessc dist/less/default.less dist/default.css",
-    "build": "spago bundle-app --main Main --to dist/abed.js",
-    "prod": "spago bundle-app --main Main --to dist/abed.js --minify",
-    "test": "spago -x test.dhall test --purs-args '-g sourcemaps'",
-    "test-browser": "spago -x test.dhall bundle-app --main Test.Component.Main --to dist/test.js",
     "compile-css-watch": "nodemon --watch dist/less/* --exec 'npm run compile-css'",
+    "build": "spago bundle-app --main Main --to dist/abed.js",
     "build-watch": "npm run compile-css-watch & npm run build -- --watch",
-    "test-watch": "npm run test -- --watch",
-    "test-browser-watch": "npm run compile-css-watch & npm run test-browser -- --watch",
-    "test-piece-icon": "spago -x test.dhall bundle-app --main Test.Component.PieceIcon --to dist/test.js",
-    "test-piece-icon-watch": "npm run compile-css-watch & npm run test-piece-icon -- --watch"
+    "build-prod": "spago -x prod.dhall build && purs-backend-es bundle-app --no-build --minify --to dist/abed.js && npm run compile-css", 
+    "test": "spago -x test.dhall test --purs-args '-g sourcemaps'",
+    "test-watch": "npm run test -- --watch"
   },
   "devDependencies": {
     "esbuild": "^0.18.15",
     "less": "^4.2.0",
     "nodemon": "^3.0.1",
     "purescript": "^0.15.14",
-    "spago": "^0.21.0"
+    "spago": "^0.21.0",
+    "purs-backend-es": "^1.4.2"
   },
   "dependencies": {
-    "animate.css": "^4.1.1"
   }
 }

@@ -32,13 +32,13 @@ import Data.Zipper (Zipper(..))
 import Data.Zipper as Z
 import Debug (trace)
 import Effect.Aff (Aff, error)
-import Game.Board (Board(..), PieceInfo, _pieces)
-import Game.Board.Operation (BoardError, BoardM, addPieceNoUpdate, removePieceNoUpdate, updatePortsAround)
+import Game.Board.Operation (addPieceNoUpdate, removePieceNoUpdate, updatePortsAround)
+import Game.Board.PieceInfo (PieceInfo)
+import Game.Board.Types (Board(..), BoardError, _pieces)
 import Game.Direction (CardinalDirection, allDirections, clockwiseRotation, rotateDirection)
 import Game.Direction as Direction
 import Game.Location (Location(..), directionTo, followDirection)
-import Game.Piece (PieceId(..), chickenPiece, cornerCutPiece, crossPiece, getPort, idPiece, leftPiece, name, rightPiece)
-import Game.Piece.Port (isInput)
+import Game.Piece (chickenPiece, cornerCutPiece, crossPiece, idPiece, leftPiece, rightPiece)
 import Game.Rotation (Rotation(..), rotation)
 
 data PathError

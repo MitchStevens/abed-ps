@@ -23,7 +23,6 @@ import GlobalState (GlobalState)
 import Halogen (Component, Slot, mkEval)
 import Halogen as H
 import Halogen.HTML as HH
-import Halogen.Store.Monad (class MonadStore)
 import IO.Levels (allLevels)
 import Record as Record
 import Routing.Match (Match, lit, str)
@@ -64,7 +63,6 @@ component
   :: forall m
    . MonadAff m
   => MonadAsk GlobalState m
-  -- => MonadStore GameEvent GameEventStore m
   => MonadLogger m
   => Component Query Unit Void m
 component = H.mkComponent { eval, initialState, render }

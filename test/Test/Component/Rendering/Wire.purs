@@ -1,12 +1,14 @@
 module Test.Component.Rendering.Wire where
 
+import Game.Piece
 import Prelude
 
 import Component.Rendering.Wire (wirePath)
 import Data.Map as M
 import Data.Tuple (Tuple(..))
+import Game.Capacity (Capacity(..))
 import Game.Direction as Direction
-import Game.Piece (Capacity(..), inputPort, outputPort)
+import Game.Port (inputPort, outputPort)
 import Game.Signal (Signal(..))
 import Halogen.Svg.Attributes (CommandPositionReference(..), l, m, q)
 import Test.Spec (Spec, describe, it, itOnly)

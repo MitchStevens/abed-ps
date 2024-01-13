@@ -13,12 +13,12 @@ import Data.Foldable (find, for_, traverse_)
 import Data.FoldableWithIndex (findWithIndex)
 import Data.Map (Map)
 import Data.Map as M
-import Data.Maybe (fromMaybe, fromMaybe')
+import Data.Maybe (fromMaybe, fromMaybe', maybe')
 import Data.Tuple (Tuple(..), fst, uncurry)
-import Game.Board.PortInfo (PortInfo)
 import Game.Direction (CardinalDirection)
 import Game.Direction as Direction
-import Game.Piece (isInput)
+import Game.Port (isInput)
+import Game.PortInfo (PortInfo)
 import Game.Rotation (Rotation(..))
 import Halogen (ComponentHTML)
 import Halogen.HTML as HH
@@ -27,7 +27,10 @@ import Partial.Unsafe (unsafeCrashWith)
 
 
 renderWire :: forall s m. Map CardinalDirection PortInfo -> ComponentHTML Piece.Action s m
-renderWire portStates = renderPathWithEvents (wirePath portStates) (Piece.PortOnMouseEnter Direction.Left) Piece.PortOnMouseLeave -- todo: change direction.left to
+renderWire portStates = renderPathWithEvents (wirePath portStates) (Piece.PortOnMouseEnter inputDirection) Piece.PortOnMouseLeave -- todo: change direction.left to
+  where
+    inputDirection = maybe' (\_ -> unsafeCrashWith $ "assertion failed: wire path created with no inputs. ports: " <> show portStates) (_.index)
+              (findWithIndex (\_ info -> isInput info.port) portStates)
 
 initialLocation :: CardinalDirection -> Tuple Number Number
 initialLocation = case _ of

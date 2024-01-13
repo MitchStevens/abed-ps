@@ -10,6 +10,7 @@ import Prelude
 
 import Component.DataAttribute as DA
 import Component.Rendering.Piece (renderPiece)
+import Control.Monad.State.Trans (gets, modify_)
 import Data.Array as A
 import Data.Enum (enumFromTo, fromEnum)
 import Data.Foldable (for_, traverse_)
@@ -28,13 +29,8 @@ import Effect (Effect)
 import Effect.Class (class MonadEffect, liftEffect)
 import Effect.Class.Console (log, logShow)
 import Game.Board (relative)
-import Game.Direction as Direction
-import Game.Piece (PieceId(..), getPort, name)
-import Game.Piece.Port (Port)
-import Game.Piece.Port as Port
 import Game.Rotation (rotation, toRadians)
-import Halogen (AttrName(..), ClassName(..), HalogenM, RefLabel(..), gets)
-import Halogen as H
+import Halogen (AttrName(..), ClassName(..), Component, HalogenM, HalogenQ, RefLabel(..), getHTMLElementRef, getRef, gets, mkComponent, mkEval, raise)
 import Halogen.HTML (HTML, PlainHTML, fromPlainHTML)
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
@@ -52,8 +48,8 @@ import Web.HTML.HTMLElement (HTMLElement, fromElement, offsetHeight, offsetLeft,
 import Web.UIEvent.KeyboardEvent (key, shiftKey)
 import Web.UIEvent.MouseEvent (MouseEvent, clientX, clientY, screenX, screenY)
 
-component :: forall m. MonadEffect m => H.Component Query Input Output m
-component = H.mkComponent { eval , initialState , render }
+component :: forall m. MonadEffect m => Component Query Input Output m
+component = mkComponent { eval , initialState , render }
   where
   render state =
     HH.div
@@ -89,20 +85,20 @@ component = H.mkComponent { eval , initialState , render }
     let cy = (bb.bottom + bb.top) / 2.0
     pure $ Tuple cx cy
 
-  eval :: forall slots. H.HalogenQ Query Action Input ~> H.HalogenM State Action slots Output m
-  eval = H.mkEval
+  eval :: forall slots. HalogenQ Query Action Input ~> HalogenM State Action slots Output m
+  eval = mkEval
     { finalize: Nothing
     , handleAction: case _ of
       -- not used, might use later
         Initialise { piece, location } -> pure unit
         OnDrop loc event -> do
-          H.modify_ (_ { isDragging = false })
-          H.raise (Dropped loc)
+          modify_ (_ { isDragging = false })
+          raise (Dropped loc)
         OnDrag dragEvent -> do
-          H.modify_ (_ { isDragging = true })
+          modify_ (_ { isDragging = true })
           pure unit
         OnMouseDown me ->
-          H.getHTMLElementRef (RefLabel "piece") >>= traverse_ \he -> do
+          getHTMLElementRef (RefLabel "piece") >>= traverse_ \he -> do
             r <- liftEffect $ mul 0.5 <$> clientWidth (toElement he)
             c <- liftEffect $ elementCenterClient (toElement he)
             let Tuple x y = sub (getPosition me) c
@@ -110,19 +106,19 @@ component = H.mkComponent { eval , initialState , render }
             -- if the mouse outside the inner circle of the piece...
               then do
                 -- start dragging
-                H.modify_ (_ { isRotating = Nothing })
+                modify_ (_ { isRotating = Nothing })
               else do
                 -- else start rotation
                 liftEffect $ setDraggable false he
                 rotation <- gets (_.rotation)
-                H.modify_ (_
+                modify_ (_
                   { isRotating = Just { initialClickPosition: getPosition me, currentRotation: toRadians rotation }
                   , isDragging = false
                 })
         OnMouseMove me -> do --pure unit --do
-          H.getRef (RefLabel "piece") >>= traverse_ \e -> do
+          getRef (RefLabel "piece") >>= traverse_ \e -> do
             -- if the piece is being rotated...
-            H.gets (_.isRotating) >>= traverse_ \{ initialClickPosition, currentRotation } -> do
+            gets (_.isRotating) >>= traverse_ \{ initialClickPosition, currentRotation } -> do
               rotation <- gets (_.rotation)
               let p1 = initialClickPosition
               -- get the current mouse position
@@ -133,43 +129,42 @@ component = H.mkComponent { eval , initialState , render }
               let angle = toRadians rotation + angleBetween (p1 - c) (p2 - c)
 
               -- rotate the piece by this angle
-              H.modify_ (_ {
+              modify_ (_ {
                 isRotating = Just { initialClickPosition, currentRotation: angle }
               })
         OnMouseUp loc _ -> do
-          H.gets (_.isRotating) >>= traverse_ \{ initialClickPosition, currentRotation } -> do
+          gets (_.isRotating) >>= traverse_ \{ initialClickPosition, currentRotation } -> do
             let closestSnapPoint = rotation $ round (4.0 * currentRotation / (2.0 * pi))
-            rotation <- H.gets (_.rotation)
-            H.modify_ (_ { isRotating = Nothing })
-            H.raise (Rotated loc (closestSnapPoint <> ginverse rotation))
+            rotation <- gets (_.rotation)
+            modify_ (_ { isRotating = Nothing })
+            raise (Rotated loc (closestSnapPoint <> ginverse rotation))
         OnKeyDown ke -> do
           when (key ke == "r") do
-            loc <- H.gets (_.location)
-            H.raise (Rotated loc (rotation 1))
+            loc <- gets (_.location)
+            raise (Rotated loc (rotation 1))
           when (key ke == "R") do
-            loc <- H.gets (_.location)
-            H.raise (Rotated loc (rotation 3))
+            loc <- gets (_.location)
+            raise (Rotated loc (rotation 3))
 
         PortOnMouseEnter dir -> do
-          portStates <- H.gets (_.portStates)
-          loc <- H.gets (_.location)
-          pure unit
-          H.raise $ NewMultimeterFocus do
+          portStates <- gets (_.portStates)
+          loc <- gets (_.location)
+          raise $ NewMultimeterFocus do
             let relativeEdge = relative loc dir
             info <- M.lookup dir portStates
             pure { relativeEdge, info }
         PortOnMouseLeave -> do
-          H.raise (NewMultimeterFocus Nothing)
+          raise (NewMultimeterFocus Nothing)
 
     , handleQuery: case _ of
         SetPortStates portStates -> do
-          H.modify_ $ _ { portStates = portStates }
+          modify_ $ _ { portStates = portStates }
           pure Nothing
         SetPiece piece -> do
-          H.modify_ (_ {piece = piece})
+          modify_ (_ {piece = piece})
           pure Nothing
         SetRotation rot -> do
-          H.modify_ (_ { rotation = rot })
+          modify_ (_ { rotation = rot })
           pure Nothing
     , initialize: Nothing
     , receive: \_ -> Nothing --Just <<< Initialise -- :: input -> Maybe action

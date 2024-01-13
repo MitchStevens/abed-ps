@@ -1,5 +1,8 @@
 **/.spago
 **/node_modules
 **/output
+**/output-es
+dist/default.css
+dist/abed.js
 .psc-ide-port
 npm-debug.log
