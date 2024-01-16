@@ -9,6 +9,7 @@ import Foreign.Object (fromHomogeneous)
 import Game.Direction as Direction
 import Game.GameEvent (count, firstTime, latest, pieceAdded, pieceMovedTo, secondTime)
 import Game.Level (LevelSuite, binaryTestInputs, defaultLevel)
+import Game.Level.Problem (defaultProblem)
 import Game.Message (addDelay, message)
 import Game.Piece (andPiece, crossPiece, idPiece, leftPiece, name, notPiece, orPiece, rightPiece, superPiece, xorPiece)
 import Game.Piece.BasicPiece (allBasicPieces, crossPiece, xorPiece)
@@ -50,10 +51,19 @@ intermediateSuite = fromHomogeneous
       , conversation = addDelay <$>
         [ message "test" "criss cross" ]
       }
-    , "Exclusive Or": defaultLevel
+    , "From Or, birthed And": defaultLevel
+      { problem = defaultProblem
+        { goal = andPiece
+        , title ="From Or, birthed And"
+        , description = "Create an and-piece using only or-piece and not-piece"
+        , testCases = binaryTestInputs [ Direction.Left, Direction.Up ]
+        , availablePieces = [ orPiece, notPiece ]
+        } 
+      }
+    , "Exclusive Or: Pick One": defaultLevel
       { problem =
         { goal: xorPiece
-        , title: "Exclusive Or"
+        , title: "Exclusive Or: Pick One"
         , description: "Output true when EXACTLY one input is true. If both inputs are true, output false"
         , testCases: binaryTestInputs [ Direction.Left, Direction.Up ]
         , requiresAutomaticTesting: false

@@ -7,6 +7,7 @@ import Data.Enum (class BoundedEnum, class Enum, Cardinality(..), cardinality, e
 import Data.Group (class Group, ginverse)
 import Data.Maybe (Maybe(..), fromMaybe)
 import Data.Newtype (class Newtype)
+import Data.Ord (abs)
 import Data.Tuple (Tuple(..))
 import Game.Direction (CardinalDirection, allDirections)
 import Game.Direction as Direction
@@ -40,4 +41,5 @@ followDirection (Location {x, y}) = case _ of
 directionTo :: Location -> Location -> Maybe CardinalDirection
 directionTo l1 l2 = find (\d -> followDirection l1 d == l2) allDirections
 
-
+taxicabDistance :: Location -> Location -> Int
+taxicabDistance (Location a) (Location b) = abs (a.x - b.x) + abs (a.y - b.y)

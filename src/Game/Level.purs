@@ -6,7 +6,9 @@ import Data.Array (zip, zipWith)
 import Data.HeytingAlgebra (ff, tt)
 import Data.Map (Map)
 import Data.Map as M
+import Data.Maybe (Maybe(..))
 import Data.Traversable (traverse)
+import Effect (Effect)
 import Foreign.Object (Object)
 import Game.Direction (CardinalDirection)
 import Game.GameEvent (GameEventStore)
@@ -19,7 +21,9 @@ import Web.HTML.Common (AttrName(..))
 
 type LevelOptions =
   { enableBoardSizeChange :: Boolean
-  , compulsory :: Boolean }
+  , compulsory :: Boolean
+  , tutorial :: Maybe (Effect Unit) 
+   }
 
 type Level =
   { problem :: Problem
@@ -34,6 +38,7 @@ defaultLevelOptions :: LevelOptions
 defaultLevelOptions =
   { enableBoardSizeChange: true
   , compulsory: false
+  , tutorial: Nothing
   }
 
 defaultLevel :: Level

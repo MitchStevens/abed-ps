@@ -52,7 +52,9 @@ tutorialSuite = fromHomogeneous
           --    selector DataAttr.location l3
           ]
       , conversation = mapWithIndex (\i m -> if i == 0 then m else addDelay m) $
-        []
+        [ fromGuide "Welcome to ABED!"
+
+        ]
         --[ fromGuide "welcome to ABED! click 'id' to get started adding pieces!" #
         --  _selector .~ Just (selector DataAttr.availablePiece (name idPiece))
         --]

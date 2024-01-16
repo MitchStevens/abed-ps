@@ -14,9 +14,10 @@ import Capability.Navigate (Route(..), navigateTo)
 import Component.DataAttribute (attr)
 import Component.DataAttribute as DataAttr
 import Component.Piece as Piece
+import Component.Rendering.BoardPortDiagram (renderBoardPortDiagram)
 import Component.Rendering.Piece (renderPiece)
 import Control.Monad.Except (runExceptT)
-import Control.Monad.State.Class (modify_, gets)
+import Control.Monad.State.Class (gets, modify_, put)
 import Data.Array as A
 import Data.Bifunctor (bimap)
 import Data.Either (Either(..), blush, hush)
@@ -24,6 +25,7 @@ import Data.Filterable (eitherBool)
 import Data.Foldable (find, for_)
 import Data.List (List(..), (:))
 import Data.List as L
+import Data.Map (Map)
 import Data.Map as M
 import Data.Maybe (Maybe(..), fromMaybe, maybe)
 import Data.String (Pattern(..), split)
@@ -32,7 +34,8 @@ import Effect.Aff.Class (class MonadAff)
 import Effect.Class (class MonadEffect, liftEffect)
 import Effect.Class.Console (log)
 import Game.Capacity (toInt)
-import Game.Level.Completion (CompletionStatus(..), FailedTestCase)
+import Game.Direction (CardinalDirection)
+import Game.Level.Completion (CompletionStatus(..), FailedTestCase, PortMismatch(..))
 import Game.Level.Problem (Problem)
 import Game.Location (location)
 import Game.Piece (PieceId(..), name, pieceVault)
@@ -51,21 +54,23 @@ import Web.UIEvent.MouseEvent (MouseEvent)
 
 type Input = 
   { problem :: Problem
+  , completionStatus :: CompletionStatus
   , boardSize :: Int
+  , boardPorts :: Map CardinalDirection Port
   }
 
 type State =
   { problem :: Problem
   , completionStatus :: CompletionStatus
   , boardSize :: Int
+  , boardPorts :: Map CardinalDirection Port
   }
 
 data Query a
-  = SetCompletionStatus CompletionStatus
-  | SetBoardSize Int
 
 data Action
-  = PieceOnDrop PieceId DragEvent
+  = Initialise Input
+  | PieceOnDrop PieceId DragEvent
   | PieceOnClick PieceId MouseEvent
   | BackToLevelSelect
   | IncrementBoardSize
@@ -93,33 +98,32 @@ data Output
 component :: forall m. MonadAff m => Component Query Input Output m
 component = mkComponent { eval , initialState , render }
   where
-  initialState { problem, boardSize } =
-    { problem
-    , completionStatus: NotStarted
-    , boardSize }
+  initialState { problem, boardSize, completionStatus, boardPorts } =
+    { problem , completionStatus , boardSize, boardPorts }
 
-  render :: forall s m. State -> ComponentHTML Action s m
+  render :: forall s. State -> ComponentHTML Action s m
   render state = 
     HH.div 
       [ HP.id "sidebar-component" ]
       [ HH.h2_ [ HH.text state.problem.title ]
       , HH.span_ [ renderDescription state.problem.description ]
-      , HH.br_
-      , renderCompletionStatus state.completionStatus
+      , HH.hr_
+      , HH.div
+          [ HP.classes [ ClassName "completion-status"] ]
+          [ renderCompletionStatus
+          , renderBoardPortDiagram state.problem.goal state.boardPorts
+          ]
       , HH.h3_ [ HH.text "Available pieces:"]
       , HH.span [ HP.class_ (ClassName "pieces") ] $
           renderAvailablePiece <$>
             A.nub state.problem.availablePieces
-      , HH.h3_ [ HH.text "Board size" ]
-      , HH.span_
-        [ HH.button [ HE.onClick (\_ -> DecrementBoardSize) ] [ HH.text "-" ]
-        , HH.text (show state.boardSize)
-        , HH.button [ HE.onClick (\_ -> IncrementBoardSize) ] [ HH.text "+" ]
-        ]
       , HH.br_
-      , HH.p [ HE.onClick (\_ -> BackToLevelSelect)] [HH.text "I give up (choose another level)"]
+      , renderBoardSize
+      , renderGiveUp
       ]
     where
+
+
 
       --renderAvailablePiece :: forall p. PieceId -> HTML (ComponentSlot Slots) Action
       renderAvailablePiece piece =
@@ -136,11 +140,74 @@ component = mkComponent { eval , initialState , render }
             , HH.text (show pieceId) 
             ]
 
+      renderCompletionStatus = HH.div_
+          case state.completionStatus of
+            NotStarted -> []
+            FailedRestriction restriction -> 
+              [ HH.text $ "This level has a special restriction: "
+              , HH.b_ [ HH.text restriction.name ]
+              , HH.br_
+              , HH.text restriction.description
+              ]
+            NotEvaluable boardError -> 
+              [ HH.text ("not evaluable due to: " <> show boardError) ]
+            PortMismatch mismatch ->
+              [ HH.div_
+                [ HH.b_ [ HH.text "Port mismatch:" ]
+                , case mismatch of
+                    PortExpected { direction, expected } -> HH.text $ "You need " <> describePort expected <> " in the " <> show direction <> " direction"
+                    NoPortExpected { direction, received } -> HH.text $ "Remove the port in the " <> show direction <> "direction"
+                    IncorrectPortType { direction, capacity, received, expected } -> HH.text $ "Port in the " <> show direction <> " direction should be an " <> show expected 
+                    IncorrectCapacity { direction, portType, received, expected } -> HH.text $ "Port in the " <> show direction <> " direction should have capacity " <> show (toInt expected)
+                ]
+              ]
+            ReadyForTesting ->
+              [ HH.text "Ready for testing: "
+              , HH.button
+                  [ HE.onClick (\_ -> RunTestsClicked) ]
+                  [ HH.text "Run Tests"]
+              ]
+            FailedTestCase testCase ->
+              [ HH.text "failed test case, render later" ]
+            Completed ->
+              [ HH.text "Level Complete!"
+              , HH.button
+                  [ HE.onClick (\_ -> RunTestsClicked) ]
+                  [ HH.text "Run Tests again"]
+              , HH.button
+                  [ HE.onClick (\_ -> BackToLevelSelect) ]
+                  [ HH.text "Back to Level Select "]
+              ]
+            where
+              describePort :: Port -> String
+              describePort (Port {portType, capacity}) =
+                "an " <> if portType == Port.Input then "input" else "output" <> " of capacity " <> show (toInt capacity)
+
+
+      renderBoardSize =
+        HH.div
+          [ HP.classes [ ClassName "board-size" ]]
+          [ HH.b_ [ HH.text "Board size" ]
+          , HH.div
+            [ HP.classes [ ClassName "buttons"] ]
+            [ HH.button [ HE.onClick (\_ -> DecrementBoardSize) ] [ HH.text "-" ]
+            , HH.text (" " <> show state.boardSize <> " ")
+            , HH.button [ HE.onClick (\_ -> IncrementBoardSize) ] [ HH.text "+" ]
+            ]
+          ]
+      
+      renderGiveUp = 
+        HH.div
+          [ HP.classes [ClassName "give-up"] ]
+          [ HH.b_ [ HH.text "I give up" ]
+          , HH.button [ HE.onClick (\_ -> BackToLevelSelect) ] [HH.text "Choose another level"]
+          ]
 
   eval :: forall slots. HalogenQ Query Action Input ~> HalogenM State Action slots Output m
   eval = mkEval
     { finalize: Nothing
     , handleAction: case _ of
+        Initialise input -> put (initialState input)
         PieceOnDrop piece _ -> do
           raise (PieceDropped piece)
         PieceOnClick piece _ ->
@@ -151,20 +218,9 @@ component = mkComponent { eval , initialState , render }
         DecrementBoardSize -> raise BoardSizeDecremented
         RunTestsClicked -> raise TestsTriggered
         DoNothing -> pure unit
-    , handleQuery: case _ of
-        SetCompletionStatus completionStatus -> do
-          modify_ $ _ { completionStatus = completionStatus }
-          pure Nothing
-        --IsProblemSolved board f -> do
-        --  problemDescription <- H.gets (_.problem)
-        --  isSolved <- liftAff $ runExceptT $ solvedBy problemDescription board
-        --  H.modify_ (_ { error = blush isSolved })
-        --  pure (f <$> blush isSolved)
-        SetBoardSize boardSize -> do
-          modify_ $ _ { boardSize = boardSize }
-          pure Nothing
+    , handleQuery: \_ -> pure Nothing
     , initialize: Nothing
-    , receive: const Nothing -- :: input -> Maybe action
+    , receive: Just <<< Initialise -- :: input -> Maybe action
     }
 
 --renderError :: PieceSpecMismatch -> PlainHTML
@@ -202,51 +258,3 @@ renderDescription = HH.div_ <<< A.fromFoldable <<< map asHTML <<< reduceStrings 
     asHTML (Left pieceName) = HH.span [ HP.class_ (ClassName "piece-name") ] [ HH.text pieceName ]
     asHTML (Right text) = HH.text text
 
-
-renderCompletionStatus :: forall s m. CompletionStatus -> ComponentHTML Action s m
-renderCompletionStatus = case _ of
-  NotStarted ->
-    HH.div_ []
-  FailedRestriction restriction -> 
-    HH.span_
-      [ HH.text $ "This level has a special restriction: "
-      , HH.b_ [ HH.text restriction.name ]
-      , HH.br_
-      , HH.text restriction.description
-      ]
-  NotEvaluable boardError -> 
-    HH.text ("not evaluable due to: " <> show boardError)
-  PortMismatch mismatch ->
-    HH.div_
-      [ HH.b_ [ HH.text "Port mismatch:" ]
-      , HH.text $ "Expected " <> renderMaybePort mismatch.expected <> " on the " <> show mismatch.dir <> ", but found " <> renderMaybePort mismatch.received
-      ]
-  ReadyForTesting ->
-    HH.span_
-      [ HH.text "Ready for testing: "
-      , HH.button
-          [ HE.onClick (\_ -> RunTestsClicked) ]
-          [ HH.text "Run Tests"]
-      ]
-  FailedTestCase testCase ->
-    renderFailedTestCase testCase
-  Completed ->
-    HH.div_
-      [ HH.text "Level Complete!"
-      , HH.button
-          [ HE.onClick (\_ -> RunTestsClicked) ]
-          [ HH.text "Run Tests again"]
-      , HH.button
-          [ HE.onClick (\_ -> BackToLevelSelect) ]
-          [ HH.text "Back to Level Select "]
-      ]
-  where
-    renderMaybePort :: Maybe Port -> String
-    renderMaybePort = case _ of
-      Nothing -> "no port"
-      Just (Port {portType, capacity}) ->
-        "an " <> if portType == Port.Input then "input" else "output" <> " of capacity " <> show (toInt capacity)
-
-    renderFailedTestCase :: FailedTestCase -> ComponentHTML Action s m
-    renderFailedTestCase _ = -- todo:
-      HH.text "failed test case, render later"

@@ -29,8 +29,7 @@ import Halogen.Svg.Elements as SE
 renderPiece :: forall s m. State -> ComponentHTML Action s m
 renderPiece state = 
     SE.svg
-      [ SA.viewBox 0.0 0.0 100.0 100.0
-      ]
+      [ SA.viewBox 0.0 0.0 100.0 100.0 ]
       [ SE.g
         attributes
         ([ render ] <> animations)

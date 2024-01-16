@@ -7,10 +7,11 @@ import Control.Monad.State (StateT, runStateT)
 import Data.Array ((..))
 import Data.Array as A
 import Data.Either (Either)
-import Data.Foldable (foldMap, intercalate, surround)
+import Data.Foldable (foldMap, intercalate, maximumBy, surround)
+import Data.Function (on)
 import Data.Group (ginverse)
 import Data.Identity (Identity)
-import Data.Lens (Lens', to, view)
+import Data.Lens (Lens', to, view, (^.))
 import Data.Lens.Iso.Newtype (_Newtype)
 import Data.Lens.Record (prop)
 import Data.List (List(..))
@@ -30,7 +31,7 @@ import Game.Board.PieceInfo (PieceInfo)
 import Game.Board.RelativeEdge (RelativeEdge, relative, relativeEdgeDirection)
 import Game.Direction (CardinalDirection, oppositeDirection, rotateDirection)
 import Game.Direction as Direction
-import Game.Location (Location(..), location)
+import Game.Location (Location(..), location, taxicabDistance)
 import Game.Piece (Piece(..))
 import Game.Port (Port(..), isInput)
 import Game.Rotation (Rotation(..))
@@ -83,6 +84,7 @@ toGlobalInputs loc = unsafeMapKey (relative loc)
 allOccupiedLocations :: Board -> Set Location
 allOccupiedLocations = view $ _pieces <<< to M.keys
 
+
 -- todo: ensure that this short circuits when the empty loction is found 
 firstEmptyLocation :: Board -> Maybe Location
 firstEmptyLocation board = do
@@ -94,15 +96,16 @@ firstEmptyLocation board = do
   let occupied = allOccupiedLocations board
   A.find (\loc -> S.member loc occupied) allLocations
 
+closestEmptyLocation :: Board -> Location -> Maybe Location
+closestEmptyLocation board loc = maximumBy (compare `on` (taxicabDistance loc)) emptyLocations
+  where
+    occupied = allOccupiedLocations board
+    n = board ^. _size
+    emptyLocations = do
+      j <- 0 .. (n - 1)
+      i <- 0 .. (n - 1)
+      if S.member (location i j) occupied then [] else [ location  i j ]
 
-{-
-  would be nice to print a graphical version of the board
- +━━━━∧ 
- ┃    1    ┃
- > 1     1 >
- ┃    1    ┃
- +━━━━∨ ━━━+
--}
 printBoard :: Board -> String
 printBoard (Board b) = "SHOW BOARD\n" <> (foldMap (_ <> "\n") $ interleave colEdges rows )
   where

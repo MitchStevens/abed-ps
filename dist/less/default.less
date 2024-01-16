@@ -132,3 +132,13 @@ span.green { color: @green }
         font-size: 20px;
     }
 }
+
+.clearfix {
+  overflow: auto;
+}
+
+.clearfix::after {
+  content: "";
+  clear: both;
+  display: table;
+}

@@ -3,6 +3,7 @@ module Component.Multimeter where
 import Prelude
 
 import Capability.GlobalEventEmmiters (globalKeyDownEventEmitter, globalMouseMoveEventEmitter)
+import Component.Rendering.Colours (green)
 import Data.Align (aligned)
 import Data.Array (elem, range, replicate)
 import Data.Array as A
@@ -113,6 +114,7 @@ component = H.mkComponent { eval, initialState, render }
             [ SA.transform [ Translate screen.x screen.y ] ] 
             [ SE.rect
               [ SA.id "screen-background"
+              , SA.fill green
               , SA.height screen.height
               , SA.width screen.width
               ]

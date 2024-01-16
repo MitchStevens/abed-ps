@@ -54,7 +54,7 @@ import Debug (trace)
 import Effect.Aff.Class (class MonadAff)
 import Effect.Class (class MonadEffect, liftEffect)
 import Effect.Class.Console (log, logShow)
-import Game.Board (Board(..), _pieces, _size, addBoardPath, addPiece, buildEvaluableBoard, capacityRipple, decreaseSize, evalBoardM, evalWithPortInfo, getBoardPort, getPieceInfo, increaseSize, pieceDropped, removePiece, rotatePieceBy, runEvaluableM, toLocalInputs)
+import Game.Board (Board(..), _pieces, _size, addBoardPath, addPiece, buildEvaluableBoard, capacityRipple, decreaseSize, evalBoardM, evalWithPortInfo, getBoardPortEdge, getPieceInfo, increaseSize, pieceDropped, removePiece, rotatePieceBy, runEvaluableM, toLocalInputs)
 import Game.Capacity (maxValue)
 import Game.Direction (CardinalDirection, allDirections)
 import Game.Direction as Direction
@@ -218,7 +218,7 @@ component = mkComponent { eval , initialState , render }
         --updateStore (BoardEvent (RemovedPiece loc (name piece)))
       pure Nothing
     GetMouseOverLocation f -> do
-      maybeDst <- gets (_.mouseOverLocation)
+      maybeDst <- gets (_.isMouseOverLocation)
       pure (f <$> maybeDst)
     SetGoalPorts boardPorts -> do
       lift $ debug (tag "boardPorts" (show boardPorts)) "Set goal ports on board"
@@ -258,7 +258,7 @@ component = mkComponent { eval , initialState , render }
     PieceOutput (Piece.Dropped src) -> do
       lift $ debug M.empty ("Piece dropped at " <> show src)
       -- when a piece is dropped, it can be dropped over a new location or outside the game board 
-      maybeDst <- gets (_.mouseOverLocation)
+      maybeDst <- gets (_.isMouseOverLocation)
       eitherPiece <- liftBoardM (pieceDropped src maybeDst)
       case eitherPiece of
         Left boardError -> do
@@ -343,14 +343,14 @@ component = mkComponent { eval , initialState , render }
     -- can these events be simplified? do we need all of them?
     LocationOnDragEnter loc dragEvent -> do
       liftEffect $ preventDefault (toEvent dragEvent)
-      modify_ (_ { mouseOverLocation = Just loc } )
+      modify_ (_ { isMouseOverLocation = Just loc } )
     LocationOnDragOver loc dragEvent -> do
       liftEffect $ preventDefault (toEvent dragEvent)
     LocationOnDrop loc dragEvent -> do
-      modify_ (_ { mouseOverLocation = Just loc } )
+      modify_ (_ { isMouseOverLocation = Just loc } )
       liftEffect $ preventDefault (toEvent dragEvent)
     LocationOnDragLeave _ -> do
-      modify_ (_ { mouseOverLocation = Nothing } )
+      modify_ (_ { isMouseOverLocation = Nothing } )
     GlobalOnKeyDown ke -> do
       case key ke of
         "z" -> when (ctrlKey ke) (handleAction Undo)
@@ -363,7 +363,7 @@ component = mkComponent { eval , initialState , render }
     
     BoardPortOnMouseEnter dir -> do
       modify_ (_ { isMouseOverBoardPort = Just dir })
-      relativeEdge <- evalState (getBoardPort dir) <$> use _board
+      relativeEdge <- evalState (getBoardPortEdge dir) <$> use _board
       signals <- gets (_.lastEvalWithPortInfo)
       let focus = { info: _, relativeEdge } <$> M.lookup relativeEdge signals
       tell slot.multimeter unit (\_ -> Multimeter.NewFocus focus)

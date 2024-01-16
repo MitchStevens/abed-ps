@@ -33,7 +33,7 @@ import Data.TraversableWithIndex (forWithIndex)
 import Data.Tuple (Tuple(..))
 import Data.Zipper (Zipper)
 import Data.Zipper as Z
-import Game.Board (Board(..), BoardError, BoardM, RelativeEdge, getBoardPort, runBoardM, standardBoard)
+import Game.Board (Board(..), BoardError, BoardM, RelativeEdge, getBoardPortEdge, runBoardM, standardBoard)
 import Game.Direction (CardinalDirection)
 import Game.Location (Location(..))
 import Game.Piece (Piece(..))
@@ -46,11 +46,10 @@ import Web.HTML.Event.DragEvent (DragEvent)
 import Web.UIEvent.KeyboardEvent (KeyboardEvent)
 import Web.UIEvent.MouseEvent (MouseEvent)
 
-type Input = Maybe Board
+type Input = { board ::Board }
 
 type State = 
   { boardHistory :: Zipper Board -- todo: limit the number of boards in this data structure
-  , mouseOverLocation :: Maybe Location
   , inputs :: Map CardinalDirection Signal
   , outputs :: Map CardinalDirection Signal
   , lastEvalWithPortInfo :: Map RelativeEdge PortInfo
@@ -60,6 +59,7 @@ type State =
     , locations :: Array Location
     }
   , isMouseOverBoardPort :: Maybe CardinalDirection
+  , isMouseOverLocation :: Maybe Location
   }
 
 data Query a
@@ -105,14 +105,14 @@ type Slots =
   )
 
 initialState :: Input -> State
-initialState maybeBoard = 
-  { boardHistory: Z.singleton (fromMaybe standardBoard maybeBoard)
-  , mouseOverLocation: Nothing
+initialState { board } = 
+  { boardHistory: Z.singleton board
   , boardPorts: M.empty
   , inputs: M.empty
   , outputs: M.empty
   , lastEvalWithPortInfo: M.empty
   , isCreatingWire: Nothing
+  , isMouseOverLocation: Nothing
   , isMouseOverBoardPort: Nothing
   }
 
@@ -138,7 +138,7 @@ boardPortInfo = do
   boardPorts <- gets (_.boardPorts)
   board <- use _board
   forWithIndex boardPorts \dir port -> do
-    let relEdge = evalState (getBoardPort dir) board
+    let relEdge = evalState (getBoardPortEdge dir) board
     gets (_.lastEvalWithPortInfo >>> M.lookup relEdge >>> fromMaybe { connected: false, port, signal: Signal 0})
 
 liftBoardM :: forall m a. MonadState State m => BoardM a -> m (Either BoardError (Tuple a Board))

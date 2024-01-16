@@ -27,7 +27,7 @@ import Game.Board.PieceInfo (_rotation)
 import Game.Board.RelativeEdge (AbsoluteEdge, RelativeEdge(..), absolute, relative, relativeEdgeDirection, relativeEdgeLocation)
 import Game.Board.Types (Board(..), _pieces, _size)
 import Game.Capacity (Capacity)
-import Game.Direction (CardinalDirection, allDirections, rotateDirection)
+import Game.Direction (CardinalDirection, allDirections, oppositeDirection, rotateDirection)
 import Game.Direction as Direction
 import Game.Edge (Edge(..), matchEdge)
 import Game.Location (Location(..), location)
@@ -143,10 +143,22 @@ getBoardEdgePseudoLocation dir = do
     Direction.Down  -> location (n`div`2) (n)
     Direction.Left  -> location (-1)      (n`div`2)
 
-getBoardPort :: forall m. MonadState Board m => CardinalDirection -> m RelativeEdge
-getBoardPort dir = do
+
+
+
+getBoardPortEdge :: forall m. MonadState Board m => CardinalDirection -> m RelativeEdge
+getBoardPortEdge dir = do
   loc <- getBoardEdgePseudoLocation dir
   pure $ relative loc Direction.Right
+
+getBoardPorts :: forall m. MonadState Board m => m (Map CardinalDirection Port)
+getBoardPorts =
+  M.catMaybes <<< M.fromFoldable <$>
+    for allDirections \dir -> do
+      loc <- getBoardEdgePseudoLocation dir
+      relEdge <- toRelativeEdge (absolute loc (oppositeDirection dir)) >>= adjacentRelativeEdge
+      maybePort <- getPortOnEdge relEdge
+      pure (Tuple dir maybePort)
 
 {-
   Create a bidirectional mapping from inputs to ouptuts ports

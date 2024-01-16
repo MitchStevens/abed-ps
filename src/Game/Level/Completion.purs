@@ -8,12 +8,13 @@ import Data.Bifunctor (lmap)
 import Data.Either (Either(..), fromLeft)
 import Data.Foldable (for_)
 import Data.Map (Map)
-import Data.Maybe (Maybe)
+import Data.Maybe (Maybe(..), fromMaybe, maybe)
 import Game.Board (Board(..), BoardError, EvaluableBoard(..), evaluableBoardPiece, toEvaluableBoard)
+import Game.Capacity (Capacity)
 import Game.Direction (CardinalDirection, allDirections)
 import Game.Level.Problem (Problem)
 import Game.Piece (Piece(..), eval, getPort)
-import Game.Port (Port(..))
+import Game.Port (Port(..), PortType, portCapacity)
 import Game.Signal (Signal(..))
 
 data CompletionStatus
@@ -34,11 +35,12 @@ derive instance Eq CompletionStatus
 --      "differnt port at:" <> show r.dir <> ": " <> showMismatch r
 --    FailedRestriction r -> "Failed restriction " <> r.name <> " with message " <> r.description
 
-type PortMismatch =
-  { dir :: CardinalDirection
-  , received :: Maybe Port
-  , expected :: Maybe Port
-  }
+data PortMismatch
+  = PortExpected { direction :: CardinalDirection, expected :: Port }
+  | NoPortExpected { direction :: CardinalDirection, received :: Port }
+  | IncorrectPortType { direction :: CardinalDirection, capacity :: Capacity, received :: PortType, expected :: PortType }
+  | IncorrectCapacity { direction :: CardinalDirection, portType :: PortType, received :: Capacity, expected :: Capacity }
+derive instance Eq PortMismatch
 
 type FailedTestCase =
   { inputs :: Map CardinalDirection Signal
@@ -65,8 +67,20 @@ checkPortMismatch :: Problem -> Piece -> Either PortMismatch Unit
 checkPortMismatch problem evaluable = for_ allDirections \dir -> do
   let expected = getPort problem.goal dir
   let received = getPort evaluable dir
-  when (expected /= received) do
-    throwError { dir, expected, received }
+  maybe (Right unit) Left (isPortMismatch dir expected received)
+
+isPortMismatch :: CardinalDirection -> Maybe Port -> Maybe Port -> Maybe PortMismatch
+isPortMismatch direction maybeExpected maybeRecieved = case maybeExpected, maybeRecieved of
+  Nothing, Nothing -> Nothing
+  Just expected, Nothing -> Just $ PortExpected { direction, expected }
+  Nothing, Just received -> Just $ NoPortExpected { direction, received }
+  Just (Port expected), Just (Port received) ->
+    if expected.portType /= received.portType
+      then Just $ IncorrectPortType { direction, capacity: received.capacity, expected: expected.portType, received: received.portType }
+    else if  expected.capacity /= received.capacity
+      then Just $ IncorrectCapacity { direction, portType: received.portType, expected: expected.capacity, received: received.capacity }
+    else
+      Nothing
 
 checkOtherRestrictions :: Problem -> Board -> Either FailedRestriction Unit
 checkOtherRestrictions problem board = for_ problem.otherRestrictions \r ->

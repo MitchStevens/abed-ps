@@ -12,6 +12,7 @@ import Control.Monad.Cont (ContT(..), callCC, lift, runContT)
 import Control.Monad.Except (ExceptT(..), runExceptT)
 import Control.Monad.Logger.Class (class MonadLogger, debug, info)
 import Control.Monad.Reader (class MonadAsk, class MonadReader)
+import Control.Monad.State (evalState)
 import Data.Array (intercalate, intersperse)
 import Data.Array as A
 import Data.Bifunctor (lmap)
@@ -33,16 +34,17 @@ import Effect.Aff (delay)
 import Effect.Aff.Class (class MonadAff, liftAff)
 import Effect.Class (class MonadEffect, liftEffect)
 import Effect.Class.Console (log)
-import Game.Board (_size, firstEmptyLocation)
+import Game.Board (Board(..), _size, firstEmptyLocation, getBoardPorts, standardBoard)
 import Game.Direction (CardinalDirection)
 import Game.GameEvent (GameEvent, GameEventStore)
 import Game.Level (LevelId, Level)
 import Game.Level.Completion (CompletionStatus(..), FailedTestCase, isReadyForTesting, runSingleTest)
 import Game.Message (Message(..), green, htmlMessage, message, red)
 import Game.Piece (Piece(..), pieceLookup)
+import Game.Port (Port(..))
 import Game.Signal (Signal(..))
 import GlobalState (GlobalState)
-import Halogen (ClassName(..), Component, HalogenM, HalogenQ, Slot, gets)
+import Halogen (ClassName(..), Component, HalogenM, HalogenQ, Slot, gets, modify_)
 import Halogen as H
 import Halogen.HTML (PlainHTML)
 import Halogen.HTML as HH
@@ -55,13 +57,18 @@ type Input =
   , level :: Level
   }
 
-type State = Input
+type State =
+  { levelId :: LevelId
+  , level :: Level 
+  , completionStatus :: CompletionStatus
+  , boardSize :: Int
+  , boardPorts :: Map CardinalDirection Port
+  }
 
 --data Query a
 
 data Action
   = Initialise
-  | LevelComplete
   | BoardOutput Board.Output
   | SidebarOutput Sidebar.Output
 
@@ -83,14 +90,17 @@ component :: forall q o m
   => Component q Input o m
 component = H.mkComponent { eval , initialState , render }
   where
-  initialState = identity
+  Board initialBoard = standardBoard
+
+
+  initialState {levelId, level } = {levelId, level, completionStatus: NotStarted, boardSize: initialBoard.size, boardPorts: evalState getBoardPorts (Board initialBoard) }
 
   --render :: State -> HalogenM State Action Slots o m Unit
-  render { level, levelId } = HH.div
+  render { level, levelId, completionStatus, boardSize, boardPorts } = HH.div
     [ HP.id "puzzle-component"]
-    [ HH.slot _board    unit Board.component Nothing BoardOutput
+    [ HH.slot _board    unit Board.component { board: Board initialBoard} BoardOutput
     , HH.slot_ _chat    unit Chat.component unit
-    , HH.slot _sidebar  unit Sidebar.component { problem: level.problem, boardSize: 3 } SidebarOutput
+    , HH.slot _sidebar  unit Sidebar.component { problem: level.problem, completionStatus, boardSize, boardPorts } SidebarOutput
     ]
 
   eval :: HalogenQ q Action Input ~> HalogenM State Action Slots o m
@@ -116,27 +126,22 @@ component = H.mkComponent { eval , initialState , render }
       -- make the board component display goal ports
       Piece piece <- H.gets (_.level.problem.goal)
       H.tell _board unit (\_ -> Board.SetGoalPorts piece.ports)
-    LevelComplete -> do
-      H.tell _sidebar unit (\_ -> Sidebar.SetCompletionStatus Completed)
-
-      levelId <-  gets (_.levelId)
-      liftEffect $ Progress.saveLevelProgress levelId Progress.Completed
     BoardOutput (Board.NewBoardState board) -> do
-      -- the sidebar is also update with the current size of the board
-      H.tell _sidebar unit (\_ -> Sidebar.SetBoardSize (board ^. _size))
-
       -- the side bar updates the puzzle completion status, if the board is ready to be
       -- shown, trigger to test is on the sidebar
       problem <- H.gets (_.level.problem)
-      let status = isReadyForTesting problem board
-
-      H.tell _sidebar unit (\_ -> Sidebar.SetCompletionStatus status)
+      modify_ $ _
+        { completionStatus = isReadyForTesting problem board
+        , boardSize = board ^. _size
+        , boardPorts = evalState getBoardPorts board }
     SidebarOutput (Sidebar.PieceDropped pieceId) -> do
       maybeLocation <- H.request _board unit (Board.GetMouseOverLocation)
-      for_ maybeLocation (addPieceToComponent pieceId)
+      for_ maybeLocation \loc -> 
+        H.tell _board unit (\_ -> Board.AddPiece loc (pieceLookup pieceId))
     SidebarOutput (Sidebar.PieceAdded pieceId) -> do
       H.request _board unit Board.GetBoard >>= traverse_ \board ->
-        for_ (firstEmptyLocation board) (addPieceToComponent pieceId)
+        for_ (firstEmptyLocation board) \loc ->
+          H.tell _board unit (\_ -> Board.AddPiece loc (pieceLookup pieceId))
     SidebarOutput Sidebar.BoardSizeIncremented ->
       void $ H.request _board unit Board.IncrementBoardSize
     SidebarOutput Sidebar.BoardSizeDecremented ->
@@ -149,12 +154,17 @@ component = H.mkComponent { eval , initialState , render }
 
       res <- runAllTests problem.goal (L.fromFoldable problem.testCases) eval
 
-      when (isRight res) do
-        sendMessage (htmlMessage "/test" (HH.b_ [HH.text "Tests completed successfully!"]))
-        handleAction LevelComplete
-
-  addPieceToComponent pieceId loc =
-      H.tell _board unit (\_ -> Board.AddPiece loc (pieceLookup pieceId))
+      case res of
+        Left failedTestCase -> do
+          modify_ $ _ { completionStatus = FailedTestCase failedTestCase}
+          pure unit
+        Right _ -> do
+          sendMessage (htmlMessage "/test" (HH.b_ [HH.text "Tests completed successfully!"]))
+          levelId <-  gets (_.levelId)
+          liftEffect $ Progress.saveLevelProgress levelId Progress.Completed
+          modify_ $ _ { completionStatus = Completed }
+      
+        
 
 
 -- this should be CPS but it's fine for small number of inputs

@@ -30,7 +30,7 @@ import Control.Monad.Error.Class (class MonadError, throwError)
 import Control.Monad.Except (ExceptT, runExcept)
 import Control.Monad.Maybe.Trans (MaybeT(..), runMaybeT)
 import Control.Monad.Reader (class MonadReader, ReaderT, asks, runReaderT)
-import Control.Monad.State (class MonadState, State, StateT, evalState, evalStateT, get, gets, modify, modify_, runState)
+import Control.Monad.State (class MonadState, State, StateT, evalState, evalStateT, execState, get, gets, modify, modify_, runState)
 import Data.Either (Either, note)
 import Data.FoldableWithIndex (forWithIndex_)
 import Data.FunctorWithIndex (mapWithIndex)
@@ -50,7 +50,7 @@ import Data.TraversableWithIndex (forWithIndex)
 import Data.Tuple (Tuple(..), snd)
 import Debug (debugger, trace)
 import Game.Board.PseudoPiece (getPsuedoPiecePort, isPseudoInput, isPseudoPiece, psuedoPiece)
-import Game.Board.Query (adjacentRelativeEdge, buildConnectionMap, getBoardEdgePseudoLocation, getPortOnEdge, toRelativeEdge)
+import Game.Board.Query (adjacentRelativeEdge, buildConnectionMap, getBoardEdgePseudoLocation, getBoardPorts, getPortOnEdge, toRelativeEdge)
 import Game.Board.RelativeEdge (RelativeEdge, absolute, relative, relativeEdgeLocation)
 import Game.Board.Types (Board(..), BoardError(..), _pieces)
 import Game.Capacity (Capacity, clampSignal)
@@ -104,15 +104,9 @@ setOuterPort dir signal = void $ runMaybeT do
     let portInfo = { connected: false, port, signal: clampSignal (portCapacity port) signal }
     modify_ (M.insert relEdge portInfo)
 
+
 toEvaluableBoard :: Board -> Either BoardError EvaluableBoard
-toEvaluableBoard board = runExcept $ flip (evalStateT) board do
-  psuedoPiecePorts <- M.catMaybes <<< M.fromFoldable <$>
-    for allDirections \dir -> do
-      loc <- getBoardEdgePseudoLocation dir
-      relEdge <- toRelativeEdge (absolute loc (oppositeDirection dir)) >>= adjacentRelativeEdge
-      maybePort <- getPortOnEdge relEdge
-      pure (Tuple dir maybePort)
-  get >>= buildEvaluableBoard psuedoPiecePorts
+toEvaluableBoard board = runExcept (buildEvaluableBoard (evalState getBoardPorts board) board)
 
 {-
   There are two ways to build an `EvaluableBoard`, either by specifying outer ports or not. If the outer ports are not specified (via the `maybePorts` parameter), outer ports will be created from the pieces adjacent to the outer ports.

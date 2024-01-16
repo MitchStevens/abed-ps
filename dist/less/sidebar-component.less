@@ -1,4 +1,10 @@
 #sidebar-component {
+    & > * {
+        display: inline-flex;
+        justify-content: space-between;
+        width: 100%;
+    }
+
     & .port { color:red; }
     & .direction { color:darkgoldenrod; }
 
@@ -10,7 +16,49 @@
 
         & > div  {
             border: lightgray 2px solid;
-            //padding: lightgray 2px solid;
         }
+    }
+
+    & .completion-status {
+        height: 100px;
+    }
+}
+
+
+.board-port-diagram {
+    @red: #f85b5b;
+    @green: #8af85b;
+    @grey: #8c7777;
+
+    width: 100px;
+    stroke: black;
+    fill: black;
+    flex: none;
+
+
+
+
+    & g[data-port-mismatch='port-expected'] {
+        stroke: @grey;
+        fill: @grey;
+        marker { fill: @grey; }
+    }
+
+    & g[data-port-mismatch='no-port-expected'], g[data-port-mismatch='incorrect-port-type'] {
+        stroke: @red;
+        fill: @red;
+        marker { fill: @red; }
+    }
+
+    & g[data-port-mismatch='incorrect-capacity'] {
+        & text {
+            stroke: @red;
+        }
+    }
+
+    & g[data-port-mismatch='no-mismatch'] {
+        stroke: @green;
+        fill: @green;
+        marker { fill: @green; }
     }
 }

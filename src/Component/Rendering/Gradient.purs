@@ -2,6 +2,7 @@ module Component.Rendering.Gradient where
 
 import Prelude
 
+import Component.Rendering.Colours (portColours)
 import Data.Foldable (intercalate)
 import Game.Capacity (Capacity(..), toInt)
 import Game.Piece as Port
@@ -46,15 +47,10 @@ setAlpha alpha = case _ of
 portColor :: Port -> Signal -> Color
 portColor port signal = (if signal == Signal 0 then shadeColor (-30) else identity) $
   case portCapacity port of
-    OneBit    -> green
-    TwoBit    -> blue
-    FourBit   -> purple
-    EightBit  -> pink
-  where 
-    green   = RGB 117 242 191 -- #7
-    blue    = RGB 120 204 250 -- #
-    purple  = RGB 208 135 221 -- #
-    pink    = RGB 228 100 156 -- #
+    OneBit    -> portColours.teal
+    TwoBit    -> portColours.blue
+    FourBit   -> portColours.purple
+    EightBit  -> portColours.pink
 
 shadeColor :: Int -> Color -> Color
 shadeColor percentage = case _ of
