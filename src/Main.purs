@@ -3,7 +3,6 @@ module Main where
 import Prelude
 
 import AppM (runAppM)
-import Capability.ChatServer (runChatServer)
 import Capability.Navigate (Route(..), navigateTo, routeCodec)
 import Component.Routes as Routes
 import Control.Monad.Error.Class (throwError)

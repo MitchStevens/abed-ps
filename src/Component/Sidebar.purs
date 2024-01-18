@@ -12,17 +12,20 @@ import Prelude
 
 import Capability.Navigate (Route(..), navigateTo)
 import Component.DataAttribute (attr)
+import Component.DataAttribute as DA
 import Component.DataAttribute as DataAttr
 import Component.Piece as Piece
 import Component.Rendering.BoardPortDiagram (renderBoardPortDiagram)
 import Component.Rendering.Piece (renderPiece)
 import Control.Monad.Except (runExceptT)
 import Control.Monad.State.Class (gets, modify_, put)
+import Data.Array (intersperse)
 import Data.Array as A
 import Data.Bifunctor (bimap)
 import Data.Either (Either(..), blush, hush)
 import Data.Filterable (eitherBool)
-import Data.Foldable (find, for_)
+import Data.Foldable (find, for_, intercalate)
+import Data.LimitQueue (LimitQueue)
 import Data.List (List(..), (:))
 import Data.List as L
 import Data.Map (Map)
@@ -30,6 +33,7 @@ import Data.Map as M
 import Data.Maybe (Maybe(..), fromMaybe, maybe)
 import Data.String (Pattern(..), split)
 import Data.Traversable (for)
+import Data.Tuple (Tuple(..), fst, snd)
 import Effect.Aff.Class (class MonadAff)
 import Effect.Class (class MonadEffect, liftEffect)
 import Effect.Class.Console (log)
@@ -38,6 +42,7 @@ import Game.Direction (CardinalDirection)
 import Game.Level.Completion (CompletionStatus(..), FailedTestCase, PortMismatch(..))
 import Game.Level.Problem (Problem)
 import Game.Location (location)
+import Game.Message (green, red)
 import Game.Piece (PieceId(..), name, pieceVault)
 import Game.Port (Port(..))
 import Game.Port as Port
@@ -99,17 +104,20 @@ component :: forall m. MonadAff m => Component Query Input Output m
 component = mkComponent { eval , initialState , render }
   where
   initialState { problem, boardSize, completionStatus, boardPorts } =
-    { problem , completionStatus , boardSize, boardPorts }
+    { problem , completionStatus , boardSize, boardPorts  }
 
   render :: forall s. State -> ComponentHTML Action s m
   render state = 
     HH.div 
       [ HP.id "sidebar-component" ]
       [ HH.h2_ [ HH.text state.problem.title ]
-      , HH.span_ [ renderDescription state.problem.description ]
+      , HH.div_
+        [ renderDescription state.problem.description ]
       , HH.hr_
       , HH.div
-          [ HP.classes [ ClassName "completion-status"] ]
+        [ HP.classes [ ClassName "completion-status"]
+        , DA.attr DA.completionStatus state.completionStatus
+        ]
           [ renderCompletionStatus
           , renderBoardPortDiagram state.problem.goal state.boardPorts
           ]
@@ -167,8 +175,13 @@ component = mkComponent { eval , initialState , render }
                   [ HE.onClick (\_ -> RunTestsClicked) ]
                   [ HH.text "Run Tests"]
               ]
-            FailedTestCase testCase ->
-              [ HH.text "failed test case, render later" ]
+            RunningTest { testIndex, numTests } ->
+              [ HH.b_ [ HH.text "Running tests" ]
+              , HH.br_
+              , HH.text $ "Running "<> show (testIndex+1) <>"/"<> show numTests
+              ]
+            FailedTestCase failedTestCase ->
+              [ renderTestError failedTestCase ]
             Completed ->
               [ HH.text "Level Complete!"
               , HH.button
@@ -182,6 +195,32 @@ component = mkComponent { eval , initialState , render }
               describePort :: Port -> String
               describePort (Port {portType, capacity}) =
                 "an " <> if portType == Port.Input then "input" else "output" <> " of capacity " <> show (toInt capacity)
+
+
+              renderTestSuccess :: Int -> Int -> PlainHTML
+              renderTestSuccess i n = HH.span_ [ green (show i <> "/" <> show n), HH.text " Sucessful" ]
+
+              renderTestError :: FailedTestCase -> ComponentHTML Action s m
+              renderTestError { testIndex, inputs, expected, recieved } = HH.div_
+                [ HH.b_ [ HH.text  $ "Test " <> show (testIndex+1) <> " Failed:" ]
+                , HH.br_
+                , HH.text "inputs: ", printPorts inputs
+                , HH.br_
+                , HH.text "expected: ", printPorts expected
+                , HH.br_
+                , HH.text "recieved: ", printReceivedOutputs
+                ]
+                where
+                  showTuple (Tuple dir signal) = show dir <> ": " <> show signal
+
+                  printPorts m = HH.text $
+                    intercalate ", " $ map showTuple (M.toUnfoldable m :: Array _)
+
+                  printReceivedOutputs = HH.span_ $
+                    intersperse (HH.text ", ") $ (M.toUnfoldable recieved :: Array _) <#> \tuple ->
+                      if M.lookup (fst tuple) expected == Just (snd tuple)
+                        then green (showTuple tuple)
+                        else red (showTuple tuple)
 
 
       renderBoardSize =

@@ -2,7 +2,6 @@ module Game.Level.Problem where
 
 import Prelude
 
-import Capability.ChatServer (sendMessage)
 import Control.Alt (alt)
 import Control.Monad.Except (class MonadError, ExceptT, lift, throwError)
 import Control.Plus (empty)

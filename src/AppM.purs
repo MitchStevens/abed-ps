@@ -2,7 +2,6 @@ module AppM where
 
 import Prelude
 
-import Capability.ChatServer (newChatServer, runChatServer)
 import Control.Apply (applySecond)
 import Control.Monad.Logger.Trans (class MonadLogger, LoggerT, info, lift, runLoggerT)
 import Control.Monad.Reader (class MonadAsk, ReaderT, runReaderT)
@@ -33,10 +32,7 @@ derive newtype instance MonadAsk GlobalState AppM
 derive newtype instance MonadLogger AppM
 
 initialGlobalState :: Aff GlobalState
-initialGlobalState = do
-  chatServer <- liftEffect newChatServer
-  runChatServer chatServer
-  pure { chatServer }
+initialGlobalState = pure {}
 
 runAppM :: forall q i o. Component q i o AppM -> Aff (Component q i o Aff)
 runAppM component = do

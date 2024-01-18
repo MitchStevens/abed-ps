@@ -2,11 +2,13 @@ module Component.DataAttribute where
 
 import Prelude
 
-import Capability.Progress (LevelProgress(..))
+import Capability.Progress (LevelProgress)
+import Capability.Progress as LevelProgress
 import Data.Maybe (Maybe(..))
 import Data.Newtype (unwrap)
 import Data.String (toLower)
 import Game.Direction (CardinalDirection)
+import Game.Level.Completion (CompletionStatus(..))
 import Game.Location (Location(..))
 import Game.Piece (Piece(..), PieceId(..))
 import Halogen.HTML (IProp)
@@ -39,8 +41,8 @@ chatUsername = Attr (AttrName "data-username") identity
 
 progress :: DataAttribute LevelProgress
 progress = Attr (AttrName "data-puzzle-progress") case _ of
-  Completed -> "completed"
-  Incomplete -> "incomplete"
+  LevelProgress.Completed -> "completed"
+  LevelProgress.Incomplete -> "incomplete"
 
 direction :: DataAttribute CardinalDirection
 direction = Attr (AttrName "data-direction") (show >>> toLower)
@@ -50,7 +52,17 @@ connected = Attr (AttrName "data-connected") $
   if _
     then "connected"
     else "not-connected"
-  
+
 isDragging :: DataAttribute Boolean
 isDragging = Attr (AttrName "data-is-dragging") show
 
+completionStatus :: DataAttribute CompletionStatus
+completionStatus = Attr (AttrName "data-completion-status") $ case _ of
+  NotStarted -> "not-started"
+  FailedRestriction _ -> "failed-restriction"
+  NotEvaluable _ -> "not-evaluable"
+  PortMismatch _ -> "port-mismatch"
+  ReadyForTesting -> "ready-for-testing"
+  RunningTest _ -> "running-test"
+  FailedTestCase _ -> "failed-test-case"
+  Completed -> "completed"

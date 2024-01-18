@@ -82,6 +82,11 @@ data Action
   | ToggleInput CardinalDirection
   | IncrementInput CardinalDirection
   | DecrementInput CardinalDirection
+  | SetOutputs (Map CardinalDirection Signal)
+
+  | SetBoard Board
+  | EvaluateBoard
+  | UpdatePieceComponents
 
   | GlobalOnKeyDown KeyboardEvent
   | BoardOnDragExit DragEvent

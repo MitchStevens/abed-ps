@@ -51,7 +51,10 @@ renderBoardPortDiagram goal boardPorts =
     port :: CardinalDirection -> ComponentHTML a s m
     port dir =
       SE.g
-        [ DA.attr portMismatchDataAttribute portMismatch ]
+        [ SA.classes [ ClassName "port" ]
+        , DA.attr portMismatchDataAttribute portMismatch 
+        , DA.attr DA.direction dir
+        ]
         [ defs
         , SE.g [] $
           case portMismatch of

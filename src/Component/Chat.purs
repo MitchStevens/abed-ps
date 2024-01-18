@@ -3,10 +3,9 @@ module Component.Chat where
 import Data.Lens
 import Prelude
 
-import Capability.ChatServer (chatServerEmitter)
 import Component.DataAttribute (attr)
 import Component.DataAttribute as DataAttr
-import Control.Monad.Reader (class MonadAsk, class MonadReader, asks, lift)
+import Control.Monad.Reader (class MonadAsk, class MonadReader, asks, lift, runReaderT)
 import Control.Monad.Rec.Class (class MonadRec, forever)
 import Control.Monad.State (class MonadState, gets, modify, modify_, put)
 import Data.Array as A
@@ -15,17 +14,18 @@ import Data.Enum (class BoundedEnum, fromEnum)
 import Data.Foldable (for_, intercalate, traverse_)
 import Data.Interval (Duration(..))
 import Data.Lens.Record (prop)
-import Data.Maybe (Maybe(..))
+import Data.Maybe (Maybe(..), fromMaybe)
 import Data.Monoid (power)
 import Data.String (length)
 import Data.Time.Duration (Milliseconds(..), Seconds(..), fromDuration)
+import Effect.Aff (forkAff)
 import Effect.Aff as Aff
-import Effect.Aff.Class (class MonadAff)
+import Effect.Aff.Class (class MonadAff, liftAff)
 import Effect.Class (class MonadEffect, liftEffect)
 import Effect.Class.Console (log)
 import Effect.Exception (message)
 import Effect.Now (nowTime)
-import Game.Message (Message(..))
+import Game.Message (Message(..), Conversation)
 import GlobalState (GlobalState)
 import Halogen (ClassName(..), HalogenM, HalogenQ, RefLabel(..), defaultEval, modify_)
 import Halogen as H
@@ -45,17 +45,20 @@ import Web.HTML.HTMLElement (toElement)
 
 maxMessages = 20
 
-type Input = Unit
+type Input =
+  { conversation :: Conversation }
 
 type State =
-  { messages :: Array { timestamp :: Time, message :: Message }
-  , scrollToBottom :: Boolean }
+  { conversation :: Conversation
+  , messages :: Array { timestamp :: Time, user :: String, html :: PlainHTML }
+  , scrollToBottom :: Boolean
+  }
 
 data Query a
 
 data Action
   = Initialise
-  | NewMessage Message
+  | NewMessage { user :: Maybe String, html :: Array PlainHTML }
   | OnScroll Event
 
 data Output
@@ -65,7 +68,7 @@ _messages = prop (Proxy :: Proxy "messages")
 component :: forall m. MonadAsk GlobalState m => MonadAff m => H.Component Query Input Output m
 component = H.mkComponent { eval , initialState , render }
   where
-  initialState _ = { messages: [], scrollToBottom: true } 
+  initialState { conversation } = { conversation, messages: [], scrollToBottom: true } 
 
   render state =  
     HH.div
@@ -75,7 +78,7 @@ component = H.mkComponent { eval , initialState , render }
       ]
       [ HH.table_ (map renderMessage state.messages) ]
   
-  renderMessage {timestamp, message: Message { user, message, selector, delayBy }} =
+  renderMessage { timestamp, user, html } =
     HH.tr_
       [ HH.td [ HP.class_ (ClassName "timestamp") ]
         [ HH.text (showTime timestamp) ]
@@ -83,7 +86,7 @@ component = H.mkComponent { eval , initialState , render }
           [ attr DataAttr.chatUsername user
           , HP.class_ ( ClassName "username" ) ]
           [ HH.div_ [ HH.text user ] ]
-      , HH.td [ HP.class_ (ClassName "message") ] [ fromPlainHTML message ]
+      , HH.td [ HP.class_ (ClassName "message") ] [ fromPlainHTML html ]
       ]
 
   showTime :: Time -> String -- break a leg :D
@@ -97,7 +100,7 @@ component = H.mkComponent { eval , initialState , render }
   eval :: forall slots. HalogenQ Query Action Input ~> HalogenM State Action slots Output m
   eval = H.mkEval
     { handleQuery: case _ of
-      _ -> pure Nothing
+        _ -> pure Nothing
     , handleAction: handleAction
     , initialize: Just Initialise
     , finalize: Nothing
@@ -107,22 +110,17 @@ component = H.mkComponent { eval , initialState , render }
   handleAction :: forall slots. Action -> HalogenM State Action slots Output m Unit
   handleAction = case _ of
     Initialise -> do
-      messageEmitter <- asks (_.chatServer.emitter)
-      void $ H.subscribe (NewMessage <$> messageEmitter)
-
-      H.getHTMLElementRef (RefLabel "chat-component") >>= traverse_ \element -> do
-        liftEffect $ setScrollTop 0.1 (toElement element)
-
-      --{ emitter, listener } <- lift HS.create
-      --observer <- lift $ mutationObserver \records _ -> for_ records (HS.notify listener)
-      --H.getHTMLElementRef (RefLabel "chat-component") >>= traverse_ \element -> do
-      --  observe (toNode element) {} observer
-      --void $ H.subscribe (ComponentMutated <$> emitter)
-
-    NewMessage message@(Message m) -> do
+      {listener, emitter} <- liftEffect HS.create
+      _ <- H.subscribe (NewMessage <$> emitter)
+      conversation <- gets (_.conversation)
+      _ <- liftAff $ forkAff $
+        runReaderT conversation listener
+      pure unit
+    NewMessage { user, html } -> do
       scrollToBottom <- gets (_.scrollToBottom)
       timestamp <- liftEffect nowTime
-      _messages <>= [{ timestamp, message }]
+      _messages <>= [{ timestamp, user: fromMaybe "********" user, html: HH.div_ html}]
+      log "hello from chat"
      -- when scrollToBottom $
       H.getRef (RefLabel "chat-component") >>= traverse_ \element -> do
         height <- liftEffect $ scrollHeight element
@@ -133,7 +131,7 @@ component = H.mkComponent { eval , initialState , render }
         height <- liftEffect $ scrollHeight (toElement element)
         top <- liftEffect $ scrollTop (toElement element)
         modify_ (_ { scrollToBottom = height == top} )
-        when (height == top) (log "we are at the bottom!!")
+        --when (height == top) (log "we are at the bottom!!")
 
 foreign import toLocaleString :: Int -> Int -> Int -> String
 

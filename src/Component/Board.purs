@@ -27,7 +27,7 @@ import Data.Array as A
 import Data.Bifunctor (lmap)
 import Data.Either (Either(..), blush, either, fromRight, hush, isRight)
 import Data.Enum (fromEnum)
-import Data.Foldable (foldMap, for_, traverse_)
+import Data.Foldable (fold, foldMap, for_, traverse_)
 import Data.FoldableWithIndex (foldlWithIndex, foldrWithIndex, forWithIndex_, traverseWithIndex_)
 import Data.FunctorWithIndex (mapWithIndex)
 import Data.HeytingAlgebra (ff, tt)
@@ -209,11 +209,11 @@ component = mkComponent { eval , initialState , render }
         Right (Tuple _ board) -> do
         --updateStore (BoardEvent (AddedPiece loc (name piece)))
       -- raise as a board event so other components can be notified
-          updateBoard board 
+          handleAction (SetBoard board)
       pure Nothing
     RemovePiece loc -> do
       liftBoardM (removePiece loc) >>= traverse_ \(Tuple piece board) -> do
-        updateBoard board 
+        handleAction (SetBoard board)
         -- raise as a board event so other components can be notified
         --updateStore (BoardEvent (RemovedPiece loc (name piece)))
       pure Nothing
@@ -227,150 +227,192 @@ component = mkComponent { eval , initialState , render }
         when (isInput port) do
           _inputs <<< at dir .= Just ff
 
-      evaluateBoard
+      handleAction EvaluateBoard
       pure Nothing
     SetInputs inputs f -> do
       _inputs .= inputs
-      evaluateBoard
+      handleAction EvaluateBoard
       Just <$> f <$> gets (_.outputs)
     IncrementBoardSize f -> do
       liftBoardM increaseSize >>= traverse_ \(Tuple _ board) -> do
-        updateBoard board 
+        handleAction (SetBoard board)
         --updateStore (BoardEvent IncrementSize)
       pure Nothing
     DecrementBoardSize f -> do
       liftBoardM decreaseSize >>= traverse_ \(Tuple _ board) -> do
-        updateBoard board
+        handleAction (SetBoard board)
         --updateStore (BoardEvent DecrementSize)
       pure Nothing
 
-  handleAction :: Action -> HalogenM State Action Slots Output m Unit
-  handleAction = case _ of
-    Initialise -> do
-      emitter <- liftEffect $ globalKeyDownEventEmitter
-      void $ subscribe (GlobalOnKeyDown <$> emitter)
-      raise =<< NewBoardState <$> use _board
-    PieceOutput (Piece.Rotated loc rot) ->
-      liftBoardM (rotatePieceBy loc rot) >>= traverse_ \(Tuple _ board) -> do
-        lift $ debug (tag "rotation" (show rot)) ("Piece rotated at " <> show loc)
-        --updateStore (BoardEvent (RotatedPiece loc rot))
-        updateBoard board
-    PieceOutput (Piece.Dropped src) -> do
-      lift $ debug M.empty ("Piece dropped at " <> show src)
-      -- when a piece is dropped, it can be dropped over a new location or outside the game board 
-      maybeDst <- gets (_.isMouseOverLocation)
-      eitherPiece <- liftBoardM (pieceDropped src maybeDst)
-      case eitherPiece of
-        Left boardError -> do
-          lift $ warn M.empty (show boardError) -- todo: what do we want to do here??
-          Animate.headShake (DA.selector DA.location src)
-        Right _ -> use _board >>= updateBoard
+handleAction :: forall m. MonadAff m => MonadLogger m 
+  => Action -> HalogenM State Action Slots Output m Unit
+handleAction = case _ of
+  Initialise -> do
+    emitter <- liftEffect $ globalKeyDownEventEmitter
+    void $ subscribe (GlobalOnKeyDown <$> emitter)
+    raise =<< NewBoardState <$> use _board
+  PieceOutput (Piece.Rotated loc rot) ->
+    liftBoardM (rotatePieceBy loc rot) >>= traverse_ \(Tuple _ board) -> do
+      lift $ debug (tag "rotation" (show rot)) ("Piece rotated at " <> show loc)
+      --updateStore (BoardEvent (RotatedPiece loc rot))
+      handleAction (SetBoard board)
+  PieceOutput (Piece.Dropped src) -> do
+    lift $ debug M.empty ("Piece dropped at " <> show src)
+    -- when a piece is dropped, it can be dropped over a new location or outside the game board 
+    maybeDst <- gets (_.isMouseOverLocation)
+    eitherPiece <- liftBoardM (pieceDropped src maybeDst)
+    case eitherPiece of
+      Left boardError -> do
+        lift $ warn M.empty (show boardError) -- todo: what do we want to do here??
+        Animate.headShake (DA.selector DA.location src)
+      Right _ -> do
+        board <- use _board
+        handleAction (SetBoard board)
 
 
-    PieceOutput (Piece.NewMultimeterFocus focus) ->
-      tell slot.multimeter unit (\_ -> Multimeter.NewFocus focus)
+  PieceOutput (Piece.NewMultimeterFocus focus) ->
+    tell slot.multimeter unit (\_ -> Multimeter.NewFocus focus)
 
-    -- todo: fix this
-    MultimeterOutput (Multimeter.SetCapacity relativeEdge capacity) -> do
-      board' <- execState (capacityRipple relativeEdge capacity) <$> use _board
-      updateBoard board'
+  -- todo: fix this
+  MultimeterOutput (Multimeter.SetCapacity relativeEdge capacity) -> do
+    board' <- execState (capacityRipple relativeEdge capacity) <$> use _board
+    handleAction (SetBoard board')
 
-        -- update the multimeter after the port has changed
-      signals <- gets (_.lastEvalWithPortInfo)
-      let focus = do
-            info <- M.lookup relativeEdge signals
-            pure { info, relativeEdge }
-        
-      tell slot.multimeter unit (\_ -> Multimeter.NewFocus focus)
+      -- update the multimeter after the port has changed
+    signals <- gets (_.lastEvalWithPortInfo)
+    let focus = do
+          info <- M.lookup relativeEdge signals
+          pure { info, relativeEdge }
+      
+    tell slot.multimeter unit (\_ -> Multimeter.NewFocus focus)
 
-    Undo -> do
-      maybeZipper <- Z.moveLeft <$> gets (_.boardHistory)
-      for_ maybeZipper \t -> do
-        modify_ (_ { boardHistory = t })
-        --updateStore (BoardEvent UndoBoardEvent)
-        evaluateBoard
-    Redo -> do
-      maybeZipper <- Z.moveRight <$> gets (_.boardHistory)
-      for_ maybeZipper \t -> do
-        modify_ (_ { boardHistory = t })
-        --updateStore (BoardEvent UndoBoardEvent)
-        evaluateBoard
+  Undo -> do
+    maybeZipper <- Z.moveLeft <$> gets (_.boardHistory)
+    for_ maybeZipper \t -> do
+      modify_ (_ { boardHistory = t })
+      --updateStore (BoardEvent UndoBoardEvent)
+      handleAction EvaluateBoard
+  Redo -> do
+    maybeZipper <- Z.moveRight <$> gets (_.boardHistory)
+    for_ maybeZipper \t -> do
+      modify_ (_ { boardHistory = t })
+      --updateStore (BoardEvent UndoBoardEvent)
+      handleAction EvaluateBoard
 
-    ToggleInput dir -> do
-      _inputs <<< ix dir %= \signal -> if signal == ff then tt else ff
-      evaluateBoard
-      handleAction (BoardPortOnMouseEnter dir)
-    IncrementInput dir -> do
-      gets (_.boardPorts >>> M.lookup dir) >>= traverse_ \port ->
-        _inputs <<< ix dir %= \signal -> if signal == maxValue (portCapacity port) then ff else signal <> one
-      evaluateBoard
-      handleAction (BoardPortOnMouseEnter dir)
-    DecrementInput dir -> do
-      gets (_.boardPorts >>> M.lookup dir) >>= traverse_ \port ->
-        _inputs <<< ix dir %= \(Signal n) -> if n == 0 then maxValue (portCapacity port) else Signal (n-1)
-      evaluateBoard
-      handleAction (BoardPortOnMouseEnter dir)
+  ToggleInput dir -> do
+    _inputs <<< ix dir %= \signal -> if signal == ff then tt else ff
+    handleAction EvaluateBoard
+  IncrementInput dir -> do
+    gets (_.boardPorts >>> M.lookup dir) >>= traverse_ \port ->
+      _inputs <<< ix dir %= \signal -> if signal == maxValue (portCapacity port) then ff else signal <> one
+    handleAction EvaluateBoard
+  DecrementInput dir -> do
+    gets (_.boardPorts >>> M.lookup dir) >>= traverse_ \port ->
+      _inputs <<< ix dir %= \(Signal n) -> if n == 0 then maxValue (portCapacity port) else Signal (n-1)
+    handleAction EvaluateBoard
+  SetOutputs outputs -> do
+    modify_ $ _ { outputs = outputs }
+    gets (_.isMouseOverBoardPort) >>= traverse_ \dir ->
+      tell slot.multimeter unit (\_ -> Multimeter.SetSignal (fold (M.lookup dir outputs)))
 
-    BoardOnDragExit _ -> do
-      modify_ (_ { isCreatingWire = Nothing })
-      lift $ debug M.empty "Cancelled wire creation"
+  BoardOnDragExit _ -> do
+    modify_ (_ { isCreatingWire = Nothing })
+    lift $ debug M.empty "Cancelled wire creation"
 
-    LocationOnMouseDown loc me -> void $ runMaybeT do
-      eventTarget <- MaybeT $ pure (target (MouseEvent.toEvent me))
-      element <- MaybeT $ pure (fromEventTarget eventTarget)
-      bb <- liftEffect (getBoundingClientRect element)
-      let initialDirection = getDirectionClicked me bb
-      modify_ (_ { isCreatingWire = Just { initialDirection, locations: [loc] } })
-    LocationOnMouseOver loc _ -> do
-      gets (_.isCreatingWire) >>= traverse_ \creatingWire -> do
-        when (last creatingWire.locations /= Just loc) do
-          _wireLocations <>= [loc]
-    LocationOnMouseUp loc me -> void $ runMaybeT do
-      creatingWire <- MaybeT $ gets (_.isCreatingWire)
-      eventTarget <- MaybeT $ pure $ target (MouseEvent.toEvent me)
-      element <- MaybeT $ pure $ fromEventTarget eventTarget
-      bb <- liftEffect (getBoundingClientRect element)
-      let terminalDirection = getDirectionClicked me bb
+  LocationOnMouseDown loc me -> void $ runMaybeT do
+    eventTarget <- MaybeT $ pure (target (MouseEvent.toEvent me))
+    element <- MaybeT $ pure (fromEventTarget eventTarget)
+    bb <- liftEffect (getBoundingClientRect element)
+    let initialDirection = getDirectionClicked me bb
+    modify_ (_ { isCreatingWire = Just { initialDirection, locations: [loc] } })
+  LocationOnMouseOver loc _ -> do
+    gets (_.isCreatingWire) >>= traverse_ \creatingWire -> do
+      when (last creatingWire.locations /= Just loc) do
+        _wireLocations <>= [loc]
+  LocationOnMouseUp loc me -> void $ runMaybeT do
+    creatingWire <- MaybeT $ gets (_.isCreatingWire)
+    eventTarget <- MaybeT $ pure $ target (MouseEvent.toEvent me)
+    element <- MaybeT $ pure $ fromEventTarget eventTarget
+    bb <- liftEffect (getBoundingClientRect element)
+    let terminalDirection = getDirectionClicked me bb
 
-      Tuple pathAdded board <- runState (addBoardPath creatingWire.initialDirection creatingWire.locations terminalDirection) <$> use _board
+    Tuple pathAdded board <- runState (addBoardPath creatingWire.initialDirection creatingWire.locations terminalDirection) <$> use _board
+    when pathAdded do
+      --updateStore (BoardEvent boardEvent)
+      lift $ handleAction (SetBoard board)
+    modify_ $ _ { isCreatingWire = Nothing }
 
-      when pathAdded do
-        --updateStore (BoardEvent boardEvent)
-        lift $ updateBoard board
 
-      modify_ $ _ { isCreatingWire = Nothing }
+  SetBoard board -> do
+    lift $ debug M.empty "Updating board"
+    -- append new board to board history for undo purposes 
+    modify_ $ \s -> s { boardHistory = Z.append board s.boardHistory }
+    handleAction EvaluateBoard
+    -- tell puzzle component that board state has been changed
+    raise (NewBoardState board)
+  EvaluateBoard -> do
+    boardPorts <- gets (_.boardPorts)
+    inputs <- gets (_.inputs)
+    --let inputs = M.mapMaybe (\info -> if isInput info.port then Just info.signal else Nothing) goalPorts
+    eitherEvaluable <- (buildEvaluableBoard boardPorts) <$> use _board
 
-    -- can these events be simplified? do we need all of them?
-    LocationOnDragEnter loc dragEvent -> do
-      liftEffect $ preventDefault (toEvent dragEvent)
-      modify_ (_ { isMouseOverLocation = Just loc } )
-    LocationOnDragOver loc dragEvent -> do
-      liftEffect $ preventDefault (toEvent dragEvent)
-    LocationOnDrop loc dragEvent -> do
-      modify_ (_ { isMouseOverLocation = Just loc } )
-      liftEffect $ preventDefault (toEvent dragEvent)
-    LocationOnDragLeave _ -> do
-      modify_ (_ { isMouseOverLocation = Nothing } )
-    GlobalOnKeyDown ke -> do
-      case key ke of
-        "z" -> when (ctrlKey ke) (handleAction Undo)
-        "y" -> when (ctrlKey ke) (handleAction Redo)
-        "e" -> gets (_.isMouseOverBoardPort) >>= traverse_ \dir ->
-          handleAction (IncrementInput dir)
-        "E" -> gets (_.isMouseOverBoardPort) >>= traverse_ \dir ->
-          handleAction (DecrementInput dir)
-        _ -> pure unit
-    
-    BoardPortOnMouseEnter dir -> do
-      modify_ (_ { isMouseOverBoardPort = Just dir })
-      relativeEdge <- evalState (getBoardPortEdge dir) <$> use _board
-      signals <- gets (_.lastEvalWithPortInfo)
-      let focus = { info: _, relativeEdge } <$> M.lookup relativeEdge signals
-      tell slot.multimeter unit (\_ -> Multimeter.NewFocus focus)
-    BoardPortOnMouseLeave -> do
-      modify_ (_ { isMouseOverBoardPort = Nothing })
-      tell slot.multimeter unit (\_ -> Multimeter.NewFocus Nothing)
-    --DoNothing -> pure unit
+    case eitherEvaluable of      -- update pieces
+      Left boardError -> 
+        -- todo: what should we do when an evaluable can't be created?
+        lift $ warn M.empty ("Unable to build EvaluableBoard, BoardError: " <> show boardError)
+      Right evaluable -> do
+        -- evaluate the evaulable
+        let Tuple outputs signals = runEvaluableM evaluable (evalWithPortInfo inputs)
+        lift $ debug (tag "inputs" (show inputs) `union` tag "outputs" (show outputs)) "Evaluating board"
+        lift $ debug (foldrWithIndex (\relEdge info -> M.insert (show relEdge) (StringTag (show info))) M.empty signals) "Signals from board eval"
+
+        modify_ $ _ { lastEvalWithPortInfo = signals }
+        handleAction (SetOutputs outputs)
+
+        handleAction UpdatePieceComponents
+
+  UpdatePieceComponents -> do
+    lift $ debug M.empty "Updating piece components"
+    signals <- gets (_.lastEvalWithPortInfo)
+    use (_board <<< _pieces) >>= traverseWithIndex_ \loc info -> do
+      let portStates = toLocalInputs loc signals
+      --lift $ debug (tag "port states" (show portStates)) ("update piece at :" <> show loc )
+      tell slot.piece loc (\_ -> Piece.SetPortStates portStates)
+      tell slot.piece loc (\_ -> Piece.SetPiece info.piece)
+      tell slot.piece loc (\_ -> Piece.SetRotation info.rotation)
+
+
+  -- can these events be simplified? do we need all of them?
+  LocationOnDragEnter loc dragEvent -> do
+    liftEffect $ preventDefault (toEvent dragEvent)
+    modify_ (_ { isMouseOverLocation = Just loc } )
+  LocationOnDragOver loc dragEvent -> do
+    liftEffect $ preventDefault (toEvent dragEvent)
+  LocationOnDrop loc dragEvent -> do
+    modify_ (_ { isMouseOverLocation = Just loc } )
+    liftEffect $ preventDefault (toEvent dragEvent)
+  LocationOnDragLeave _ -> do
+    modify_ (_ { isMouseOverLocation = Nothing } )
+  GlobalOnKeyDown ke -> do
+    case key ke of
+      "z" -> when (ctrlKey ke) (handleAction Undo)
+      "y" -> when (ctrlKey ke) (handleAction Redo)
+      "e" -> gets (_.isMouseOverBoardPort) >>= traverse_ \dir ->
+        handleAction (IncrementInput dir)
+      "E" -> gets (_.isMouseOverBoardPort) >>= traverse_ \dir ->
+        handleAction (DecrementInput dir)
+      _ -> pure unit
+  
+  BoardPortOnMouseEnter dir -> do
+    modify_ (_ { isMouseOverBoardPort = Just dir })
+    relativeEdge <- evalState (getBoardPortEdge dir) <$> use _board
+    signals <- gets (_.lastEvalWithPortInfo)
+    let focus = { info: _, relativeEdge } <$> M.lookup relativeEdge signals
+    tell slot.multimeter unit (\_ -> Multimeter.NewFocus focus)
+  BoardPortOnMouseLeave -> do
+    modify_ (_ { isMouseOverBoardPort = Nothing })
+    tell slot.multimeter unit (\_ -> Multimeter.NewFocus Nothing)
+  --DoNothing -> pure unit
 
 -- assumes that DOMRect is squareish
 getDirectionClicked :: MouseEvent -> DOMRect -> CardinalDirection
@@ -383,55 +425,3 @@ getDirectionClicked me bb = case isTopOrRight, isTopOrLeft of
     Tuple x y = Tuple (toNumber (clientX me) - bb.left) (toNumber (clientY me) - bb.top)
     isTopOrRight = x > y
     isTopOrLeft = x + y < bb.width
-
--- if there is a new board, we always want to evaluate it and send the changes to the piece components
-updateBoard :: forall m. MonadLogger m => Board -> HalogenM State Action Slots Output m Unit
-updateBoard board = do
-  lift $ debug M.empty "Updating board"
-  -- append new board to board history for undo purposes 
-  modify_ $ \s -> s { boardHistory = Z.append board s.boardHistory }
-  pieces <- use (_board <<< _pieces)
-  evaluateBoard
-
-  -- tell puzzle component that board state has been changed
-  raise (NewBoardState board)
-
-
-{-
-  given some inputs
--}
-evaluateBoard :: forall m. MonadLogger m => HalogenM State Action Slots Output m Unit
-evaluateBoard = do
-  boardPorts <- gets (_.boardPorts)
-  inputs <- gets (_.inputs)
-  --let inputs = M.mapMaybe (\info -> if isInput info.port then Just info.signal else Nothing) goalPorts
-  eitherEvaluable <- (buildEvaluableBoard boardPorts) <$> use _board
-
-  case eitherEvaluable of      -- update pieces
-    Left boardError -> 
-      -- todo: what should we do when an evaluable can't be created?
-      lift $ warn M.empty ("Unable to build EvaluableBoard, BoardError: " <> show boardError)
-    Right evaluable -> do
-      -- evaluate the evaulable
-      let Tuple outputs signals = runEvaluableM evaluable (evalWithPortInfo inputs)
-      lift $ debug (tag "inputs" (show inputs) `union` tag "outputs" (show outputs)) "Evaluating board"
-      lift $ debug (foldrWithIndex (\relEdge info -> M.insert (show relEdge) (StringTag (show info))) M.empty signals) "Signals from board eval"
-
-      modify_ $ _
-        { lastEvalWithPortInfo = signals
-        , outputs = outputs
-        }
-      
-      updatePieceComponents
-
-
-updatePieceComponents :: forall m. MonadLogger m => HalogenM State Action Slots Output m Unit
-updatePieceComponents = do
-  lift $ debug M.empty "Updating piece components"
-  signals <- gets (_.lastEvalWithPortInfo)
-  use (_board <<< _pieces) >>= traverseWithIndex_ \loc info -> do
-    let portStates = toLocalInputs loc signals
-    --lift $ debug (tag "port states" (show portStates)) ("update piece at :" <> show loc )
-    tell slot.piece loc (\_ -> Piece.SetPortStates portStates)
-    tell slot.piece loc (\_ -> Piece.SetPiece info.piece)
-    tell slot.piece loc (\_ -> Piece.SetRotation info.rotation)

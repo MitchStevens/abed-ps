@@ -94,7 +94,7 @@ firstEmptyLocation board = do
         i <- 0 .. (n - 1)
         pure $ location i j
   let occupied = allOccupiedLocations board
-  A.find (\loc -> S.member loc occupied) allLocations
+  A.find (\loc -> not (S.member loc occupied)) allLocations
 
 closestEmptyLocation :: Board -> Location -> Maybe Location
 closestEmptyLocation board loc = maximumBy (compare `on` (taxicabDistance loc)) emptyLocations
@@ -104,7 +104,7 @@ closestEmptyLocation board loc = maximumBy (compare `on` (taxicabDistance loc)) 
     emptyLocations = do
       j <- 0 .. (n - 1)
       i <- 0 .. (n - 1)
-      if S.member (location i j) occupied then [] else [ location  i j ]
+      if not (S.member (location i j) occupied) then [] else [ location  i j ]
 
 printBoard :: Board -> String
 printBoard (Board b) = "SHOW BOARD\n" <> (foldMap (_ <> "\n") $ interleave colEdges rows )

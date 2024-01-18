@@ -8,7 +8,7 @@ import Data.Align (aligned)
 import Data.Array (elem, range, replicate)
 import Data.Array as A
 import Data.Enum (enumFromTo)
-import Data.Foldable (foldMap, for_)
+import Data.Foldable (foldMap, for_, traverse_)
 import Data.FunctorWithIndex (mapWithIndex)
 import Data.Int (decimal)
 import Data.Map.Internal (Map(..))
@@ -60,7 +60,7 @@ data Action
 
 data Query a
   = NewFocus (Maybe { relativeEdge :: RelativeEdge, info :: PortInfo})
-  -- | ToggleDisplay
+  | SetSignal Signal
 
 data Output
   = SetCapacity RelativeEdge Capacity
@@ -140,11 +140,6 @@ component = H.mkComponent { eval, initialState, render }
               when (key ke == "s") do 
                 modify_ (\s -> s { display = not s.display})
               
-              when (key ke == "=") do
-                log "increment"
-              when (key ke == "-") do
-                log "dec"
-
               when (key ke `elem` ["1", "2", "3", "4"]) do
                 maybeFocus <- gets (_.focus)
                 for_ maybeFocus \{ relativeEdge } -> case key ke of
@@ -158,6 +153,10 @@ component = H.mkComponent { eval, initialState, render }
             NewFocus focus -> do
               modify_ (_ { focus = focus })
               log (show focus)
+              pure Nothing
+            SetSignal signal -> do
+              gets (_.focus) >>= traverse_ \focus ->
+                modify_ $ _ { focus = Just ( focus { info = focus.info { signal = signal } } ) }
               pure Nothing
         }
       )

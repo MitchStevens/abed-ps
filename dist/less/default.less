@@ -6,25 +6,15 @@
 @import "piece-component";
 @import "chat-component";
 @import "sidebar-component";
+@import (less) "driver.css";
 
-body { margin: 0px; }
+body { margin: 0; }
 
 #content {
     min-height: 100vh;
     display: inline-grid;
     grid-template-columns: 1fr 1fr 1fr;
 }
-
-
-@glow-duration: 1s;
-
-@keyframes blink {
-    0% { box-shadow: 0 0 10px 10px #e74747; }
-    50% { box-shadow: none; }
-    66% { box-shadow: 0 0 10px 10px #e74747; }
-}
-
-
 
 #abed {
     user-select: none;
@@ -131,14 +121,4 @@ span.green { color: @green }
     & #title {
         font-size: 20px;
     }
-}
-
-.clearfix {
-  overflow: auto;
-}
-
-.clearfix::after {
-  content: "";
-  clear: both;
-  display: table;
 }

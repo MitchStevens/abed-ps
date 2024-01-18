@@ -14,7 +14,7 @@ import Game.Direction (CardinalDirection)
 import Game.GameEvent (GameEventStore)
 import Game.Level.Problem (Problem, defaultProblem)
 import Game.Level.RulesEngine (Rule)
-import Game.Message (Message)
+import Game.Message (Message, Conversation)
 import Game.Signal (Signal(..))
 import Web.DOM.ParentNode (QuerySelector(..))
 import Web.HTML.Common (AttrName(..))
@@ -27,8 +27,8 @@ type LevelOptions =
 
 type Level =
   { problem :: Problem
-  , boardDeltaRulesEngine :: Array (Rule GameEventStore Message)
-  , conversation :: Array Message
+  --, boardDeltaRulesEngine :: Array (Rule GameEventStore Message)
+  , conversation :: Conversation
   , options :: LevelOptions
   }
 
@@ -44,8 +44,8 @@ defaultLevelOptions =
 defaultLevel :: Level
 defaultLevel = 
   { problem: defaultProblem
-  , boardDeltaRulesEngine: []
-  , conversation: []
+  --, boardDeltaRulesEngine: []
+  , conversation: pure unit
   , options: defaultLevelOptions
   }
 

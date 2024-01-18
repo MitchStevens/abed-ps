@@ -2,7 +2,6 @@ module Component.Level where
 
 import Prelude
 
-import Capability.ChatServer (putQueuedMessages, sendMessage)
 import Capability.Progress as Progress
 import Component.Board as Board
 import Component.Chat as Chat
@@ -17,7 +16,7 @@ import Data.Array (intercalate, intersperse)
 import Data.Array as A
 import Data.Bifunctor (lmap)
 import Data.Either (Either(..), either, isRight)
-import Data.Foldable (foldMap, for_, length, traverse_)
+import Data.Foldable (fold, foldMap, for_, length, traverse_)
 import Data.FoldableWithIndex (forWithIndex_)
 import Data.Int (toNumber)
 import Data.Lens ((^.))
@@ -28,6 +27,7 @@ import Data.Map as M
 import Data.Maybe (Maybe(..), fromMaybe)
 import Data.Time.Duration (Milliseconds(..), Seconds(..))
 import Data.Traversable (for)
+import Data.TraversableWithIndex (forWithIndex)
 import Data.Tuple (Tuple(..), fst, snd)
 import Debug (spy)
 import Effect.Aff (delay)
@@ -39,7 +39,6 @@ import Game.Direction (CardinalDirection)
 import Game.GameEvent (GameEvent, GameEventStore)
 import Game.Level (LevelId, Level)
 import Game.Level.Completion (CompletionStatus(..), FailedTestCase, isReadyForTesting, runSingleTest)
-import Game.Message (Message(..), green, htmlMessage, message, red)
 import Game.Piece (Piece(..), pieceLookup)
 import Game.Port (Port(..))
 import Game.Signal (Signal(..))
@@ -99,7 +98,7 @@ component = H.mkComponent { eval , initialState , render }
   render { level, levelId, completionStatus, boardSize, boardPorts } = HH.div
     [ HP.id "puzzle-component"]
     [ HH.slot _board    unit Board.component { board: Board initialBoard} BoardOutput
-    , HH.slot_ _chat    unit Chat.component unit
+    , HH.slot_ _chat    unit Chat.component { conversation: level.conversation }
     , HH.slot _sidebar  unit Sidebar.component { problem: level.problem, completionStatus, boardSize, boardPorts } SidebarOutput
     ]
 
@@ -120,8 +119,8 @@ component = H.mkComponent { eval , initialState , render }
       lift $ debug M.empty ("initialised level " <> show levelId)
 
       -- initialise the chat server with conversation text
-      initialConversation <- H.gets (_.level.conversation)
-      putQueuedMessages initialConversation
+      -- initialConversation <- H.gets (_.level.conversation)
+
 
       -- make the board component display goal ports
       Piece piece <- H.gets (_.level.problem.goal)
@@ -139,7 +138,8 @@ component = H.mkComponent { eval , initialState , render }
       for_ maybeLocation \loc -> 
         H.tell _board unit (\_ -> Board.AddPiece loc (pieceLookup pieceId))
     SidebarOutput (Sidebar.PieceAdded pieceId) -> do
-      H.request _board unit Board.GetBoard >>= traverse_ \board ->
+      H.request _board unit Board.GetBoard >>= traverse_ \board -> do
+        log (show (firstEmptyLocation board) )
         for_ (firstEmptyLocation board) \loc ->
           H.tell _board unit (\_ -> Board.AddPiece loc (pieceLookup pieceId))
     SidebarOutput Sidebar.BoardSizeIncremented ->
@@ -147,71 +147,50 @@ component = H.mkComponent { eval , initialState , render }
     SidebarOutput Sidebar.BoardSizeDecremented ->
       void $ H.request _board unit Board.DecrementBoardSize
     SidebarOutput Sidebar.TestsTriggered -> do
-      sendMessage (htmlMessage "/test" (HH.b_ [HH.text "Verifying board: running tests..."]))
-
-      let eval inputs = fromMaybe M.empty <$> H.request _board unit (Board.SetInputs inputs)
+      let minTotalTestDurationMs = 2000
       problem <- gets (_.level.problem)
+      let numTests = A.length problem.testCases
+      let delayDuration =  Milliseconds (toNumber (minTotalTestDurationMs `div` numTests))
 
-      res <- runAllTests problem.goal (L.fromFoldable problem.testCases) eval
+      testResult <- runExceptT $ forWithIndex problem.testCases \testIndex testCase  -> do
+        modify_ $ _ { completionStatus = RunningTest { testIndex, numTests } }
+        res <- ExceptT $ runSingleTest problem.goal testIndex testCase testEval
+        liftAff (delay delayDuration)
+        pure res
 
-      case res of
+      case testResult of
         Left failedTestCase -> do
-          modify_ $ _ { completionStatus = FailedTestCase failedTestCase}
-          pure unit
-        Right _ -> do
-          sendMessage (htmlMessage "/test" (HH.b_ [HH.text "Tests completed successfully!"]))
+          modify_ $ _ { completionStatus = FailedTestCase failedTestCase }
+        Right _  -> do
           levelId <-  gets (_.levelId)
           liftEffect $ Progress.saveLevelProgress levelId Progress.Completed
           modify_ $ _ { completionStatus = Completed }
-      
-        
 
+
+  testEval :: Map CardinalDirection Signal -> HalogenM State Action Slots o m (Map CardinalDirection Signal)
+  testEval inputs = fromMaybe M.empty <$> H.request _board unit (Board.SetInputs inputs)
 
 -- this should be CPS but it's fine for small number of inputs
-runAllTests :: forall m. MonadAff m => MonadAsk GlobalState m
-  => Piece -> List (Map CardinalDirection Signal) -> (Map CardinalDirection Signal -> m (Map CardinalDirection Signal)) -> m (Either FailedTestCase Unit)
-runAllTests piece inputs testEval = runTestsAcc 1 inputs
-  where
-    totalTestDurationMs = 2000
-    delayDuration =  Milliseconds (toNumber (totalTestDurationMs `div` length inputs))
-    n = length inputs
-
-    runTestsAcc i = case _ of
-      Nil -> pure (Right unit)
-      --Cons input Nil -> runSingleTest piece input testEval
-      Cons input rest -> do
-        log (show input)
-        result <- runSingleTest piece input testEval
-        liftAff (delay delayDuration)
-        case result of
-          Left err -> do
-            sendMessage (htmlMessage "/test" (renderTestError err i n))
-            pure $ Left err
-          Right _ -> do
-            sendMessage (htmlMessage "/test" (renderTestSuccess i n))
-            runTestsAcc (i+1) rest
-
+--runAllTests :: forall m. MonadAff m => MonadAsk GlobalState m
+--  => Piece -> List (Map CardinalDirection Signal) -> (Map CardinalDirection Signal -> m (Map CardinalDirection Signal)) -> m (Either FailedTestCase Unit)
+--runAllTests piece inputs testEval = runTestsAcc 1 inputs
+--  where
+--    totalTestDurationMs = 2000
+--    n = length inputs
+--
+--    runTestsAcc i = case _ of
+--      Nil -> pure (Right unit)
+--      --Cons input Nil -> runSingleTest piece input testEval
+--      Cons input rest -> do
+--        log (show input)
+--        result <- runSingleTest piece input testEval
+--        liftAff (delay delayDuration)
+--        case result of
+--          Left err -> do
+--            sendMessage (htmlMessage "/test" (renderTestError err i n))
+--            pure $ Left err
+--          Right _ -> do
+--            sendMessage (htmlMessage "/test" (renderTestSuccess i n))
+--            runTestsAcc (i+1) rest
 
 
-renderTestSuccess :: Int -> Int -> PlainHTML
-renderTestSuccess i n = HH.span_ [ green (show i <> "/" <> show n), HH.text " Sucessful" ]
-
-renderTestError :: FailedTestCase -> Int -> Int -> PlainHTML
-renderTestError { inputs, expected, recieved } i n = HH.div_
-  [ HH.div_ [ red (show i <> "/" <> show n) , HH.text " Failed:" ]
-  , HH.div_ [HH.text "  - inputs: ", printPorts inputs]
-  , HH.div_ [HH.text "  - expected outputs: ", printPorts expected]
-  , HH.div_ [HH.text "  - recieved outputs: ", printReceivedOutputs ]
-  ]
-
-  where
-    showTuple (Tuple dir signal) = show dir <> ": " <> show signal
-
-    printPorts m = HH.text $
-      intercalate ", " $ map showTuple (M.toUnfoldable m :: Array _)
-
-    printReceivedOutputs = HH.span_ $
-      intersperse (HH.text ", ") $ (M.toUnfoldable recieved :: Array _) <#> \tuple ->
-        if M.lookup (fst tuple) expected == Just (snd tuple)
-          then green (showTuple tuple)
-          else red (showTuple tuple)
