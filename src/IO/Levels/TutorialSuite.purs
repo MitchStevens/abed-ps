@@ -3,7 +3,7 @@ module IO.Levels.TutorialSuite where
 import Prelude
 
 import Component.DataAttribute (nullSelector, selector)
-import Component.DataAttribute as DataAttr
+import Component.DataAttribute as DA
 import Component.Lesson.Tutorial (addPieceGuide, movePieceGuide, runTestsGuide)
 import Control.Plus ((<|>))
 import Data.FunctorWithIndex (mapWithIndex)
@@ -41,8 +41,8 @@ tutorialSuite = fromHomogeneous
       , conversation = do
           guideMessage "hey. guide here"
           guideMessage "you look a little green? have you played this game before?"
-          needsTutorial <- sendMessage $ button "yes" "Y" true <|> (noUser (HH.text "/") *> button "no" "N" false)
-          if needsTutorial
+          playedBefore <- sendMessage $ button "yes" "Y" true <|> (noUser (HH.text "/") *> button "no" "N" false)
+          if not playedBefore
             then do
               guideMessage "ok, lets get going"
               liftAff (fromEffectFnAff addPieceGuide)
@@ -57,39 +57,6 @@ tutorialSuite = fromHomogeneous
             else do
               guideMessage "ok all g"
               guideMessage "ill leave you to it :)"
-
-
-
---button id text value = Message
-
-      --, boardDeltaRulesEngine =
-      --  let l1 = location 2 1
-      --      l2 = location 0 1
-      --      l3 = location 1 1
-      --  in
-      --    [ Rule (firstTime pieceAdded) $
-      --      fromGuide "move this piece to location (2,1)" #
-      --        _selector .~ Just (selector DataAttr.location l1)
-      --    , Rule (firstTime (pieceMovedTo l1)) $
-      --      fromGuide "add another piece" #
-      --        _selector .~ Just (selector DataAttr.availablePiece idPiece)
-      --    --, Rule (secondTime pieceAdded) $
-      --    --  guiding "move piece to (0, 1)" $
-      --    --    selector DataAttr.location l2
-      --    --, Rule (firstTime (pieceMovedTo l2)) $
-      --    --  guiding "add one more final id piece" $
-      --    --    selector DataAttr.availablePiece (name idPiece)
-      --    --, Rule ((count eq 3 && latest) pieceAdded) $
-      --    --  guiding "move piece to (1, 1)" $
-      --    --    selector DataAttr.location l3
-      --    ]
-      --, conversation = mapWithIndex (\i m -> if i == 0 then m else addDelay m) $
-      --  [ fromGuide "Welcome to ABED!"
-
-      --  ]
-        --[ fromGuide "welcome to ABED! click 'id' to get started adding pieces!" #
-        --  _selector .~ Just (selector DataAttr.availablePiece (name idPiece))
-        --]
       }
   , "Negation":
     defaultLevel
