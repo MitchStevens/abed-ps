@@ -20,14 +20,14 @@ import Test.Spec (Spec, describe, describeOnly, hoistSpec, it)
 import Test.Spec.Assertions (shouldReturn)
 
 testState :: Board.State
-testState = Board.initialState Nothing
+testState = Board.initialState { board: standardBoard } 
 
 spec :: Spec Unit
 spec = hoistSpec identity (\_ -> flip evalStateT testState)  do
   describe "Component.Board.Types" do
     it "boardPortInfo" do
       boardPortInfo `shouldReturn` M.empty
-      put (Board.initialState (Just testBoard))
+      put (Board.initialState { board: testBoard })
       modify_ $ _ { boardPorts = getPorts idPiece }
       gets (_.boardPorts) `shouldReturn` M.fromFoldable
         [ Tuple Direction.Left (inputPort OneBit)

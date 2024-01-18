@@ -20,7 +20,7 @@ import Debug (trace)
 import Effect.Aff (Aff, Error, error)
 import Effect.Aff.Class (class MonadAff)
 import Effect.Class.Console (log)
-import Game.Board (Board(..), RelativeEdge, absolute, addBoardPath, addPiece, adjacentRelativeEdge, execBoardM, getBoardPort, getPortOnEdge, increaseSize, relative, rotatePieceBy, standardBoard, toAbsoluteEdge, toRelativeEdge)
+import Game.Board (Board(..), RelativeEdge, absolute, addBoardPath, addPiece, adjacentRelativeEdge, execBoardM, getBoardPortEdge, getPortOnEdge, increaseSize, relative, rotatePieceBy, standardBoard, toAbsoluteEdge, toRelativeEdge)
 import Game.Capacity (Capacity(..))
 import Game.Direction (CardinalDirection, allDirections)
 import Game.Direction as Direction
@@ -117,9 +117,9 @@ tests = do
           adjacentRelativeEdge (relative (location 0 1) Direction.Right) `shouldReturn` relative (location 1 1) Direction.Left
           adjacentRelativeEdge (relative (location 1 1) Direction.Right) `shouldReturn` relative (location 2 1) Direction.Left
           adjacentRelativeEdge (relative (location 1 0) Direction.Right) `shouldReturn` relative (location 1 1) Direction.Up
-      it "getBoardPort" do
-        getBoardPort Direction.Right `shouldReturn` relative (location 3 1) Direction.Right
-        getBoardPort Direction.Left `shouldReturn` relative (location (-1) 1) Direction.Right
+      it "getBoardPortEdge" do
+        getBoardPortEdge Direction.Right `shouldReturn` relative (location 3 1) Direction.Right
+        getBoardPortEdge Direction.Left `shouldReturn` relative (location (-1) 1) Direction.Right
 
 --      describe "evalBoard" do
 --        let evalBoard inputs = evalBoardScratch inputs >>= extractOutputs
