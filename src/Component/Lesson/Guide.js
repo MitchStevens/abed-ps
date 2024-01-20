@@ -1,18 +1,37 @@
 import { driver } from "driver.js";
 
+const puzzleElement = document.querySelector("#puzzle-component")
+const boardElement = document.querySelector("#board-component")
+const sidebarElement = document.querySelector("#sidebar-component")
+
 abedDriver = function(config) {
   config.allowKeyboardControl = false
   driverObj = driver(config)
+  driverObj.moveNextOnClick = element => () => element.addEventListener("click", () => driverObj.moveNext(), { once: true})
   return driverObj
 }
 
 
+export const boardIsEmpty = () => boardElement.querySelector(".piece-component")
 
+
+function locationElement(x, y) {
+  return boardElement.querySelector("div[data-location='("+ x + "," + y + ")']")
+}
+
+function availablePieceElement(pieceId) {
+  sidebarElement.querySelector("div[data-available-piece='" + pieceId + "']")
+}
+
+export const identityGuide = (onError, onSuccess) => {
+  onSuccess()
+  return function (cancelError, onCancelerError, onCancelerSuccess) {
+    cancel();
+    onCancelerSuccess();
+  };
+}
 
 export const addPieceGuide = (onError, onSuccess) => {
-  const idPiece = document.querySelector("div[data-available-piece='id-piece']")
-  const location00 = document.querySelector("div[data-location='(0,0)']")
-
   const driverObj = driver({
     popoverClass: 'driverjs-theme',
     steps: [
@@ -21,16 +40,16 @@ export const addPieceGuide = (onError, onSuccess) => {
           { description: "Click on the piece"
           , showButtons: []
           },
+        onHighlighted: driverObj.moveNextOnClick(idPiece)
       },
-      { element: location00,
+      { element: elementAtLocation(0, 0),
         popover: { description: "The piece is then added to the first empty slot on the board" }
       }
     ],
-    onDestroyed: () => onSuccess()
+    onDestroyed: onSuccess
   })
 
 
-  idPiece.addEventListener("click", () => { if (driverObj.getActiveIndex() == 0) driverObj.moveNext() }, { once: true})
   driverObj.drive() 
 
   return function (cancelError, onCancelerError, onCancelerSuccess) {
@@ -40,18 +59,12 @@ export const addPieceGuide = (onError, onSuccess) => {
 }
 
 export const movePieceGuide = (onError, onSuccess) => {
-  const portLeft = document.querySelector(".board-port[data-direction='left']")
-  const portRight = document.querySelector(".board-port[data-direction='right']")
+  const portLeft = board.querySelector(".board-port[data-direction='left']")
+  const portRight = board.querySelector(".board-port[data-direction='right']")
+
   const diagram = document.querySelector(".board-port-diagram")
-
-  const diagramLeftPort = document.querySelector("svg.board-port-diagram g[data-direction='left']")
-  const diagramRightPort = document.querySelector("svg.board-port-diagram g[data-direction='right']")
-
-  const idPiece = document.querySelector("div[data-available-piece='id-piece']")
-  const board = document.querySelector("#board-component")
-  const puzzle = document.querySelector("#puzzle-component")
-  const location01 = document.querySelector("div[data-location='(0,1)']")
-  const location11 = document.querySelector("div[data-location='(1,1)']")
+  const diagramLeftPort = diagram.querySelector("g[data-direction='left']")
+  const diagramRightPort = diagram.querySelector("g[data-direction='right']")
 
   const driverObj = abedDriver({
     popoverClass: 'driverjs-theme',
@@ -98,8 +111,6 @@ export const movePieceGuide = (onError, onSuccess) => {
     onDestroyed: () => onSuccess()
   })
 
-
-  
   driverObj.drive() 
   return function (cancelError, onCancelerError, onCancelerSuccess) {
     cancel()
@@ -169,10 +180,9 @@ export const runTestsGuide = (onError, onSuccess) => {
           }).observe(location11, { childList: true})
         }
       }
-    ]
+    ],
+    onDestroyed: () => onSuccess()
   })
-
-
 
   driverObj.drive() 
   return function(cancelError, onCancelerError, onCancelerSuccess) {

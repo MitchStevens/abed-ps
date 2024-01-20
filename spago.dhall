@@ -56,6 +56,7 @@ to generate this file without the comments in this block.
   , "these"
   , "transformers"
   , "tuples"
+  , "typelevel"
   , "unfoldable"
   , "unsafe-coerce"
   , "web-dom"

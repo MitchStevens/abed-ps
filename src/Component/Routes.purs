@@ -70,7 +70,7 @@ component = H.mkComponent { eval, initialState, render }
   initialState _ = { route: Home }
   
   render :: State -> H.ComponentHTML Action Slots m
-  render { route } = trace (show route) \_ -> case route of
+  render { route } = case route of
       Home ->
         HH.slot_ (Proxy :: _ "home") unit Home.component unit
       About ->
