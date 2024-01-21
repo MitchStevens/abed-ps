@@ -1,38 +1,18 @@
-import { driver } from "driver.js";
-import "Elements.js";
+import { availablePiece, locationAt } from "../../../Guide/Elements"
 
-
-abedDriver = function(config) {
-  config.allowKeyboardControl = false
-  driverObj = driver(config)
-  driverObj.moveNextOnClick = element => () => element.addEventListener("click", () => driverObj.moveNext(), { once: true})
-  return driverObj
-}
-
-
-export const boardIsEmpty = () => boardElement.querySelector(".piece-component")
-
-
-function locationElement(x, y) {
-  return boardElement.querySelector("div[data-location='("+ x + "," + y + ")']")
-}
-
-function availablePieceElement(pieceId) {
-  sidebarElement.querySelector("div[data-available-piece='" + pieceId + "']")
-}
 
 export const addPieceGuide = () => {
   const driverObj = driver({
     popoverClass: 'driverjs-theme',
     steps: [
-      { element: idPiece,
+      { element: availablePiece("id-piece")(),
         popover:
           { description: "Click on the piece"
           , showButtons: []
           },
         onHighlighted: driverObj.moveNextOnClick(idPiece)
       },
-      { element: elementAtLocation(0, 0),
+      { element: locationAt(0,0)(),
         popover: { description: "The piece is then added to the first empty slot on the board" }
       }
     ],
@@ -141,9 +121,4 @@ export const runTestsGuide = () => {
   })
 
   driverObj.drive() 
-  return function(cancelError, onCancelerError, onCancelerSuccess) {
-    onCancelerSuccess()
-  }
 }
-
-//export const rotatePieceGuide

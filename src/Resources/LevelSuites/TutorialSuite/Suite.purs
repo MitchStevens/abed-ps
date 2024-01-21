@@ -1,10 +1,9 @@
-module IO.Levels.TutorialSuite where
+module Resources.LevelSuites.TutorialSuite.Suite where
 
 import Prelude
 
 import Component.DataAttribute (nullSelector, selector)
 import Component.DataAttribute as DA
-import Component.Lesson.Tutorial (addPieceGuide, movePieceGuide, runTestsGuide)
 import Control.Plus ((<|>))
 import Data.FunctorWithIndex (mapWithIndex)
 import Data.Lens ((.~))
@@ -24,7 +23,7 @@ import Game.Level.Problem (defaultProblem)
 import Game.Level.RulesEngine (Rule(..))
 import Game.Location (location)
 import Game.Message (Conversation, Message(..), button, guideMessage, noUser, sendMessage)
-import Game.Piece (idPiece, notPiece, orPiece)
+import Game.Piece (idPiece, leftPiece, notPiece, orPiece)
 import Halogen.HTML as HH
 
 tutorialSuite :: LevelSuite
@@ -41,22 +40,22 @@ tutorialSuite = fromHomogeneous
       , conversation = do
           guideMessage "hey. guide here"
           guideMessage "you look a little green? have you played this game before?"
-          playedBefore <- sendMessage $ button "yes" "Y" true <|> (noUser (HH.text "/") *> button "no" "N" false)
-          if not playedBefore
-            then do
-              guideMessage "ok, lets get going"
-              liftAff (fromEffectFnAff addPieceGuide)
-              guideMessage "yep thats how you do it"
-              liftAff (fromEffectFnAff movePieceGuide)
-              guideMessage "looks good...ish"
-              guideMessage "but there's still that hole in the center???"
-              liftAff (fromEffectFnAff runTestsGuide)
-              guideMessage "alrighty, first level complete!"
-              guideMessage "hit 'Back to Level Select' if you enjoyed it"
-              guideMessage "otherwise hit Ctrl+W to do something else. we're not starved for distraction in the internet age"
-            else do
-              guideMessage "ok all g"
-              guideMessage "ill leave you to it :)"
+          --playedBefore <- sendMessage $ button "yes" "Y" true <|> (noUser (HH.text "/") *> button "no" "N" false)
+          --if not playedBefore
+          --  then do
+          --    guideMessage "ok, lets get going"
+          --    liftAff (fromEffectFnAff addPieceGuide)
+          --    guideMessage "yep thats how you do it"
+          --    liftAff (fromEffectFnAff movePieceGuide)
+          --    guideMessage "looks good...ish"
+          --    guideMessage "but there's still that hole in the center???"
+          --    liftAff (fromEffectFnAff runTestsGuide)
+          --    guideMessage "alrighty, first level complete!"
+          --    guideMessage "hit 'Back to Level Select' if you enjoyed it"
+          --    guideMessage "otherwise hit Ctrl+W to do something else. we're not starved for distraction in the internet age"
+          --  else do
+          --    guideMessage "ok all g"
+          --    guideMessage "ill leave you to it :)"
       }
   , "Negation":
     defaultLevel
@@ -83,7 +82,7 @@ tutorialSuite = fromHomogeneous
       { goal = orPiece
       , title = "Two enter, one leaves"
       , description = ""
-      , basicTestCases = [ Direction.Left, Direction.Up ]
+      , testCases = binaryTestInputs [ Direction.Left, Direction.Up ]
       , availablePieces = [ idPiece, orPiece ]
       }
     }
@@ -97,15 +96,5 @@ tutorialSuite = fromHomogeneous
       }
     }
   }
-  
-tutorialConversation :: Conversation
-tutorialConversation = do
-  --guideMessage "ok, lets get going"
-  --liftAff (fromEffectFnAff addPieceGuide)
-  --guideMessage "yep thats how you do it"
-  --liftAff (fromEffectFnAff movePieceGuide)
-  --guideMessage "looks good...ish"
-  --guideMessage "but there's still that hole in the center???"
-  liftAff (fromEffectFnAff runTestsGuide)
   
   

@@ -1,4 +1,4 @@
-module IO.Levels.ShiftingSuite where
+module Resources.LevelSuites.ShiftingSuite where
 
 import Prelude
 

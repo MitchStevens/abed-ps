@@ -16,3 +16,6 @@ export const locationAt = x => y => () =>
 
 export const pieceAt = x => y => () =>
   location(x)(y)().querySelector(".piece-component")
+
+export const availablePiece = pieceId => () =>
+  sidebarElement.querySelector("div[data-available-piece='" + pieceId + "']")

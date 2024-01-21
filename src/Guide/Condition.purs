@@ -1,4 +1,4 @@
-module Component.Lesson.Condition where
+module Guide.Condition where
 
 import Prelude
 
@@ -19,13 +19,13 @@ foreign import data Negate :: Condition -> Condition
 foreign import data BoardIsEmptyCondition :: Condition
 foreign import data PieceAtCondition :: Type -> Type -> Symbol -> Condition
 foreign import data AnyPieceAtCondition :: Type -> Type -> Condition
-foreign import data HasCompletionStatusCondition :: Symbol -> Condition
+foreign import data CompletionStatusEqualsCondition :: Symbol -> Condition
 
-type BoardIsEmpty = ("" :: BoardIsEmptyCondition)
-type PieceAt x y pieceId = ("" :: PieceAtCondition x y pieceId)
-type AnyPieceAt x y = ("" :: AnyPieceAtCondition x y)
-type NoPieceAt x y = ("" :: Negate (AnyPieceAtCondition x y))
-type HasCompletionStatus completionStatus = ("" :: HasCompletionStatusCondition completionStatus)
+type BoardIsEmpty r = ("" :: BoardIsEmptyCondition | r)
+type PieceAt x y pieceId r = ("" :: PieceAtCondition x y pieceId | r)
+type AnyPieceAt x y r = ("" :: AnyPieceAtCondition x y | r)
+type NoPieceAt x y r = ("" :: Negate (AnyPieceAtCondition x y) | r)
+type CompletionStatusEquals completionStatus r = ("" :: CompletionStatusEqualsCondition completionStatus | r)
 
 class Verify :: forall k. k -> Constraint
 class Verify c where
@@ -61,6 +61,6 @@ reflectLocation = "(" <> show (toInt' (Proxy :: Proxy x)) <> "," <> show (toInt'
 
 
 foreign import boardIsEmpty :: Effect Boolean
-foreign import atLocation :: Int -> Int -> Effect (Nullable PieceId)
+foreign import locationAt :: Int -> Int -> Effect (Nullable PieceId)
 foreign import pieceAt :: Int -> Int -> Effect (Nullable Element)
 foreign import completionStatus :: Effect (Nullable String)

@@ -1,4 +1,4 @@
-module IO.Levels.IntermediateSuite where
+module Resources.LevelSuites.IntermediateSuite where
 
 import Prelude
 
