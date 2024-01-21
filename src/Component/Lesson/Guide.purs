@@ -8,8 +8,9 @@ import Data.Typelevel.Num (class Nat, D0, D1)
 import Effect (Effect)
 import Effect.Aff (launchAff_)
 import Effect.Aff.Compat (EffectFnAff, EffectFnCanceler(..), mkEffectFn2, mkEffectFn3, runEffectFn2)
-import Effect.Class (liftEffect)
+import Effect.Class (class MonadEffect, liftEffect)
 import Game.Location (Location(..))
+import Prim.Row (class Union)
 
 {-
   lessons:
@@ -35,12 +36,12 @@ newtype Guide pre post = Guide (Effect Unit)
 --runGuide :: forall post. Guide () post -> Aff Unit
 --runGuide (Guide guide) = liftEffect guide
 
-andThen :: forall a b c r. Verify a => Guide b -> Guide b c -> Guide a c
+andThen :: forall a b c r m. Union b r b' => Verify a => MonadEffect m
+  => Guide a b' m -> Guide b c m -> Guide a c m
 andThen (Guide ab) (Guide bc) = Guide do
     condition <- verifyCondition @a
-    when (not condition) ab
+    when (liftEffect (not condition)) ab
     bc
-       
 
 foreign import addPieceGuide :: forall r. 
   Guide 

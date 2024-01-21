@@ -21,8 +21,6 @@ function availablePieceElement(pieceId) {
   sidebarElement.querySelector("div[data-available-piece='" + pieceId + "']")
 }
 
-export const identityGuide = () => { return; }
-
 export const addPieceGuide = () => {
   const driverObj = driver({
     popoverClass: 'driverjs-theme',
@@ -44,12 +42,6 @@ export const addPieceGuide = () => {
 }
 
 export const movePieceGuide = () => {
-  const portLeft = board.querySelector(".board-port[data-direction='left']")
-  const portRight = board.querySelector(".board-port[data-direction='right']")
-
-  const diagram = document.querySelector(".board-port-diagram")
-  const diagramLeftPort = diagram.querySelector("g[data-direction='left']")
-  const diagramRightPort = diagram.querySelector("g[data-direction='right']")
 
   const driverObj = abedDriver({
     popoverClass: 'driverjs-theme',
@@ -100,21 +92,6 @@ export const movePieceGuide = () => {
 
 
 export const runTestsGuide = () => {
-  const portLeft = document.querySelector(".board-port[data-direction='left']")
-  const portRight = document.querySelector(".board-port[data-direction='right']")
-  const diagram = document.querySelector(".board-port-diagram")
-
-  const diagramLeftPort = document.querySelector("svg.board-port-diagram g[data-direction='left']")
-  const diagramRightPort = document.querySelector("svg.board-port-diagram g[data-direction='right']")
-
-  const idPiece = document.querySelector("div[data-available-piece='id-piece']")
-  const board = document.querySelector("#board-component")
-  const puzzle = document.querySelector("#puzzle-component")
-
-  const completionStatus = document.querySelector("div.completion-status")
-  const location11 = document.querySelector("div[data-location='(1,1)']")
-
-
 
   const driverObj = abedDriver({
     popoverClass: 'driverjs-theme',
@@ -164,4 +141,9 @@ export const runTestsGuide = () => {
   })
 
   driverObj.drive() 
+  return function(cancelError, onCancelerError, onCancelerSuccess) {
+    onCancelerSuccess()
+  }
 }
+
+//export const rotatePieceGuide

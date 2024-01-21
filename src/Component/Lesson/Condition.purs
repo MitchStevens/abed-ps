@@ -10,41 +10,57 @@ import Data.Tuple (Tuple)
 import Data.Typelevel.Num (class Nat, toInt, toInt')
 import Effect (Effect)
 import Game.Level.Completion (CompletionStatus)
+import Game.Piece (PieceId(..))
 import Type.Proxy (Proxy(..))
 import Web.DOM (Element)
 
 data Condition
+foreign import data Negate :: Condition -> Condition
+foreign import data BoardIsEmptyCondition :: Condition
+foreign import data PieceAtCondition :: Type -> Type -> Symbol -> Condition
+foreign import data AnyPieceAtCondition :: Type -> Type -> Condition
+foreign import data HasCompletionStatusCondition :: Symbol -> Condition
 
-foreign import data BoardIsEmpty :: Condition
-foreign import data ExistsPieceAt :: Type -> Type -> Condition
-foreign import data NoPieceAt :: Type -> Type -> Condition
-foreign import data CompletionStatusEquals :: Symbol -> Condition
+type BoardIsEmpty = ("" :: BoardIsEmptyCondition)
+type PieceAt x y pieceId = ("" :: PieceAtCondition x y pieceId)
+type AnyPieceAt x y = ("" :: AnyPieceAtCondition x y)
+type NoPieceAt x y = ("" :: Negate (AnyPieceAtCondition x y))
+type HasCompletionStatus completionStatus = ("" :: HasCompletionStatusCondition completionStatus)
 
-class Verify :: Condition -> Constraint
-class Verify condition where
+class Verify :: forall k. k -> Constraint
+class Verify c where
+  --conditionName :: String
   verifyCondition :: Effect Boolean
 
-instance Verify BoardIsEmpty where
-  verifyCondition = boardIsEmpty
+instance Verify c => Verify (Negate c) where
+  --conditionName = "not (" <> conditionName @c <> ")"
+  verifyCondition = not <$> verifyCondition @c
 
-instance (Nat x, Nat y) => Verify (ExistsPieceAt x y) where
-  verifyCondition = do 
-    element <- pieceAt (toInt' (Proxy :: Proxy x)) (toInt' (Proxy :: Proxy y))
-    pure $ isJust (toMaybe element)
+instance Verify BoardIsEmptyCondition where
+  --conditionName = "Board is empty"
+  verifyCondition = pure false
 
-instance (Nat x, Nat y) => Verify (NoPieceAt x y) where
-  verifyCondition = do 
-    element <- pieceAt (toInt' (Proxy :: Proxy x)) (toInt' (Proxy :: Proxy y))
-    pure $ isNothing (toMaybe element)
+instance (Nat x, Nat y) => Verify (PieceAtCondition x y pieceId) where
+  --conditionName = reflectSymbol (Proxy :: Proxy pieceId) <> " piece at " <> (reflectLocation @x @y)
+  verifyCondition = pure false
 
-instance IsSymbol symbol => Verify (CompletionStatusEquals symbol) where
-  verifyCondition = do
-    status <- toMaybe <$> completionStatus 
-    pure $ (reflectSymbol (Proxy :: Proxy symbol)) `elem` status
 
-foreign import boardIsEmpty  :: Effect Boolean
 
+--instance
+--  ( Verify row1
+--  , Verify row2
+--  , Union row1 row2 row3
+--  , Nub row3 row
+--  ) => Verify row
+--  where
+--  conditionName = "multiple conditions"
+--  verifyCondition = (&&) <$> verifyCondition @row1 <*> verifyCondition @row2
+
+reflectLocation :: forall x y. Nat x => Nat y => String
+reflectLocation = "(" <> show (toInt' (Proxy :: Proxy x)) <> "," <> show (toInt' (Proxy :: Proxy y)) <> ")"
+
+
+foreign import boardIsEmpty :: Effect Boolean
+foreign import atLocation :: Int -> Int -> Effect (Nullable PieceId)
 foreign import pieceAt :: Int -> Int -> Effect (Nullable Element)
-
 foreign import completionStatus :: Effect (Nullable String)
-
