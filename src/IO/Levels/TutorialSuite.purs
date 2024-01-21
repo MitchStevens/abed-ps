@@ -24,7 +24,7 @@ import Game.Level.Problem (defaultProblem)
 import Game.Level.RulesEngine (Rule(..))
 import Game.Location (location)
 import Game.Message (Conversation, Message(..), button, guideMessage, noUser, sendMessage)
-import Game.Piece (idPiece, notPiece)
+import Game.Piece (idPiece, notPiece, orPiece)
 import Halogen.HTML as HH
 
 tutorialSuite :: LevelSuite
@@ -78,58 +78,25 @@ tutorialSuite = fromHomogeneous
           n <- sendMessage $ button "" "click me" 47
           log ("got: " <> show n)
       }
-  --  }
-  --, "Disjunction":
-  --  { problemDescription:
-  --    { goal: mkPiece orPiece
-  --    , title: "Disjunction"
-  --    , description: "dijunction"
-  --    , testCases: basicTestCases
-  --    , requiresAutomaticTesting: false
-  --    , pieceSet: S.fromFoldable [ mkPiece idPiece, mkPiece orPiece ]
-  --    , otherRestrictions: []
-  --    }
-  --  , conversation: []
-  --  }
-  --, "Conjugation":
-  --  { problemDescription:
-  --    { goal: mkPiece andPiece
-  --    , title: "Conjugation"
-  --    , description: "conj"
-  --    , testCases: basicTestCases
-  --    , requiresAutomaticTesting: false
-  --    , pieceSet: S.fromFoldable [ mkPiece idPiece, mkPiece andPiece ]
-  --    , otherRestrictions: []
-  --    }
-  --  , conversation: []
-  --  }
-  --, "Constant True":
-  --  { problemDescription:
-  --    { goal: mkPiece truePiece
-  --    , title: "True"
-  --    , description: "const true"
-  --    , testCases: basicTestCases
-  --    , requiresAutomaticTesting: false
-  --    , pieceSet: S.fromFoldable
-  --        [ mkPiece idPiece, mkPiece notPiece, mkPiece orPiece, mkPiece andPiece ]
-  --    , otherRestrictions: []
-  --    }
-  --  , conversation: []
-  --  }
-  --, "Constant False":
-  --  { problemDescription:
-  --    { goal: mkPiece notPiece
-  --    , title: "Constant False"
-  --    , description: ""
-  --    , testCases: basicTestCases
-  --    , requiresAutomaticTesting: false
-  --    , pieceSet: S.fromFoldable
-  --        [ mkPiece idPiece, mkPiece notPiece, mkPiece orPiece, mkPiece andPiece ]
-  --    , otherRestrictions: []
-  --    }
-  --  , conversation: []
-  --  }
+  , "Two enter, one leaves": defaultLevel
+    { problem = defaultProblem
+      { goal = orPiece
+      , title = "Two enter, one leaves"
+      , description = ""
+      , basicTestCases = [ Direction.Left, Direction.Up ]
+      , availablePieces = [ idPiece, orPiece ]
+      }
     }
+  , "Take a Left": defaultLevel
+    { problem = defaultProblem
+      { goal = leftPiece
+      , title = "Take a Left"
+      , description = ""
+      , testCases = binaryTestInputs [Direction.Left]
+      , availablePieces = [ idPiece, orPiece ]
+      }
+    }
+  }
   
 tutorialConversation :: Conversation
 tutorialConversation = do

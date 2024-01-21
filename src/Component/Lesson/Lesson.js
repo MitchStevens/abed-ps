@@ -190,3 +190,5 @@ export const runTestsGuide = (onError, onSuccess) => {
     onCancelerSuccess()
   }
 }
+
+export const rotatePieceGuide
