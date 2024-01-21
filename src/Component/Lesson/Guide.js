@@ -1,8 +1,6 @@
 import { driver } from "driver.js";
+import "Elements.js";
 
-const puzzleElement = document.querySelector("#puzzle-component")
-const boardElement = document.querySelector("#board-component")
-const sidebarElement = document.querySelector("#sidebar-component")
 
 abedDriver = function(config) {
   config.allowKeyboardControl = false
@@ -23,15 +21,9 @@ function availablePieceElement(pieceId) {
   sidebarElement.querySelector("div[data-available-piece='" + pieceId + "']")
 }
 
-export const identityGuide = (onError, onSuccess) => {
-  onSuccess()
-  return function (cancelError, onCancelerError, onCancelerSuccess) {
-    cancel();
-    onCancelerSuccess();
-  };
-}
+export const identityGuide = () => { return; }
 
-export const addPieceGuide = (onError, onSuccess) => {
+export const addPieceGuide = () => {
   const driverObj = driver({
     popoverClass: 'driverjs-theme',
     steps: [
@@ -46,19 +38,12 @@ export const addPieceGuide = (onError, onSuccess) => {
         popover: { description: "The piece is then added to the first empty slot on the board" }
       }
     ],
-    onDestroyed: onSuccess
   })
 
-
   driverObj.drive() 
-
-  return function (cancelError, onCancelerError, onCancelerSuccess) {
-    cancel();
-    onCancelerSuccess();
-  };
 }
 
-export const movePieceGuide = (onError, onSuccess) => {
+export const movePieceGuide = () => {
   const portLeft = board.querySelector(".board-port[data-direction='left']")
   const portRight = board.querySelector(".board-port[data-direction='right']")
 
@@ -107,19 +92,14 @@ export const movePieceGuide = (onError, onSuccess) => {
       { element: location11,
         popover: { description: "So now we just gotta fill in that gap..." }
       }
-    ],
-    onDestroyed: () => onSuccess()
+    ]
   })
 
   driverObj.drive() 
-  return function (cancelError, onCancelerError, onCancelerSuccess) {
-    cancel()
-    onCancelerSuccess()
-  }
 }
 
 
-export const runTestsGuide = (onError, onSuccess) => {
+export const runTestsGuide = () => {
   const portLeft = document.querySelector(".board-port[data-direction='left']")
   const portRight = document.querySelector(".board-port[data-direction='right']")
   const diagram = document.querySelector(".board-port-diagram")
@@ -180,13 +160,8 @@ export const runTestsGuide = (onError, onSuccess) => {
           }).observe(location11, { childList: true})
         }
       }
-    ],
-    onDestroyed: () => onSuccess()
+    ]
   })
 
   driverObj.drive() 
-  return function(cancelError, onCancelerError, onCancelerSuccess) {
-    cancel()
-    onCancelerSuccess()
-  }
 }

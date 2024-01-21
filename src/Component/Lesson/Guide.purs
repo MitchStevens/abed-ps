@@ -2,9 +2,13 @@ module Component.Lesson.Tutorial where
 
 import Prelude
 
+import Component.Lesson.Condition (class Verify, BoardIsEmpty, CompletionStatusEquals, Condition, ExistsPieceAt, NoPieceAt, verifyCondition)
 import Data.Tuple (Tuple)
+import Data.Typelevel.Num (class Nat, D0, D1)
 import Effect (Effect)
-import Effect.Aff.Compat (EffectFnAff)
+import Effect.Aff (launchAff_)
+import Effect.Aff.Compat (EffectFnAff, EffectFnCanceler(..), mkEffectFn2, mkEffectFn3, runEffectFn2)
+import Effect.Class (liftEffect)
 import Game.Location (Location(..))
 
 {-
@@ -23,41 +27,33 @@ import Game.Location (Location(..))
 
 -}
 
-type BoardIsEmpty = ( boardIsEmpty :: Unit )
-type PieceAt x y = ( pieceAt :: Tuple x y )
 
 
-class Condition c where
-  verifyCondition :: Record c -> Effect Boolean
+newtype Guide :: Row Condition -> Row Condition -> Type
+newtype Guide pre post = Guide (Effect Unit)
 
-instance Condition BoardIsEmpty where
-  verifyCondition _ = pure true
+--runGuide :: forall post. Guide () post -> Aff Unit
+--runGuide (Guide guide) = liftEffect guide
 
+andThen :: forall a b c r. Verify a => Guide b -> Guide b c -> Guide a c
+andThen (Guide ab) (Guide bc) = Guide do
+    condition <- verifyCondition @a
+    when (not condition) ab
+    bc
+       
 
+foreign import addPieceGuide :: forall r. 
+  Guide 
+    ("" :: BoardIsEmpty | r)
+    ("" :: ExistsPieceAt D0 D0 | r)
 
+foreign import movePieceGuide :: forall r. 
+  Guide
+    ("" :: ExistsPieceAt D0 D0, "" :: NoPieceAt D0 D1 | r)
+    ("" :: ExistsPieceAt D0 D1 | r)
 
-newtype Guide (a :: Condition) (b :: Condition) = Guide (EffectFnAff Unit)
---instance Semigroupoid Guide where
---  compose (Guide step1 :: Guide b c) (Guide step2 :: Guide a b) = Guide 
---instance Category Guide where
---  identity = identityGuide 
---  
---  (Guide step1 :: Guide b c) (Guide step2 :: Guide a b)
-
-
-
---runGuide :: forall a. Guide () a -> Aff Unit
---runGuide (Guide step) = 
-
-
-foreign import boardIsEmpty :: Effect Boolean
-
-
-foreign import identityGuide :: forall a. Guide a a
-
-foreign import addPieceGuide :: EffectFnAff Unit
-
-foreign import movePieceGuide :: EffectFnAff Unit
-
-foreign import runTestsGuide :: EffectFnAff Unit
+foreign import runTestsGuide :: forall r.
+  Guide
+    ("" :: CompletionStatusEquals "ready-for-testing" | r)
+    ("" :: CompletionStatusEquals "completed" | r)
 
