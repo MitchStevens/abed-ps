@@ -2,11 +2,7 @@ module Guide.Guide where
 
 import Prelude
 
-import Guide.Condition (class Verify, Condition, verifyCondition)
-import Guide.Lesson (Lesson(..))
-import Control.Monad.Indexed (class IxApplicative, class IxApply, class IxBind, class IxFunctor, class IxMonad, ipure)
 import Control.Monad.Reader (class MonadAsk, class MonadReader, Reader, ReaderT, ask, runReaderT)
-import Data.Indexed (Indexed(..))
 import Data.Tuple (Tuple)
 import Data.Typelevel.Num (class Nat, D0, D1)
 import Effect (Effect)
@@ -14,7 +10,10 @@ import Effect.Aff (Aff, launchAff_)
 import Effect.Aff.Class (class MonadAff, liftAff)
 import Effect.Aff.Compat (EffectFnAff, EffectFnCanceler(..), mkEffectFn2, mkEffectFn3, runEffectFn2)
 import Effect.Class (class MonadEffect, liftEffect)
+import Effect.Class.Console (log)
 import Effect.Exception (throw)
+import Guide.Condition (class Verify, Condition, verifyCondition)
+import Guide.Lesson (Lesson(..))
 import Prim.Row (class Union)
 
 {-
@@ -50,20 +49,18 @@ say message = do
 lesson :: forall pre post. Lesson pre post -> Guide pre post Unit
 lesson (Lesson action) = liftEffect action
 
-
-andThen :: forall a b b' c x y r. Union b r b' => Verify a
+andThen :: forall a b b' c x y. Verify b
   => Guide a b' x -> Guide b c y -> Guide a c y
 andThen ab bc = do
-  condition <- liftEffect (verifyCondition @a)
+  condition <- liftEffect (log "verify condition" *> verifyCondition @b)
+  log (show condition)
   when (not condition) (void ab)
   bc
 
-runGuide :: forall post m a. MonadEffect m => Verify post
+runGuide :: forall post a. Verify post
   => (String -> Effect Unit) -> Guide () post a -> Aff a
 runGuide sendMessage guide = do
   a <- runReaderT guide sendMessage
-  liftEffect do
-    whenM (liftEffect $ verifyCondition @post) do
-      throw "post condition failed!"
+  _ <- liftEffect (verifyCondition @post)
   pure a
   

@@ -1,21 +1,30 @@
-export const puzzleElement  = document.querySelector("#puzzle-component")
-export const boardElement   = document.querySelector("#board-component")
-export const sidebarElement = document.querySelector("#sidebar-component")
+export const puzzleElement  = () => document.querySelector("#puzzle-component")
+export const boardElement   = () => document.querySelector("#board-component")
+export const sidebarElement = () => document.querySelector("#sidebar-component")
 
-export const completionStatus = () => sidebarElement.querySelector("div.completion-status")
+export const completionStatus = () => sidebarElement().querySelector("div.completion-status")
 
-export const boardPortLeft = () => boardElement.querySelector(".board-port[data-direction='left']")
-export const boardPortRight = () => boardElement.querySelector(".board-port[data-direction='right']")
+export const boardPortLeft = () => boardElement().querySelector(".board-port[data-direction='left']")
+export const boardPortRight = () => boardElement().querySelector(".board-port[data-direction='right']")
 
-export const diagram = () => sidebarElement.querySelector(".board-port-diagram")
-export const diagramLeftPort = () => diagram.querySelector("g[data-direction='left']")
-export const diagramRightPort = () => diagram.querySelector("g[data-direction='right']")
+export const diagram = () => 
+  sidebarElement().querySelector(".board-port-diagram")
+export const diagramPortLeft = () =>
+  diagram().querySelector("g[data-direction='left']")
+export const diagramPortRight = () =>
+  diagram().querySelector("g[data-direction='right']")
 
-export const locationAt = x => y => () =>
-  boardElement.querySelector("div[data-location='("+ x + "," + y + ")']")
+export const locationAt = loc => () => {
+  console.log("div[data-location='("+ loc.x + "," + loc.y + ")']")
+  return boardElement().querySelector("div[data-location='("+ loc.x + "," + loc.y + ")']")
+}
 
-export const pieceAt = x => y => () =>
-  location(x)(y)().querySelector(".piece-component")
+export const pieceAt = loc => () =>
+  location(loc)()?.querySelector(".piece-component")?.dataset.pieceId
 
-export const availablePiece = pieceId => () =>
-  sidebarElement.querySelector("div[data-available-piece='" + pieceId + "']")
+export const rotationAt = loc => () =>
+  location(loc)()?.querySelector(".piece-component")?.dataset.rotation
+
+export const availablePiece = pieceId => () => {
+  return sidebarElement().querySelector("div[data-available-piece='" + pieceId + "']")
+}

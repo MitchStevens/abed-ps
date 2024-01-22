@@ -35,7 +35,6 @@ to generate this file without the comments in this block.
   , "halogen-vdom"
   , "identity"
   , "integers"
-  , "indexed-monad"
   , "lists"
   , "maybe"
   , "monad-logger"

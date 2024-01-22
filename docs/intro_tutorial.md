@@ -17,4 +17,4 @@
 ### Post-conditions:
 - location (0,1) contains a piece
 ### Steps
-- high 
+-s  high 

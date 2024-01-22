@@ -16,7 +16,7 @@ import Foreign.Object as O
 import Game.Level (LevelId, LevelSuite)
 import Resources.LevelSuites.IntermediateSuite (intermediateSuite)
 import Resources.LevelSuites.ShiftingSuite (shiftingSuite)
-import Resources.LevelSuites.TutorialSuite (tutorialSuite)
+import Resources.LevelSuites.TutorialSuite.Suite (tutorialSuite)
 import Resources.LevelSuites.TwoBitSuite (twoBitSuite)
 import Web.DOM.ParentNode (QuerySelector(..))
 import Web.HTML.Common (AttrName(..))

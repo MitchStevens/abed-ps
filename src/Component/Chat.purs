@@ -117,10 +117,9 @@ component = H.mkComponent { eval , initialState , render }
         runReaderT conversation listener
       pure unit
     NewMessage { user, html } -> do
-      scrollToBottom <- gets (_.scrollToBottom)
+      --scrollToBottom <- gets (_.scrollToBottom)
       timestamp <- liftEffect nowTime
       _messages <>= [{ timestamp, user: fromMaybe "********" user, html: HH.div_ html}]
-      log "hello from chat"
      -- when scrollToBottom $
       H.getRef (RefLabel "chat-component") >>= traverse_ \element -> do
         height <- liftEffect $ scrollHeight element

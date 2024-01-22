@@ -40,16 +40,3 @@ import Type.Row (type (+))
     - `lesson1` can be combined with `lesson2` if the post-condition of `lesson1` is equal to or stronger than the preconditions on `lesson2`
 -}
 newtype Lesson (pre :: Row Condition) (post :: Row Condition) = Lesson (Effect Unit)
-
-foreign import addPieceGuide :: forall r. Lesson 
-    (BoardIsEmpty + r)
-    (PieceAt D0 D0 "id-piece" + r)
-
-foreign import movePieceGuide :: forall r. Lesson
-  (PieceAt D0 D0 "id-piece" + NoPieceAt D0 D1 + r)
-  (PieceAt D0 D1 "id-piece" + r)
-
-foreign import runTestsGuide :: forall r. Lesson
-  (CompletionStatusEquals "ready-for-testing" r)
-  (CompletionStatusEquals "completed" r)
-

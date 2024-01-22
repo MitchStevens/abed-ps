@@ -11,6 +11,7 @@ import Game.Direction (CardinalDirection)
 import Game.Level.Completion (CompletionStatus(..))
 import Game.Location (Location(..))
 import Game.Piece (Piece(..), PieceId(..))
+import Game.Rotation (Rotation(..))
 import Halogen.HTML (IProp)
 import Halogen.HTML as HP
 import Web.DOM.ParentNode (QuerySelector(..))
@@ -30,6 +31,9 @@ attr (Attr attrName toStr) a = HP.attr attrName (toStr a)
 
 
 -- attributes
+pieceId :: DataAttribute PieceId
+pieceId = Attr (AttrName  "data-piece-id") unwrap
+
 location :: DataAttribute Location
 location = Attr (AttrName "data-location") show
 
@@ -46,6 +50,9 @@ progress = Attr (AttrName "data-puzzle-progress") case _ of
 
 direction :: DataAttribute CardinalDirection
 direction = Attr (AttrName "data-direction") (show >>> toLower)
+
+rotation :: DataAttribute Rotation
+rotation = Attr (AttrName "data-rotation") \(Rotation r) -> show r
 
 connected :: DataAttribute Boolean
 connected = Attr (AttrName "data-connected") $

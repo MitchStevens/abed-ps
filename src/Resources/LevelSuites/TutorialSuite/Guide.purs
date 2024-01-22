@@ -1,18 +1,14 @@
-module Resource.LevelSuites.TutorialSuite.Guide where
+module Resources.LevelSuites.TutorialSuites.Guide where
 
-import Data.Typelevel.Num (D0, D1)
-import Guide.Condition (BoardIsEmpty, CompletionStatusEquals, PieceAt, NoPieceAt)
-import Guide.Lesson (Lesson)
-import Type.Row (type (+))
+import Prelude
 
-foreign import addPieceGuide :: forall r. Lesson
-    (BoardIsEmpty + r)
-    (PieceAt D0 D0 "id-piece" + r)
+import Data.Typelevel.Num (D0)
+import Guide.Condition (NoPieceAt)
+import Guide.Guide (Guide, andThen, lesson)
+import Resource.LevelSuites.TutorialSuite.Guide (addPieceLesson, removePieceLesson)
+  
 
-foreign import movePieceGuide :: forall r. Lesson
-  (PieceAt D0 D0 "id-piece" + NoPieceAt D0 D1 + r)
-  (PieceAt D0 D1 "id-piece" + r)
-
-foreign import runTestsGuide :: forall r. Lesson
-  (CompletionStatusEquals "ready-for-testing" + r)
-  (CompletionStatusEquals "completed" + r)
+firstLevelGuide :: Guide () (NoPieceAt D0 D0 ()) Unit
+firstLevelGuide = 
+  (lesson (removePieceLesson @D0 @D0))
+    `andThen` lesson addPieceLesson
