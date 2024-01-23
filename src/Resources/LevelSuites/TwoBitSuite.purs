@@ -3,7 +3,7 @@ module Resources.LevelSuites.TwoBitSuite where
 import Game
 import Prelude
 
-import Component.DataAttribute (nullSelector, selector)
+import Component.DataAttribute (selector)
 import Component.DataAttribute as DataAttr
 import Data.Map as M
 import Data.Set as S

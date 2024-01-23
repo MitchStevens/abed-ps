@@ -2,7 +2,6 @@ module Resources.LevelSuites.ShiftingSuite where
 
 import Prelude
 
-import Component.DataAttribute (availablePiece, nullSelector, selector)
 import Component.DataAttribute as DataAttr
 import Data.Map as M
 import Data.Set as S

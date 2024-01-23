@@ -2,8 +2,10 @@ module Guide.Elements where
 
 import Prelude
 
+import Component.DataAttribute as DA
 import Data.Nullable (Nullable)
 import Effect (Effect)
+import Game.Direction (CardinalDirection)
 import Game.Location (Location(..))
 import Game.Piece (PieceId(..))
 import Web.DOM (Element, ParentNode)
@@ -12,31 +14,21 @@ import Web.HTML (window)
 import Web.HTML.HTMLElement (toParentNode)
 import Web.HTML.Window (document)
 
-parentNode :: Effect ParentNode
-parentNode = window >>= document <#> toParentNode
+foreign import puzzleElement  :: Effect Element
+foreign import boardElement   :: Effect Element
+foreign import sidebarElement :: Effect Element
 
-puzzleElement :: Effect (Maybe Element)
-puzzleElement = parentNode >>= querySelector (QuerySelector "#puzzle-component")
+foreign import boardPortElementString :: String -> Effect (Nullable Element)
 
-boardElement :: Effect (Maybe Element)
-boardElement = parentNode >>= querySelector (QuerySelector "#puzzle-component")
-
-
-sidebarElement :: Effect (Maybe Element)
-sidebarElement = parentNode >>= querySelector (QuerySelector "#puzzle-component")
-
-completionStatus :: Effect Element
-
-boardPortLeft :: Effect Element
-boardPortRight :: Effect Element
-
-diagram :: Effect Element
-diagramPortLeft :: Effect Element
-diagramPortRight :: Effect Element
+boardPortElement :: CardinalDirection -> Effect (Nullable Element)
+boardPortElement dir = boardPortElementString (DA.print DA.direction dir)
 
 
-locationAt :: Location -> Effect Element
-pieceAt :: Location -> Effect (Nullable PieceId)
-rotationAt :: Location -> Effect (Nullable Int)
+foreign import diagramElement :: Effect (Nullable Element)
+foreign import diagramPortElementString :: String -> Effect (Nullable Element)
 
-availablePiece :: PieceId -> Effect (Nullable Element)
+diagramPortElement :: CardinalDirection -> Effect (Nullable Element)
+diagramPortElement dir = diagramPortElementString (DA.print DA.direction dir)
+
+
+foreign import locationAtElement :: Location -> Effect (Nullable Element)

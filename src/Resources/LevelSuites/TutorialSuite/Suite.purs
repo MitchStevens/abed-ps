@@ -2,7 +2,6 @@ module Resources.LevelSuites.TutorialSuite.Suite where
 
 import Prelude
 
-import Component.DataAttribute (nullSelector, selector)
 import Component.DataAttribute as DA
 import Control.Monad.Reader (ask, lift)
 import Control.Plus ((<|>))
@@ -25,10 +24,9 @@ import Game.Level.RulesEngine (Rule(..))
 import Game.Location (location)
 import Game.Message (Conversation, Message(..), button, guideMessage, noUser, sendMessage)
 import Game.Piece (idPiece, leftPiece, notPiece, orPiece)
-import Guide.Guide (runGuide)
+--import Guide.Guide (runGuide)
 import Halogen.HTML as HH
 import Halogen.Subscription as HS
-import Resource.LevelSuites.TutorialSuite.Guide (firstLevelGuide)
 
 tutorialSuite :: LevelSuite
 tutorialSuite = fromHomogeneous
@@ -45,9 +43,10 @@ tutorialSuite = fromHomogeneous
          -- guideMessage "hey. guide here"
          -- guideMessage "you look a little green? have you played this game before?"
           playedBefore <- sendMessage $ button "yes" "Y" true <|> (noUser (HH.text "/") *> button "no" "N" false)
-          listener <- ask 
-          let guideSays str = HS.notify listener {user: Just "guide", html: [ HH.text str ] }
-          liftAff $ runGuide guideSays firstLevelGuide
+          pure unit
+          --listener <- ask 
+          --let guideSays str = HS.notify listener {user: Just "guide", html: [ HH.text str ] }
+          --liftAff $ runGuide guideSays firstLevelGuide
           --if not playedBefore
           --  then do
           --    guideMessage "ok, lets get going"

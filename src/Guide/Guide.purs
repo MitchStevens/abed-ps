@@ -3,6 +3,9 @@ module Guide.Guide where
 import Prelude
 
 import Control.Monad.Reader (class MonadAsk, class MonadReader, Reader, ReaderT, ask, runReaderT)
+import Data.Exists (Exists, runExists)
+import Data.Foldable (traverse_)
+import Data.Maybe (Maybe(..), maybe)
 import Data.Tuple (Tuple)
 import Data.Typelevel.Num (class Nat, D0, D1)
 import Effect (Effect)
@@ -12,8 +15,6 @@ import Effect.Aff.Compat (EffectFnAff, EffectFnCanceler(..), mkEffectFn2, mkEffe
 import Effect.Class (class MonadEffect, liftEffect)
 import Effect.Class.Console (log)
 import Effect.Exception (throw)
-import Guide.Condition (class Verify, Condition, verifyCondition)
-import Guide.Lesson (Lesson(..))
 import Prim.Row (class Union)
 
 {-
@@ -37,30 +38,27 @@ import Prim.Row (class Union)
   Guide is a collection of lessons and messages from the guide
 
 -}
-type Guide :: Row Condition -> Row Condition -> Type -> Type
-type Guide pre post a = ReaderT (String -> Effect Unit) Aff a
 
+type GuideE e = 
+  { blocker :: Effect (Maybe e) -- reason that the lesson can't complete
+  , action :: e -> ReaderT (String -> Effect Unit) Aff Unit -- actions fire when predicate is `Just e` 
+  }
 
-say :: forall pre. String -> Guide pre pre Unit
+runGuideE :: forall e. GuideE e -> ReaderT (String -> Effect Unit) Aff Unit
+runGuideE {blocker, action} = do
+  liftEffect blocker >>= traverse_ \e ->
+    action e *> runGuideE {blocker, action}
+
+say :: String -> ReaderT (String -> Effect Unit) Aff Unit
 say message = do
   sendMessage <- ask
   liftEffect (sendMessage message)
 
-lesson :: forall pre post. Lesson pre post -> Guide pre post Unit
-lesson (Lesson action) = liftEffect action
 
-andThen :: forall a b b' c x y. Verify b
-  => Guide a b' x -> Guide b c y -> Guide a c y
-andThen ab bc = do
-  condition <- liftEffect (log "verify condition" *> verifyCondition @b)
-  log (show condition)
-  when (not condition) (void ab)
-  bc
-
-runGuide :: forall post a. Verify post
-  => (String -> Effect Unit) -> Guide () post a -> Aff a
-runGuide sendMessage guide = do
-  a <- runReaderT guide sendMessage
-  _ <- liftEffect (verifyCondition @post)
-  pure a
+--runGuide :: forall post a. Verify post
+--  => (String -> Effect Unit) -> Guide () post a -> Aff a
+--runGuide sendMessage guide = do
+--  a <- runReaderT guide sendMessage
+--  _ <- liftEffect (verifyCondition @post)
+--  pure a
   

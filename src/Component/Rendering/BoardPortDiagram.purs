@@ -52,7 +52,7 @@ renderBoardPortDiagram goal boardPorts =
     port dir =
       SE.g
         [ SA.classes [ ClassName "port" ]
-        , DA.attr portMismatchDataAttribute portMismatch 
+        , DA.attr DA.portMismatch portMismatch 
         , DA.attr DA.direction dir
         ]
         [ defs
@@ -80,14 +80,6 @@ renderBoardPortDiagram goal boardPorts =
                 else SA.markerStart $ "url(#arrow" <> show dir  <>")"
             ]
           ]
-    
-        portMismatchDataAttribute = DA.Attr (AttrName "data-port-mismatch") $ case _ of
-          Just (PortExpected _)      -> "port-expected"
-          Just (NoPortExpected _)    -> "no-port-expected"
-          Just (IncorrectPortType _) -> "incorrect-port-type"
-          Just (IncorrectCapacity _) -> "incorrect-capacity"
-          Nothing                    -> "no-mismatch"
-
 
         label capacity =
           let Tuple x y = case dir of

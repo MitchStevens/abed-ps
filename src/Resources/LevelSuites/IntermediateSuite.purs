@@ -2,7 +2,6 @@ module Resources.LevelSuites.IntermediateSuite where
 
 import Prelude
 
-import Component.DataAttribute (availablePiece, nullSelector, selector)
 import Component.DataAttribute as DataAttr
 import Data.Set as S
 import Foreign.Object (fromHomogeneous)
