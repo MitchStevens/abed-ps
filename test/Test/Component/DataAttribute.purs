@@ -31,7 +31,7 @@ roundTripProperty da gen = do
   pure $ runParser (da.attrPrint a) da.attrParse `assertEquals` Right a
 
 spec :: Spec Unit
-spec = describeOnly "Component.DataAttribute" do
+spec = describe "Component.DataAttribute" do
   it "print" do
     DA.print DA.portMismatch (PortExpected { direction: Direction.Up, expected: inputPort OneBit} )
       `shouldEqual` "input-1-port-expected-at-up"

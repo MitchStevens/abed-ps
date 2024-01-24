@@ -21,6 +21,6 @@ genPortMismatch = (oneOf $ cons'
 validPortMismatch :: PortMismatch -> Boolean
 validPortMismatch = case _ of
   PortExpected { direction, expected  } -> true
-  NoPortExpected { direction , received  } -> true
-  IncorrectPortType { direction , capacity , received , expected  } -> received /= expected
-  IncorrectCapacity { direction , portType , received , expected  } -> received /= expected
+  NoPortExpected { direction, received  } -> true
+  IncorrectPortType { direction, capacity, received, expected } -> received /= expected
+  IncorrectCapacity { direction, portType, received, expected } -> received /= expected
