@@ -2,13 +2,18 @@ module Test.Game.Directions where
 
 import Prelude
 
+import Data.Array.NonEmpty (cons')
 import Data.Foldable (for_)
-import Game.Direction (allDirections, clockwiseRotation, oppositeDirection, rotateDirection)
+import Game.Direction (CardinalDirection, allDirections, clockwiseRotation, oppositeDirection, rotateDirection)
 import Game.Direction as Direction
 import Game.Rotation (allRotations, rotation)
+import Test.QuickCheck.Gen (Gen, elements)
 import Test.Spec (Spec, describe, it)
 import Test.Spec.Assertions (shouldEqual, shouldNotEqual)
 import Test.Spec.QuickCheck (quickCheck)
+
+genDirection :: Gen CardinalDirection
+genDirection = elements $ cons' Direction.Up [ Direction.Right, Direction.Down, Direction.Left ]
 
 spec :: Spec Unit
 spec = do

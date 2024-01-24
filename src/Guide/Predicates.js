@@ -4,6 +4,5 @@ export const pieceAt = loc => () =>
 export const rotationAt = loc => () =>
   location(loc)()?.querySelector(".piece-component")?.dataset.rotation
 
-export const availablePiece = pieceId => () => {
-  return sidebarElement().querySelector("div[data-available-piece='" + pieceId + "']")
-}
+export const availablePiece = pieceId => () =>
+  sidebarElement().querySelector("div[data-available-piece='" + pieceId + "']")

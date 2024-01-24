@@ -5,10 +5,11 @@ import Prelude
 import Data.Array (fold)
 import Data.Int (hexadecimal, odd, toStringAs)
 import Data.Int.Bits (complement, shl, shr, (.&.), (.|.))
-import Data.Newtype (over, over2)
+import Data.Newtype (class Newtype, over, over2)
 import Data.String (toUpper)
 
 newtype Signal = Signal Int
+derive instance Newtype Signal _
 derive instance Eq Signal
 derive instance Ord Signal
 

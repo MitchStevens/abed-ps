@@ -41,18 +41,26 @@ import Prim.Row (class Union)
 
 type GuideE e = 
   { blocker :: Effect (Maybe e) -- reason that the lesson can't complete
-  , action :: e -> ReaderT (String -> Effect Unit) Aff Unit -- actions fire when predicate is `Just e` 
+  , action :: e -> ReaderT (String -> Aff Unit) Aff Unit -- actions fire when predicate is `Just e` 
   }
 
-runGuideE :: forall e. GuideE e -> ReaderT (String -> Effect Unit) Aff Unit
+guideBool :: Effect Boolean -> ReaderT (String -> Aff Unit) Aff Unit -> GuideE Unit
+guideBool predicate action =
+  { blocker: (if _ then Nothing else Just unit) <$> predicate 
+  , action: \_ -> action
+  }
+
+runGuideE :: forall e. GuideE e -> ReaderT (String -> Aff Unit) Aff Unit
 runGuideE {blocker, action} = do
   liftEffect blocker >>= traverse_ \e ->
     action e *> runGuideE {blocker, action}
 
-say :: String -> ReaderT (String -> Effect Unit) Aff Unit
+say :: String -> ReaderT (String -> Aff Unit) Aff Unit
 say message = do
   sendMessage <- ask
-  liftEffect (sendMessage message)
+  liftAff (sendMessage message)
+
+
 
 
 --runGuide :: forall post a. Verify post

@@ -2,13 +2,18 @@ module Test.Game.Capacity where
 
 import Prelude
 
+import Data.Array.NonEmpty (cons')
 import Data.Maybe (Maybe(..))
 import Game.Capacity (Capacity(..), clampSignal, doubleCapacity, halveCapacity)
 import Game.Signal (Signal(..))
 import Test.QuickCheck (assertLessThan)
+import Test.QuickCheck.Gen (Gen, elements)
 import Test.Spec (Spec, describe, it)
 import Test.Spec.Assertions (shouldEqual)
 import Test.Spec.QuickCheck (quickCheck)
+
+genCapacity :: Gen Capacity
+genCapacity = elements $ cons' OneBit [ TwoBit, FourBit, EightBit ]
 
 spec :: Spec Unit
 spec = do

@@ -83,7 +83,7 @@ spec =
       liftEffect getName `shouldReturn` null
       runReaderT (runGuideE parentSetNameGuide) log
       liftEffect getName `shouldReturn` (notNull "mitch")
-    itOnly "guess the number" do
+    it "guess the number" do
       guessTheNumber <- liftEffect guessTheNumberGuide
       runReaderT (runGuideE guessTheNumber) log
 

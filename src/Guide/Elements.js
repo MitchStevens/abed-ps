@@ -16,4 +16,3 @@ export const completionStatusElement = () => sidebarElement().querySelector("div
 
 export const locationAtElement = loc => () =>
   boardElement().querySelector("div[data-location='("+ loc.x + "," + loc.y + ")']")
-

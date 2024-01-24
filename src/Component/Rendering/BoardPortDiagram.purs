@@ -8,6 +8,7 @@ import Prelude
 import Component.DataAttribute (DataAttribute)
 import Component.DataAttribute as DA
 import Component.Rendering.Colours (red)
+import Data.Array as A
 import Data.FoldableWithIndex (foldMapWithIndex)
 import Data.Map (Map)
 import Data.Map as M
@@ -51,10 +52,9 @@ renderBoardPortDiagram goal boardPorts =
     port :: CardinalDirection -> ComponentHTML a s m
     port dir =
       SE.g
-        [ SA.classes [ ClassName "port" ]
-        , DA.attr DA.portMismatch portMismatch 
+        ([ SA.classes [ ClassName "port" ]
         , DA.attr DA.direction dir
-        ]
+        ] <> portMismatchAttribute)
         [ defs
         , SE.g [] $
           case portMismatch of
@@ -65,6 +65,8 @@ renderBoardPortDiagram goal boardPorts =
               Nothing -> maybe [] (\(Port { capacity, portType }) -> [ arrow portType, label capacity ]) (M.lookup dir boardPorts)
         ]
       where
+        portMismatchAttribute = maybe [] (A.singleton <<< DA.attr DA.portMismatch) portMismatch
+
         portMismatch = isPortMismatch dir (getPort goal dir) (M.lookup dir boardPorts)
 
         arrow portType = SE.g

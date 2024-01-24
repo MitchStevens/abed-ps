@@ -4,15 +4,24 @@ import Prelude
 
 import Data.Either (Either)
 import Data.Maybe (Maybe)
-import Data.Typelevel.Num (D0)
+import Data.Typelevel.Undefined (undefined)
 import Effect (Effect)
---import Guide.Guide (Guide, andThen, lesson)
---import Resource.LevelSuites.TutorialSuite.Lesson (addPieceLesson, removePieceLesson)
-  
+import Game.Location (Location(..))
+import Game.Rotation (Rotation(..))
+import Guide.Guide (GuideE)
 
+pieceAtRightPort :: GuideE Unit
+pieceAtRightPort = undefined
 
+pieceAtLeftPort :: GuideE Unit
+pieceAtLeftPort = undefined
 
---firstLevelGuide :: Guide () (NoPieceAt D0 D0 ()) Unit
---firstLevelGuide = 
---  (lesson (removePieceLesson @D0 @D0))
---    `andThen` lesson addPieceLesson
+pieceInMiddle :: GuideE Unit
+pieceInMiddle = undefined
+
+rotatePieceTo :: Location -> Rotation -> GuideE Unit
+rotatePieceTo loc rot = undefined
+
+runTests :: GuideE String
+runTests = undefined
+

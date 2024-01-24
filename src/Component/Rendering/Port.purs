@@ -26,7 +26,7 @@ portPath :: PortInfo -> Path
 portPath info =
   { path
   , gradient: createPortGradient info
-  , attrs: DA.attr DA.connected info.connected
+  , attrs: DA.attr DA.isConnected info.connected
   }
   where
     Tuple x0 y0 = if portType info.port == Port.Input then Tuple 40.0 0.0 else  Tuple 10.0 25.0

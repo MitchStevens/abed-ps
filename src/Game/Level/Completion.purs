@@ -7,8 +7,10 @@ import Control.Monad.State (evalState)
 import Data.Bifunctor (lmap)
 import Data.Either (Either(..), fromLeft)
 import Data.Foldable (for_)
+import Data.Generic.Rep (class Generic)
 import Data.Map (Map)
 import Data.Maybe (Maybe(..), fromMaybe, maybe)
+import Data.Show.Generic (genericShow)
 import Game.Board (Board(..), BoardError, EvaluableBoard(..), evaluableBoardPiece, toEvaluableBoard)
 import Game.Capacity (Capacity)
 import Game.Direction (CardinalDirection, allDirections)
@@ -41,7 +43,17 @@ data PortMismatch
   | NoPortExpected { direction :: CardinalDirection, received :: Port }
   | IncorrectPortType { direction :: CardinalDirection, capacity :: Capacity, received :: PortType, expected :: PortType }
   | IncorrectCapacity { direction :: CardinalDirection, portType :: PortType, received :: Capacity, expected :: Capacity }
+derive instance Generic PortMismatch _
 derive instance Eq PortMismatch
+instance Show PortMismatch where
+  show = genericShow
+
+
+--validPortMismatch = case _ of
+--  PortExpected { direction, expected  } -> true
+--  NoPortExpected { direction, received  } -> true
+--  IncorrectPortType { direction, capacity, received, expected } -> received /= expected
+--  IncorrectCapacity { direction, portType, received, expected } -> received /= expected
 
 type RunningTest = { testIndex :: Int, numTests :: Int }
 

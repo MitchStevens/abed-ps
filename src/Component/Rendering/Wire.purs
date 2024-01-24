@@ -102,7 +102,7 @@ wirePath ports = { path, gradient, attrs }
     info = fromMaybe' (\_ -> unsafeCrashWith $ "assertion failed: wire path created with no inputs. ports: " <> show ports) 
               (find (\portInfo -> isInput portInfo.port) ports)
     gradient = createPortGradient info
-    attrs = DA.attr DA.connected info.connected
+    attrs = DA.attr DA.isConnected info.connected
 
 
 

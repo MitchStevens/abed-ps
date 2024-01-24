@@ -6,9 +6,11 @@ import Data.Enum (class BoundedEnum, class Enum, Cardinality(..))
 import Data.Group (class Group)
 import Data.Int (toNumber)
 import Data.Maybe (Maybe(..))
+import Data.Newtype (class Newtype)
 import Data.Number (pi)
 
 newtype Rotation = Rotation Int
+derive instance Newtype Rotation _
 derive instance Eq Rotation 
 derive instance Ord Rotation 
 

@@ -12,14 +12,16 @@ import Data.Tuple (Tuple(..))
 import Game.Direction (allDirections, oppositeDirection)
 import Game.Direction as Direction
 import Game.Location (Location(..), directionTo, followDirection, location)
+import Test.QuickCheck.Gen (Gen, chooseInt)
 import Test.Spec (Spec, describe, it)
 import Test.Spec.Assertions (shouldEqual, shouldNotEqual)
 import Test.Spec.QuickCheck (quickCheck)
 
-n = 3
+genLocation :: Gen Location
+genLocation = location <$> chooseInt 0 10 <*> chooseInt 0 10
 
 allLocations :: Array Location
-allLocations = location <$> 0 .. (n-1) <*> 0 .. (n-1)
+allLocations = location <$> 0 .. 10 <*> 0 .. 10
 
 spec :: Spec Unit
 spec = do

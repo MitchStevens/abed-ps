@@ -138,7 +138,7 @@ component = mkComponent { eval , initialState , render }
           let input = { piece, location: location 0 0, portStates: M.empty }
               pieceId = name piece
           in HH.div 
-            [ attr DataAttr.availablePiece piece
+            [ attr DataAttr.availablePiece (name piece)
             , HP.draggable true
             , HP.classes [ ClassName "available-piece" ]
             , HE.onDragEnd (PieceOnDrop pieceId)
