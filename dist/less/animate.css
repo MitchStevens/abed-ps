@@ -2610,7 +2610,7 @@
   -webkit-animation-name: flip;
   animation-name: flip;
 }
-@-webkit-keyframes flipInX {
+@-webkit-keyframes fadeIn {
   from {
     -webkit-transform: perspective(400px) rotate3d(1, 0, 0, 90deg);
     transform: perspective(400px) rotate3d(1, 0, 0, 90deg);

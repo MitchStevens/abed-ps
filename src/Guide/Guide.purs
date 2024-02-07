@@ -2,20 +2,21 @@ module Guide.Guide where
 
 import Prelude
 
-import Control.Monad.Reader (class MonadAsk, class MonadReader, Reader, ReaderT, ask, runReaderT)
-import Data.Exists (Exists, runExists)
-import Data.Foldable (traverse_)
+import Control.Monad.Reader (class MonadAsk, class MonadReader, class MonadTrans, Reader, ReaderT, ask, lift, runReaderT)
+import Control.Monad.Rec.Class (class MonadRec, Step(..), tailRecM)
+import Control.Monad.Writer (class MonadTell)
+import Data.Foldable (class Foldable, foldM, traverse_)
+import Data.List (List)
 import Data.Maybe (Maybe(..), maybe)
+import Data.Traversable (class Traversable)
 import Data.Tuple (Tuple)
-import Data.Typelevel.Num (class Nat, D0, D1)
 import Effect (Effect)
 import Effect.Aff (Aff, launchAff_)
 import Effect.Aff.Class (class MonadAff, liftAff)
-import Effect.Aff.Compat (EffectFnAff, EffectFnCanceler(..), mkEffectFn2, mkEffectFn3, runEffectFn2)
 import Effect.Class (class MonadEffect, liftEffect)
 import Effect.Class.Console (log)
 import Effect.Exception (throw)
-import Prim.Row (class Union)
+import Game.Location (Location(..))
 
 {-
   lessons:
@@ -36,37 +37,39 @@ import Prim.Row (class Union)
 
 {-
   Guide is a collection of lessons and messages from the guide
+  speaking messages is effectful and needs to be injected later
 
--}
 
-type GuideE e = 
-  { blocker :: Effect (Maybe e) -- reason that the lesson can't complete
-  , action :: e -> ReaderT (String -> Aff Unit) Aff Unit -- actions fire when predicate is `Just e` 
-  }
+  A guide will run over and over again until it's loop invariant (called condition) is false. in a different language this would be:
+    `while condition { action }`
 
-guideBool :: Effect Boolean -> ReaderT (String -> Aff Unit) Aff Unit -> GuideE Unit
-guideBool predicate action =
-  { blocker: (if _ then Nothing else Just unit) <$> predicate 
-  , action: \_ -> action
-  }
+  We can compose two
 
-runGuideE :: forall e. GuideE e -> ReaderT (String -> Aff Unit) Aff Unit
-runGuideE {blocker, action} = do
-  liftEffect blocker >>= traverse_ \e ->
-    action e *> runGuideE {blocker, action}
+  {P}while A do S done{~A ^ P}   ^   {Q}while B do T done{~B ^ Q}
 
-say :: String -> ReaderT (String -> Aff Unit) Aff Unit
-say message = do
-  sendMessage <- ask
-  liftAff (sendMessage message)
 
 
 
 
---runGuide :: forall post a. Verify post
---  => (String -> Effect Unit) -> Guide () post a -> Aff a
---runGuide sendMessage guide = do
---  a <- runReaderT guide sendMessage
---  _ <- liftEffect (verifyCondition @post)
---  pure a
-  
+-}
+
+
+
+newtype GuideM m a = Guide (ReaderT (String -> m Unit) m a)
+derive newtype instance Functor m => Functor (GuideM m)
+derive newtype instance Apply m => Apply (GuideM m)
+derive newtype instance Applicative m => Applicative (GuideM m)
+derive newtype instance Bind m => Bind (GuideM m)
+derive newtype instance Monad m => Monad (GuideM m)
+derive newtype instance Monad m => MonadAsk (String -> m Unit) (GuideM m)
+derive newtype instance MonadEffect m => MonadEffect (GuideM m)
+derive newtype instance MonadRec m => MonadRec (GuideM m)
+instance MonadTrans GuideM where
+  lift ma = Guide (lift ma)
+instance Monad m => MonadTell String (GuideM m) where
+  tell msg = do
+    say <- ask
+    lift $ say msg
+
+runGuide :: forall m a. GuideM m a -> (String -> m Unit) -> m a
+runGuide (Guide guide) say = runReaderT guide say

@@ -10,7 +10,7 @@ import Data.Lens ((.~))
 import Data.Maybe (Maybe(..))
 import Data.Set as S
 import Data.Time.Duration (Milliseconds(..))
-import Effect.Aff (delay)
+import Effect.Aff (delay, parallel, sequential)
 import Effect.Aff.Class (liftAff)
 import Effect.Aff.Compat (fromEffectFnAff)
 import Effect.Class (liftEffect)
@@ -24,9 +24,12 @@ import Game.Level.RulesEngine (Rule(..))
 import Game.Location (location)
 import Game.Message (Conversation, Message(..), button, guideMessage, noUser, sendMessage)
 import Game.Piece (idPiece, leftPiece, notPiece, orPiece)
---import Guide.Guide (runGuide)
+import Guide.Event (failedTestCaseEvent, levelStartedEvent, pieceAddedEvent, pieceRemovedEvent, readyForTestingEvent)
+import Guide.Guide (runGuide)
+import Guide.Overlay (addPieceOverlay, backToLevelSelectOverlay, movePieceFromToOverlay, runTestsOverlay)
 import Halogen.HTML as HH
 import Halogen.Subscription as HS
+import Resources.LevelSuites.TutorialSuites.Guide (firstLevelGuide)
 
 tutorialSuite :: LevelSuite
 tutorialSuite = fromHomogeneous
@@ -43,9 +46,19 @@ tutorialSuite = fromHomogeneous
          -- guideMessage "hey. guide here"
          -- guideMessage "you look a little green? have you played this game before?"
           playedBefore <- sendMessage $ button "yes" "Y" true <|> (noUser (HH.text "/") *> button "no" "N" false)
-          pure unit
-          --listener <- ask 
-          --let guideSays str = HS.notify listener {user: Just "guide", html: [ HH.text str ] }
+          listener <- ask 
+          let say str = HS.notify listener {user: Just "guide", html: [ HH.text str ] }
+          --liftAff (movePieceFromToOverlay (location 0 0) (location  0 1))
+          --liftAff addPieceOverlay
+          --liftAff (movePieceFromToOverlay (location 0 0) (location 0 1))
+          liftAff $ addPieceOverlay
+          liftAff $ movePieceFromToOverlay (location 0 0) (location 0 1)
+          liftAff $ runTestsOverlay
+          liftAff $ backToLevelSelectOverlay
+
+
+
+          --liftEffect $ runGuide firstLevelGuide say
           --liftAff $ runGuide guideSays firstLevelGuide
           --if not playedBefore
           --  then do

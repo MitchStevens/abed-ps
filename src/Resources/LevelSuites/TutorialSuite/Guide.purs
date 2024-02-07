@@ -2,26 +2,34 @@ module Resources.LevelSuites.TutorialSuites.Guide where
 
 import Prelude
 
-import Data.Either (Either)
-import Data.Maybe (Maybe)
-import Data.Typelevel.Undefined (undefined)
+import Control.Monad.Cont (class MonadCont, callCC, lift, runContT)
+import Control.Monad.Maybe.Trans (MaybeT(..), runMaybeT)
+import Control.Monad.Rec.Class (class MonadRec, untilJust)
+import Control.Monad.Writer (tell)
+import Data.Maybe (Maybe(..))
 import Effect (Effect)
-import Game.Location (Location(..))
-import Game.Rotation (Rotation(..))
-import Guide.Guide (GuideE)
+import Effect.Class (class MonadEffect, liftEffect)
+import Game.Location (location)
+import Game.Piece (idPiece)
+import Guide.Guide (GuideM)
 
-pieceAtRightPort :: GuideE Unit
-pieceAtRightPort = undefined
+foreign import addIdPieceLesson :: Effect Unit
+foreign import movePieceToLeftLesson :: Effect Unit
 
-pieceAtLeftPort :: GuideE Unit
-pieceAtLeftPort = undefined
+{-
+add and move id piece
+move left piece
+rotate left piece
+add id piece
+move right piece
+rotate left piece
+-}
 
-pieceInMiddle :: GuideE Unit
-pieceInMiddle = undefined
 
-rotatePieceTo :: Location -> Rotation -> GuideE Unit
-rotatePieceTo loc rot = undefined
-
-runTests :: GuideE String
-runTests = undefined
-
+  --[ conditionalAction (pieceAtEquals (location 0 0) idPiece) do
+  --    tell "lesson uno: adding pieces to the board"
+  --    liftEffect addIdPieceLesson
+  --, conditionalAction (pieceAtEquals (location 0 0) idPiece && noPieceAt (location 0 1)) do
+  --    tell "Now lets trying moving the piece into position"
+  --    liftEffect movePieceToLeftLesson
+  --]

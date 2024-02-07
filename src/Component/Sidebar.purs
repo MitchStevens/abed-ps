@@ -172,7 +172,8 @@ component = mkComponent { eval , initialState , render }
             ReadyForTesting ->
               [ HH.text "Ready for testing: "
               , HH.button
-                  [ HE.onClick (\_ -> RunTestsClicked) ]
+                  [ HP.class_ (ClassName "ready-for-testing")
+                  , HE.onClick (\_ -> RunTestsClicked) ]
                   [ HH.text "Run Tests"]
               ]
             RunningTest { testIndex, numTests } ->
@@ -185,10 +186,12 @@ component = mkComponent { eval , initialState , render }
             Completed ->
               [ HH.text "Level Complete!"
               , HH.button
-                  [ HE.onClick (\_ -> RunTestsClicked) ]
+                  [ HP.class_ (ClassName "run-tests-again")
+                  , HE.onClick (\_ -> RunTestsClicked) ]
                   [ HH.text "Run Tests again"]
               , HH.button
-                  [ HE.onClick (\_ -> BackToLevelSelect) ]
+                  [ HP.class_ (ClassName "back-to-level-select")
+                  , HE.onClick (\_ -> BackToLevelSelect) ]
                   [ HH.text "Back to Level Select "]
               ]
             where

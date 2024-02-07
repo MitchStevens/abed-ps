@@ -1,20 +1,30 @@
-# Add piece tutorial
-### Pre-conditions:
-- Board is empty
-### Post-conditions:
-- Board has one piece in the upper left hand corner
-### Steps
-- highlight IdPiece
-    - nextOn: piece added to (0,0) 
-    - description: 
-- highlight: Location (0,0)
-    - nextOn: next clicked
+### When should overlays be triggered?
+Overlays should be triggered after an event is triggered. After a certain duration, we can assume that the user either didn't notice the event
 
 
-# Move piece tutorial
-### Pre-conditions:
-- Board has one piece at (0,0) and (0,1) is empty
-### Post-conditions:
-- location (0,1) contains a piece
-### Steps
--s  high 
+### What is an Event?
+An event is `Aff Unit` that is observing something
+
+### What things can be observed?
+- level started
+- piece added to location
+- piece removed from location
+- port diagram changed
+- completion status changed
+
+### Which events should trigger overlays?
+- level started:
+    - after 10s delay trigger add piece overlay
+- port diagram left port goes bad:
+    - ???
+- first piece added to board
+    - 10s delay
+    - trigger move piece overlay
+- piece added to (0,1):
+    - 10s delay
+    - move piece to right side overlay
+- first time completion status changed to "ready":
+    - 10s delay trigger
+    - run test overlay
+- first time run tests:
+    - 10 second delay
