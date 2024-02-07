@@ -5,7 +5,7 @@ import Prelude
 import Data.Foldable (and, fold)
 import Data.Map (Map)
 import Data.Map as M
-import Data.Maybe (Maybe)
+import Data.Maybe (Maybe(..))
 import Data.Newtype (class Newtype)
 import Data.Set (Set)
 import Game.Capacity (Capacity)
@@ -100,3 +100,10 @@ getInputDirs (Piece p) = M.keys $ M.filter isInput p.ports
 
 getOutputDirs :: Piece -> Set CardinalDirection
 getOutputDirs (Piece p) = M.keys $ M.filter isOutput p.ports
+
+immutablePiece :: Piece -> Piece
+immutablePiece (Piece p) = Piece $ p
+  { shouldRipple = false
+  , updateCapacity = \_ _ -> Nothing
+  , updatePort = \_ _ -> Nothing
+  }

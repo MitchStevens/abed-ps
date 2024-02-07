@@ -39,8 +39,14 @@ mkUnaryOperation { name, capacity, operation } = Piece
   , updatePort: \_ _ -> Nothing
   }
 
-mkShiftLeft :: Capacity -> Piece
-mkShiftLeft capacity = mkUnaryOperation { name: PieceId "shift-left-piece", capacity, operation: \n -> Int.shl n 1 }
+mkShiftLeftBy :: Int -> Capacity -> Piece
+mkShiftLeftBy bitShift capacity = mkUnaryOperation
+  { name: PieceId "shift-left-piece"
+  , capacity
+  , operation: \n -> Int.shl n bitShift }
 
-mkShiftRight :: Capacity -> Piece
-mkShiftRight capacity = mkUnaryOperation { name: PieceId "shift-left-piece", capacity, operation: \n -> Int.shr n 1 }
+mkShiftRightBy :: Int -> Capacity -> Piece
+mkShiftRightBy bitShift capacity = mkUnaryOperation 
+  { name: PieceId "shift-left-piece"
+  , capacity
+  , operation: \n -> Int.shr n bitShift }
