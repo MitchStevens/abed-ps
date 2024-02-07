@@ -23,8 +23,8 @@ import GlobalState (GlobalState)
 import Halogen (Component, Slot, mkEval)
 import Halogen as H
 import Halogen.HTML as HH
-import IO.Levels (allLevels)
 import Record as Record
+import Resources.LevelSuites (allLevelSuites)
 import Routing.Match (Match, lit, str)
 import Type.Proxy (Proxy(..))
 import Web.UIEvent.KeyboardEvent (KeyboardEvent)
@@ -80,7 +80,7 @@ component = H.mkComponent { eval, initialState, render }
       LevelSelect ->
         HH.slot_ (Proxy :: _ "levelSelect") unit LevelSelect.component unit
       Level suiteName levelName -> fromMaybe (HH.text "coublent find tht roblem" ) do
-        levelSuite <- Object.lookup suiteName allLevels
+        levelSuite <- Object.lookup suiteName allLevelSuites
         level <- Object.lookup levelName levelSuite
         pure $ HH.slot_ (Proxy :: _ "level") unit Level.component $
           { levelId: { suiteName, levelName }, level }

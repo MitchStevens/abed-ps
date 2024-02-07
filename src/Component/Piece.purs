@@ -29,6 +29,7 @@ import Effect (Effect)
 import Effect.Class (class MonadEffect, liftEffect)
 import Effect.Class.Console (log, logShow)
 import Game.Board (relative)
+import Game.Piece (name)
 import Game.Rotation (rotation, toRadians)
 import Halogen (AttrName(..), ClassName(..), Component, HalogenM, HalogenQ, RefLabel(..), getHTMLElementRef, getRef, gets, mkComponent, mkEval, raise)
 import Halogen.HTML (HTML, PlainHTML, fromPlainHTML)
@@ -53,12 +54,11 @@ component = mkComponent { eval , initialState , render }
   where
   render state =
     HH.div
-      [ HP.classes
-        [ ClassName "piece-component" ]
-
+      [ HP.classes [ ClassName "piece-component" ]
       , DA.attr DA.isDragging state.isDragging
+      , DA.attr DA.rotation state.rotation
+      , DA.attr DA.pieceId (name state.piece)
       , HP.draggable isDraggable
-      --, HP.style ("transform: rotate(" <> show pieceRotation <> "rad);")
       , HP.ref (RefLabel "piece")
       , HP.contentEditable true
 

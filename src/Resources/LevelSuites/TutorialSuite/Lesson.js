@@ -1,27 +1,14 @@
+import { availablePiece, locationAt, boardElement } from "../../src/Guide/Elements.js";
+import { moveNextOnClick } from "../../src/Guide/Lesson.js";
+//import { abedDriver } from "../../src/Guide/Lesson.js"
 import { driver } from "driver.js";
-import "Elements.js";
 
 
-abedDriver = function(config) {
-  config.allowKeyboardControl = false
-  driverObj = driver(config)
-  driverObj.moveNextOnClick = element => () => element.addEventListener("click", () => driverObj.moveNext(), { once: true})
-  return driverObj
-}
+export const addPieceLesson = () => {
+  const idPiece = availablePiece("id-piece")()
+  const location00 = locationAt({x: 0, y: 0})() 
+  console.log(location00)
 
-
-export const boardIsEmpty = () => boardElement.querySelector(".piece-component")
-
-
-function locationElement(x, y) {
-  return boardElement.querySelector("div[data-location='("+ x + "," + y + ")']")
-}
-
-function availablePieceElement(pieceId) {
-  sidebarElement.querySelector("div[data-available-piece='" + pieceId + "']")
-}
-
-export const addPieceGuide = () => {
   const driverObj = driver({
     popoverClass: 'driverjs-theme',
     steps: [
@@ -30,9 +17,9 @@ export const addPieceGuide = () => {
           { description: "Click on the piece"
           , showButtons: []
           },
-        onHighlighted: driverObj.moveNextOnClick(idPiece)
+        onHighlighted: () => moveNextOnClick(driverObj, idPiece)
       },
-      { element: elementAtLocation(0, 0),
+      { element: location00,
         popover: { description: "The piece is then added to the first empty slot on the board" }
       }
     ],
@@ -41,7 +28,7 @@ export const addPieceGuide = () => {
   driverObj.drive() 
 }
 
-export const movePieceGuide = () => {
+export const movePieceLesson = () => {
 
   const driverObj = abedDriver({
     popoverClass: 'driverjs-theme',
@@ -90,8 +77,77 @@ export const movePieceGuide = () => {
   driverObj.drive() 
 }
 
+export const removePieceLessonUnsafe = loc => () => {
+  location = locationAt(loc)()
 
-export const runTestsGuide = () => {
+  const driverObj = driver({
+    popoverClass: 'driverjs-theme',
+    steps: [{
+        element: location,
+        popover: {
+          description: "Pieces can be removed by dragging them outside the board"
+        }
+      }, { 
+        element: boardElement(),
+        popover: {
+          description: "Drag the piece outside the board",
+          showButtons: []
+        },
+        onHighlightStarted: () => {
+          new MutationObserver((mutationList, observer) => {
+            mutationList.forEach(record => {
+              record.removedNodes.forEach((node) => {
+                driverObj.moveNext()
+                observer.disconnect()
+              })
+            })
+          }).observe(completionStatus, { childList: true})
+        }
+
+        
+      }
+
+    ]
+  })
+
+
+  driverObj.drive()
+}
+
+export const rotatePieceLesson = loc => () => {
+  const driverObj = abedDriver({
+    popoverClass: 'driverjs-theme',
+    steps: [
+      { element: completionStatus,
+        popover: {
+          description: "Press 'Run Tests' to see if the level is solved",
+          showButtons: []
+        },
+        onHighlightStarted: () => {
+          new MutationObserver((mutationList, observer) => {
+            mutationList.forEach(record => {
+              switch (completionStatus.dataset.completionStatus) {
+                case "failed-test-case":
+                  observer.disconnect()
+                  driverObj.moveNext() 
+                  break;
+                case "completed":
+                  observer.disconnect()
+                  driverObj.destroy()
+                  break;
+                default: break;
+              }
+            })
+          }).observe(completionStatus, { attributes: true})
+        }
+      }
+    ]
+  })
+
+  driverObj.drive() 
+}
+
+export const runTestsLesson = () => {
 
   const driverObj = abedDriver({
     popoverClass: 'driverjs-theme',
@@ -141,9 +197,4 @@ export const runTestsGuide = () => {
   })
 
   driverObj.drive() 
-  return function(cancelError, onCancelerError, onCancelerSuccess) {
-    onCancelerSuccess()
-  }
 }
-
-//export const rotatePieceGuide

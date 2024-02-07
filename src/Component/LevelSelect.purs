@@ -29,7 +29,7 @@ import Halogen.HTML (PlainHTML)
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
-import IO.Levels (allLevels, getAllLevelProgress)
+import Resources.LevelSuites (allLevelSuites, getAllLevelProgress)
 
 
 type State = { levelProgress :: Map LevelId LevelProgress }
@@ -46,7 +46,7 @@ component = H.mkComponent { eval , initialState , render }
       HH.div [ HP.id "puzzle-select-component" ]
         [ HH.h1_ [ HH.text "Level Select" ] 
         , HH.div_  do
-            Tuple suiteName levelSuite <- O.toUnfoldable allLevels
+            Tuple suiteName levelSuite <- O.toUnfoldable allLevelSuites
             let maybeTotalProgress = foldMap (\levelName -> M.lookup {suiteName, levelName} state.levelProgress) (O.keys levelSuite :: Array String)
             [ HH.h2_
               [ HH.text suiteName

@@ -1,4 +1,4 @@
-module IO.Levels.TwoBitSuite where
+module Resources.LevelSuites.TwoBitSuite where
 
 import Game
 import Prelude

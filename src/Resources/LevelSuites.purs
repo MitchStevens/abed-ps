@@ -1,4 +1,4 @@
-module IO.Levels where
+module Resources.LevelSuites where
 
 import Prelude
 
@@ -14,18 +14,17 @@ import Effect.Class (class MonadEffect)
 import Foreign.Object (Object, fromHomogeneous)
 import Foreign.Object as O
 import Game.Level (LevelId, LevelSuite)
-import IO.Levels.IntermediateSuite (intermediateSuite)
-import IO.Levels.ShiftingSuite (shiftingSuite)
-import IO.Levels.TutorialSuite (tutorialSuite)
-import IO.Levels.TwoBitSuite (twoBitSuite)
+import Resources.LevelSuites.IntermediateSuite (intermediateSuite)
+import Resources.LevelSuites.ShiftingSuite (shiftingSuite)
+import Resources.LevelSuites.TutorialSuite.Suite (tutorialSuite)
+import Resources.LevelSuites.TwoBitSuite (twoBitSuite)
 import Web.DOM.ParentNode (QuerySelector(..))
 import Web.HTML.Common (AttrName(..))
 
 
-allLevels :: Object LevelSuite
-allLevels = fromHomogeneous
+allLevelSuites :: Object LevelSuite
+allLevelSuites = fromHomogeneous
   { "Tutorial Suite": tutorialSuite
-  , "Identity Suite": identitySuite
   , "Intermediate Suite": intermediateSuite
   , "Two Bit Suite": twoBitSuite
   , "Shifting Suite": shiftingSuite
@@ -33,7 +32,7 @@ allLevels = fromHomogeneous
 
 getAllLevelProgress :: forall m. MonadEffect m => m (Map LevelId LevelProgress)
 getAllLevelProgress = map (join >>> M.fromFoldable >>> M.catMaybes) $
-  for (O.toUnfoldable allLevels :: Array _) \(Tuple suiteName suite) ->
+  for (O.toUnfoldable allLevelSuites :: Array _) \(Tuple suiteName suite) ->
     for (O.toUnfoldable suite :: Array _) \(Tuple levelName _) ->
       Tuple {suiteName, levelName} <$> getLevelProgress { suiteName, levelName}
 
