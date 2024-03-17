@@ -1,0 +1,88 @@
+package:
+  dependencies:
+  - aff
+  - arrays
+  - bifunctors
+  - console
+  - contravariant
+  - control
+  - datetime
+  - debug
+  - effect
+  - either
+  - enums
+  - exceptions
+  - filterable
+  - foldable-traversable
+  - foreign-object
+  - gen
+  - group
+  - halogen
+  - halogen-subscriptions
+  - halogen-svg-elems
+  - halogen-vdom
+  - identity
+  - integers
+  - lists
+  - maybe
+  - monad-logger
+  - newtype
+  - now
+  - nullable
+  - numbers
+  - ordered-collections
+  - parallel
+  - parsing
+  - partial
+  - prelude
+  - profunctor
+  - profunctor-lenses
+  - record
+  - refs
+  - routing
+  - routing-duplex
+  - strings
+  - tailrec
+  - these
+  - transformers
+  - tuples
+  - unfoldable
+  - unsafe-coerce
+  - web-dom
+  - web-events
+  - web-html
+  - web-storage
+  - web-uievents
+  name: abed
+
+  bundle:
+      minify: false
+      # Entrypoint for the bundle
+      module: Main
+      # The path of the bundle file
+      outfile: "dist/abed.js"
+      # Possible values are 'node' or 'browser'
+      platform: browser
+      # Possible values are 'app' or 'module'
+      type: "app"
+
+  test:
+    main: Test.Main
+    dependencies:
+      - "spec"
+      - "spec-discovery"
+      - "spec-quickcheck"
+      - "quickcheck"
+    censor_test_warnings: all
+        
+
+workspace:
+  extra_packages:
+    halogen-svg-elems:
+      dependencies:
+      - halogen
+      git: https://github.com/MitchStevens/purescript-halogen-svg-elems.git
+      ref: df7b35f
+    rough-annotation: 1.0.0
+  package_set:
+    url: https://raw.githubusercontent.com/purescript/package-sets/psc-0.15.9-20230629/packages.json

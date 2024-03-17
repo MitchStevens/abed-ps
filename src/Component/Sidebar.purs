@@ -122,7 +122,7 @@ component = mkComponent { eval , initialState , render }
           , renderBoardPortDiagram state.problem.goal state.boardPorts
           ]
       , HH.h3_ [ HH.text "Available pieces:"]
-      , HH.span [ HP.class_ (ClassName "pieces") ] $
+      , HH.span [ HP.class_ (ClassName "available-pieces") ] $
           renderAvailablePiece <$>
             A.nub state.problem.availablePieces
       , HH.br_

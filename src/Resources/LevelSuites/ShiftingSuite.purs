@@ -10,7 +10,7 @@ import Game.Capacity (Capacity(..))
 import Game.Direction as Direction
 import Game.GameEvent (count, firstTime, latest, pieceAdded, pieceMovedTo, secondTime)
 import Game.Level (LevelSuite, binaryTestInputs, defaultLevel)
-import Game.Piece (fusePiece, idPiece, leftPiece, mkShiftLeft, rightPiece, severPiece)
+import Game.Piece (fusePiece, idPiece, leftPiece, mkShiftLeftBy, rightPiece, severPiece)
 import Game.Signal (Signal(..))
 
 shiftingSuite :: LevelSuite
@@ -18,7 +18,7 @@ shiftingSuite = fromHomogeneous
   { "4 bit left shift":
     defaultLevel
       { problem =
-        { goal: mkShiftLeft FourBit
+        { goal: mkShiftLeftBy 1 FourBit
         , title: "4 bit left shift"
         , description: "For each of the 4 bits in the input, shift them up towards the left by one place\n bluefdsajafdskl"
         , testCases: M.singleton Direction.Left <$> [ Signal 0, Signal 1, Signal 2, Signal 3, Signal 8, Signal 9, Signal 15]

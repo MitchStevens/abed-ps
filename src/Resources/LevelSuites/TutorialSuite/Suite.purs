@@ -22,14 +22,13 @@ import Game.Level (LevelSuite, binaryTestInputs, defaultLevel)
 import Game.Level.Problem (defaultProblem)
 import Game.Level.RulesEngine (Rule(..))
 import Game.Location (location)
-import Game.Message (Conversation, Message(..), button, guideMessage, noUser, sendMessage)
-import Game.Piece (idPiece, leftPiece, notPiece, orPiece)
-import Guide.Event (failedTestCaseEvent, levelStartedEvent, pieceAddedEvent, pieceRemovedEvent, readyForTestingEvent)
-import Guide.Guide (runGuide)
-import Guide.Overlay (addPieceOverlay, backToLevelSelectOverlay, movePieceFromToOverlay, runTestsOverlay)
+import Game.Message (Message(..), button, guideMessage, noUser, sendMessage)
+import Game.Piece (idPiece, leftPiece, name, notPiece, orPiece)
+import Guide.Overlay (addPieceOverlay)
 import Halogen.HTML as HH
 import Halogen.Subscription as HS
-import Resources.LevelSuites.TutorialSuites.Guide (firstLevelGuide)
+
+--import Resources.LevelSuites.TutorialSuites.Guide (firstLevelGuide)
 
 tutorialSuite :: LevelSuite
 tutorialSuite = fromHomogeneous
@@ -48,13 +47,9 @@ tutorialSuite = fromHomogeneous
           playedBefore <- sendMessage $ button "yes" "Y" true <|> (noUser (HH.text "/") *> button "no" "N" false)
           listener <- ask 
           let say str = HS.notify listener {user: Just "guide", html: [ HH.text str ] }
-          --liftAff (movePieceFromToOverlay (location 0 0) (location  0 1))
-          --liftAff addPieceOverlay
-          --liftAff (movePieceFromToOverlay (location 0 0) (location 0 1))
-          liftAff $ addPieceOverlay
-          liftAff $ movePieceFromToOverlay (location 0 0) (location 0 1)
-          liftAff $ runTestsOverlay
-          liftAff $ backToLevelSelectOverlay
+          guideMessage "alright lets get going"
+          liftAff $ addPieceOverlay (name idPiece)
+          pure unit
 
 
 

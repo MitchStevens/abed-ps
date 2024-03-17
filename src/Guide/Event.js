@@ -1,7 +1,9 @@
-import * as element from '../../src/Guide/Element.js';
+export const onElementAdded = element => predicate => 
 
-export const pieceAdded = loc => (onError, onSuccess) => {
-  console.log("added piece")
+
+
+
+export const pieceAdded = element => predicate => (onError, onSuccess) => {
   const observer = new MutationObserver((mutationList, ob) => {
     for (const mutation of mutationList) {
       mutation.addedNodes.forEach(node => {

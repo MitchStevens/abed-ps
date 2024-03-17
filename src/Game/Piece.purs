@@ -6,7 +6,6 @@ module Game.Piece
   , module Game.Piece.Complexity
   , module Game.Piece.FusePiece
   , module Game.Piece.TwoBitSuite
-  , module Game.Piece.TwoBitSuite
   , module Game.Piece.Types
   , module Game.Piece.UnaryOperationPiece
   , module Game.Piece.WirePiece
