@@ -11,7 +11,7 @@ import Data.Predicate (Predicate(..))
 import Data.Tuple (Tuple(..))
 import Game.Location (Location(..))
 import Game.Piece.Types (PieceId(..))
-import Game.Rotation (Rotation(..))
+import Game.Piece.Rotation (Rotation(..))
 
 data GameEvent
   = BoardEvent BoardEvent

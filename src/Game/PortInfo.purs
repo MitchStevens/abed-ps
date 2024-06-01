@@ -4,9 +4,9 @@ import Prelude
 
 import Data.Array (range)
 import Data.Int.Bits (shl, (.&.))
-import Game.Capacity (clampSignal)
-import Game.Port (Port(..), portCapacity)
-import Game.Signal (Signal(..), nthBit)
+import Game.Piece.Capacity (clampSignal)
+import Game.Piece.Port (Port(..), portCapacity)
+import Game.Piece.Signal (Signal(..), nthBit)
 
 -- used later for board evaluation
 type PortInfo = 

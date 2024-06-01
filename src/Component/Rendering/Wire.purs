@@ -15,11 +15,11 @@ import Data.Map (Map)
 import Data.Map as M
 import Data.Maybe (fromMaybe, fromMaybe', maybe')
 import Data.Tuple (Tuple(..), fst, uncurry)
-import Game.Direction (CardinalDirection)
-import Game.Direction as Direction
-import Game.Port (isInput)
+import Game.Piece.Direction (CardinalDirection)
+import Game.Piece.Direction as Direction
+import Game.Piece.Port (isInput)
 import Game.PortInfo (PortInfo)
-import Game.Rotation (Rotation(..))
+import Game.Piece.Rotation (Rotation(..))
 import Halogen (ComponentHTML)
 import Halogen.HTML as HH
 import Halogen.Svg.Attributes (CommandPositionReference(..), PathCommand, l, m, q)

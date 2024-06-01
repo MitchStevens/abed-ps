@@ -10,9 +10,9 @@ import Component.Rendering.Path (Path)
 import Component.Rendering.Wire (arrowPath, betweenPath, initialLocation, stubPath)
 import Data.Foldable (intercalate)
 import Data.Tuple (Tuple(..))
-import Game.Direction as Direction
-import Game.Port (portType)
-import Game.Port as Port
+import Game.Piece.Direction as Direction
+import Game.Piece.Port (portType)
+import Game.Piece.Port as Port
 import Game.PortInfo (PortInfo)
 import Halogen (ClassName(..), ComponentHTML)
 import Halogen.HTML (HTML, IProp, object)

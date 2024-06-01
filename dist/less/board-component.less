@@ -1,4 +1,6 @@
 @import "fonts";
+@import (less) "./animate.css";
+
 
 #board-component {
     aspect-ratio: 1 / 1;
@@ -6,7 +8,7 @@
     display: grid;
 
     & .piece {
-        display: block;
+        //display: block;
         box-sizing: border-box;
         height: 100%;
         width: 100%;
@@ -14,6 +16,26 @@
         z-index: 0;
         border: lightgray 2px solid;
         overflow: hidden;
+
+        .piece-location-label {
+            container-type: inline-size;
+            container-name: location-label;
+        }
+
+        & .piece-location-label {
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+
+            color: lightgrey;
+            font-size: medium;
+
+            animation: fadeIn;
+            animation-duration: 700ms; 
+        }
+
+
     }
 
     & .board-port {

@@ -1,11 +1,11 @@
-module Game.Capacity where
+module Game.Piece.Capacity where
 
 import Prelude
 
 import Data.Array (range)
 import Data.Int.Bits as Bits
 import Data.Maybe (Maybe(..))
-import Game.Signal (Signal(..), nthBit)
+import Game.Piece.Signal (Signal(..), nthBit)
 
 data Capacity = OneBit | TwoBit | FourBit | EightBit
 derive instance Eq Capacity

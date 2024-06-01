@@ -7,16 +7,19 @@ import Control.Monad.Logger.Trans (class MonadLogger, LoggerT, info, lift, runLo
 import Control.Monad.Reader (class MonadAsk, ReaderT, runReaderT)
 import Data.Log.Level (LogLevel(..))
 import Data.Map as M
+import Effect (Effect)
 import Effect.Aff (Aff, delay)
 import Effect.Aff.Class (class MonadAff, liftAff)
 import Effect.Class (class MonadEffect, liftEffect)
 import Effect.Class.Console (log)
+import Effect.Ref as Ref
 import Game.GameEvent (GameEvent, GameEventStore)
 import Game.GameEvent as GameEvent
 import GlobalState (GlobalState)
 import Halogen (Component, HalogenM)
 import Halogen as H
 import Logging (logMessage)
+import Resources.LevelSuites (getAllLevelProgress)
 
  
 newtype AppM a = AppM (
@@ -31,11 +34,13 @@ derive newtype instance MonadAff AppM
 derive newtype instance MonadAsk GlobalState AppM
 derive newtype instance MonadLogger AppM
 
-initialGlobalState :: Aff GlobalState
-initialGlobalState = pure {}
+initialGlobalState :: Effect GlobalState
+initialGlobalState = do
+  levelProgress <- Ref.new =<< getAllLevelProgress
+  pure { levelProgress }
 
 runAppM :: forall q i o. Component q i o AppM -> Aff (Component q i o Aff)
 runAppM component = do
-  store <- initialGlobalState
+  store <- liftEffect initialGlobalState
   pure $ H.hoist (\(AppM appM) -> runReaderT (runLoggerT (appM) (logMessage Debug)) store) component
   --runStoreT GameEvent.empty (flip GameEvent.cons) storeComponent

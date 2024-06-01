@@ -4,9 +4,9 @@ import Prelude
 
 import Data.Array.NonEmpty (cons')
 import Data.Foldable (for_)
-import Game.Direction (CardinalDirection, allDirections, clockwiseRotation, oppositeDirection, rotateDirection)
-import Game.Direction as Direction
-import Game.Rotation (allRotations, rotation)
+import Game.Piece.Direction (CardinalDirection, allDirections, clockwiseRotation, oppositeDirection, rotateDirection)
+import Game.Piece.Direction as Direction
+import Game.Piece.Rotation (allRotations, rotation)
 import Test.QuickCheck.Gen (Gen, elements)
 import Test.Spec (Spec, describe, it)
 import Test.Spec.Assertions (shouldEqual, shouldNotEqual)

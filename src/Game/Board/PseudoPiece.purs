@@ -14,11 +14,11 @@ import Data.Map as M
 import Data.Maybe (Maybe(..))
 import Data.String (Pattern(..))
 import Data.String as String
-import Game.Direction as Direction
+import Game.Piece.Direction as Direction
 import Game.Piece (Piece(..), PieceId(..))
 import Game.Piece.Complexity as Complexity
-import Game.Port (Port(..), matchingPort, portType)
-import Game.Port as Port
+import Game.Piece.Port (Port(..), matchingPort, portType)
+import Game.Piece.Port as Port
 import Partial.Unsafe (unsafeCrashWith)
 
 {-
@@ -40,6 +40,8 @@ psuedoPiece port = Piece
 
   , ports: M.singleton Direction.Right (matchingPort port)
   , updatePort: \_ _ -> Nothing
+
+  , isSimplifiable: Nothing
   }
 
 isPseudoPiece :: Piece -> Boolean

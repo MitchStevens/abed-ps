@@ -2,7 +2,7 @@ module Component.Level where
 
 import Prelude
 
-import Capability.Progress as Progress
+import Capability.LocalStorage.LevelProgress as LevelProgress
 import Component.Board as Board
 import Component.Chat as Chat
 import Component.Sidebar as Sidebar
@@ -26,7 +26,7 @@ import Data.Map (Map)
 import Data.Map as M
 import Data.Maybe (Maybe(..), fromMaybe)
 import Data.Time.Duration (Milliseconds(..), Seconds(..))
-import Data.Traversable (for)
+import Data.Traversable (for, traverse)
 import Data.TraversableWithIndex (forWithIndex)
 import Data.Tuple (Tuple(..), fst, snd)
 import Debug (spy)
@@ -35,15 +35,17 @@ import Effect.Aff.Class (class MonadAff, liftAff)
 import Effect.Class (class MonadEffect, liftEffect)
 import Effect.Class.Console (log)
 import Game.Board (Board(..), _size, firstEmptyLocation, getBoardPorts, standardBoard)
-import Game.Direction (CardinalDirection)
+import Game.Piece.Direction (CardinalDirection)
 import Game.GameEvent (GameEvent, GameEventStore)
-import Game.Level (LevelId, Level)
+import Game.Level (Level(..), unlocksUponCompletion)
 import Game.Level.Completion (CompletionStatus(..), FailedTestCase, isReadyForTesting, runSingleTest)
+import Game.Level.Suite (LevelId(..))
 import Game.Piece (Piece(..), pieceLookup)
-import Game.Port (Port(..))
-import Game.Signal (Signal(..))
+import Game.Piece.Port (Port(..))
+import Game.Piece.Signal (Signal(..))
 import GlobalState (GlobalState)
-import Halogen (ClassName(..), Component, HalogenM, HalogenQ, Slot, gets, modify_)
+import GlobalState as GlobalState
+import Halogen (ClassName(..), Component, HalogenM, HalogenQ, Slot, ComponentHTML, gets, modify_)
 import Halogen as H
 import Halogen.HTML (PlainHTML)
 import Halogen.HTML as HH
@@ -52,13 +54,13 @@ import Type.Proxy (Proxy(..))
 import Web.UIEvent.KeyboardEvent (KeyboardEvent)
 
 type Input = 
-  { levelId :: LevelId
-  , level :: Level
+  { level :: Level
+  , levelId :: LevelId
   }
 
 type State =
-  { levelId :: LevelId
-  , level :: Level 
+  { level :: Level 
+  , levelId :: LevelId
   , completionStatus :: CompletionStatus
   , boardSize :: Int
   , boardPorts :: Map CardinalDirection Port
@@ -91,15 +93,14 @@ component = H.mkComponent { eval , initialState , render }
   where
   Board initialBoard = standardBoard
 
+  initialState { level, levelId } = { level, levelId, completionStatus: NotStarted, boardSize: initialBoard.size, boardPorts: evalState getBoardPorts (Board initialBoard) }
 
-  initialState {levelId, level } = {levelId, level, completionStatus: NotStarted, boardSize: initialBoard.size, boardPorts: evalState getBoardPorts (Board initialBoard) }
-
-  --render :: State -> HalogenM State Action Slots o m Unit
-  render { level, levelId, completionStatus, boardSize, boardPorts } = HH.div
+  render :: State -> ComponentHTML Action Slots m
+  render { level: Level l, completionStatus, boardSize, boardPorts } = HH.div
     [ HP.id "puzzle-component"]
-    [ HH.slot _board    unit Board.component { board: Board initialBoard} BoardOutput
-    , HH.slot_ _chat    unit Chat.component { conversation: level.conversation }
-    , HH.slot _sidebar  unit Sidebar.component { problem: level.problem, completionStatus, boardSize, boardPorts } SidebarOutput
+    [ HH.slot _board    unit Board.component { board: Board initialBoard } BoardOutput
+    , HH.slot_ _chat    unit Chat.component { conversation: l.conversation }
+    , HH.slot _sidebar  unit Sidebar.component { level: Level l, completionStatus, boardSize, boardPorts } SidebarOutput
     ]
 
   eval :: HalogenQ q Action Input ~> HalogenM State Action Slots o m
@@ -115,22 +116,19 @@ component = H.mkComponent { eval , initialState , render }
   handleAction :: Action -> HalogenM State Action Slots o m Unit
   handleAction = case _ of
     Initialise -> do
-      levelId <- gets (_.levelId)
-      lift $ debug M.empty ("initialised level " <> show levelId)
-
-      -- initialise the chat server with conversation text
-      -- initialConversation <- H.gets (_.level.conversation)
+      Level level <- gets (_.level)
+      lift $ debug M.empty ("initialised level " <> show level.name)
 
 
       -- make the board component display goal ports
-      Piece piece <- H.gets (_.level.problem.goal)
+      let Piece piece = level.goal 
       H.tell _board unit (\_ -> Board.SetGoalPorts piece.ports)
     BoardOutput (Board.NewBoardState board) -> do
       -- the side bar updates the puzzle completion status, if the board is ready to be
       -- shown, trigger to test is on the sidebar
-      problem <- H.gets (_.level.problem)
+      level <- H.gets (_.level)
       modify_ $ _
-        { completionStatus = isReadyForTesting problem board
+        { completionStatus = isReadyForTesting level board
         , boardSize = board ^. _size
         , boardPorts = evalState getBoardPorts board }
     SidebarOutput (Sidebar.PieceDropped pieceId) -> do
@@ -148,13 +146,13 @@ component = H.mkComponent { eval , initialState , render }
       void $ H.request _board unit Board.DecrementBoardSize
     SidebarOutput Sidebar.TestsTriggered -> do
       let minTotalTestDurationMs = 2000
-      problem <- gets (_.level.problem)
-      let numTests = A.length problem.testCases
+      Level level <- gets (_.level)
+      let numTests = A.length level.testCases
       let delayDuration =  Milliseconds (toNumber (minTotalTestDurationMs `div` numTests))
 
-      testResult <- runExceptT $ forWithIndex problem.testCases \testIndex testCase  -> do
+      testResult <- runExceptT $ forWithIndex level.testCases \testIndex testCase  -> do
         modify_ $ _ { completionStatus = RunningTest { testIndex, numTests } }
-        res <- ExceptT $ runSingleTest problem.goal testIndex testCase testEval
+        res <- ExceptT $ runSingleTest level.goal testIndex testCase testEval
         liftAff (delay delayDuration)
         pure res
 
@@ -162,13 +160,16 @@ component = H.mkComponent { eval , initialState , render }
         Left failedTestCase -> do
           modify_ $ _ { completionStatus = FailedTestCase failedTestCase }
         Right _  -> do
-          levelId <-  gets (_.levelId)
-          liftEffect $ Progress.saveLevelProgress levelId Progress.Completed
           modify_ $ _ { completionStatus = Completed }
 
+          levelId <-  gets (_.levelId)
+          GlobalState.setLevelProgress levelId LevelProgress.Completed
 
-  testEval :: Map CardinalDirection Signal -> HalogenM State Action Slots o m (Map CardinalDirection Signal)
-  testEval inputs = fromMaybe M.empty <$> H.request _board unit (Board.SetInputs inputs)
+          gets (_.level >>> unlocksUponCompletion) >>= traverse_ \(Level l) ->
+            GlobalState.lookupLevelId l.name >>= traverse_ (\id -> GlobalState.setLevelProgress id LevelProgress.Unlocked)
+      where
+        testEval :: Map CardinalDirection Signal -> HalogenM State Action Slots o m (Map CardinalDirection Signal)
+        testEval inputs = fromMaybe M.empty <$> H.request _board unit (Board.SetInputs inputs)
 
 -- this should be CPS but it's fine for small number of inputs
 --runAllTests :: forall m. MonadAff m => MonadAsk GlobalState m

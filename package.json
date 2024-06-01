@@ -4,10 +4,10 @@
   "scripts": {
     "postinstall": "spago install",
     "compile-css": "lessc dist/less/default.less dist/default.css",
-    "compile-css-watch": "nodemon --watch dist/less/* --exec 'npm run compile-css'",
-    "build": "spago bundle",
+    "compile-css-watch": "fd . -e less | entr -s 'npm run compile-css'",
+    "build": "spago bundle && npm run compile-css",
     "build-watch": "fd . -e purs -e js | entr -s 'npm run build'",
-    "build-prod": "purs-backend-es build && purs-backend-es bundle-app --no-build",
+    "build-prod": "npm run compile-css && purs-backend-es build && purs-backend-es bundle-app --no-build",
     "test": "spago test",
     "test-watch": "fd . -e purs -e js | entr -s 'npm run test'"
   },

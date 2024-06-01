@@ -2,8 +2,8 @@ module Component.DataAttribute where
 
 import Prelude
 
-import Capability.Progress (LevelProgress)
-import Capability.Progress as LevelProgress
+import Capability.LocalStorage.LevelProgress (LevelProgress)
+import Capability.LocalStorage.LevelProgress as LevelProgress
 import Data.Array as A
 import Data.Either (hush)
 import Data.Int (fromString)
@@ -13,17 +13,17 @@ import Data.Newtype (class Newtype, unwrap, wrap)
 import Data.String (Pattern(..), split, stripPrefix, stripSuffix, toLower)
 import Data.String.CodeUnits (fromCharArray)
 import Effect (Effect)
-import Game.Capacity (Capacity(..))
-import Game.Direction (CardinalDirection)
-import Game.Direction as Direction
+import Game.Piece.Capacity (Capacity(..))
+import Game.Piece.Direction (CardinalDirection)
+import Game.Piece.Direction as Direction
 import Game.Level.Completion (CompletionStatus(..), PortMismatch(..))
 import Game.Location (Location(..))
 import Game.Location as Location
 import Game.Piece (Piece(..), PieceId(..), pieceLookup)
-import Game.Port (Port(..), PortType, createPort)
-import Game.Port as Port
-import Game.Rotation (Rotation(..))
-import Game.Signal (Signal(..))
+import Game.Piece.Port (Port(..), PortType, createPort)
+import Game.Piece.Port as Port
+import Game.Piece.Rotation (Rotation(..))
+import Game.Piece.Signal (Signal(..))
 import Halogen.HTML (AttrName(..), IProp)
 import Halogen.HTML as HP
 import Parsing (Parser, fail, runParser)
@@ -108,12 +108,14 @@ progress :: DataAttribute LevelProgress
 progress = dataAttribute (AttrName "data-puzzle-progress") attrPrint attrParse
   where
     attrPrint = case _ of
-      LevelProgress.Completed -> "completed"
+      LevelProgress.Unlocked -> "unlocked"
       LevelProgress.Incomplete -> "incomplete"
+      LevelProgress.Completed -> "completed"
 
     attrParse = choice
-      [ string "completed" $> LevelProgress.Completed 
+      [ string "completed"  $> LevelProgress.Completed 
       , string "incomplete" $> LevelProgress.Incomplete
+      , string "unlocked"   $> LevelProgress.Unlocked
       ]
 
 direction :: DataAttribute CardinalDirection

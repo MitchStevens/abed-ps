@@ -4,7 +4,7 @@ import Prelude
 
 import Data.Lens (Lens')
 import Data.Lens.Record (prop)
-import Game.Rotation (Rotation(..))
+import Game.Piece.Rotation (Rotation(..))
 import Game.Piece (Piece(..))
 import Type.Proxy (Proxy(..))
 

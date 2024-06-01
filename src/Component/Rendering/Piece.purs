@@ -16,10 +16,10 @@ import Data.Map as M
 import Data.Maybe (Maybe(..), isJust, isNothing, maybe)
 import Data.Number (pi)
 import Debug (trace)
-import Game.Direction (allDirections, clockwiseRotation, rotateDirection)
-import Game.Direction as Direction
-import Game.Piece (PieceId(..), allWirePieces, chickenPiece, cornerCutPiece, crossPiece, isWirePiece, name)
-import Game.Rotation (Rotation(..), toDegrees, toRadians)
+import Game.Piece.Direction (allDirections, clockwiseRotation, rotateDirection)
+import Game.Piece.Direction as Direction
+import Game.Piece (PieceId(..), chickenPiece, cornerCutPiece, crossPiece, isWirePiece, name)
+import Game.Piece.Rotation (Rotation(..), toDegrees, toRadians)
 import Halogen (ComponentHTML)
 import Halogen.Svg.Attributes (Transform(..))
 import Halogen.Svg.Attributes as SA
@@ -64,11 +64,11 @@ renderDefaultPiece state = SE.g [] (allPorts <> [ center ])
   where
     allPorts = do
       dir <- allDirections
-      let Rotation r = clockwiseRotation Direction.Up dir 
+      let r = clockwiseRotation Direction.Up dir 
       
       pure $ SE.g 
         [ SA.transform
-          [ Rotate (toNumber r * 90.0) 50.0 50.0
+          [ Rotate (toDegrees r) 50.0 50.0
           , Translate 25.0 0.0 ]
         ] $
         do

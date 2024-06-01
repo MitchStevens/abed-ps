@@ -2,19 +2,20 @@ module Game.Board.Types where
 
 import Prelude
 
+import Control.Alternative (guard, (<|>))
 import Control.Monad.Except (ExceptT, runExceptT)
-import Control.Monad.State (StateT, runStateT)
+import Control.Monad.State (StateT, evalState, runStateT)
 import Data.Array ((..))
 import Data.Array as A
 import Data.Either (Either)
-import Data.Foldable (foldMap, intercalate, maximumBy, surround)
+import Data.Foldable (any, foldMap, intercalate, maximumBy, surround)
 import Data.Function (on)
 import Data.Group (ginverse)
 import Data.Identity (Identity)
 import Data.Lens (Lens', to, view, (^.))
 import Data.Lens.Iso.Newtype (_Newtype)
 import Data.Lens.Record (prop)
-import Data.List (List(..))
+import Data.List (List(..), (:))
 import Data.List as L
 import Data.Map (Map)
 import Data.Map as M
@@ -28,13 +29,16 @@ import Data.String as String
 import Data.Tuple (Tuple(..), fst, snd)
 import Data.Unfoldable (replicate)
 import Game.Board.PieceInfo (PieceInfo)
-import Game.Board.RelativeEdge (RelativeEdge, relative, relativeEdgeDirection)
-import Game.Direction (CardinalDirection, oppositeDirection, rotateDirection)
-import Game.Direction as Direction
+import Game.Board.RelativeEdge (RelativeEdge, AbsoluteEdge, relative, relativeEdgeDirection, absolute)
+import Game.Piece.Capacity (Capacity, toInt)
+import Game.Piece.Direction (CardinalDirection, oppositeDirection, rotateDirection)
+import Game.Piece.Direction as Direction
+import Game.Edge (Edge(..))
 import Game.Location (Location(..), location, taxicabDistance)
-import Game.Piece (Piece(..))
-import Game.Port (Port(..), isInput)
-import Game.Rotation (Rotation(..))
+import Game.Piece (Piece(..), getPort)
+import Game.Piece.Port (Port(..), isInput, portCapacity)
+import Game.Piece.Rotation (Rotation(..))
+import Partial.Unsafe (unsafeCrashWith)
 import Type.Proxy (Proxy(..))
 
 newtype Board = Board
@@ -107,7 +111,10 @@ closestEmptyLocation board loc = maximumBy (compare `on` (taxicabDistance loc)) 
       if not (S.member (location i j) occupied) then [] else [ location  i j ]
 
 printBoard :: Board -> String
-printBoard (Board b) = "SHOW BOARD\n" <> (foldMap (_ <> "\n") $ interleave colEdges rows )
+printBoard (Board b) = case L.unsnoc (interleave colEdges rows) of
+  Just { init, last } -> foldMap (_ <> "\n") init <> last
+  Nothing -> unsafeCrashWith "this should never happen"
+
   where
     rows = L.range 0 (b.size - 1) <#> \x -> printRow x
     colEdges = L.range 0 b.size <#> \y -> 
@@ -151,12 +158,36 @@ printBoard (Board b) = "SHOW BOARD\n" <> (foldMap (_ <> "\n") $ interleave colEd
       Direction.Left -> "<"
     
     printRowEdge :: Int -> Int -> List String
-    printRowEdge 0 _ = replicate 3 "┃"
-    printRowEdge x y = replicate 3 "┃" -- todo:
+    printRowEdge x y = case rowCapacity of
+      Just c -> "╹" : show (toInt c) : "╻" : Nil
+      Nothing -> replicate 3 "┃"
+      
+      where
+        rowCapacity = case leftPortCapacity, rightPortCapacity of
+          Just c1, Just c2 -> if c1 == c2 then Just c1 else Nothing
+          _, _ -> leftPortCapacity <|> rightPortCapacity
+    
+        leftPortCapacity = getPortCapacity (absolute (location x y) Direction.Left)
+        rightPortCapacity = getPortCapacity (absolute (location (x-1) y) Direction.Right)
 
     printColEdge :: Int -> Int -> String
-    printColEdge _ 0 = power "━" 7
-    printColEdge x y = power "━" 7 --todo:
+    printColEdge x y = case colCapacity of
+      Just c -> "━━ " <> show (toInt c) <> " ━━"
+      Nothing ->  "━━━━━━━"
+
+      where
+        colCapacity = case upperPortCapacity, lowerPortCapacity of
+          Just c1, Just c2 -> if c1 == c2 then Just c1 else Nothing
+          _, _ -> upperPortCapacity <|> lowerPortCapacity
+    
+        upperPortCapacity = getPortCapacity (absolute (location x y) Direction.Up)
+        lowerPortCapacity = getPortCapacity (absolute (location x (y-1)) Direction.Down)
+
+    getPortCapacity :: AbsoluteEdge -> Maybe Capacity
+    getPortCapacity (Edge {loc, dir}) = do
+      { piece, rotation } <- M.lookup loc b.pieces
+      port <- getPort piece (rotateDirection dir (ginverse rotation))
+      Just (portCapacity port)
 
     interleave :: forall a. List a -> List a -> List a
     interleave (Cons x xs) (Cons y ys) = Cons x $ Cons y (interleave xs ys)

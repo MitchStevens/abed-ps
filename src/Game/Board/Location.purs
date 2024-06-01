@@ -9,8 +9,8 @@ import Data.Maybe (Maybe(..), fromMaybe)
 import Data.Newtype (class Newtype)
 import Data.Ord (abs)
 import Data.Tuple (Tuple(..))
-import Game.Direction (CardinalDirection, allDirections)
-import Game.Direction as Direction
+import Game.Piece.Direction (CardinalDirection, allDirections)
+import Game.Piece.Direction as Direction
 import Web.HTML.Common (ClassName(..))
 
 

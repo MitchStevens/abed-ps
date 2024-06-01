@@ -101,21 +101,21 @@ timeToRead (Message message) = Milliseconds 1500.0 <> Milliseconds (toNumber tex
 
 
 
-type ConversationT a = ReaderT (Listener {user :: Maybe String, html :: Array PlainHTML}) Aff a
-type Conversation = ConversationT Unit
+type ConversationM a = ReaderT (Listener {user :: Maybe String, html :: Array PlainHTML}) Aff a
+type Conversation = ConversationM Unit
 
-sendMessageWithDelay :: forall a. Message a -> ConversationT a
+sendMessageWithDelay :: forall a. Message a -> ConversationM a
 sendMessageWithDelay message =
   sendMessage message <* (liftAff $ delay (timeToRead message))
 
-sendMessage :: forall a. Message a -> ConversationT a
+sendMessage :: forall a. Message a -> ConversationM a
 sendMessage (Message message) = do
   listener <- ask 
   liftEffect $ notify listener { user: message.user, html: message.html}
   liftAff message.action
 
 
-guideMessage :: String -> ConversationT Unit
+guideMessage :: String -> ConversationM Unit
 guideMessage = sendMessageWithDelay <<< textMessage "guide"
 
 

@@ -2,23 +2,21 @@ module Game.Piece
   ( pieceLookup
   , pieceVault
   , module Game.Piece.ArithmeticPiece
-  , module Game.Piece.BasicPiece
+  , module Game.Piece.BivariatePiece
+  , module Game.Piece.UnivariatePiece
   , module Game.Piece.Complexity
+  , module Game.Piece.ConnectionPiece
   , module Game.Piece.FusePiece
-  , module Game.Piece.TwoBitSuite
   , module Game.Piece.Types
-  , module Game.Piece.UnaryOperationPiece
-  , module Game.Piece.WirePiece
   ) where
 
 import Game.Piece.ArithmeticPiece
-import Game.Piece.BasicPiece
+import Game.Piece.BivariatePiece
 import Game.Piece.Complexity
+import Game.Piece.UnivariatePiece
+import Game.Piece.ConnectionPiece
 import Game.Piece.FusePiece
-import Game.Piece.TwoBitSuite
 import Game.Piece.Types
-import Game.Piece.UnaryOperationPiece
-import Game.Piece.WirePiece
 import Prelude
 
 import Data.Map (Map)
@@ -29,7 +27,7 @@ import Debug (trace)
 import Partial.Unsafe (unsafeCrashWith)
 
 allPieces :: Array Piece
-allPieces = allBasicPieces <> allWirePieces <> allFusePieces
+allPieces = allConnectionPieces <> allUnivariatePieces <> allBivariatePieces
 
 pieceVault :: Map PieceId Piece
 pieceVault = M.fromFoldable $ map (\(Piece p) -> Tuple p.name (Piece p)) allPieces

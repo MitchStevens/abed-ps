@@ -12,9 +12,9 @@ import Data.Map as M
 import Data.Maybe (Maybe(..))
 import Data.Tuple (Tuple(..))
 import Data.Zipper as Z
-import Game.Capacity (Capacity(..))
-import Game.Direction as Direction
-import Game.Port (inputPort, outputPort)
+import Game.Piece.Capacity (Capacity(..))
+import Game.Piece.Direction as Direction
+import Game.Piece.Port (inputPort, outputPort)
 import Test.Game.Board (testBoard)
 import Test.Spec (Spec, describe, describeOnly, hoistSpec, it)
 import Test.Spec.Assertions (shouldReturn)

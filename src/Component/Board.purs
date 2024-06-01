@@ -55,15 +55,15 @@ import Effect.Aff.Class (class MonadAff)
 import Effect.Class (class MonadEffect, liftEffect)
 import Effect.Class.Console (log, logShow)
 import Game.Board (Board(..), _pieces, _size, addBoardPath, addPiece, buildEvaluableBoard, capacityRipple, decreaseSize, evalBoardM, evalWithPortInfo, getBoardPortEdge, getPieceInfo, increaseSize, pieceDropped, removePiece, rotatePieceBy, runEvaluableM, toLocalInputs)
-import Game.Capacity (maxValue)
-import Game.Direction (CardinalDirection, allDirections)
-import Game.Direction as Direction
+import Game.Piece.Capacity (maxValue)
+import Game.Piece.Direction (CardinalDirection, allDirections)
+import Game.Piece.Direction as Direction
 import Game.GameEvent (BoardEvent(..), GameEvent(..), GameEventStore, boardEventLocationsChanged)
 import Game.Location (Location(..), location)
-import Game.Port (isInput, portCapacity)
+import Game.Piece.Port (isInput, portCapacity)
 import Game.PortInfo (PortInfo)
-import Game.Rotation (Rotation(..))
-import Game.Signal (Signal(..))
+import Game.Piece.Rotation (Rotation(..))
+import Game.Piece.Signal (Signal(..))
 import Halogen (AttrName(..), ClassName(..), Component, ComponentHTML, ComponentSlot, HalogenM(..), HalogenQ, Slot, mkComponent, mkEval, raise, subscribe, tell)
 import Halogen.HTML (HTML, PlainHTML, fromPlainHTML)
 import Halogen.HTML as HH
@@ -184,7 +184,8 @@ component = mkComponent { eval , initialState , render }
       pieceHTML piece location =
           HH.slot slot.piece location Piece.component { piece, location } PieceOutput
       
-      emptyPieceHTML location = HH.text (show location)
+      emptyPieceHTML location = HH.span [ HP.class_ (ClassName "piece-location-label") ] [ HH.text (show location) ]
+      --emptyPieceHTML location = HH.text (show location)
 
       multimeter = HH.slot slot.multimeter unit Multimeter.component {} MultimeterOutput
 
@@ -345,6 +346,7 @@ handleAction = case _ of
 
   SetBoard board -> do
     lift $ debug M.empty "Updating board"
+    log (show board)
     -- append new board to board history for undo purposes 
     modify_ $ \s -> s { boardHistory = Z.append board s.boardHistory }
     handleAction EvaluateBoard

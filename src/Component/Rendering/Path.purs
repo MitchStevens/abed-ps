@@ -3,7 +3,7 @@ module Component.Rendering.Path where
 import Prelude
 
 import Data.Tuple (Tuple(..))
-import Game.Rotation (Rotation(..))
+import Game.Piece.Rotation (Rotation(..))
 import Halogen (ComponentHTML, ComponentSlot)
 import Halogen.HTML (HTML, IProp, PlainHTML, fromPlainHTML)
 import Halogen.HTML.Events as HP
@@ -34,5 +34,16 @@ renderPathWithEvents { path, gradient, attrs } onMouseEnter onMouseLeave =
       , SA.fillGradient ("#" <> gradient.id)
       , HP.onMouseEnter (\_ -> onMouseEnter)
       , HP.onMouseLeave (\_ -> onMouseLeave)
+      ]
+    ]
+
+renderPath :: Path -> PlainHTML
+renderPath { path, gradient, attrs } =
+  SE.g []
+    [ SE.defs [] [ fromPlainHTML gradient.def ]
+    , SE.path
+      [ SA.d path
+      , unsafeCoerce attrs
+      , SA.fillGradient ("#" <> gradient.id)
       ]
     ]

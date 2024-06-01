@@ -4,6 +4,7 @@ import Prelude
 
 import Control.Monad.Rec.Class (forever)
 import Control.Monad.Trans.Class (lift)
+import Data.Array (foldM)
 import Data.Foldable (for_)
 import Data.Maybe (Maybe(..), maybe')
 import Data.Nullable (toMaybe)
@@ -22,11 +23,13 @@ import Web.DOM.Element (classList)
 import Web.DOM.Element as Element
 import Web.DOM.MutationObserver (disconnect, mutationObserver, observe)
 import Web.DOM.MutationRecord (addedNodes, removedNodes)
+import Web.DOM.Node as Node
 import Web.DOM.NodeList as NodeList
 
 levelStartedEvent :: Aff Unit
 levelStartedEvent = pure unit
 
+-- is this node a piece
 nodeIsPiece :: Node -> Effect Boolean
 nodeIsPiece node = case Element.fromNode node of
   Just element -> do
@@ -35,6 +38,7 @@ nodeIsPiece node = case Element.fromNode node of
   Nothing -> pure false
 
 
+-- fires when a node that matches the predicate is added to the element
 nodeAddedEvent :: (Node -> Effect Boolean) -> Element -> Aff Unit
 nodeAddedEvent predicate element = do
   fiber <- suspendAff never -- unsuspend this when event is triggered
@@ -48,6 +52,7 @@ nodeAddedEvent predicate element = do
   liftEffect $ observe (Element.toNode element) {} observer
   joinFiber fiber
   
+-- fires when a node that matches the predicate is removed from the element
 nodeRemovedEvent :: (Node -> Effect Boolean) -> Element -> Aff Unit
 nodeRemovedEvent predicate element = do
   fiber <- suspendAff never -- unsuspend this when event is triggered
@@ -61,17 +66,31 @@ nodeRemovedEvent predicate element = do
   liftEffect $ observe (Element.toNode element) {} observer
   joinFiber fiber
 
+-- check all direct decendants to see if any match the predicate
+nodeExists :: (Node -> Effect Boolean) -> Element -> Effect Boolean
+nodeExists predicate element = do
+  children <- Node.childNodes (Element.toNode element) >>= NodeList.toArray
+  foldM (\b node -> (||) b <$> predicate node) false children
+
+-- fires when any piece is added to the specified location
 pieceAddedEvent :: Location -> Aff Unit
 pieceAddedEvent loc = do
   element <- DOMElements.location loc
   nodeAddedEvent nodeIsPiece element
 
+-- fires when any piece is removed from the specified location
 pieceRemovedEvent :: Location -> Aff Unit
 pieceRemovedEvent loc = do
   element <- DOMElements.location loc
   nodeRemovedEvent nodeIsPiece element
 
-
+-- like `pieceAddedEvent`, but also fires if there is already a piece at the location
+pieceExistsEvent :: Location -> Aff Unit
+pieceExistsEvent loc = do
+  element <- DOMElements.location loc
+  ifM (liftEffect $ nodeExists nodeIsPiece element)
+    (pure unit)
+    (pieceAddedEvent loc)
 
 --pieceRemovedEvent :: Location -> DomNavigation Unit
 --pieceRemovedEvent loc = do

@@ -2,42 +2,68 @@ module Resources.LevelSuites where
 
 import Prelude
 
-import Capability.Progress (LevelProgress, getLevelProgress)
+import Capability.LocalStorage (getProgress, saveProgress)
+import Capability.LocalStorage.LevelProgress (LevelProgress)
+import Capability.LocalStorage.LevelProgress as LevelProgress
 import Component.Chat as Chat
+import Data.FoldableWithIndex (foldMapWithIndex)
 import Data.HeytingAlgebra (ff, tt)
 import Data.Map (Map)
 import Data.Map as M
+import Data.Maybe (Maybe(..))
 import Data.Time.Duration (Seconds(..))
-import Data.Traversable (for)
+import Data.Traversable (all, any, for)
+import Data.TraversableWithIndex (forWithIndex)
 import Data.Tuple (Tuple(..))
+import Effect (Effect)
 import Effect.Class (class MonadEffect)
-import Foreign.Object (Object, fromHomogeneous)
+import Foreign.Object (Object)
 import Foreign.Object as O
-import Game.Level (LevelId, LevelSuite)
-import Resources.LevelSuites.IntermediateSuite (intermediateSuite)
+import Game.Level (levelName)
+import Game.Level.Suite (LevelId(..), LevelSuite)
+import Resources.LevelSuites.Intermediate.Suite (intermediateSuite)
 import Resources.LevelSuites.ShiftingSuite (shiftingSuite)
-import Resources.LevelSuites.TutorialSuite.Suite (tutorialSuite)
+import Resources.LevelSuites.TutorialSuite.Suite (firstLevel, tutorialSuite)
 import Resources.LevelSuites.TwoBitSuite (twoBitSuite)
 import Web.DOM.ParentNode (QuerySelector(..))
 import Web.HTML.Common (AttrName(..))
 
-
 allLevelSuites :: Object LevelSuite
-allLevelSuites = fromHomogeneous
-  { "Tutorial Suite": tutorialSuite
-  , "Intermediate Suite": intermediateSuite
-  , "Two Bit Suite": twoBitSuite
-  , "Shifting Suite": shiftingSuite
-  }
+allLevelSuites = O.fromFoldable $
+  map (\suite -> Tuple suite.suiteName suite)
+    [ tutorialSuite, intermediateSuite, twoBitSuite, shiftingSuite ]
 
-getAllLevelProgress :: forall m. MonadEffect m => m (Map LevelId LevelProgress)
-getAllLevelProgress = map (join >>> M.fromFoldable >>> M.catMaybes) $
-  for (O.toUnfoldable allLevelSuites :: Array _) \(Tuple suiteName suite) ->
-    for (O.toUnfoldable suite :: Array _) \(Tuple levelName _) ->
-      Tuple {suiteName, levelName} <$> getLevelProgress { suiteName, levelName}
+--getAllLevelProgress :: Effect (Map LevelId LevelProgress)
+--getAllLevelProgress = map (join >>> M.fromFoldable >>> M.catMaybes) $
+--  for (O.toUnfoldable allLevelSuites :: Array _) \(Tuple suiteName suite) ->
+--    for (O.toUnfoldable suite.levels :: Array _) \(Tuple levelName _) -> do
+--      let levelId = LevelId { suiteName, levelName }
+--      Tuple levelId <$> getProgress levelId
 
-identitySuite :: LevelSuite
-identitySuite = fromHomogeneous {}
+getAllLevelProgress :: Effect (Object (Object (Maybe LevelProgress)))
+getAllLevelProgress = do
+  unlockedLevels <-
+    forWithIndex allLevelSuites \suiteName suite ->
+      forWithIndex suite.levels \levelName _ -> 
+        (getProgress (LevelId { suiteName, levelName }) :: Effect (Maybe LevelProgress))
+
+  if all O.isEmpty unlockedLevels
+    then do
+      saveProgress (LevelId { suiteName: firstSuiteName, levelName: firstLevelName }) LevelProgress.Unlocked
+      pure $ O.singleton firstSuiteName (O.singleton firstLevelName (Just LevelProgress.Unlocked))
+    else 
+      pure unlockedLevels
+
+  where
+    firstSuiteName = tutorialSuite.suiteName
+    firstLevelName = levelName firstLevel
+      
+    
+
+
+
+--identitySuite :: LevelSuite
+--identitySuite = toLevelSuite "Identity Suite" []
   --{ "Double Negation":
   --  { problemDescription:
   --    { goal: mkPiece idPiece

@@ -3,7 +3,7 @@ module Test.Game.Signal where
 import Prelude
 
 import Control.Monad.Gen (class MonadGen, chooseInt)
-import Game.Signal (Signal(..), nthBit)
+import Game.Piece.Signal (Signal(..), nthBit)
 import Test.Spec (Spec, describe, it)
 import Test.Spec.Assertions (shouldEqual, shouldNotEqual)
 import Test.Spec.QuickCheck (quickCheck)

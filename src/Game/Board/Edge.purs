@@ -3,7 +3,7 @@ module Game.Edge where
 import Prelude
 
 import Data.Newtype (class Newtype)
-import Game.Direction (CardinalDirection, oppositeDirection)
+import Game.Piece.Direction (CardinalDirection, oppositeDirection)
 import Game.Location (Location(..), followDirection)
 
 newtype Edge = Edge { loc :: Location, dir :: CardinalDirection }

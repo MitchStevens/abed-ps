@@ -3,7 +3,7 @@ module Game.Board.RelativeEdge where
 import Prelude
 
 import Data.Newtype (class Newtype)
-import Game.Direction (CardinalDirection)
+import Game.Piece.Direction (CardinalDirection)
 import Game.Edge (Edge(..), edge)
 import Game.Location (Location(..))
 

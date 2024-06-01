@@ -26,15 +26,15 @@ import Debug (trace)
 import Game.Board.PieceInfo (_rotation)
 import Game.Board.RelativeEdge (AbsoluteEdge, RelativeEdge(..), absolute, relative, relativeEdgeDirection, relativeEdgeLocation)
 import Game.Board.Types (Board(..), _pieces, _size)
-import Game.Capacity (Capacity)
-import Game.Direction (CardinalDirection, allDirections, oppositeDirection, rotateDirection)
-import Game.Direction as Direction
+import Game.Piece.Capacity (Capacity)
+import Game.Piece.Direction (CardinalDirection, allDirections, oppositeDirection, rotateDirection)
+import Game.Piece.Direction as Direction
 import Game.Edge (Edge(..), matchEdge)
 import Game.Location (Location(..), location)
 import Game.Piece (getPort, shouldRipple, updateCapacity)
-import Game.Port (Port(..), portMatches, portType)
-import Game.Port as Port
-import Game.Rotation (Rotation(..))
+import Game.Piece.Port (Port(..), portMatches, portType)
+import Game.Piece.Port as Port
+import Game.Piece.Rotation (Rotation(..))
 
 {- 
   EDGE QUERIES:

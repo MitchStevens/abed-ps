@@ -20,12 +20,12 @@ import Effect.Aff.Class (class MonadAff, liftAff)
 import Effect.Class (class MonadEffect)
 import Effect.Class.Console (log)
 import Effect.Exception (Error, error)
-import Game.Board (Board(..), _pieces, relativeEdgeLocation, standardBoard, topologicalSort, BoardError(..), addPiece, addPieceNoUpdate, applyBoardEvent, decreaseSize, increaseSize, removePiece, rotatePieceBy, updatePortsAround, validBoardSize, addBoardPath, buildConnectionMap)
-import Game.Direction as Direction
+import Game.Board (Board(..), _pieces, relativeEdgeLocation, standardBoard, BoardError(..), addPiece, addPieceNoUpdate, applyBoardEvent, decreaseSize, increaseSize, removePiece, rotatePieceBy, updatePortsAround, validBoardSize, addBoardPath, buildConnectionMap)
+import Game.Piece.Direction as Direction
 import Game.GameEvent (BoardEvent(..))
 import Game.Location (location)
 import Game.Piece (andPiece, getOutputDirs, idPiece, leftPiece, name)
-import Game.Rotation (rotation)
+import Game.Piece.Rotation (rotation)
 import Test.Game.Board (testBoard, toAff)
 import Test.Spec (Spec, SpecT, before, beforeAll, beforeAll_, describe, hoistSpec, it, itOnly)
 import Test.Spec.Assertions (expectError, shouldEqual, shouldReturn)
@@ -41,7 +41,7 @@ spec = hoistSpec identity (\_ -> toAff) tests
 tests :: forall m. MonadState Board m => MonadError Error m => MonadEffect m
   => SpecT m Unit Identity Unit
 tests = do
-  describe "Operation" do
+  describe "Game.Board.Operation" do
     before (put standardBoard) do
       describe "addPiece" do
         it "can add a piece" do

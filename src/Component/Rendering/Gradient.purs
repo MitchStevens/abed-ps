@@ -4,12 +4,12 @@ import Prelude
 
 import Component.Rendering.Colours (portColours)
 import Data.Foldable (intercalate)
-import Game.Capacity (Capacity(..), toInt)
+import Game.Piece.Capacity (Capacity(..), toInt)
 import Game.Piece as Port
-import Game.Port (Port(..), isInput, portCapacity, portType)
-import Game.Port as Port
+import Game.Piece.Port (Port(..), isInput, portCapacity, portType)
+import Game.Piece.Port as Port
 import Game.PortInfo (PortInfo)
-import Game.Signal (Signal(..))
+import Game.Piece.Signal (Signal(..))
 import Halogen.HTML (HTML, PlainHTML)
 import Halogen.Svg.Attributes (Color(..), Transform(..))
 import Halogen.Svg.Attributes as SA

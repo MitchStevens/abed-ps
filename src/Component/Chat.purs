@@ -4,7 +4,7 @@ import Data.Lens
 import Prelude
 
 import Component.DataAttribute (attr)
-import Component.DataAttribute as DataAttr
+import Component.DataAttribute as DA
 import Control.Monad.Reader (class MonadAsk, class MonadReader, asks, lift, runReaderT)
 import Control.Monad.Rec.Class (class MonadRec, forever)
 import Control.Monad.State (class MonadState, gets, modify, modify_, put)
@@ -26,7 +26,6 @@ import Effect.Class.Console (log)
 import Effect.Exception (message)
 import Effect.Now (nowTime)
 import Game.Message (Message(..), Conversation)
-import GlobalState (GlobalState)
 import Halogen (ClassName(..), HalogenM, HalogenQ, RefLabel(..), defaultEval, modify_)
 import Halogen as H
 import Halogen.HTML (PlainHTML, fromPlainHTML)
@@ -65,7 +64,7 @@ data Output
 
 _messages = prop (Proxy :: Proxy "messages")
 
-component :: forall m. MonadAsk GlobalState m => MonadAff m => H.Component Query Input Output m
+component :: forall m. MonadAff m => H.Component Query Input Output m
 component = H.mkComponent { eval , initialState , render }
   where
   initialState { conversation } = { conversation, messages: [], scrollToBottom: true } 
@@ -83,7 +82,7 @@ component = H.mkComponent { eval , initialState , render }
       [ HH.td [ HP.class_ (ClassName "timestamp") ]
         [ HH.text (showTime timestamp) ]
       , HH.td
-          [ attr DataAttr.chatUsername user
+          [ attr DA.chatUsername user
           , HP.class_ ( ClassName "username" ) ]
           [ HH.div_ [ HH.text user ] ]
       , HH.td [ HP.class_ (ClassName "message") ] [ fromPlainHTML html ]
@@ -92,10 +91,6 @@ component = H.mkComponent { eval , initialState , render }
   showTime :: Time -> String -- break a leg :D
   showTime time = toLocaleString (fromEnum (hour time)) (fromEnum (minute time)) (fromEnum (second time))
   
-  --intercalate ":" [pad2 (hour time), pad2 (minute time), pad2 (second time)]
-  --  where
-  --    pad2 :: forall a. BoundedEnum a => a -> String
-  --    pad2 n = let s = show (fromEnum n) in power "0" (2 - length s) <> s
 
   eval :: forall slots. HalogenQ Query Action Input ~> HalogenM State Action slots Output m
   eval = H.mkEval
@@ -130,7 +125,6 @@ component = H.mkComponent { eval , initialState , render }
         height <- liftEffect $ scrollHeight (toElement element)
         top <- liftEffect $ scrollTop (toElement element)
         modify_ (_ { scrollToBottom = height == top} )
-        --when (height == top) (log "we are at the bottom!!")
 
 foreign import toLocaleString :: Int -> Int -> Int -> String
 

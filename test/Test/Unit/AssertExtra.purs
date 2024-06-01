@@ -2,13 +2,29 @@ module Test.Unit.AssertExtra where
 
 import Prelude
 
+import Control.Monad.Error.Class (class MonadThrow)
 import Control.Monad.Trans.Class (lift)
-import Data.Array (findIndex, findLastIndex)
+import Data.Array (findIndex, findLastIndex, fold, zip)
 import Data.Either (Either(..))
 import Data.Foldable (class Foldable, elem, foldr)
-import Data.FoldableWithIndex (foldMapWithIndex)
+import Data.FoldableWithIndex (foldMapWithIndex, forWithIndex_)
 import Data.Maybe (Maybe(..))
+import Data.String (splitAt, take)
+import Data.String.CodeUnits (toCharArray)
+import Data.Tuple (Tuple(..))
 import Effect.Aff.Class (class MonadAff, liftAff)
+import Effect.Exception (Error)
+import Test.Spec.Assertions (fail)
+
+shouldEqualString :: forall m. MonadThrow Error m => String -> String -> m Unit
+shouldEqualString received expected =
+  forWithIndex_ (zip (toCharArray expected) (toCharArray received)) \i (Tuple a b) -> 
+    when (a /= b) do
+      fail $ fold
+        [ "Error at index " <> show i <> ":\n"
+        , "  - expected: " <> take 30 (splitAt i expected).after <> "\n"
+        , "  - expected: " <> take 30 (splitAt i received).after
+        ]
 
 
 {-

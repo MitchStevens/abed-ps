@@ -11,10 +11,10 @@ import Data.Map (Map)
 import Data.Map as M
 import Data.Tuple (Tuple(..))
 import Debug (trace)
-import Game.Direction (CardinalDirection, clockwiseRotation)
-import Game.Direction as Direction
+import Game.Piece.Direction (CardinalDirection, clockwiseRotation)
+import Game.Piece.Direction as Direction
 import Game.PortInfo (PortInfo)
-import Game.Rotation (Rotation(..))
+import Game.Piece.Rotation (Rotation(..))
 import Halogen (ComponentHTML)
 import Halogen.Svg.Attributes (Transform(..))
 import Halogen.Svg.Attributes as SA

@@ -3,7 +3,7 @@ module Test.Game.Edge where
 import Prelude
 
 import Data.Foldable (for_)
-import Game.Direction (allDirections)
+import Game.Piece.Direction (allDirections)
 import Game.Edge (Edge(..), edge, matchEdge)
 import Test.Game.Location (allLocations)
 import Test.Spec (Spec, describe, it)

@@ -4,9 +4,9 @@ import Prelude
 
 import Data.Foldable (for_)
 import Data.Tuple (Tuple(..), uncurry)
-import Game.Capacity (Capacity(..), clampSignal)
+import Game.Piece.Capacity (Capacity(..), clampSignal)
 import Game.Piece (fuseSignals, severSignal)
-import Game.Signal (Signal(..))
+import Game.Piece.Signal (Signal(..))
 import Test.QuickCheck ((===))
 import Test.Spec (Spec, describe, it, itOnly)
 import Test.Spec.Assertions (shouldEqual, shouldNotEqual)

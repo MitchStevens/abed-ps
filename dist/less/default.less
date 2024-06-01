@@ -6,9 +6,61 @@
 @import "piece-component";
 @import "chat-component";
 @import "sidebar-component";
-@import (less) "driver.css";
+@import (less) "./animate.css";
 
-body { margin: 0; }
+body { 
+    margin: 0;
+    font-family: system-ui,-apple-system,system-ui,"Helvetica Neue",Helvetica,Arial,sans-serif;
+
+    button {
+        align-items: center;
+        background-color: #FFFFFF;
+        border: 1px solid rgba(0, 0, 0, 0.1);
+        border-radius: .25rem;
+        box-shadow: rgba(0, 0, 0, 0.02) 0 1px 3px 0;
+        box-sizing: border-box;
+        color: rgba(0, 0, 0, 0.85);
+        cursor: pointer;
+        display: inline-flex;
+        font-family: system-ui,-apple-system,system-ui,"Helvetica Neue",Helvetica,Arial,sans-serif;
+        font-size: 16px;
+        font-weight: 600;
+        justify-content: center;
+        line-height: 1.25;
+        margin-left: 3px;
+        margin-right: 3px;
+        //min-height: 3rem;
+        //padding: calc(.875rem - 1px) calc(1.5rem - 1px);
+        padding: 7px;
+        position: relative;
+        text-decoration: none;
+        transition: all 250ms;
+        user-select: none;
+        -webkit-user-select: none;
+        touch-action: manipulation;
+        vertical-align: baseline;
+        width: auto;
+
+        & :hover,
+        & :focus {
+        border-color: rgba(0, 0, 0, 0.15);
+        box-shadow: rgba(0, 0, 0, 0.1) 0 4px 12px;
+        color: rgba(0, 0, 0, 0.65);
+        }
+
+        & :hover {
+        transform: translateY(-1px);
+        }
+
+        & :active {
+        background-color: #F0F0F1;
+        border-color: rgba(0, 0, 0, 0.15);
+        box-shadow: rgba(0, 0, 0, 0.06) 0 2px 4px;
+        color: rgba(0, 0, 0, 0.65);
+        transform: translateY(0);
+        }
+    }
+}
 
 #content {
     min-height: 100vh;
@@ -20,6 +72,8 @@ body { margin: 0; }
     user-select: none;
     min-height: 100vh;
     grid-area: 1 / 2;
+    background-color: beige;
+
     & .spotlight {
         animation-name: blink;
         animation-duration: 1s;
@@ -60,6 +114,8 @@ body { margin: 0; }
 #default-layout {
     padding-left: 100px;
     padding-right: 100px;
+    padding-top: 50px;
+    padding-bottom: 50px;
     min-width: 700px;
 
     & textarea#title {
@@ -73,11 +129,36 @@ body { margin: 0; }
 #puzzle-select-component {
     & span[data-puzzle-progress="completed"] {
         color: green;
+
+        & ::after {
+            content: 'J';
+        }
     }
     & span[data-puzzle-progress="incomplete"] {
-        color: yellow;
+        color: #cab31b;
+
+        & ::after {
+            content: 'H';
+        }
     }
+
+    .level-suites {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+
+        & .level-suite {
+            h2 { text-align: center; }
+            border-style: dashed;
+            border-width: 1px;
+            //margin: 20px;
+        }
+
+    }
+
+
 }
+
 
 span.red { color: @red }
 span.green { color: @green }
@@ -125,4 +206,13 @@ span.green { color: @green }
 
 .rough-annotation {
     z-index: 10;
+    transition-duration: 800ms;
+    animation-duration: 800ms;
+    --animate-duration: 800ms;
+    .animate__animated();
+    //.animate__fadeOut();
+}
+
+a:link {
+    text-decoration: none;
 }

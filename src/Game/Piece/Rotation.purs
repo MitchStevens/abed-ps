@@ -1,4 +1,4 @@
-module Game.Rotation where
+module Game.Piece.Rotation where
 
 import Prelude
 

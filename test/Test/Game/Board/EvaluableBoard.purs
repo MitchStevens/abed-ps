@@ -26,13 +26,13 @@ import Effect.Aff (Aff)
 import Effect.Class (class MonadEffect)
 import Effect.Class.Console (log, logShow)
 import Effect.Exception (Error)
-import Game.Capacity (Capacity(..))
-import Game.Direction as Direction
+import Game.Piece.Capacity (Capacity(..))
+import Game.Piece.Direction as Direction
 import Game.Level (binaryTestInputs)
 import Game.Location (location)
-import Game.Port (inputPort, isOutput, outputPort)
+import Game.Piece.Port (inputPort, isOutput, outputPort)
 import Game.PortInfo (PortInfo)
-import Game.Signal (Signal(..))
+import Game.Piece.Signal (Signal(..))
 import Test.Game.Board (testBoard, testBoardCrossOver, toAff)
 import Test.Game.Board.Operation (exceptToAff)
 import Test.Spec (Spec, SpecT, before, beforeAll_, describe, describeOnly, hoistSpec, it, itOnly)
@@ -82,7 +82,7 @@ spec = hoistSpec identity (\_ -> natTransformToAff) tests
 
 tests :: SpecT EvalM Unit Identity Unit
 tests = do
-  describe "EvaluableBoard" do
+  describe "Game.Board.EvaluableBoard" do
     describe "testBoard" do
       let inRelEdge1 = relative (location (-1) 1) Direction.Right
       let inRelEdge2 = relative (location 1 (-1)) Direction.Right

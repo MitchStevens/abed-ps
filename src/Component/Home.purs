@@ -3,7 +3,7 @@ module Component.Home where
 import Prelude
 
 import Capability.Navigate (Route(..), navigateTo)
-import Component.Layout.DefaultLayout (defaultLayout)
+import Component.Layout.DefaultLayout (defaultLayout, defaultLayoutHome)
 import Component.Title (abedTitleText)
 import Component.Title as Title
 import Data.Array (intercalate)
@@ -25,6 +25,7 @@ import Halogen as H
 import Halogen.HTML (PlainHTML, fromPlainHTML)
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
+import Halogen.HTML.Extras (navigationLink)
 import Halogen.HTML.Properties as HP
 import Halogen.Subscription (Emitter)
 import Halogen.Subscription as HS
@@ -35,7 +36,6 @@ type State =
   }
 
 data Action
-  = NavigateTo Route
 
 type Slots = ( title :: forall q o. Slot q o Unit)
 
@@ -45,37 +45,20 @@ component = H.mkComponent { eval , initialState , render }
   initialState _ =
     { titleText: "" } 
 
-  render state = defaultLayout $
+  render _ = defaultLayoutHome $
     HH.div [ HP.id "home-component" ]
       [ --HH.slot_ (Proxy :: Proxy "title") unit Title.component { typeTitle: true }
       --, HH.br_
-      HH.a 
-        [ HE.onClick (\_ -> NavigateTo LevelSelect)
-        , HP.class_ (ClassName "link")
-        ]
-        [ HH.text "Choose a level" ]
+        navigationLink "Choose a level" LevelSelect
       , HH.br_
-      , HH.a
-        [ HE.onClick (\_ -> NavigateTo Instructions)
-        , HP.class_ (ClassName "link")
-        ]
-        [ HH.text "How to play" ]
+      , navigationLink "How to play" Instructions
       , HH.br_
-      , HH.a
-        [ HE.onClick (\_ -> NavigateTo About) 
-        , HP.class_ (ClassName "link")
-        ]
-        [ HH.text "About" ]
+      , navigationLink "About" About
       ]
 
 
   eval :: forall slots. HalogenQ q Action i ~> HalogenM State Action slots o m
   eval = H.mkEval H.defaultEval 
-    { handleAction = case _ of 
-        NavigateTo route -> do 
-          navigateTo route 
-    , initialize = Nothing
-    }
 
 
 

@@ -15,14 +15,14 @@ import Data.Map as M
 import Data.Maybe (Maybe(..), maybe)
 import Data.Tuple (Tuple(..))
 import Game.Board (EvaluableBoard(..), evaluableBoardPiece)
-import Game.Capacity (toInt)
-import Game.Direction (CardinalDirection, allDirections, clockwiseRotation)
-import Game.Direction as Direction
+import Game.Piece.Capacity (toInt)
+import Game.Piece.Direction (CardinalDirection, allDirections, clockwiseRotation)
+import Game.Piece.Direction as Direction
 import Game.Level.Completion (PortMismatch(..), isPortMismatch)
 import Game.Piece (Piece(..), getPort)
-import Game.Port (Port(..), portCapacity, portType)
-import Game.Port as Port
-import Game.Rotation (toDegrees)
+import Game.Piece.Port (Port(..), portCapacity, portType)
+import Game.Piece.Port as Port
+import Game.Piece.Rotation (toDegrees)
 import Halogen (AttrName(..), ClassName(..), ComponentHTML)
 import Halogen.HTML as HH
 import Halogen.Svg.Attributes (Baseline(..), CommandPositionReference(..), Orient(..), TextAnchor(..), Transform(..), l, m, z)

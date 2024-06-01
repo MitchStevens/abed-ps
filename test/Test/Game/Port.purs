@@ -4,10 +4,10 @@ import Prelude
 
 import Data.Array.NonEmpty (cons')
 import Data.Maybe (Maybe(..))
-import Game.Capacity (Capacity(..))
-import Game.Port (PortType, createPort, inputPort, matchingPort, outputPort, Port)
-import Game.Port as Port
-import Game.Signal (Signal(..))
+import Game.Piece.Capacity (Capacity(..))
+import Game.Piece.Port (PortType, createPort, inputPort, matchingPort, outputPort, Port)
+import Game.Piece.Port as Port
+import Game.Piece.Signal (Signal(..))
 import Test.Game.Capacity (genCapacity)
 import Test.QuickCheck (assertLessThan)
 import Test.QuickCheck.Gen (Gen, elements)

@@ -3,7 +3,7 @@ module Test.Game.Piece.WirePiece where
 import Prelude
 
 import Data.Set as S
-import Game.Direction as Direction
+import Game.Piece.Direction as Direction
 import Game.Piece (getInputDirs, getOutputDirs, leftPiece)
 import Test.Spec (Spec, describe, it)
 import Test.Spec.Assertions (shouldEqual)

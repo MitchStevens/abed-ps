@@ -9,12 +9,12 @@ import Data.Map as M
 import Data.Maybe (Maybe(..))
 import Data.Ord (greaterThan, lessThan)
 import Data.Tuple (Tuple(..))
-import Game.Capacity (Capacity(..))
-import Game.Direction as Direction
+import Game.Piece.Capacity (Capacity(..))
+import Game.Piece.Direction as Direction
 import Game.Piece (Piece(..), PieceId(..))
 import Game.Piece as Complexity
-import Game.Port (inputPort, outputPort)
-import Game.Signal (Signal(..))
+import Game.Piece.Port (inputPort, outputPort)
+import Game.Piece.Signal (Signal(..))
 
 allComparisonPieces :: Array Piece
 allComparisonPieces =
@@ -49,6 +49,8 @@ mkComparisonPiece piece@{ name, comparison, capacity } = Piece
       , Tuple Direction.Left (inputPort capacity)
       ]
   , updatePort: \_ _ -> Nothing
+
+  , isSimplifiable: Nothing
   }
 
 mkEqualPiece :: Capacity -> Piece

@@ -6,18 +6,18 @@ import Data.HeytingAlgebra (ff, tt)
 import Data.Map as M
 import Data.Maybe (Maybe(..))
 import Data.Tuple (Tuple(..))
-import Game.Capacity (Capacity(..))
-import Game.Direction as Direction
-import Game.Piece (andPiece, eval, getPorts, notPiece, orPiece, xorPiece)
+import Game.Piece.Capacity (Capacity(..))
+import Game.Piece.Direction as Direction
+import Game.Piece (andPiece, eval, getPort, getPorts, notPiece, orPiece, shouldRipple, updateCapacity, xorPiece)
 import Game.Piece as Port
-import Game.Port (inputPort, outputPort)
-import Game.Signal (Signal(..))
+import Game.Piece.Port (inputPort, outputPort)
+import Game.Piece.Signal (Signal(..))
 import Test.Spec (Spec, describe, it)
-import Test.Spec.Assertions (shouldEqual, shouldNotEqual)
+import Test.Spec.Assertions (fail, shouldEqual, shouldNotEqual)
 
 spec :: Spec Unit
 spec = do
-  describe "Basic Piece" do
+  describe "Test.Game.Piece.BasicPiece" do
     let f x y = M.fromFoldable [ Tuple Direction.Left x, Tuple Direction.Up y ]
     let inPort = inputPort OneBit
     let outPort = outputPort OneBit
@@ -31,6 +31,15 @@ spec = do
           [ Tuple Direction.Left inPort
           , Tuple Direction.Right outPort
           ]
+      it "ripple" do
+        shouldRipple notPiece `shouldEqual` true
+        let notPiece' = updateCapacity Direction.Up TwoBit notPiece 
+        notPiece' `shouldEqual` Nothing
+        case updateCapacity Direction.Left TwoBit notPiece of
+          Just notPiece2 -> do
+            getPort notPiece2 Direction.Left `shouldEqual` Just (inputPort TwoBit)
+            getPort notPiece2 Direction.Right `shouldEqual` Just (outputPort TwoBit)
+          Nothing -> fail ""
     describe "OrPiece" do
       it "eval" do
         eval orPiece (f ff ff) `shouldEqual` M.singleton Direction.Right (Signal 0)

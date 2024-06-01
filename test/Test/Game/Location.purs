@@ -9,8 +9,8 @@ import Data.Group (ginverse)
 import Data.Map as M
 import Data.Maybe (Maybe(..))
 import Data.Tuple (Tuple(..))
-import Game.Direction (allDirections, oppositeDirection)
-import Game.Direction as Direction
+import Game.Piece.Direction (allDirections, oppositeDirection)
+import Game.Piece.Direction as Direction
 import Game.Location (Location(..), directionTo, followDirection, location)
 import Test.QuickCheck.Gen (Gen, chooseInt)
 import Test.Spec (Spec, describe, it)

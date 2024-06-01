@@ -4,8 +4,8 @@ import Prelude
 
 import Data.Array.NonEmpty (cons')
 import Data.Maybe (Maybe(..))
-import Game.Capacity (Capacity(..), clampSignal, doubleCapacity, halveCapacity)
-import Game.Signal (Signal(..))
+import Game.Piece.Capacity (Capacity(..), clampSignal, doubleCapacity, halveCapacity)
+import Game.Piece.Signal (Signal(..))
 import Test.QuickCheck (assertLessThan)
 import Test.QuickCheck.Gen (Gen, elements)
 import Test.Spec (Spec, describe, it)

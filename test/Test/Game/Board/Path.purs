@@ -1,5 +1,7 @@
 module Test.Game.Board.Path where
 
+import Game.Board
+import Game.Piece
 import Prelude
 
 import Component.Board (_board)
@@ -17,15 +19,13 @@ import Data.Tuple (Tuple(..))
 import Data.Zipper (Zipper(..))
 import Data.Zipper as Z
 import Debug (trace)
-import Game.Board 
-import Game.Direction as Direction
+import Game.Piece.Direction as Direction
 import Game.Location (location)
-import Game.Piece 
-import Game.Rotation (rotation)
+import Game.Piece.Rotation (rotation)
 import Partial.Unsafe (unsafeCrashWith)
 import Test.Game.Board (testBoard, toAff)
 import Test.Game.Board.Operation (exceptToAff)
-import Test.Spec (Spec, before, describe, hoistSpec, it)
+import Test.Spec (Spec, before, describe, hoistSpec, it, itOnly)
 import Test.Spec.Assertions (shouldContain, shouldEqual, shouldReturn)
 
 pathTestBoard :: Board
@@ -178,7 +178,6 @@ spec = do
           addBoardPath Direction.Right [ l21, l11, l01 ] Direction.Left `shouldReturn` true
           addBoardPath Direction.Up [ l10, l11, l12 ] Direction.Down `shouldReturn` true
           b <- get
-          trace (show b) \_ -> pure unit
           use (_pieces <<< at l11) `shouldReturn` Just { piece: crossPiece, rotation: rotation 1 }
           use (_pieces <<< at l10) `shouldReturn` Just { piece: idPiece, rotation: rotation 1 }
 

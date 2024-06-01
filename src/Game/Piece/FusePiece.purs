@@ -9,12 +9,12 @@ import Data.Int.Bits (and, or, shl, shr)
 import Data.Map as M
 import Data.Maybe (Maybe(..), fromMaybe)
 import Data.Tuple (Tuple(..))
-import Game.Capacity (Capacity(..), doubleCapacity, halveCapacity, toInt)
-import Game.Direction as Direction
+import Game.Piece.Capacity (Capacity(..), doubleCapacity, halveCapacity, toInt)
+import Game.Piece.Direction as Direction
 import Game.Piece.Complexity as Complexity
 import Game.Piece.Types (Piece(..), PieceId(..))
-import Game.Port (inputPort, outputPort)
-import Game.Signal (Signal(..))
+import Game.Piece.Port (inputPort, outputPort)
+import Game.Piece.Signal (Signal(..))
 
 allFusePieces :: Array Piece
 allFusePieces = [ fusePiece, severPiece ]
@@ -57,6 +57,8 @@ mkFusePiece { inputCapacity } = Piece
         , Tuple Direction.Right (outputPort outputCapacity)
         ]
   , updatePort: \_ _ -> Nothing
+
+  , isSimplifiable: Nothing
   }
   
 fuseSignals :: Capacity -> Signal -> Signal -> Signal
@@ -97,6 +99,8 @@ mkSeverPiece { outputCapacity } = Piece
         , Tuple Direction.Down  (outputPort outputCapacity)
         ]
   , updatePort: \_ _ -> Nothing
+
+  , isSimplifiable: Nothing
   }
 
 severSignal :: Capacity -> Signal -> Tuple Signal Signal

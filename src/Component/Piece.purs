@@ -30,7 +30,7 @@ import Effect.Class (class MonadEffect, liftEffect)
 import Effect.Class.Console (log, logShow)
 import Game.Board (relative)
 import Game.Piece (name)
-import Game.Rotation (rotation, toRadians)
+import Game.Piece.Rotation (rotation, toRadians)
 import Halogen (AttrName(..), ClassName(..), Component, HalogenM, HalogenQ, RefLabel(..), getHTMLElementRef, getRef, gets, mkComponent, mkEval, raise)
 import Halogen.HTML (HTML, PlainHTML, fromPlainHTML)
 import Halogen.HTML as HH

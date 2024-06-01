@@ -2,17 +2,20 @@ module Component.About where
 
 import Prelude
 
-import Capability.Progress (deleteProgress)
+import Capability.LocalStorage (deleteProgress)
+import Capability.Navigate (Route(..), navigateTo, routeSlug)
 import Component.Layout.DefaultLayout (defaultLayout)
 import Data.Time.Duration (Milliseconds(..), Seconds(..), fromDuration)
 import Effect.Aff.Class (class MonadAff)
 import Effect.Class (class MonadEffect, liftEffect)
+import Effect.Class.Console (log)
 import Effect.Exception (message)
 import Effect.Now (nowTime)
 import Halogen (ClassName(..), HalogenM, HalogenQ, defaultEval, modify_)
 import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
+import Halogen.HTML.Extras (navigationLink)
 import Halogen.HTML.Properties as HP
 import Web.HTML (window)
 import Web.HTML.Window (confirm, localStorage)
@@ -23,7 +26,6 @@ type State = {}
 
 data Action
   = DeleteProgress
-  -- | NavigateTo Route
 
 component :: forall q i o m. MonadAff m => H.Component q i o m
 component = H.mkComponent { eval , initialState , render }
@@ -33,14 +35,15 @@ component = H.mkComponent { eval , initialState , render }
   render state =  
     defaultLayout $
       HH.div [ HP.class_ (ClassName "about-component") ]
-        [ HH.h1_ [ HH.text "about page" ]
+        [ HH.h1_ [ HH.text "About" ]
         , HH.h2_ [ HH.text "This game created by Mitch Stevens" ]
         , HH.br_
-        , HH.text "email here"
+        , HH.text "email me at "
+        , HH.b_ [ HH.text "mitchstevens 95 at gmail dot com" ]
         , HH.br_
         , HH.text "Source Code: "
         , HH.a
-          [ HP.href "https://github.com/MitchStevens/abed-ps" ]
+          [ HP.href "github.com/MitchStevens/abed-ps" ]
           [ HH.text "https://github.com/MitchStevens/abed-ps" ]
         , HH.br_
         , HH.button

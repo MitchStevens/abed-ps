@@ -6,12 +6,12 @@ import Effect (Effect)
 import Effect.Aff (launchAff_, runAff_)
 import Halogen as Test
 import Test.Spec.Discovery (discover)
-import Test.Spec.Reporter (consoleReporter)
+import Test.Spec.Reporter as Reporter
 import Test.Spec.Runner (runSpec)
 
 main :: Effect Unit
 main = launchAff_ $
-  discover "Test.*" >>= runSpec [ consoleReporter ]
+  discover "Test.*" >>= runSpec [ Reporter.specReporter ]
 {-
 runAff_ (\_ -> pure unit) $ runTest do
   describe "Expression tests"           Test.Game.Expression.tests

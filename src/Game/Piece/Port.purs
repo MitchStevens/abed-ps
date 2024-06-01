@@ -1,4 +1,4 @@
-module Game.Port where
+module Game.Piece.Port where
 
 import Prelude
 
@@ -9,8 +9,8 @@ import Data.Lens.Iso.Newtype (_Newtype)
 import Data.Lens.Record (prop)
 import Data.Maybe (Maybe(..))
 import Data.Newtype (class Newtype)
-import Game.Capacity (Capacity)
-import Game.Signal (Signal(..), nthBit)
+import Game.Piece.Capacity (Capacity)
+import Game.Piece.Signal (Signal(..), nthBit)
 import Type.Proxy (Proxy(..))
 
 data PortType = Input | Output

@@ -1,6 +1,5 @@
 module Game.Board
-( module Game.Board.CompiledBoard
-, module Game.Board.EvaluableBoard
+( module Game.Board.EvaluableBoard
 , module Game.Board.Operation
 , module Game.Board.Path
 , module Game.Board.PieceInfo
@@ -10,7 +9,6 @@ module Game.Board
 , module Game.Board.Types
 ) where
 
-import Game.Board.CompiledBoard
 import Game.Board.EvaluableBoard
 import Game.Board.Operation
 import Game.Board.Path

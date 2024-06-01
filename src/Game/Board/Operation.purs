@@ -31,14 +31,14 @@ import Game.Board.PieceInfo (PieceInfo, _rotation)
 import Game.Board.Query (adjacentRelativeEdge, getPortOnEdge, isInsideBoard)
 import Game.Board.RelativeEdge (RelativeEdge(..), relative)
 import Game.Board.Types (Board(..), BoardError(..), _pieces)
-import Game.Direction (allDirections)
-import Game.Direction as Direction
+import Game.Piece.Direction (allDirections)
+import Game.Piece.Direction as Direction
 import Game.Edge (Edge(..), edgeLocation)
 import Game.GameEvent (BoardEvent(..))
 import Game.Location (Location(..), location)
 import Game.Piece (Piece(..), pieceLookup, updatePort)
-import Game.Port (PortType, portType)
-import Game.Rotation (Rotation(..), rotation)
+import Game.Piece.Port (PortType, portType)
+import Game.Piece.Rotation (Rotation(..), rotation)
 import Type.Proxy (Proxy(..))
 
 emptyBoard :: Int -> Either BoardError Board

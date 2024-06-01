@@ -4,7 +4,7 @@ import Prelude
 
 import Data.Number (cos, sin)
 import Data.Tuple (Tuple(..))
-import Game.Rotation (Rotation(..))
+import Game.Piece.Rotation (Rotation(..))
 import Halogen.Svg.Attributes (Transform(..))
 
 type Point = Tuple Number Number

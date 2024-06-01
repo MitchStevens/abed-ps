@@ -35,10 +35,11 @@ routeCodec = root $ sum
   , "Level": "level" / underscoreSegment / underscoreSegment
   }
 
-
 underscoreSegment :: RouteDuplex' String
 underscoreSegment = dimap (String.replaceAll (Pattern " ") (Replacement "_")) (String.replaceAll (Pattern "_") (Replacement " ")) segment
 
+routeSlug :: Route -> String
+routeSlug route = print routeCodec route
 
 navigateTo :: forall m. MonadEffect m => Route -> m Unit
-navigateTo route = liftEffect (setHash (print routeCodec route))
+navigateTo route = liftEffect (setHash (routeSlug route))

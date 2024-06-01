@@ -1,4 +1,4 @@
-module Game.Signal where
+module Game.Piece.Signal where
 
 import Prelude
 

@@ -7,11 +7,11 @@ import Component.DataAttribute as DA
 import Data.Either (Either(..))
 import Effect.Aff (Aff)
 import Effect.Class (liftEffect)
-import Game.Capacity (Capacity(..))
-import Game.Direction as Direction
+import Game.Piece.Capacity (Capacity(..))
+import Game.Piece.Direction as Direction
 import Game.Level.Completion (PortMismatch(..))
 import Game.Piece (PieceId(..))
-import Game.Port (inputPort)
+import Game.Piece.Port (inputPort)
 import Parsing (runParser)
 import Test.Game.Capacity (genCapacity)
 import Test.Game.Directions (genDirection)

@@ -2,18 +2,17 @@ module Component.LevelSelect where
 
 import Prelude
 
+import Capability.LocalStorage.LevelProgress (LevelProgress(..))
 import Capability.Navigate (Route(..), navigateTo)
-import Capability.Progress (LevelProgress(..), saveLevelProgress)
 import Component.DataAttribute (attr)
 import Component.DataAttribute as DA
-import Component.DataAttribute as DataAttr
 import Component.Layout.DefaultLayout (defaultLayout)
+import Control.Alternative (guard)
+import Control.Monad.Reader (class MonadAsk, class MonadReader, asks)
 import Data.FoldableWithIndex (foldMapWithIndex)
-import Data.Map (Map)
-import Data.Map as M
-import Data.Maybe (Maybe(..))
+import Data.Maybe (Maybe(..), isJust)
 import Data.Time.Duration (Milliseconds(..), Seconds(..), fromDuration)
-import Data.Traversable (foldMap, for)
+import Data.Traversable (foldMap, foldl, for, maximum)
 import Data.Tuple (Tuple(..))
 import Effect.Aff.Class (class MonadAff)
 import Effect.Class (class MonadEffect, liftEffect)
@@ -22,65 +21,69 @@ import Effect.Exception (message)
 import Effect.Now (nowTime)
 import Foreign.Object (Object)
 import Foreign.Object as O
-import Game.Level (LevelId)
+import Game.Level.Suite (LevelId(..))
+import GlobalState (GlobalState)
+import GlobalState as GlobalState
 import Halogen (ClassName(..), HalogenM, HalogenQ, defaultEval, modify_)
 import Halogen as H
 import Halogen.HTML (PlainHTML)
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
-import Resources.LevelSuites (allLevelSuites, getAllLevelProgress)
 
 
-type State = { levelProgress :: Map LevelId LevelProgress }
+type State = { levelProgress :: Object (Object (Maybe LevelProgress)) }
 
 data Action = Initialise | NavigateTo LevelId
 
-component :: forall q i o m. MonadAff m => H.Component q i o m
+component :: forall q i o m. MonadAsk GlobalState m => MonadEffect m => H.Component q i o m
 component = H.mkComponent { eval , initialState , render }
   where
-  initialState _ = { levelProgress: M.empty } 
+  initialState _ = { levelProgress: O.empty }
 
   render state =  
     defaultLayout $
       HH.div [ HP.id "puzzle-select-component" ]
         [ HH.h1_ [ HH.text "Level Select" ] 
-        , HH.div_  do
-            Tuple suiteName levelSuite <- O.toUnfoldable allLevelSuites
-            let maybeTotalProgress = foldMap (\levelName -> M.lookup {suiteName, levelName} state.levelProgress) (O.keys levelSuite :: Array String)
-            [ HH.h2_
-              [ HH.text suiteName
-              , renderLevelProgress maybeTotalProgress
+        , HH.div [HP.class_ (ClassName "level-suites")]  do
+            Tuple suiteName suiteLevels <- O.toUnfoldable state.levelProgress
+            let maybeTotalProgress = join $ maximum suiteLevels
+
+            pure $ HH.div [ HP.class_ (ClassName "level-suite")]
+              [ HH.h2_
+                [ HH.text suiteName
+                , renderLevelProgress maybeTotalProgress
+                ]
+              , HH.ul_ do
+                  Tuple levelName progress <- O.toUnfoldable suiteLevels
+                  guard (isJust progress)
+                  [ HH.li_ [ renderPuzzle suiteName levelName progress ] ]
               ]
-            , HH.ul_ do
-              Tuple levelName _ <- O.toUnfoldable levelSuite
-              [ HH.li_ [ renderPuzzle suiteName levelName ] ]
-            ]
         ]
 
     where
-    renderPuzzle suiteName levelName =
+    renderPuzzle suiteName levelName progress =
       HH.a
-        [ HE.onClick (\_ -> NavigateTo {suiteName, levelName}) ]
+        [ HE.onClick (\_ -> NavigateTo (LevelId {suiteName, levelName})) ]
         [ HH.text levelName
-        , renderLevelProgress (M.lookup {suiteName, levelName} state.levelProgress)
+        , renderLevelProgress progress
         ]
     
-    renderLevelProgress maybeProgress = case maybeProgress of
-      Just Completed ->  HH.span [ attr DataAttr.progress Completed ]  [ HH.text "  ✔" ]
-      Just Incomplete -> HH.span [ attr DataAttr.progress Incomplete ] [ HH.text " ✶" ]
-      Nothing -> HH.text ""
+    renderLevelProgress = case _ of
+      Just Completed ->  HH.span [ attr DA.progress Completed ]  [ HH.text "  ✔" ]
+      Just Incomplete -> HH.span [ attr DA.progress Incomplete ] [ HH.text " ✶" ]
+      Just Unlocked ->  HH.span [ attr DA.progress Unlocked ]  [ ]
+      Nothing -> HH.text "🔒"
   
   eval :: forall slots. HalogenQ q Action i ~> HalogenM State Action slots o m
   eval = H.mkEval H.defaultEval
     { handleAction = case _ of
         Initialise -> do
-          progress <- liftEffect getAllLevelProgress
-          log (show progress)
+          progress <- GlobalState.levelProgress
           H.modify_ (_ { levelProgress = progress})
-        NavigateTo levelId -> do
-          saveLevelProgress levelId Incomplete
-          navigateTo (Level levelId.suiteName levelId.levelName)
+        NavigateTo levelId@(LevelId {suiteName, levelName}) -> do
+          GlobalState.setLevelProgress levelId Incomplete
+          navigateTo (Level suiteName levelName)
     , initialize = Just Initialise
     }
 

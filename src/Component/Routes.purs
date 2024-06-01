@@ -17,8 +17,10 @@ import Data.Maybe (Maybe(..), fromMaybe)
 import Debug (trace)
 import Effect.Aff.Class (class MonadAff)
 import Effect.Class.Console (log)
+import Foreign.Object as O
 import Foreign.Object as Object
 import Game.GameEvent (GameEvent, GameEventStore)
+import Game.Level.Suite (LevelId(..))
 import GlobalState (GlobalState)
 import Halogen (Component, Slot, mkEval)
 import Halogen as H
@@ -80,10 +82,10 @@ component = H.mkComponent { eval, initialState, render }
       LevelSelect ->
         HH.slot_ (Proxy :: _ "levelSelect") unit LevelSelect.component unit
       Level suiteName levelName -> fromMaybe (HH.text "coublent find tht roblem" ) do
-        levelSuite <- Object.lookup suiteName allLevelSuites
-        level <- Object.lookup levelName levelSuite
+        suite <- O.lookup suiteName allLevelSuites
+        level <- O.lookup levelName suite.levels
         pure $ HH.slot_ (Proxy :: _ "level") unit Level.component $
-          { levelId: { suiteName, levelName }, level }
+          { levelId: LevelId { suiteName, levelName }, level }
 
   eval = mkEval 
     { finalize: Nothing 
@@ -91,10 +93,12 @@ component = H.mkComponent { eval, initialState, render }
         _ -> pure unit
     , handleQuery: case _ of
         Navigate dest a -> do
-          { route } <- H.get
-          when (route /= dest) do
-            lift $ debug M.empty ("Navigated to " <> show dest)
-            H.modify_ (_ { route = dest })
+          --{ route } <- H.get
+          --when (route /= dest) do
+          --  lift $ debug M.empty ("Navigated to " <> show dest)
+          --  H.modify_ (_ { route = dest })
+          lift $ debug M.empty ("Navigated to " <> show dest)
+          H.modify_ (_ { route = dest })
           pure (Just a)
     , initialize: Nothing
     , receive: \_ -> Nothing

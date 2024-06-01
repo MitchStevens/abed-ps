@@ -1,10 +1,10 @@
-module Game.Direction where
+module Game.Piece.Direction where
 
 import Prelude
 
 import Data.Enum (class BoundedEnum, class Enum, Cardinality(..), enumFromTo, fromEnum, toEnum)
 import Data.Maybe (Maybe(..), fromMaybe)
-import Game.Rotation (Rotation(..), rotation)
+import Game.Piece.Rotation (Rotation(..), rotation)
 
 data CardinalDirection = Up | Right | Down | Left 
 derive instance Eq CardinalDirection
