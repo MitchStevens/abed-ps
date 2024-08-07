@@ -38,7 +38,7 @@ foreign import addOnClickEventListenerUnsafe :: forall a. String -> a -> EffectF
 
 newtype Message a = Message
   { user :: Maybe String
-  , html :: Array PlainHTML
+  , html :: Array PlainHTML -- this is an array so the `Alt Message` is lawful, otherwise `html` would have type `PlainHTML`
   , action :: Aff a
   } 
 derive instance Newtype (Message a) _
@@ -118,7 +118,8 @@ sendMessage (Message message) = do
 guideMessage :: String -> ConversationM Unit
 guideMessage = sendMessageWithDelay <<< textMessage "guide"
 
-
+hintMessage :: String -> ConversationM Unit
+hintMessage = sendMessageWithDelay <<< textMessage "hint"
 
 --do
 --  a <- message

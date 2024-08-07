@@ -10,7 +10,7 @@ import Component.Layout.DefaultLayout (defaultLayout)
 import Control.Alternative (guard)
 import Control.Monad.Reader (class MonadAsk, class MonadReader, asks)
 import Data.FoldableWithIndex (foldMapWithIndex)
-import Data.Maybe (Maybe(..), isJust)
+import Data.Maybe (Maybe(..), isJust, maybe)
 import Data.Time.Duration (Milliseconds(..), Seconds(..), fromDuration)
 import Data.Traversable (foldMap, foldl, for, maximum)
 import Data.Tuple (Tuple(..))
@@ -26,7 +26,7 @@ import GlobalState (GlobalState)
 import GlobalState as GlobalState
 import Halogen (ClassName(..), HalogenM, HalogenQ, defaultEval, modify_)
 import Halogen as H
-import Halogen.HTML (PlainHTML)
+import Halogen.HTML (HTML, IProp, PlainHTML)
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
@@ -50,10 +50,9 @@ component = H.mkComponent { eval , initialState , render }
             let maybeTotalProgress = join $ maximum suiteLevels
 
             pure $ HH.div [ HP.class_ (ClassName "level-suite")]
-              [ HH.h2_
-                [ HH.text suiteName
-                , renderLevelProgress maybeTotalProgress
-                ]
+              [ HH.h3
+                [ DA.maybeAttr DA.progress maybeTotalProgress ]
+                [ HH.text suiteName ]
               , HH.ul_ do
                   Tuple levelName progress <- O.toUnfoldable suiteLevels
                   guard (isJust progress)
@@ -62,18 +61,23 @@ component = H.mkComponent { eval , initialState , render }
         ]
 
     where
-    renderPuzzle suiteName levelName progress =
-      HH.a
-        [ HE.onClick (\_ -> NavigateTo (LevelId {suiteName, levelName})) ]
-        [ HH.text levelName
-        , renderLevelProgress progress
-        ]
+      renderPuzzle suiteName levelName progress =
+        HH.a
+          [ HE.onClick (\_ -> NavigateTo (LevelId {suiteName, levelName}))
+          , DA.maybeAttr DA.progress progress
+          , progressTitle progress
+          ]
+          [ HH.text levelName ]
+      
+      progressTitle :: forall p i. Maybe LevelProgress -> IProp (title :: String | p) i
+      progressTitle =
+        HP.title <<< maybe "Not yet unlocked" show
     
-    renderLevelProgress = case _ of
-      Just Completed ->  HH.span [ attr DA.progress Completed ]  [ HH.text "  ✔" ]
-      Just Incomplete -> HH.span [ attr DA.progress Incomplete ] [ HH.text " ✶" ]
-      Just Unlocked ->  HH.span [ attr DA.progress Unlocked ]  [ ]
-      Nothing -> HH.text "🔒"
+    --renderLevelProgress = case _ of
+    --  Just Completed ->  HH.span [ attr DA.progress Completed ]  [ HH.text "  ✔" ]
+    --  Just Incomplete -> HH.span [ attr DA.progress Incomplete ] [ HH.text " ✶" ]
+    --  Just Unlocked ->  HH.span [ attr DA.progress Unlocked ]  [ ]
+    --  Nothing -> HH.text "🔒"
   
   eval :: forall slots. HalogenQ q Action i ~> HalogenM State Action slots o m
   eval = H.mkEval H.defaultEval

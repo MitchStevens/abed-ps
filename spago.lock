@@ -18,7 +18,7 @@ workspace:
         - filterable
         - foldable-traversable
         - foreign-object
-        - gen
+        - generate-values
         - group
         - halogen
         - halogen-subscriptions
@@ -28,7 +28,6 @@ workspace:
         - integers
         - lists
         - maybe
-        - mmorph
         - monad-logger
         - newtype
         - now
@@ -48,11 +47,14 @@ workspace:
         - routing-duplex
         - strings
         - tailrec
+        - tecton
+        - tecton-halogen
         - these
         - transformers
         - tuples
         - unfoldable
         - unsafe-coerce
+        - variant
         - web-dom
         - web-events
         - web-html
@@ -76,6 +78,7 @@ workspace:
         - avar
         - bifunctors
         - catenable-lists
+        - colors
         - console
         - const
         - contravariant
@@ -99,6 +102,7 @@ workspace:
         - functions
         - functors
         - gen
+        - generate-values
         - group
         - halogen
         - halogen-subscriptions
@@ -147,6 +151,8 @@ workspace:
         - st
         - strings
         - tailrec
+        - tecton
+        - tecton-halogen
         - these
         - transformers
         - tuples
@@ -157,6 +163,7 @@ workspace:
         - unsafe-coerce
         - unsafe-reference
         - validation
+        - variant
         - web-clipboard
         - web-dom
         - web-events
@@ -656,6 +663,22 @@ workspace:
       git: https://github.com/MitchStevens/purescript-rough-notation.git
       ref: fde3337
     spec-discovery: 8.2.0
+    tecton:
+      git: MitchStevens/purescript-tecton.git
+      ref: 111d91e6c6f99bdcd486344ea13ba17b8743636a
+      dependencies:
+        - colors
+        - either
+        - foldable-traversable
+        - integers
+        - lists
+        - numbers
+        - prelude
+        - record
+        - strings
+        - transformers
+        - tuples
+        - web-html
 packages:
   aff:
     type: registry
@@ -802,6 +825,17 @@ packages:
       - prelude
       - tuples
       - unfoldable
+  colors:
+    type: registry
+    version: 7.0.1
+    integrity: sha256-udlg/y2PFsHYli8Tgz8BQGGrOjyGo0BcJj36IfgYADs=
+    dependencies:
+      - arrays
+      - integers
+      - lists
+      - numbers
+      - partial
+      - strings
   console:
     type: registry
     version: 6.1.0
@@ -1058,6 +1092,29 @@ packages:
       - tailrec
       - tuples
       - unfoldable
+  generate-values:
+    type: registry
+    version: 1.0.1
+    integrity: sha256-ob85FaE3fklvmmkj0Q5YQx+ii+SD+PZFr/0tOe1/RsY=
+    dependencies:
+      - arrays
+      - control
+      - effect
+      - enums
+      - foldable-traversable
+      - gen
+      - identity
+      - integers
+      - lcg
+      - lists
+      - maybe
+      - newtype
+      - numbers
+      - partial
+      - prelude
+      - tailrec
+      - transformers
+      - tuples
   group:
     type: registry
     version: 4.1.1
@@ -1661,6 +1718,33 @@ packages:
       - partial
       - prelude
       - refs
+  tecton:
+    type: git
+    url: MitchStevens/purescript-tecton.git
+    rev: 111d91e6c6f99bdcd486344ea13ba17b8743636a
+    dependencies:
+      - colors
+      - either
+      - foldable-traversable
+      - integers
+      - lists
+      - numbers
+      - prelude
+      - record
+      - strings
+      - transformers
+      - tuples
+      - web-html
+  tecton-halogen:
+    type: registry
+    version: 0.2.0
+    integrity: sha256-gE1e58YRHOdDsnS4SoQ0p8C6ax95ogmmZBsak10kFgU=
+    dependencies:
+      - halogen
+      - lists
+      - prelude
+      - tecton
+      - transformers
   these:
     type: registry
     version: 6.0.0
@@ -1751,6 +1835,19 @@ packages:
       - foldable-traversable
       - newtype
       - prelude
+  variant:
+    type: registry
+    version: 8.0.0
+    integrity: sha256-SR//zQDg2dnbB8ZHslcxieUkCeNlbMToapvmh9onTtw=
+    dependencies:
+      - enums
+      - lists
+      - maybe
+      - partial
+      - prelude
+      - record
+      - tuples
+      - unsafe-coerce
   web-clipboard:
     type: registry
     version: 5.0.0

@@ -10,13 +10,14 @@ import Data.FoldableWithIndex (foldMapWithIndex)
 import Data.HeytingAlgebra (ff, tt)
 import Data.Map (Map)
 import Data.Map as M
-import Data.Maybe (Maybe(..))
+import Data.Maybe (Maybe(..), isNothing)
 import Data.Time.Duration (Seconds(..))
 import Data.Traversable (all, any, for)
 import Data.TraversableWithIndex (forWithIndex)
 import Data.Tuple (Tuple(..))
 import Effect (Effect)
 import Effect.Class (class MonadEffect)
+import Effect.Class.Console (log)
 import Foreign.Object (Object)
 import Foreign.Object as O
 import Game.Level (levelName)
@@ -47,10 +48,10 @@ getAllLevelProgress = do
       forWithIndex suite.levels \levelName _ -> 
         (getProgress (LevelId { suiteName, levelName }) :: Effect (Maybe LevelProgress))
 
-  if all O.isEmpty unlockedLevels
+  if all (all isNothing) unlockedLevels
     then do
       saveProgress (LevelId { suiteName: firstSuiteName, levelName: firstLevelName }) LevelProgress.Unlocked
-      pure $ O.singleton firstSuiteName (O.singleton firstLevelName (Just LevelProgress.Unlocked))
+      getAllLevelProgress
     else 
       pure unlockedLevels
 

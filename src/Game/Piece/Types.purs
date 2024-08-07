@@ -99,6 +99,7 @@ newtype Piece = Piece
   -}
   , isSimplifiable :: Maybe IsSimplifiable
   }
+
 instance Eq Piece where
   eq (Piece p1) (Piece p2) = and
     [ p1.name == p2.name
@@ -128,6 +129,24 @@ mkPiece piece = Piece (unsafeUnion piece defaultPiece)
       , updatePort: \_ _ -> Nothing
       , isSimplifiable: Nothing
       }
+
+
+--type DirectionalSignals = { u :: Signal, d :: Signal, l :: Signal, r :: Signal }
+--type MkPiece2 r =
+--  ( name :: PieceId
+--  , eval :: Directional Signals -> Directional Signals
+--  , ports :: Map CardinalDirection Port
+--  | r )
+--mkPiece2 :: forall r1 r2 r3. Union (MkPiece2 r1) r2 r3 => Newtype Piece (Record r3) => Record (MkPiece2 r1) -> Piece
+--mkPiece2 piece = Piece (unsafeUnion piece defaultPiece)
+--  where
+--    defaultPiece =
+--      { complexity: Complexity.space 0.0
+--      , shouldRipple: false
+--      , updateCapacity: \_ _ -> Nothing
+--      , updatePort: \_ _ -> Nothing
+--      , isSimplifiable: Nothing
+--      }
 
 name :: Piece -> PieceId
 name (Piece p) = p.name

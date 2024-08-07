@@ -12,7 +12,7 @@ intermediateSuite :: LevelSuite
 intermediateSuite = toLevelSuite "Intermediate Suite"
   [ mkLevel
     { goal: crossPiece
-    , name: "Cross over"
+    , name: "Tangled"
     , description: "Propogate the signal on the left to the right, and the top to the bottom"
     , testCases: binaryTestInputs [ Direction.Left, Direction.Up ]
     , requiresAutomaticTesting: false
@@ -21,14 +21,14 @@ intermediateSuite = toLevelSuite "Intermediate Suite"
     }
   , mkLevel
     { goal: andPiece
-    , name:"From Or, birthed And"
+    , name: "DeMorgoofs"
     , description: "Create an and-piece using only or-piece and not-piece"
     , testCases: binaryTestInputs [ Direction.Left, Direction.Up ]
     , availablePieces: [ orPiece, notPiece ]
     } 
   , mkLevel
     { goal: xorPiece
-    , name: "Exclusive Or: Pick One"
+    , name: "Fancy Or"
     , description: "Output true when EXACTLY one input is true. If both inputs are true, output false"
     , testCases: binaryTestInputs [ Direction.Left, Direction.Up ]
     , requiresAutomaticTesting: false

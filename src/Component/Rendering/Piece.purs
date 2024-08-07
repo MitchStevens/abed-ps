@@ -2,6 +2,7 @@ module Component.Rendering.Piece where
 
 import Prelude
 
+import Component.DataAttribute as DA
 import Component.Piece.Types (Action, State)
 import Component.Piece.Types as Piece
 import Component.Rendering.CrossOver (renderChicken, renderCornerCut, renderCrossOver)
@@ -16,9 +17,9 @@ import Data.Map as M
 import Data.Maybe (Maybe(..), isJust, isNothing, maybe)
 import Data.Number (pi)
 import Debug (trace)
+import Game.Piece (PieceId(..), chickenPiece, cornerCutPiece, crossPiece, isWirePiece, name)
 import Game.Piece.Direction (allDirections, clockwiseRotation, rotateDirection)
 import Game.Piece.Direction as Direction
-import Game.Piece (PieceId(..), chickenPiece, cornerCutPiece, crossPiece, isWirePiece, name)
 import Game.Piece.Rotation (Rotation(..), toDegrees, toRadians)
 import Halogen (ComponentHTML)
 import Halogen.Svg.Attributes (Transform(..))
@@ -38,19 +39,8 @@ renderPiece state =
     pieceRotation =   maybe (toDegrees state.rotation) (_.currentRotation >>> mul (180.0 / pi)) state.isRotating
 
     attributes = [ SA.transform [Rotate pieceRotation 50.0 50.0] ]
-      --if (isJust state.isRotating)
-      --  then [ SA.transform [Rotate pieceRotation 50.0 50.0] ]
-      --  else []
 
     animations = []
-    --animations = do
-    --  guard (isNothing state.isRotating)
-    --  pure $ SE.animateMotion
-    --    [ SA.attributeName "transform"
-    --    , SA.to ("rotate(" <> show pieceRotation <> ",50.0,50.0)")
-    --    , SA.dur (defaultDuration { milliseconds = Just 500.0 })
-    --    , SA.repeatCount "1"
-    --    ]
 
     render
       | isWirePiece state.piece = renderWire state.portStates
@@ -87,3 +77,23 @@ renderDefaultPiece state = SE.g [] (allPorts <> [ center ])
       , SA.width 40.0
       , SA.height 40.0 
       ]
+
+--  where
+--    <filter id="strokeGlow" y="-10" x="-10" width="250" height="150">
+--
+--      <feOffset in="StrokePaint" dx="0" dy="0" result="centeredOffset"></feOffset>
+--
+--      <feGaussianBlur in="centeredOffset" stdDeviation="2" result="blur1"></feGaussianBlur>
+--      <feGaussianBlur in="centeredOffset" stdDeviation="5" result="blur2"></feGaussianBlur>
+--      <feGaussianBlur in="centeredOffset" stdDeviation="15" result="blur3"></feGaussianBlur>
+--
+--      <feMerge>
+--        <!-- this contains the offset blurred image -->
+--        <feMergeNode in="blur1"></feMergeNode>
+--        <feMergeNode in="blur2"></feMergeNode>
+--        <feMergeNode in="blur3"></feMergeNode>
+--
+--        <!-- this contains the element that the filter is applied to -->
+--        <feMergeNode in="SourceGraphic"></feMergeNode>
+--      </feMerge>
+--    </filter>

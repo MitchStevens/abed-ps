@@ -63,3 +63,8 @@ rotateDirection dir rot = fromMaybe Up $ toEnum ((fromEnum dir + fromEnum rot) `
 
 clockwiseRotation :: CardinalDirection -> CardinalDirection -> Rotation
 clockwiseRotation d1 d2 = rotation (fromEnum d2 - fromEnum d1)
+
+type DirectionalRow :: forall k. k -> Row k
+type DirectionalRow a = ( u :: a, d :: a, l :: a, r :: a )
+
+type Directional a = Record (DirectionalRow a)

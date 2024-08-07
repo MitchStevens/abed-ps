@@ -51,3 +51,9 @@ clampedBits :: Capacity -> Signal -> Array Boolean
 clampedBits capacity signal  =
   nthBit signal <$> range 0 (toInt capacity - 1)
 
+--showSignalWithCapacity :: Capacity -> Signal -> String
+--showSignalWithCapacity capacity signal = case capacity of
+--  OneBit   -> if signal == zero then "0" else "1"
+--  TwoBit   -> 
+--  FourBit  -> Signal 15
+--  EightBit -> Signal 255

@@ -15,13 +15,13 @@ import Effect.Aff.Compat (fromEffectFnAff)
 import Effect.Class (liftEffect)
 import Effect.Class.Console (log)
 import Foreign.Object (fromHomogeneous)
-import Game.Piece.Direction as Direction
 import Game.Level (Level(..), binaryTestInputs, mkLevel)
 import Game.Level.RulesEngine (Rule(..))
 import Game.Level.Suite (LevelSuite, toLevelSuite)
 import Game.Location (location)
 import Game.Message (Message(..), button, guideMessage, noUser, sendMessage)
 import Game.Piece (idPiece, leftPiece, name, notPiece, orPiece)
+import Game.Piece.Direction as Direction
 import Guide.Overlay (addPieceOverlay)
 import Halogen.HTML as HH
 import Halogen.Subscription as HS
@@ -33,7 +33,7 @@ tutorialSuite = toLevelSuite "Tutorial Suite"
 firstLevel :: Level
 firstLevel = mkLevel
   { goal: idPiece
-  , name: "From A to B"
+  , name: "Baby steps"
   , description: "Connect the signal (arrow) on the left to the arrow on the right."
   , testCases: binaryTestInputs [ Direction.Left ]
   , availablePieces: [ idPiece ]
@@ -80,13 +80,9 @@ negation = mkLevel
   , availablePieces: [ idPiece, notPiece ]
   , otherRestrictions: []
   , conversation: do
-      sendMessage $ Message
-        { user: Just "mitch"
-        , html: [ HH.text "hello world" ]
-        , action: pure unit
-        }
-      n <- sendMessage $ button "" "click me" 47
-      log ("got: " <> show n)
+      guideMessage "A not-piece takes a signal from the left and outputs it to the right"
+      guideMessage "Try placing a not-piece next to the the input on the left"
+      guideMessage "Try placing a not-piece next to the the input on the left"
   , unlocksUponCompletion: [ or ]
   , enableBoardSizeChange: false
   , enableClickAndDragPaths: false
@@ -95,7 +91,7 @@ negation = mkLevel
 or :: Level
 or = mkLevel
   { goal: orPiece
-  , name: "Two enter, one leaves"
+  , name: "Two inputs"
   , description: ""
   , testCases: binaryTestInputs [ Direction.Left, Direction.Up ]
   , availablePieces: [ idPiece, orPiece ]
@@ -108,7 +104,7 @@ left :: Level
 left = mkLevel
   { goal: leftPiece
   , name: "Take a Left"
-  , description: " (Bonus, )"
+  , description: "Up until now: the"
   , testCases: binaryTestInputs [Direction.Left]
   , availablePieces: [ idPiece, orPiece ]
   }

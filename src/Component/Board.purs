@@ -55,15 +55,15 @@ import Effect.Aff.Class (class MonadAff)
 import Effect.Class (class MonadEffect, liftEffect)
 import Effect.Class.Console (log, logShow)
 import Game.Board (Board(..), _pieces, _size, addBoardPath, addPiece, buildEvaluableBoard, capacityRipple, decreaseSize, evalBoardM, evalWithPortInfo, getBoardPortEdge, getPieceInfo, increaseSize, pieceDropped, removePiece, rotatePieceBy, runEvaluableM, toLocalInputs)
+import Game.GameEvent (BoardEvent(..), GameEvent(..), GameEventStore, boardEventLocationsChanged)
+import Game.Location (Location(..), location)
 import Game.Piece.Capacity (maxValue)
 import Game.Piece.Direction (CardinalDirection, allDirections)
 import Game.Piece.Direction as Direction
-import Game.GameEvent (BoardEvent(..), GameEvent(..), GameEventStore, boardEventLocationsChanged)
-import Game.Location (Location(..), location)
 import Game.Piece.Port (isInput, portCapacity)
-import Game.PortInfo (PortInfo)
 import Game.Piece.Rotation (Rotation(..))
 import Game.Piece.Signal (Signal(..))
+import Game.PortInfo (PortInfo)
 import Halogen (AttrName(..), ClassName(..), Component, ComponentHTML, ComponentSlot, HalogenM(..), HalogenQ, Slot, mkComponent, mkEval, raise, subscribe, tell)
 import Halogen.HTML (HTML, PlainHTML, fromPlainHTML)
 import Halogen.HTML as HH
@@ -74,6 +74,9 @@ import Halogen.HTML.Properties as HP
 import Halogen.Svg.Attributes (Transform(..))
 import Halogen.Svg.Attributes as SA
 import Halogen.Svg.Elements as SE
+import Tecton (fr, gridColumnEnd, gridColumnStart, gridRowEnd, gridRowStart, gridTemplateColumns, gridTemplateRows, repeat, (:=))
+import Tecton.Halogen as HT
+import Tecton.Rule as Rule
 import Type.Proxy (Proxy(..))
 import Web.DOM.Document (toEventTarget)
 import Web.DOM.Element (DOMRect, fromEventTarget, getBoundingClientRect)
@@ -98,14 +101,12 @@ component = mkComponent { eval , initialState , render }
     HH.div
       [ HP.id "board-component"
       , HE.onDragExit (BoardOnDragExit)
-      , HA.style $ intercalate "; "
-        [ "grid-template-columns: " <> gridTemplate
-        , "grid-template-rows:    " <> gridTemplate
-        ]
+      , HT.style Rule.do
+        gridTemplateColumns := fr 25 /\ repeat n (fr 100) /\ fr 25
+        gridTemplateRows    := fr 25 /\ repeat n (fr 100) /\ fr 25
       ] $
       (pieces <> boardPorts <> [multimeter])
     where
-      gridTemplate = "25fr repeat(" <> show n <> ", 100fr) 25fr"
       board = Z.head state.boardHistory
       n = board ^. _size
 
@@ -114,17 +115,13 @@ component = mkComponent { eval , initialState , render }
         i <- 0 .. (n-1)
         j <- 0 .. (n-1)
         pure $ renderPieceSlot i j
-
+      
       renderPieceSlot :: Int -> Int -> ComponentHTML Action Slots m
       renderPieceSlot i j = 
         HH.div
           [ DA.attr DA.location (location i j)
           , HP.class_ (ClassName "piece")
-          , HP.style $ intercalate "; "
-            [ --"transform: rotate("<> (show (rot * 90)) <>"deg)"
-            --, 
-            gridArea (Tuple i j )
-            ]
+          , gridLocationStyle (Tuple i j)
           , HE.onMouseDown (LocationOnMouseDown loc)
           , HE.onMouseOver (LocationOnMouseOver loc)
           , HE.onMouseUp (LocationOnMouseUp loc)
@@ -138,9 +135,7 @@ component = mkComponent { eval , initialState , render }
           loc = location i j
           eitherPieceInfo = evalBoardM (getPieceInfo loc) board
           maybePiece = (_.piece) <$> hush eitherPieceInfo
-          Rotation rot = foldMap (_.rotation) eitherPieceInfo
       
-      --boardPorts :: forall p. Array (HTML p Action)
       boardPorts = A.fromFoldable $
         mapWithIndex renderBoardPort (evalState boardPortInfo state)
 
@@ -150,8 +145,7 @@ component = mkComponent { eval , initialState , render }
           [ HP.class_ (ClassName "board-port")
           , HE.onClick (\_ -> ToggleInput dir)
           , DA.attr DA.direction dir
-          , HP.style $ intercalate "; "
-            [ gridArea (boardPortLocation dir) ]
+          , gridLocationStyle (boardPortLocation dir)
           ]
           [ SE.svg
             [ viewBox ]
@@ -177,15 +171,17 @@ component = mkComponent { eval , initialState , render }
               then SA.viewBox 0.0 0.0 50.0 25.0
               else SA.viewBox 12.5 (-12.5) 25.0 50.0
 
-      gridArea :: Tuple Int Int -> String
-      gridArea (Tuple i j) = 
-        "grid-area: " <> show (j+2) <> " / " <> show (i+2)
+      --gridArea :: Tuple Int Int -> String
+      --gridArea (Tuple i j) = 
+      --  "grid-area: " <> show (j+2) <> " / " <> show (i+2)
 
       pieceHTML piece location =
           HH.slot slot.piece location Piece.component { piece, location } PieceOutput
       
-      emptyPieceHTML location = HH.span [ HP.class_ (ClassName "piece-location-label") ] [ HH.text (show location) ]
-      --emptyPieceHTML location = HH.text (show location)
+      emptyPieceHTML location =
+        HH.span 
+          [ HP.class_ (ClassName "piece-location-label") ]
+          [ HH.text (show location) ]
 
       multimeter = HH.slot slot.multimeter unit Multimeter.component {} MultimeterOutput
 
@@ -427,3 +423,10 @@ getDirectionClicked me bb = case isTopOrRight, isTopOrLeft of
     Tuple x y = Tuple (toNumber (clientX me) - bb.left) (toNumber (clientY me) - bb.top)
     isTopOrRight = x > y
     isTopOrLeft = x + y < bb.width
+  
+gridLocationStyle :: forall i r. Tuple Int Int -> HH.IProp (style :: String | r) i
+gridLocationStyle (Tuple x y) = HT.style Rule.do
+  gridColumnStart := x + 2
+  gridColumnEnd   := x + 3
+  gridRowStart    := y + 2
+  gridRowEnd      := y + 3

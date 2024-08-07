@@ -78,14 +78,17 @@ component = H.mkComponent { eval , initialState , render }
       [ HH.table_ (map renderMessage state.messages) ]
   
   renderMessage { timestamp, user, html } =
-    HH.tr_
-      [ HH.td [ HP.class_ (ClassName "timestamp") ]
+    HH.tr
+      [ attr DA.chatUsername user ]
+      [ HH.td
+        [ HP.class_ (ClassName "timestamp") ]
         [ HH.text (showTime timestamp) ]
       , HH.td
-          [ attr DA.chatUsername user
-          , HP.class_ ( ClassName "username" ) ]
+          [ HP.class_ ( ClassName "username" ) ]
           [ HH.div_ [ HH.text user ] ]
-      , HH.td [ HP.class_ (ClassName "message") ] [ fromPlainHTML html ]
+      , HH.td
+          [ HP.class_ (ClassName "message") ]
+          [ fromPlainHTML html ]
       ]
 
   showTime :: Time -> String -- break a leg :D

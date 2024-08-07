@@ -30,7 +30,7 @@ portPath info =
   }
   where
     Tuple x0 y0 = if portType info.port == Port.Input then Tuple 40.0 0.0 else  Tuple 10.0 25.0
-    path = [ m Rel x0 y0 ] <> headPath <> betweenPath Direction.Up Direction.Up
+    path = [ m Rel x0 y0 ] <> headPath -- <> betweenPath Direction.Up Direction.Up
 
     headPath = case portType info.port, info.connected of
         Port.Input, _ -> arrowPath Direction.Down

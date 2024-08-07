@@ -17,10 +17,11 @@ import Component.DataAttribute as DA
 import Component.Piece as Piece
 import Component.Rendering.CompletionStatus (renderCompletionStatus)
 import Component.Rendering.Piece (renderPiece)
-import Control.Monad.Except (runExceptT)
+import Control.Monad.Reader (class MonadAsk, class MonadReader)
 import Control.Monad.State.Class (gets, modify_, put)
 import Data.Array (intersperse)
 import Data.Array as A
+import Data.Array.NonEmpty as NEArray
 import Data.Bifunctor (bimap)
 import Data.Either (Either(..), blush, hush)
 import Data.Filterable (eitherBool)
@@ -37,15 +38,16 @@ import Data.Tuple (Tuple(..), fst, snd)
 import Effect.Aff.Class (class MonadAff)
 import Effect.Class (class MonadEffect, liftEffect)
 import Effect.Class.Console (log)
-import Game.Piece.Capacity (toInt)
-import Game.Piece.Direction (CardinalDirection)
 import Game.Level (Level(..))
 import Game.Level.Completion (CompletionStatus(..), FailedTestCase, PortMismatch(..))
 import Game.Location (location)
 import Game.Message (green, red)
 import Game.Piece (PieceId(..), name, pieceVault)
+import Game.Piece.Capacity (toInt)
+import Game.Piece.Direction (CardinalDirection)
 import Game.Piece.Port (Port(..))
 import Game.Piece.Port as Port
+import GlobalState (GlobalState)
 import Halogen (ClassName(..), Component, ComponentHTML, ComponentSlot, HalogenM, HalogenQ, liftAff, mkComponent, mkEval, raise)
 import Halogen.HTML (HTML, PlainHTML, fromPlainHTML)
 import Halogen.HTML as HH
@@ -101,7 +103,8 @@ data Output
   | BoardSizeDecremented
   | TestsTriggered
 
-component :: forall m. MonadAff m => Component Query Input Output m
+component :: forall m. MonadAsk GlobalState m => MonadAff m =>
+  Component Query Input Output m
 component = mkComponent { eval , initialState , render }
   where
   initialState = identity
@@ -111,25 +114,34 @@ component = mkComponent { eval , initialState , render }
     HH.div 
       [ HP.id "sidebar-component" ]
       [ HH.h2_ [ HH.text level.name ]
-      , HH.div_
+      , HH.div
+        [ HP.class_ (ClassName "description")]
         [ renderDescription level.description ]
-      , HH.hr_
-      , HH.h4_ [ HH.text "Completion Status" ]
-      , HH.span
+      , HH.div
         [ HP.class_ (ClassName "completion-status") ]
-        [ fromPlainHTML $ renderCompletionStatus level.goal state.completionStatus ]
-      , HH.h4_ [ HH.text "Available pieces:"]
-      , HH.span [ HP.class_ (ClassName "available-pieces") ] $
-          renderAvailablePiece <$>
-            A.nub level.availablePieces
-      , HH.br_
-      , renderBoardSize
-      , renderGiveUp
+        [ renderCompletionStatusDescription
+        , fromPlainHTML $ renderCompletionStatus level.goal state.completionStatus
+        ]
+      , HH.div 
+        [ HP.class_ (ClassName "available-pieces") ]
+        [ HH.h4_ [ HH.text "Available pieces:"]
+        , renderAvailablePieces
+        ]
+      , HH.div
+        [ HP.class_ (ClassName "board-size")]
+        [ renderBoardSize ]
+      , HH.div
+        [ HP.class_ (ClassName "give-up")]
+        [ renderGiveUp ]
       ]
     where
       Level level = state.level
 
-      --renderAvailablePiece :: forall p. PieceId -> HTML (ComponentSlot Slots) Action
+      renderAvailablePieces = 
+        HH.div_ $
+          renderAvailablePiece <$>
+            A.nub level.availablePieces
+
       renderAvailablePiece piece =
           let input = { piece, location: location 0 0, portStates: M.empty }
               pieceId = name piece
@@ -144,84 +156,90 @@ component = mkComponent { eval , initialState , render }
             , HH.text (show pieceId) 
             ]
 
-      --renderCompletionStatus = HH.div_
-      --    case state.completionStatus of
-      --      NotStarted -> []
-      --      FailedRestriction restriction -> 
-      --        [ HH.text $ "This level has a special restriction: "
-      --        , HH.b_ [ HH.text restriction.name ]
-      --        , HH.br_
-      --        , HH.text restriction.description
-      --        ]
-      --      NotEvaluable boardError -> 
-      --        [ HH.text ("not evaluable due to: " <> show boardError) ]
-      --      PortMismatch mismatch ->
-      --        [ HH.div_
-      --          [ HH.b_ [ HH.text "Port mismatch:" ]
-      --          , case mismatch of
-      --              PortExpected { direction, expected } -> HH.text $ "You need " <> describePort expected <> " in the " <> show direction <> " direction"
-      --              NoPortExpected { direction, received } -> HH.text $ "Remove the port in the " <> show direction <> "direction"
-      --              IncorrectPortType { direction, capacity, received, expected } -> HH.text $ "Port in the " <> show direction <> " direction should be an " <> show expected 
-      --              IncorrectCapacity { direction, portType, received, expected } -> HH.text $ "Port in the " <> show direction <> " direction should have capacity " <> show (toInt expected)
-      --          ]
-      --        ]
-      --      ReadyForTesting ->
-      --        [ HH.text "Ready for testing: "
-      --        , HH.button
-      --            [ HP.class_ (ClassName "ready-for-testing")
-      --            , HE.onClick (\_ -> RunTestsClicked) ]
-      --            [ HH.text "Run Tests"]
-      --        ]
-      --      RunningTest { testIndex, numTests } ->
-      --        [ HH.b_ [ HH.text "Running tests" ]
-      --        , HH.br_
-      --        , HH.text $ "Running "<> show (testIndex+1) <>"/"<> show numTests
-      --        ]
-      --      FailedTestCase failedTestCase ->
-      --        [ renderTestError failedTestCase ]
-      --      Completed ->
-      --        [ HH.text "Level Complete!"
-      --        , HH.button
-      --            [ HP.class_ (ClassName "run-tests-again")
-      --            , HE.onClick (\_ -> RunTestsClicked) ]
-      --            [ HH.text "Run Tests again"]
-      --        ]
-      --      where
-      --        describePort :: Port -> String
-      --        describePort (Port {portType, capacity}) =
-      --          "an " <> if portType == Port.Input then "input" else "output" <> " of capacity " <> show (toInt capacity)
+      renderCompletionStatusDescription =
+        HH.div [ HP.class_ (ClassName "completion-status-description")]
+          case state.completionStatus of
+            NotStarted -> []
+            FailedRestriction restrictions -> 
+              let restriction = NEArray.head restrictions
+              in
+                [ HH.h4_ [ HH.text "Restriction failed" ]
+                , HH.b_ [ HH.text restriction.name ]
+                , HH.br_
+                , HH.text restriction.description
+                ]
+            NotEvaluable boardError -> 
+              [ HH.h4_ [ HH.text "Not evaluable" ]
+              , HH.text (show boardError)
+              ]
+            PortMismatch mismatches ->
+              let mismatch = NEArray.head mismatches
+              in
+                [ HH.h4_ [ HH.text "Port mismatch" ]
+                , case mismatch of
+                    PortExpected { direction, expected } -> HH.text $ "You need " <> describePort expected <> " in the " <> show direction <> " direction"
+                    NoPortExpected { direction, received } -> HH.text $ "Remove the port in the " <> show direction <> "direction"
+                    IncorrectPortType { direction, capacity, received, expected } -> HH.text $ "Port in the " <> show direction <> " direction should be an " <> show expected 
+                    IncorrectCapacity { direction, portType, received, expected } -> HH.text $ "Port in the " <> show direction <> " direction should have capacity " <> show (toInt expected)
+                ]
+            ReadyForTesting ->
+              [ HH.h4_ [ HH.text "Ready for testing: " ]
+              , HH.button
+                  [ HP.class_ (ClassName "ready-for-testing")
+                  , HE.onClick (\_ -> RunTestsClicked) ]
+                  [ HH.text "Run Tests"]
+              ]
+            RunningTest { testIndex, numTests } ->
+              [ HH.h4_ [ HH.text "Running tests" ]
+              , HH.text $ "Running "<> show (testIndex+1) <>"/"<> show numTests
+              ]
+            FailedTestCase failedTestCase ->
+              [ HH.h4_ [ HH.text "Failed test case"]
+              , renderTestError failedTestCase
+              ]
+            Completed ->
+              [ HH.h4_ [ HH.text "Level Complete!" ]
+              , HH.button
+                  [ HP.class_ (ClassName "run-tests-again")
+                  , HE.onClick (\_ -> RunTestsClicked) ]
+                  [ HH.text "Run Tests again"]
+              ]
+            where
+              describePort :: Port -> String
+              describePort (Port {portType, capacity}) =
+                "an " <> if portType == Port.Input then "input" else "output" <> " of capacity " <> show (toInt capacity)
 
 
-      --        --renderTestSuccess :: Int -> Int -> PlainHTML
-      --        --renderTestSuccess i n = HH.span_ [ green (show i <> "/" <> show n), HH.text " Sucessful" ]
+              --renderTestSuccess :: Int -> Int -> PlainHTML
+              --renderTestSuccess i n = HH.span_ [ green (show i <> "/" <> show n), HH.text " Sucessful" ]
 
-      --        renderTestError :: FailedTestCase -> ComponentHTML Action s m
-      --        renderTestError { testIndex, inputs, expected, recieved } = HH.div_
-      --          [ HH.b_ [ HH.text  $ "Test " <> show (testIndex+1) <> " Failed:" ]
-      --          , HH.br_
-      --          , HH.text "inputs: ", printPorts inputs
-      --          , HH.br_
-      --          , HH.text "expected: ", printPorts expected
-      --          , HH.br_
-      --          , HH.text "recieved: ", printReceivedOutputs
-      --          ]
-      --          where
-      --            showTuple (Tuple dir signal) = show dir <> ": " <> show signal
+              renderTestError :: FailedTestCase -> ComponentHTML Action s m
+              renderTestError { testIndex, inputs, expected, received } = HH.div_
+                [ HH.b_ [ HH.text  $ "Test " <> show (testIndex+1) <> " Failed:" ]
+                , HH.br_
+                , HH.text "inputs: ", printPorts inputs
+                , HH.br_
+                , HH.text "expected: ", printPorts expected
+                , HH.br_
+                , HH.text "recieved: ", printReceivedOutputs
+                ]
+                where
+                  showTuple (Tuple dir signal) = show dir <> ": " <> show signal
 
-      --            printPorts m = HH.text $
-      --              intercalate ", " $ map showTuple (M.toUnfoldable m :: Array _)
+                  printPorts m = HH.text $
+                    intercalate ", " $ map showTuple (M.toUnfoldable m :: Array _)
 
-      --            printReceivedOutputs = HH.span_ $
-      --              intersperse (HH.text ", ") $ (M.toUnfoldable recieved :: Array _) <#> \tuple ->
-      --                if M.lookup (fst tuple) expected == Just (snd tuple)
-      --                  then green (showTuple tuple)
-      --                  else red (showTuple tuple)
+                  printReceivedOutputs = HH.span_ $
+                    intersperse (HH.text ", ") $ (M.toUnfoldable received :: Array _) <#> \tuple ->
+                      if M.lookup (fst tuple) expected == Just (snd tuple)
+                        then green (showTuple tuple)
+                        else red (showTuple tuple)
 
 
       renderBoardSize =
         HH.div
           [ HP.classes [ ClassName "board-size" ]]
-          [ HH.b_ [ HH.text "Board size" ]
+          [ HH.h4_ [ HH.text "Board size" ]
           , HH.div
             [ HP.classes [ ClassName "buttons"] ]
             [ decButton

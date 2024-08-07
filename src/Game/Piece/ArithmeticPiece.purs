@@ -2,18 +2,21 @@ module Game.Piece.ArithmeticPiece where
 
 import Prelude
 
+import Control.Alternative (guard)
 import Data.Foldable (fold)
 import Data.Int as Int
 import Data.Map (Map)
 import Data.Map as M
-import Data.Maybe (Maybe(..), fromMaybe)
+import Data.Maybe (Maybe(..), fromMaybe, fromMaybe')
 import Data.Tuple (Tuple(..))
 import Game.Piece.Capacity (Capacity(..), doubleCapacity, halveCapacity, maxValue, toInt)
-import Game.Piece.Direction as Direction
 import Game.Piece.Complexity as Complexity
-import Game.Piece.Types (Piece(..), PieceId(..), mkPiece, shouldRipple)
+import Game.Piece.Direction as Direction
 import Game.Piece.Port (inputPort, outputPort)
 import Game.Piece.Signal (Signal(..))
+import Game.Piece.Types (Piece(..), PieceId(..), mkPiece, shouldRipple)
+import Partial.Unsafe (unsafeCrashWith)
+import Web.DOM.Document (doctype)
 
 succPiece :: Piece
 succPiece = mkSuccPiece TwoBit
@@ -34,9 +37,9 @@ mkSuccPiece capacity = mkPiece
       ]
   }
 
-mkAdder :: Capacity -> Piece
-mkAdder capacity = mkPiece
-  { name: PieceId "adder-piece"
+mkHalfAdder :: Capacity -> Piece
+mkHalfAdder capacity = mkPiece
+  { name: PieceId "half-adder-piece"
   , eval: \m ->
       let Signal a = fold (M.lookup Direction.Left m)
           Signal b = fold (M.lookup Direction.Up m)
@@ -48,7 +51,7 @@ mkAdder capacity = mkPiece
             ]
   , complexity: Complexity.space 10.0
 
-  , updateCapacity: \_ capacity' -> Just (mkAdder capacity')
+  , updateCapacity: \_ capacity' -> Just (mkHalfAdder capacity')
 
   , ports: M.fromFoldable
       [ Tuple Direction.Left (inputPort capacity)
@@ -57,6 +60,33 @@ mkAdder capacity = mkPiece
       , Tuple Direction.Down (outputPort OneBit)
       ]
   }
+
+-- capacity <= `FourBit`
+mkFullAdder :: Capacity -> Piece
+mkFullAdder capacity = mkPiece
+  { name: PieceId "full-adder-piece"
+  , eval: \m ->
+      let Signal a = fold (M.lookup Direction.Left m)
+          Signal b = fold (M.lookup Direction.Up m)
+          Signal c = fold (M.lookup Direction.Down m)
+      in M.singleton Direction.Right (Signal $ a + b + if c == 1 then Int.pow 2 (toInt capacity) else 0)
+
+  , updateCapacity: \dir capacity' -> case dir of
+      Direction.Right -> mkFullAdder <$> halveCapacity capacity'
+      Direction.Down -> Nothing
+      _ -> do
+        guard (capacity' <= FourBit)
+        pure (mkFullAdder capacity')
+
+  , ports: M.fromFoldable
+      [ Tuple Direction.Left (inputPort capacity)
+      , Tuple Direction.Up (inputPort capacity)
+      , Tuple Direction.Right (outputPort outputCapacity)
+      , Tuple Direction.Down (inputPort OneBit)
+      ]
+  }
+  where
+    outputCapacity = fromMaybe' (\_ -> unsafeCrashWith "mkFullAdder error") (doubleCapacity capacity)
 
 mkMultiplier :: Capacity -> Piece
 mkMultiplier capacity = mkPiece

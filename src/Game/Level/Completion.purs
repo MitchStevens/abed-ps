@@ -34,13 +34,6 @@ data CompletionStatus
   | Completed
 
 derive instance Eq CompletionStatus
---instance Show ProblemCompletionStatus where
---  show = case _ of
---    DifferentPortConfiguration r ->
---      "different port configuration at " <> show r.dir <> ": " <> showMismatch r
---    DifferentPort r ->
---      "differnt port at:" <> show r.dir <> ": " <> showMismatch r
---    FailedRestriction r -> "Failed restriction " <> r.name <> " with message " <> r.description
 
 data PortMismatch
   = PortExpected { direction :: CardinalDirection, expected :: Port }
@@ -52,20 +45,13 @@ derive instance Eq PortMismatch
 instance Show PortMismatch where
   show = genericShow
 
-
---validPortMismatch = case _ of
---  PortExpected { direction, expected  } -> true
---  NoPortExpected { direction, received  } -> true
---  IncorrectPortType { direction, capacity, received, expected } -> received /= expected
---  IncorrectCapacity { direction, portType, received, expected } -> received /= expected
-
 type RunningTest = { testIndex :: Int, numTests :: Int }
 
 type FailedTestCase =
   { testIndex :: Int
   , inputs :: Map CardinalDirection Signal
   , expected :: Map CardinalDirection Signal
-  , recieved :: Map CardinalDirection Signal
+  , received :: Map CardinalDirection Signal
   }
 
 type FailedRestriction =
@@ -78,7 +64,7 @@ isReadyForTesting :: Level -> Board -> CompletionStatus
 isReadyForTesting level board = fromLeft ReadyForTesting do
   evaluable <- checkEvaluable board
   checkPortMismatch level (evaluableBoardPiece evaluable)
-    $ checkOtherRestrictions level board
+  checkFailedRestrictions level board
 
 checkEvaluable :: Board -> Either CompletionStatus EvaluableBoard
 checkEvaluable board = lmap NotEvaluable (toEvaluableBoard board)
@@ -90,7 +76,7 @@ checkPortMismatch level piece =
     Nothing -> pure unit
 
 portMismatches :: Level -> Piece -> Array PortMismatch
-checkPortMismatch (Level level) piece = execWriter $
+portMismatches (Level level) piece = execWriter $
   for_ allDirections \dir -> do
     let expected = getPort level.goal dir
     let received = getPort piece dir
@@ -127,7 +113,7 @@ runSingleTest :: forall m. Monad m
   => Piece -> Int -> Map CardinalDirection Signal -> (Map CardinalDirection Signal -> m (Map CardinalDirection Signal)) -> m (Either FailedTestCase Unit)
 runSingleTest piece testIndex inputs testEval = do
   let expected = eval piece inputs
-  recieved <- testEval inputs
-  if expected == recieved
+  received <- testEval inputs
+  if expected == received
     then pure $ Right unit
-    else pure $ Left { testIndex, inputs, expected, recieved }
+    else pure $ Left { testIndex, inputs, expected, received }

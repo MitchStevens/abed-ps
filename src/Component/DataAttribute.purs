@@ -58,6 +58,9 @@ selector da a = QuerySelector ("["<> attr <>"='" <> da.attrPrint a <> "']")
 attr :: forall a p i. DataAttribute a -> a -> IProp p i
 attr da a = HP.attr da.attrName (da.attrPrint a)
 
+maybeAttr :: forall a p i. DataAttribute a -> Maybe a -> IProp p i
+maybeAttr da a = HP.attr da.attrName (maybe "" da.attrPrint a)
+
 getAttr :: forall a. DataAttribute a -> Element -> Effect (Maybe a)
 getAttr da element = do 
   let AttrName attr = da.attrName
@@ -250,6 +253,3 @@ portMismatch = dataAttribute (AttrName "data-port-mismatch") attrPrint attrParse
           received <- capacity.attrParse
           pure (IncorrectCapacity {direction, portType: p.portType, received, expected: p.capacity} )
       ]
-
-
---no-PORT-port-expected-at-DIR

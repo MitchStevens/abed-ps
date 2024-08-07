@@ -10,7 +10,20 @@
 
 body { 
     margin: 0;
-    font-family: system-ui,-apple-system,system-ui,"Helvetica Neue",Helvetica,Arial,sans-serif;
+    
+    h1 { font-size: 48px }
+
+    h1, h2 { letter-spacing: 3px; }
+
+    h1, h2, h3, h4, h5 {
+        font-family: system-ui,-apple-system,system-ui,"Helvetica Neue",Helvetica,Arial,sans-serif;
+        text-transform: uppercase;
+    }
+
+    a {
+        text-decoration: none;
+        color: inherit;
+    }
 
     button {
         align-items: center;
@@ -127,18 +140,20 @@ body {
 
 
 #puzzle-select-component {
-    & span[data-puzzle-progress="completed"] {
-        color: green;
+    & [data-puzzle-progress]::after {
+            content: ' 🔒';
+    }
 
-        & ::after {
-            content: 'J';
+    & [data-puzzle-progress="completed"] {
+        &::after {
+            color: green;
+            content: ' ✔';
         }
     }
-    & span[data-puzzle-progress="incomplete"] {
-        color: #cab31b;
-
-        & ::after {
-            content: 'H';
+    & [data-puzzle-progress="incomplete"] {
+        &::after {
+            color: #cab31b;
+            content: ' ✶';
         }
     }
 
@@ -149,8 +164,6 @@ body {
 
         & .level-suite {
             h2 { text-align: center; }
-            border-style: dashed;
-            border-width: 1px;
             //margin: 20px;
         }
 
@@ -168,7 +181,7 @@ span.green { color: @green }
     display: inline-grid;
     grid-template-columns: auto 350px;
     grid-template-rows: 75% auto;
-    padding: 10px;
+    //padding: 10px;
     grid-gap: 10px;
     height: 100vh;
     box-sizing: border-box;
@@ -191,12 +204,8 @@ span.green { color: @green }
 
 #home-component {
     justify-items: center;
-    padding: 75px;
-
 
     & .link {
-        font-size: 20px;
-        font-family: monospace;
     }
 
     & #title {

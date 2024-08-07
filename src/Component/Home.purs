@@ -46,14 +46,14 @@ component = H.mkComponent { eval , initialState , render }
     { titleText: "" } 
 
   render _ = defaultLayoutHome $
-    HH.div [ HP.id "home-component" ]
-      [ --HH.slot_ (Proxy :: Proxy "title") unit Title.component { typeTitle: true }
-      --, HH.br_
-        navigationLink "Choose a level" LevelSelect
-      , HH.br_
-      , navigationLink "How to play" Instructions
-      , HH.br_
-      , navigationLink "About" About
+    HH.h1_
+      [ HH.div [ HP.id "home-component" ]
+        [ navigationLink "Choose a level" LevelSelect
+        , HH.br_
+        , navigationLink "How to play" Instructions
+        , HH.br_
+        , navigationLink "About" About
+        ]
       ]
 
 

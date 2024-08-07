@@ -15,7 +15,7 @@ package:
     - filterable
     - foldable-traversable
     - foreign-object
-    - gen
+    - generate-values
     - group
     - halogen
     - halogen-subscriptions
@@ -25,7 +25,6 @@ package:
     - integers
     - lists
     - maybe
-    - mmorph
     - monad-logger
     - newtype
     - now
@@ -45,17 +44,22 @@ package:
     - routing-duplex
     - strings
     - tailrec
+    - tecton
+    - tecton-halogen
     - these
     - transformers
     - tuples
     - unfoldable
     - unsafe-coerce
+    - variant
     - web-dom
     - web-events
     - web-html
     - web-storage
     - web-uievents
   name: abed
+  run:
+    main: CSS.GenerateStylesheets
 
   bundle:
     minify: false
@@ -91,3 +95,19 @@ workspace:
     rough-notation:
       git: https://github.com/MitchStevens/purescript-rough-notation.git
       ref: fde3337
+    tecton:
+      dependencies:
+        - "colors"
+        - "either"
+        - "foldable-traversable"
+        - "integers"
+        - "lists"
+        - "numbers"
+        - "prelude"
+        - "record"
+        - "strings"
+        - "transformers"
+        - "tuples"
+        - "web-html"
+      git: MitchStevens/purescript-tecton.git
+      ref: 111d91e6c6f99bdcd486344ea13ba17b8743636a
