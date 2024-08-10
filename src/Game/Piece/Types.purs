@@ -1,5 +1,6 @@
 module Game.Piece.Types
   ( IsSimplifiable(..)
+  , MkPiece
   , Piece(..)
   , PieceId(..)
   , eval

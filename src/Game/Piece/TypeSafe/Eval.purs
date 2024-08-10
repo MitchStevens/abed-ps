@@ -7,11 +7,13 @@ import Data.Map as M
 import Data.Maybe (fromMaybe)
 import Data.Tuple (Tuple(..))
 import Game.Piece as Piece
-import Game.Piece.TypeSafe.Types (class CapacityValue, class DirectionValue, Capacity, PieceSpec(..))
+import Game.Piece.TypeSafe.Capacity (Capacity)
+import Game.Piece.TypeSafe.Direction (class DirectionValue)
+import Game.Piece.TypeSafe.PieceSpec (PieceSpec, insert)
 import Prim.Row (class Lacks)
 import Prim.Row as Row
 import Prim.RowList (class RowToList, Cons, Nil, RowList)
-import Record (insert, set)
+import Record (set)
 import Record.Unsafe (unsafeGet, unsafeHas)
 import Type.Proxy (Proxy(..))
 import Unsafe.Coerce (unsafeCoerce)
@@ -35,7 +37,7 @@ instance
   ( ToRecordTypeRowList tail rs
   , Row.Cons dir Piece.Signal rs record
   , DirectionValue dir
-  ) => ToRecordTypeRowList (Cons dir x tail capacities) record
+  ) => ToRecordTypeRowList (Cons dir x tail) record
 else instance ToRecordTypeRowList Nil ()
 
 unsafeToMap :: forall r. Record r -> Map Piece.CardinalDirection Piece.Signal
@@ -61,14 +63,13 @@ unsafeFromMap m = unsafeCoerce
     getSignal d = fromMaybe (Piece.Signal 0) (M.lookup d m)
 
 
-eval :: forall (@i :: Row Capacity) @o input output r
+eval :: forall @i @o input output r
   .  ToRecordType i input
   => ToRecordType o output
   => Row.Lacks "eval" r
   => (Record input -> Record output)
-  -> PieceSpec i o (Record r)
-  -> PieceSpec i o { eval :: Map Piece.CardinalDirection Piece.Signal -> Map Piece.CardinalDirection Piece.Signal | r}
-eval f (PieceSpec spec) = PieceSpec (insert (Proxy :: Proxy "eval") evalFunc spec)
+  -> PieceSpec i o r ( eval :: Map Piece.CardinalDirection Piece.Signal -> Map Piece.CardinalDirection Piece.Signal | r)
+eval f = insert @"eval" evalFunc
   where
     evalFunc :: Map Piece.CardinalDirection Piece.Signal -> Map Piece.CardinalDirection Piece.Signal
     evalFunc = unsafeFromMap >>> f >>> unsafeToMap

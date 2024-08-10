@@ -10,6 +10,7 @@ module Game.Piece
   , module Game.Piece.Direction
   , module Game.Piece.FusePiece
   , module Game.Piece.Signal
+  , module Game.Piece.Port
   , module Game.Piece.Types
   ) where
 
@@ -21,6 +22,7 @@ import Game.Piece.ConnectionPiece
 import Game.Piece.Direction
 import Game.Piece.UnivariatePiece
 import Game.Piece.FusePiece
+import Game.Piece.Port
 import Game.Piece.Signal
 import Game.Piece.Types
 import Prelude
