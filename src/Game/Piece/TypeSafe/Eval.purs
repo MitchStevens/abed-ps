@@ -62,14 +62,15 @@ unsafeFromMap m = unsafeCoerce
   where
     getSignal d = fromMaybe (Piece.Signal 0) (M.lookup d m)
 
+type HasEval r = ( eval :: Map Piece.CardinalDirection Piece.Signal -> Map Piece.CardinalDirection Piece.Signal | r)
 
-eval :: forall @i @o input output r
+eval :: forall @i @o input output (r :: Row Type)
   .  ToRecordType i input
   => ToRecordType o output
   => Row.Lacks "eval" r
   => (Record input -> Record output)
-  -> PieceSpec i o r ( eval :: Map Piece.CardinalDirection Piece.Signal -> Map Piece.CardinalDirection Piece.Signal | r)
+  -> PieceSpec i o r (HasEval r)
 eval f = insert @"eval" evalFunc
   where
-    evalFunc :: Map Piece.CardinalDirection Piece.Signal -> Map Piece.CardinalDirection Piece.Signal
+    --evalFunc :: PieceEval
     evalFunc = unsafeFromMap >>> f >>> unsafeToMap

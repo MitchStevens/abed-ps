@@ -43,6 +43,7 @@ instance Category (PieceSpec i o) where
 
 class ValidPieceSpec :: Row Capacity -> Row Capacity -> Row Type -> Row Type -> Constraint
 class ValidPieceSpec i o r1 r2
+  
 
 
 

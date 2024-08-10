@@ -37,11 +37,13 @@ instance
 instance ValidPortSpecRowList Nil where
     portsRowList = M.empty
 
-buildPortsSpec :: forall @i @o r
+type HasPorts r = (ports :: Map Piece.CardinalDirection Piece.Port | r)
+
+specPorts :: forall @i @o r
   .  Lacks "ports" r
   => ValidPortSpec i
   => ValidPortSpec o
-  => PieceSpec i o r ( ports :: Map Piece.CardinalDirection Piece.Port | r)
-buildPortsSpec = insert @"ports" $ M.union
+  => PieceSpec i o r ( HasPorts r)
+specPorts = insert @"ports" $ M.union
     (inputPort  <$> ports @i)
     (outputPort <$> ports @o)

@@ -3,16 +3,24 @@ module Game.Piece.TypeSafe.MkPiece where
 import Prelude
 
 import Data.Map (Map)
+import Data.Maybe (Maybe(..))
 import Data.Newtype (unwrap)
-import Data.Symbol (reflectSymbol)
+import Data.Symbol (class IsSymbol, reflectSymbol)
 import Game.Piece (Piece(..), PieceId(..))
 import Game.Piece as Piece
+import Game.Piece.TypeSafe.Capacity (Capacity)
+import Game.Piece.TypeSafe.Eval (HasEval)
+import Game.Piece.TypeSafe.Name (HasName, specName)
 import Game.Piece.TypeSafe.PieceSpec (class ValidPieceSpec, PieceSpec(..), insert)
-import Game.Piece.TypeSafe.Port (class ValidPortSpec, buildPortsSpec)
+import Game.Piece.TypeSafe.Port (class ValidPortSpec, HasPorts, specPorts)
+import Partial.Unsafe (unsafeCrashWith)
 import Prim.Row (class Cons, class Lacks)
 import Prim.RowList (class RowToList, Nil)
+import Record.Builder (Builder, buildFromScratch)
 import Record.Builder as Builder
+import Record.Unsafe.Union (unsafeUnion)
 import Type.Proxy (Proxy(..))
+import Type.Row (RowApply, type (+))
 
 {-
   Goals:
@@ -47,25 +55,45 @@ import Type.Proxy (Proxy(..))
 --      , eval: identity
 --      , ports: getPorts @i @o
 --      }
-type MkBuild r = 
-  ( eval :: Map Piece.CardinalDirection Piece.Signal -> Map Piece.CardinalDirection Piece.Signal | r
-  )
 
-class ReadyToBuild i o r1 r2
-instance
-  ( Lacks "name" r2
-  , RowToList r1 Nil
-  , Cons "eval" (Map Piece.CardinalDirection Piece.Signal -> Map Piece.CardinalDirection Piece.Signal) rest r2
-  , Lacks "ports" r2
+class ReadyToBuild :: Symbol -> Row Capacity -> Row Capacity -> Row Type -> Constraint
+class 
+  ( Lacks "name" r 
+  , Lacks "ports" r
   , ValidPortSpec i
   , ValidPortSpec o
-  ) => ReadyToBuild i o r1 r2
+  , IsSymbol name
+  ) <= ReadyToBuild name i o r where
+    toMkPiece :: PieceSpec i o () (HasEval r) -> Record (HasName + HasEval + HasPorts + r)
+instance
+  ( Lacks "name" r
+  , Cons "eval" (Map Piece.CardinalDirection Piece.Signal -> Map Piece.CardinalDirection Piece.Signal) rest r2
+  , Lacks "ports" r
+  , ValidPortSpec i
+  , ValidPortSpec o
+  , IsSymbol name
+  ) => ReadyToBuild name i o r where
+    toMkPiece spec =
+      let PieceSpec builder = spec >>> specName @name  >>> specPorts @i @o :: PieceSpec i o () (HasName + HasEval + HasPorts + r)
+      in buildFromScratch builder
+    
+    
+  
 
-mkPiece :: forall @name @i @o r
-  .  ReadyToBuild i o () r
-  => PieceSpec i o () (MkBuild r)
+
+mkPiece :: forall @name i o r
+  .  ReadyToBuild name i o r
+  => PieceSpec i o () (HasEval + r)
   -> Piece
-mkPiece pieceSpec = buildPortsSpec >>> insert @"name" (PieceId $ reflectSymbol (Proxy :: Proxy name)) >>> pieceSpec
-  # unwrap
-  # Builder.buildFromScratch 
-  # Piece.mkPiece
+mkPiece spec = Piece (unsafeUnion piece defaultPiece)
+  where
+    piece :: Record (HasName + HasEval + HasPorts + r)
+    piece = toMkPiece @name spec
+
+    defaultPiece =
+      { complexity: Piece.space 0.0
+      , shouldRipple: false
+      , updateCapacity: \_ _ -> Nothing
+      , updatePort: \_ _ -> Nothing
+      , isSimplifiable: Nothing
+      }

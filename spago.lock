@@ -664,7 +664,7 @@ workspace:
       ref: fde3337
     spec-discovery: 8.2.0
     tecton:
-      git: MitchStevens/purescript-tecton.git
+      git: https://github.com/MitchStevens/purescript-tecton.git
       ref: 111d91e6c6f99bdcd486344ea13ba17b8743636a
       dependencies:
         - colors
@@ -1720,7 +1720,7 @@ packages:
       - refs
   tecton:
     type: git
-    url: MitchStevens/purescript-tecton.git
+    url: https://github.com/MitchStevens/purescript-tecton.git
     rev: 111d91e6c6f99bdcd486344ea13ba17b8743636a
     dependencies:
       - colors
