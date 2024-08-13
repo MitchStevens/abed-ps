@@ -31,7 +31,6 @@ import Data.Map (Map)
 import Data.Map as M
 import Data.Maybe (Maybe, fromMaybe, fromMaybe')
 import Data.Tuple (Tuple(..))
-import Debug (trace)
 import Partial.Unsafe (unsafeCrashWith)
 
 allPieces :: Array Piece

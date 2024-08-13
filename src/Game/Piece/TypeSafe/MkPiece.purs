@@ -6,13 +6,13 @@ import Data.Map (Map)
 import Data.Maybe (Maybe(..))
 import Data.Newtype (unwrap)
 import Data.Symbol (class IsSymbol, reflectSymbol)
-import Game.Piece (Piece(..), PieceId(..))
-import Game.Piece as Piece
+import Game.Piece.Complexity as Complexity
 import Game.Piece.TypeSafe.Capacity (Capacity)
 import Game.Piece.TypeSafe.Eval (HasEval)
 import Game.Piece.TypeSafe.Name (HasName, specName)
 import Game.Piece.TypeSafe.PieceSpec (class ValidPieceSpec, PieceSpec(..), insert)
 import Game.Piece.TypeSafe.Port (class ValidPortSpec, HasPorts, specPorts)
+import Game.Piece.Types (Piece(..), PieceId(..))
 import Partial.Unsafe (unsafeCrashWith)
 import Prim.Row (class Cons, class Lacks)
 import Prim.RowList (class RowToList, Nil)
@@ -42,19 +42,6 @@ import Type.Row (RowApply, type (+))
     ```
 
 -}
---class MkPiece i o s where
---  mkPiece :: forall r. PieceSpec i o () (Piece.MkPiece r) -> Piece
-
---instance 
---  ( ValidPortSpec i
---  , ValidPortSpec o
---  , No
---  ) => MkPiece (PieceSpec i o s Unit) where
---    mkPiece (PieceSpec s _) = Piece.mkPiece
---      { name: PieceId "hello"
---      , eval: identity
---      , ports: getPorts @i @o
---      }
 
 class ReadyToBuild :: Symbol -> Row Capacity -> Row Capacity -> Row Type -> Constraint
 class 
@@ -67,20 +54,15 @@ class
     toMkPiece :: PieceSpec i o () (HasEval r) -> Record (HasName + HasEval + HasPorts + r)
 instance
   ( Lacks "name" r
-  , Cons "eval" (Map Piece.CardinalDirection Piece.Signal -> Map Piece.CardinalDirection Piece.Signal) rest r2
   , Lacks "ports" r
   , ValidPortSpec i
   , ValidPortSpec o
   , IsSymbol name
   ) => ReadyToBuild name i o r where
     toMkPiece spec =
-      let PieceSpec builder = spec >>> specName @name  >>> specPorts @i @o :: PieceSpec i o () (HasName + HasEval + HasPorts + r)
+      let PieceSpec builder = spec >>> specName @name  >>> specPorts @i @o
       in buildFromScratch builder
     
-    
-  
-
-
 mkPiece :: forall @name i o r
   .  ReadyToBuild name i o r
   => PieceSpec i o () (HasEval + r)
@@ -91,7 +73,7 @@ mkPiece spec = Piece (unsafeUnion piece defaultPiece)
     piece = toMkPiece @name spec
 
     defaultPiece =
-      { complexity: Piece.space 0.0
+      { complexity: Complexity.space 0.0
       , shouldRipple: false
       , updateCapacity: \_ _ -> Nothing
       , updatePort: \_ _ -> Nothing

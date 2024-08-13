@@ -17,12 +17,6 @@ instance Show Signal where
   show (Signal s) = toUpper $ fold $ [12, 8, 4, 0] <#> \shift ->
     toStringAs hexadecimal ((shr s shift) .&. 15)
 
-instance Semigroup Signal where
-  append = add
-
-instance Monoid Signal where
-  mempty = zero
-
 instance HeytingAlgebra Signal where
   ff = Signal 0
   tt = Signal (complement 0)
@@ -30,6 +24,8 @@ instance HeytingAlgebra Signal where
   implies (Signal a) (Signal b) = Signal (complement a .|. b)
   disj (Signal a) (Signal b) = Signal (a .|. b)
   conj (Signal a) (Signal b) = Signal (a .&. b)
+
+instance BooleanAlgebra Signal
 
 instance Semiring Signal where
   zero = Signal 0

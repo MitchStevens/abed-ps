@@ -68,5 +68,3 @@ insert a = PieceSpec (Builder.insert (Proxy :: Proxy l) a)
 
 --complexity :: forall i o r. Piece.Complexity -> PieceSpec i o r { complexity :: Piece.Complexity | r }
 complexity = insert @"complexity"
-
---ports :: forall i o.
