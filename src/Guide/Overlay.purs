@@ -14,16 +14,16 @@ import Game.Location (Location(..), location)
 import Guide.Event (completedEvent, levelStartedEvent, pieceAddedEvent, pieceRemovedEvent, readyForTestingEvent, runningTestEvent)
 
 
-foreign import addPiece :: EffectFnAff Unit
-addPieceOverlay :: Aff Unit
-addPieceOverlay = do
-  levelStartedEvent
-  runOverlay <- parOneOf
-    [ pieceAddedEvent (location 0 0) $> false
-    , delay (Milliseconds 3000.0) $> true
-    ]
-  when runOverlay do
-    fromEffectFnAff addPiece)
+--foreign import addPiece :: EffectFnAff Unit
+--addPieceOverlay :: Aff Unit
+--addPieceOverlay = do
+--  levelStartedEvent
+--  runOverlay <- parOneOf
+--    [ pieceAddedEvent (location 0 0) $> false
+--    , delay (Milliseconds 3000.0) $> true
+--    ]
+--  when runOverlay do
+--    fromEffectFnAff addPiece)
 
 foreign import movePieceFromTo :: Location -> Location -> EffectFnAff Unit
 movePieceFromToOverlay :: Location -> Location -> Aff Unit

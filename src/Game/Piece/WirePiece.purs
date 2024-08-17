@@ -16,7 +16,7 @@ import Game.Capacity (Capacity(..))
 import Game.Direction (CardinalDirection)
 import Game.Direction as Direction
 import Game.Piece.Complexity as Complexity
-import Game.Piece.Types (Piece(..), PieceId(..), name)
+import Game.Piece.Types (Piece(..), PieceId(..), mkPiece, name)
 import Game.Port (PortType(..), inputPort, outputPort)
 import Game.Signal (Signal(..))
 import Partial.Unsafe (unsafeCrashWith)
@@ -54,7 +54,7 @@ wirePieceNames =
 
 
 mkWirePiece :: WirePiece -> Piece
-mkWirePiece wire = Piece
+mkWirePiece wire = mkPiece
   { name: fromMaybe' (\_ -> unsafeCrashWith "impossible to create wirePiece with no outputs") (M.lookup wire.outputs wirePieceNames)
   , eval: \inputs -> 
       let signal = fromMaybe (Signal 0) (M.lookup Direction.Left inputs)

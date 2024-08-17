@@ -11,7 +11,7 @@ import Data.Tuple (Tuple(..))
 import Game.Capacity (Capacity(..), doubleCapacity, halveCapacity, maxValue, toInt)
 import Game.Direction as Direction
 import Game.Piece.Complexity as Complexity
-import Game.Piece.Types (Piece(..), PieceId(..), shouldRipple)
+import Game.Piece.Types (Piece(..), PieceId(..), mkPiece, shouldRipple)
 import Game.Port (inputPort, outputPort)
 import Game.Signal (Signal(..))
 
@@ -19,7 +19,7 @@ succPiece :: Piece
 succPiece = mkSuccPiece TwoBit
 
 mkSuccPiece :: Capacity -> Piece
-mkSuccPiece capacity = Piece
+mkSuccPiece capacity = mkPiece
   { name: PieceId "succ"
   , eval: \m ->
       let s = fold (M.lookup Direction.Left m)
@@ -37,7 +37,7 @@ mkSuccPiece capacity = Piece
   }
 
 mkAdder :: Capacity -> Piece
-mkAdder capacity = Piece
+mkAdder capacity = mkPiece
   { name: PieceId "adder-piece"
   , eval: \m ->
       let Signal a = fold (M.lookup Direction.Left m)
@@ -63,7 +63,7 @@ mkAdder capacity = Piece
   }
 
 mkMultiplier :: Capacity -> Piece
-mkMultiplier capacity = Piece
+mkMultiplier capacity = mkPiece
   { name: PieceId "multiplier-piece"
   , eval: \m ->
       let Signal a = fold (M.lookup Direction.Left m)

@@ -41,6 +41,12 @@ import Game.Location (Location(..), directionTo, followDirection)
 import Game.Piece (chickenPiece, cornerCutPiece, crossPiece, idPiece, leftPiece, rightPiece)
 import Game.Rotation (Rotation(..), rotation)
 
+type Wire =
+  { inputDirection :: CardinalDirection
+  , outputDirection :: CardinalDirection 
+  , location :: Location
+  }
+
 data PathError
   = ObstructedByAnotherPiece Location
   | LocationsAreNotAdjacent Location Location
@@ -62,14 +68,6 @@ instance Show PathError where
     Other str -> "patherror: " <> str
 instance Semigroup PathError where
   append a _ = a
-
-
-type Wire =
-  { inputDirection :: CardinalDirection
-  , outputDirection :: CardinalDirection
-  , location :: Location
-  }
-
 
 getWireAt :: forall m. MonadState Board m => Location -> ExceptT PathError m (Maybe Wire)
 getWireAt location = do

@@ -18,7 +18,7 @@ import Game.Direction as Direction
 import Game.Expression (Expression(..), evaluate, ref)
 import Game.Piece.Complexity (Complexity)
 import Game.Piece.Complexity as Complexity
-import Game.Piece.Types (Piece(..), PieceId(..))
+import Game.Piece.Types (Piece(..), PieceId(..), mkPiece)
 import Game.Port (inputPort, outputPort)
 
 data BasicPort = BasicInput | BasicOutput Expression
@@ -31,7 +31,7 @@ type BasicPiece =
   }
 
 basicPiece :: BasicPiece -> Piece
-basicPiece basic = Piece
+basicPiece basic = mkPiece
   { name: basic.name
   , eval: \inputs -> flip M.mapMaybe basic.ports $ case _ of
       BasicInput  -> Nothing
@@ -44,7 +44,6 @@ basicPiece basic = Piece
   , ports: basic.ports <#> case _ of
       BasicInput -> inputPort basic.capacity
       BasicOutput _ -> outputPort basic.capacity
-  , updatePort: \_ _ -> Nothing
   }
 
 
@@ -105,6 +104,13 @@ crossPiece = basicPiece
     ]
   }
 
+{-
+  There are only 6 possible dual input/dual output pieces:
+  
+
+-}
+
+
 cornerCutPiece :: Piece
 cornerCutPiece = basicPiece
   { name: PieceId "corner-cut-piece"
@@ -116,8 +122,8 @@ cornerCutPiece = basicPiece
     , Tuple Right $ BasicOutput (ref Up)
     , Tuple Down $ BasicOutput (ref Left)
     ]
-
   }
+
 
 chickenPiece :: Piece
 chickenPiece = basicPiece

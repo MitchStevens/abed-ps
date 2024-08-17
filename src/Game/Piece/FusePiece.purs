@@ -12,7 +12,7 @@ import Data.Tuple (Tuple(..))
 import Game.Capacity (Capacity(..), doubleCapacity, halveCapacity, toInt)
 import Game.Direction as Direction
 import Game.Piece.Complexity as Complexity
-import Game.Piece.Types (Piece(..), PieceId(..))
+import Game.Piece.Types (Piece(..), PieceId(..), mkPiece)
 import Game.Port (inputPort, outputPort)
 import Game.Signal (Signal(..))
 
@@ -29,15 +29,13 @@ severPiece = mkSeverPiece { outputCapacity: OneBit }
 type FusePiece = { inputCapacity :: Capacity }
 
 mkFusePiece :: FusePiece -> Piece
-mkFusePiece { inputCapacity } = Piece
+mkFusePiece { inputCapacity } = mkPiece
   { name: PieceId "fuse-piece"
   , eval: \inputs -> 
       let high = fold (M.lookup Direction.Up inputs)
           low  = fold (M.lookup Direction.Down inputs)
       in M.singleton Direction.Right (fuseSignals inputCapacity high low)
-  , complexity: Complexity.space 1.0
 
-  , shouldRipple: false
   , updateCapacity: \dir capacity -> case dir of
       Direction.Left -> Nothing
       Direction.Right -> do
@@ -56,7 +54,6 @@ mkFusePiece { inputCapacity } = Piece
         , Tuple Direction.Down  (inputPort inputCapacity)
         , Tuple Direction.Right (outputPort outputCapacity)
         ]
-  , updatePort: \_ _ -> Nothing
   }
   
 fuseSignals :: Capacity -> Signal -> Signal -> Signal
@@ -68,7 +65,7 @@ fuseSignals inputCapacity (Signal high) (Signal low) = Signal (shl high n `or` (
 type SeverPiece = { outputCapacity :: Capacity }
 
 mkSeverPiece :: SeverPiece -> Piece
-mkSeverPiece { outputCapacity } = Piece
+mkSeverPiece { outputCapacity } = mkPiece
   { name: PieceId "sever-piece"
   , eval: \inputs ->
       let Tuple high low = foldMap (severSignal outputCapacity) (M.lookup Direction.Left inputs)
@@ -76,9 +73,7 @@ mkSeverPiece { outputCapacity } = Piece
         [ Tuple Direction.Up high
         , Tuple Direction.Down low
         ]
-  , complexity: Complexity.space 1.0
 
-  , shouldRipple: false
   , updateCapacity: \dir capacity -> case dir of
       Direction.Right -> Nothing
       Direction.Left -> do
@@ -96,7 +91,6 @@ mkSeverPiece { outputCapacity } = Piece
         , Tuple Direction.Up    (outputPort outputCapacity)
         , Tuple Direction.Down  (outputPort outputCapacity)
         ]
-  , updatePort: \_ _ -> Nothing
   }
 
 severSignal :: Capacity -> Signal -> Tuple Signal Signal

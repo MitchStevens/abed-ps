@@ -11,7 +11,7 @@ import Data.Ord (greaterThan, lessThan)
 import Data.Tuple (Tuple(..))
 import Game.Capacity (Capacity(..))
 import Game.Direction as Direction
-import Game.Piece (Piece(..), PieceId(..))
+import Game.Piece (Piece(..), PieceId(..), mkPiece)
 import Game.Piece as Complexity
 import Game.Port (inputPort, outputPort)
 import Game.Signal (Signal(..))
@@ -30,7 +30,7 @@ type ComparisonPiece =
   }
 
 mkComparisonPiece :: ComparisonPiece -> Piece
-mkComparisonPiece piece@{ name, comparison, capacity } = Piece
+mkComparisonPiece piece@{ name, comparison, capacity } = mkPiece
   { name
   , eval: \inputs ->
       let a = fold (M.lookup Direction.Left inputs)
@@ -38,7 +38,6 @@ mkComparisonPiece piece@{ name, comparison, capacity } = Piece
       in M.singleton Direction.Right (Signal (if comparison a b then 1 else 0))
   , complexity: Complexity.space 0.0
 
-  , shouldRipple: false
   , updateCapacity: \dir capacity' -> do
       guard (dir `elem` [Direction.Left, Direction.Up])
       pure $ mkComparisonPiece (piece {capacity = capacity'})
@@ -48,7 +47,6 @@ mkComparisonPiece piece@{ name, comparison, capacity } = Piece
       , Tuple Direction.Right (outputPort OneBit)
       , Tuple Direction.Left (inputPort capacity)
       ]
-  , updatePort: \_ _ -> Nothing
   }
 
 mkEqualPiece :: Capacity -> Piece

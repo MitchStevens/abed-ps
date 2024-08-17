@@ -10,8 +10,7 @@ import Effect.Aff (Aff)
 import Effect.Aff.Compat (EffectFnAff, fromEffectFnAff)
 import Effect.Exception (throw)
 import Game.Location (Location(..))
-import Guide.Element (elementAt)
-import Guide.Guide (GuideM)
+import Guide.Element (pieceAt)
 import Web.DOM.MutationObserver (disconnect, mutationObserver)
 import Web.DOM.MutationRecord (addedNodes)
 import Web.DOM.NodeList as NodeList
@@ -27,11 +26,11 @@ foreign import pieceRemoved :: Location -> EffectFnAff Unit
 pieceRemovedEvent :: Location -> Aff Unit
 pieceRemovedEvent loc = fromEffectFnAff (pieceRemoved loc)
 
-pieceExistsEvent :: Location -> Aff Unit
-pieceExistsEvent loc = do
-  pieceAt loc >>= case _ of
-    Nothing -> pieceAddedEvent loc
-    Just _ -> pure unit
+--pieceExistsEvent :: Location -> Aff Unit
+--pieceExistsEvent loc = do
+--  pieceAt loc >>= case _ of
+--    Nothing -> pieceAddedEvent loc
+--    Just _ -> pure unit
 
 foreign import portMismatch :: EffectFnAff Unit
 portMismatchEvent :: Aff Unit

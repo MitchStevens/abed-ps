@@ -11,7 +11,6 @@ import Effect (Effect)
 import Effect.Class (class MonadEffect, liftEffect)
 import Game.Location (location)
 import Game.Piece (idPiece)
-import Guide.Guide (GuideM)
 
 foreign import addIdPieceLesson :: Effect Unit
 foreign import movePieceToLeftLesson :: Effect Unit
