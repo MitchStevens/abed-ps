@@ -3,7 +3,7 @@
 
   A `Board` represents operations on the board in the game: adding pieces, rotating pieces, etc. However this representation is not good for evaluation. To evaluate a board, it is first transformed into an `EvaluableBoard`, which *can* be evaluated and has a `Piece` instance.
 
-  An `EvaluatableBoard` also generates information about the states of ports which is used in rendering. Generating extra information has an overhead cost, for the evaluation of board that don't need to provide internal port information, use `CompiledBoard` for better performance.
+  An `EvaluableBoard` also generates information about the states of ports which is used in rendering. Generating extra information has an overhead cost, for the evaluation of board that don't need to provide internal port information, use `CompiledBoard` for better performance.
 -}
 
 module Game.Board.EvaluableBoard
@@ -71,8 +71,6 @@ newtype EvaluableBoard = EvaluableBoard
 
   -- maps input relEdges to output relEdges
   , connections :: BoardConnections
-
-  -- initial portInfo
 
   -- topologically sorted list of locations
   , evalOrder :: List Location

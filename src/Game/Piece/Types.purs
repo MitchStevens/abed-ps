@@ -31,8 +31,11 @@ import Game.Piece.Complexity as Complexity
 import Game.Piece.Direction (CardinalDirection)
 import Game.Piece.Port (Port(..), PortType, isInput, isOutput)
 import Game.Piece.Signal (Signal(..))
+import Game.Piece.TypeSafe.Direction (DirectionalRow, Directional)
 import Prim.Row (class Union)
+import Record (union)
 import Record.Unsafe.Union (unsafeUnion)
+import Unsafe.Coerce (unsafeCoerce)
 
 
 newtype PieceId = PieceId String
@@ -47,16 +50,11 @@ data IsSimplifiable
   = IsConstant (Map CardinalDirection Signal)
   | IsConnection (Map CardinalDirection CardinalDirection)
 
-type Directional a = ( u :: a, r :: a, d :: a, l :: a)
-
-
 {-
   What is a piece?
 
   - a piece has ports
   - A Piece MUST have at least one output
-  - a piece has at least 1 output (or else what the hell does it do?)
-  - a piece has at least 1 input
   - a piece can be evaluated
   - a piece has a unique identifier
 
@@ -80,7 +78,7 @@ newtype Piece = Piece
     ```
     The `eval` function for such a piece would be the same as the 1 bit and 8 bit not pieces: `\{l} -> {r: not l}`.
   -}
-  , eval :: Record (Directional Signal) -> Record (Directional Signal)
+  , eval :: Directional Signal -> Directional Signal
   {-
     The complexity of a piece is a 
   -}
@@ -93,7 +91,7 @@ newtype Piece = Piece
   -}
   , shouldRipple :: Boolean
   , updateCapacity :: CardinalDirection -> Capacity -> Maybe Piece
-  , ports :: Record (Directional Port)
+  , ports :: Directional (Maybe Port)
   {-
     The `updatePort` function asks: if there was suddenly a `port` in the direction `dir`, how should the piece react?. In general we don't want the piece to do anything, but if the piece is a wire piece, it's desirable to add/remove output ports if a change in the matching port is detected.
 
@@ -134,16 +132,28 @@ instance Show Piece where
 derive instance Newtype Piece _
 
 class LiftEval a b where
-  liftEval :: (a -> b) -> Record (Directional Signal) -> Record (Directional Signal)
+  liftEval :: (a -> b) -> Directional Signal -> Directional Signal
+
+{-
+
+-}
+instance
+  ( Union a (DirectionalRow Signal) (DirectionalRow Signal)
+  , Union b (DirectionalRow Signal) (DirectionalRow Signal)
+  ) => LiftEval (Record a) (Record b) where
+    liftEval f input = union (unsafeCoerce input :: Record b) ?input
 
 
 type MkPiece a b r =
   ( name :: PieceId
   , eval :: a -> b
-  , ports :: Map CardinalDirection Port
+  , ports :: Directional (Maybe Port)
   | r )
-mkPiece :: forall r1 r2 r3
-  .  Union (MkPiece r1) r2 r3 => Newtype Piece (Record r3) => Record (MkPiece r1) -> Piece
+mkPiece :: forall a b r
+  .  Union (MkPiece r1) r2 r3 
+  => Newtype Piece (Record r3) 
+  => Record (MkPiece r1)
+  -> Piece
 mkPiece piece = Piece (unsafeUnion piece defaultPiece)
   where
     defaultPiece =
@@ -153,24 +163,6 @@ mkPiece piece = Piece (unsafeUnion piece defaultPiece)
       , updatePort: \_ _ -> Nothing
       , isSimplifiable: Nothing
       }
-
-
---type DirectionalSignals = { u :: Signal, d :: Signal, l :: Signal, r :: Signal }
---type MkPiece2 r =
---  ( name :: PieceId
---  , eval :: Directional Signals -> Directional Signals
---  , ports :: Map CardinalDirection Port
---  | r )
---mkPiece2 :: forall r1 r2 r3. Union (MkPiece2 r1) r2 r3 => Newtype Piece (Record r3) => Record (MkPiece2 r1) -> Piece
---mkPiece2 piece = Piece (unsafeUnion piece defaultPiece)
---  where
---    defaultPiece =
---      { complexity: Complexity.space 0.0
---      , shouldRipple: false
---      , updateCapacity: \_ _ -> Nothing
---      , updatePort: \_ _ -> Nothing
---      , isSimplifiable: Nothing
---      }
 
 name :: Piece -> PieceId
 name (Piece p) = p.name

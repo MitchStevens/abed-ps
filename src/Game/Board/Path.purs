@@ -1,4 +1,10 @@
-module Game.Board.Path where
+module Game.Board.Path
+  ( PathError
+  , Wire
+  , getWireAt
+  , overlayWireSegments
+  )
+  where
 
 import Prelude
 
@@ -21,8 +27,9 @@ import Data.Lens.At (at)
 import Data.List (List(..), (:))
 import Data.List as L
 import Data.Map as M
-import Data.Maybe (Maybe(..), isNothing)
+import Data.Maybe (Maybe(..), isNothing, maybe)
 import Data.PQueue as PQ
+import Data.Set (Set)
 import Data.Set as S
 import Data.Traversable (for, sequence, traverse)
 import Data.Tuple (Tuple(..), snd)
@@ -35,18 +42,19 @@ import Effect.Aff (Aff, error)
 import Game.Board.Operation (addPieceNoUpdate, removePieceNoUpdate, updatePortsAround)
 import Game.Board.PieceInfo (PieceInfo)
 import Game.Board.Types (Board(..), BoardError, _pieces)
+import Game.Location (Location(..), directionTo, followDirection)
+import Game.Piece (CardinalDirection, Piece(..), chickenPiece, cornerCutPiece, crossPiece, idPiece, leftPiece, rightPiece)
 import Game.Piece.Direction (CardinalDirection, allDirections, clockwiseRotation, rotateDirection)
 import Game.Piece.Direction as Direction
-import Game.Location (Location(..), directionTo, followDirection)
-import Game.Piece (chickenPiece, cornerCutPiece, crossPiece, idPiece, leftPiece, rightPiece)
 import Game.Piece.Rotation (Rotation(..), rotation)
+import Partial.Unsafe (unsafeCrashWith)
 
 data PathError
   = ObstructedByAnotherPiece Location
   | LocationsAreNotAdjacent Location Location
   | PathIsEmpty
   | WireInputEqualsOutput CardinalDirection CardinalDirection
-  | NoOverlay Wire Wire
+  | NoOverlay WireSegment WireSegment
   | BoardError BoardError
   | Other String
 derive instance Eq PathError
@@ -64,15 +72,79 @@ instance Semigroup PathError where
   append a _ = a
 
 
-type Wire =
-  { inputDirection :: CardinalDirection
-  , outputDirection :: CardinalDirection
+{-
+  assertion: M.keys connections ∩ M.elems connections == ∅
+-}
+type PathSegment =
+  { connections :: Map CardinalDirection CardinalDirection
   , location :: Location
   }
 
+{-
+  assertion: M.keys connections ∩ M.elems connections == ∅
+-}
+pathSegment :: Map CardinalDirection CardinalDirection -> Location -> m PathSegment
 
-getWireAt :: forall m. MonadState Board m => Location -> ExceptT PathError m (Maybe Wire)
-getWireAt location = do
+toPiece :: WireSegment -> Piece
+toPiece { connections, location } = unsafeCrashWith ""
+
+{-
+  Should be commutative
+-}
+overlayWireSegments :: forall m
+  . MonadError PathError m 
+  => WireSegment -> WireSegment -> m WireSegment
+overlayWireSegments newWireSegment extantWireSegment =
+  if S.isEmpty $ inUse newWireSegment `S.intersection` inUse extantWireSegment
+    then pure 
+      { connections: newWireSegment.connections <> extantWireSegment.connections
+      , location: newWireSegment.location }
+    else throwError (NoOverlay newWireSegment extantWireSegment)
+  where
+    inUse :: WireSegment -> Set CardinalDirection
+    inUse { connections, location } = S.fromFoldable (M.values connections) <> M.keys connections
+  
+
+
+
+
+wireSegments :: forall m
+  .  MonadError PathError m
+  => CardinalDirection -> CardinalDirection -> Array Location -> m (Array WireSegment)
+wireSegments initialDirection terminalDirection locations = do
+  locationsZipper <- maybe (throwError PathIsEmpty) pure (Z.fromFoldable locations)
+  sequence $ A.fromFoldable $ extend toWireSegments locationsZipper 
+  where
+    toWireSegment :: Zipper Location -> m WireSegment
+    toWireSegment (Zipper l v r) = do
+      inputDirection <- maybe (pure initialDirection) (directionTo _ v) (L.head l)
+      outputDirection <- maybe (pure terminalDirection) (directionTo v _) (L.head r)
+      pure { inputDirection, outputDirection, location: v}
+
+    directionTo :: Location -> Location -> m CardinalDirection
+    directionTo l1 l2 =
+      maybe (throwError (LocationsAreNotAdjacent l1 l2)) pure (Direction.directionTo l1 l2)
+
+
+
+{-
+  1. generate Path from Array Locations
+    -- Dir -> Dir -> Array Location -> Array Wire
+  2. overlay Path with extant pieces
+  3. replace/add path pieces with path
+
+
+-}
+
+
+{-
+  Given a `Board` (Provided via the MonadState Board)
+
+-}
+getExtantWireSegment :: forall m
+  . MonadError PathError m
+  => Board -> Location -> m (Maybe WireSegment)
+getExtantWireSegment board location = do
   (maybePieceInfo :: Maybe PieceInfo) <- use (_pieces <<< at location)
   for maybePieceInfo \info -> do
     let inputDirection = rotateDirection Direction.Left info.rotation
@@ -84,8 +156,10 @@ getWireAt location = do
       then pure { inputDirection, outputDirection: rotateDirection Direction.Down info.rotation, location }
     else throwError (ObstructedByAnotherPiece location)
 
-overlayWires :: forall m. MonadState Board m
-  => Wire -> Maybe Wire -> ExceptT PathError m Unit
+{-
+  
+-}
+overlayWires :: Wire -> Maybe Wire -> m (Tuple3 Location Piece Rotation)
 overlayWires wire Nothing = do
   piece <- case clockwiseRotation wire.inputDirection wire.outputDirection of
     Rotation 1 -> pure leftPiece
@@ -148,11 +222,6 @@ overlayWires wire (Just extant) = do
 
 rotateWire :: Rotation -> Wire -> Wire
 rotateWire rot wire = wire { inputDirection = rotateDirection wire.inputDirection rot, outputDirection = rotateDirection wire.outputDirection rot}
-
-triples :: forall a. List a -> List (Tuple3 a a a)
-triples = case _ of
-  a : b : c : xs -> tuple3 a b c : triples (b : c : xs)
-  _ -> Nil
 
 -- board path builds along all the locations
 {-
