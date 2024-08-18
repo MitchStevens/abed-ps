@@ -3,7 +3,6 @@ module Test.Guide.Guide where
 import Prelude
 
 import Control.Monad.Reader (runReaderT)
-import Data.Exists (Exists, mkExists)
 import Data.Maybe (Maybe(..), maybe)
 import Data.Nullable (Nullable, notNull, null, toMaybe)
 import Effect (Effect)

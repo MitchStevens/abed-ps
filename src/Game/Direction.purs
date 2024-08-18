@@ -1,4 +1,11 @@
-module Game.Direction where
+module Game.Direction
+  ( CardinalDirection(..)
+  , allDirections
+  , clockwiseRotation
+  , oppositeDirection
+  , rotateDirection
+  )
+  where
 
 import Prelude
 

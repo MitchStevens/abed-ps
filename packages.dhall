@@ -104,7 +104,3 @@ let upstream =
 in  upstream
   with halogen-svg-elems.repo = "https://github.com/MitchStevens/purescript-halogen-svg-elems.git"
   with halogen-svg-elems.version = "df7b35f"
-
-  with veither.repo = "https://github.com/MitchStevens/purescript-veither.git"
-  with veither.version = "e8e369ec2cd6272c96b047c0e7f6ea9b5e2c649e"
-  with veither.dependencies = [ "prelude" ]

@@ -12,15 +12,3 @@ import Test.Spec.Runner (runSpec)
 main :: Effect Unit
 main = launchAff_ $
   discover "Test.*" >>= runSpec [ consoleReporter ]
-{-
-runAff_ (\_ -> pure unit) $ runTest do
-  describe "Expression tests"           Test.Game.Expression.tests
-  --describe "Location tests"             Test.Game.Location.tests
-  --describe "Piece tests"                Test.Game.Piece.tests
-  --describe "Board tests"                Test.Game.Board.tests
-  --describe "Path"                       Test.Game.Board.Path.tests
-  --describe "ProblemDescription tests"   Test.Game.ProblemDescription.tests
-  --describe "Rules Engine tests"         Test.Game.RulesEngine.tests
-  --describe "Game Event Tests"           Test.Game.GameEvent.tests
-  --describe "Component tests" do
-  --  Test.Component.Board.tests

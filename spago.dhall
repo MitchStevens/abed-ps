@@ -46,6 +46,7 @@ to generate this file without the comments in this block.
   , "ordered-collections"
   , "partial"
   , "parsing"
+  , "parallel"
   , "prelude"
   , "profunctor"
   , "profunctor-lenses"

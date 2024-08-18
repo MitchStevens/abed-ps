@@ -31,6 +31,17 @@ spec = do
       rotateDirection Direction.Down (rotation 2) `shouldEqual` Direction.Up
       rotateDirection Direction.Down (rotation 3) `shouldEqual` Direction.Right
     it "clockwiseRotation" do
+      clockwiseRotation Direction.Left Direction.Left
+        `shouldEqual` rotation 0
+      clockwiseRotation Direction.Left Direction.Up
+        `shouldEqual` rotation 1
+      clockwiseRotation Direction.Left Direction.Right
+        `shouldEqual` rotation 2
+      clockwiseRotation Direction.Up Direction.Left
+        `shouldEqual` rotation 3
+      clockwiseRotation Direction.Down Direction.Right
+        `shouldEqual` rotation 3
+      
       for_ allDirections \dir ->
         for_ allRotations \rot ->
           clockwiseRotation dir (rotateDirection dir rot) `shouldEqual` rot

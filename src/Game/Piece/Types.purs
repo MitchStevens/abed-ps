@@ -42,7 +42,23 @@ derive instance Ord PieceId
 instance Show PieceId where
   show (PieceId id) = id
 
+{-
+  This "Simplification" data type is kinda confusing
 
+  A `Simplification` is a short hand way of describing *some* simple pieces. These simplifications are used when compiling an `EvaluableBoard` into a more effecient `CompiledBoard`. Simplifications come in two forms:
+  
+  - If a piece can be simplified to `IsConstant`, the outputs of the  
+
+
+  An obvious question: why not define `Simplification`:
+  ```
+  type Simplification = Map CardinalDirection (Either CardinalDirection Signal)
+  ```
+  Which would allow for the simplification of pieces that are a combination of `IsConstant` and `IsConnection`?
+
+    1. Such a piece would be rare and not worth the additional complexity, and
+    2. It's useful for creating paths (See `PathSegment.purs`)
+-}
 data Simplification
   = IsConstant (Map CardinalDirection Signal)
   | IsConnection (Map CardinalDirection CardinalDirection)

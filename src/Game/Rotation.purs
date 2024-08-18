@@ -41,6 +41,9 @@ instance Monoid Rotation where
 instance Group Rotation where
   ginverse (Rotation n) = rotation (-n)
 
+derive newtype instance Semiring Rotation
+derive newtype instance Ring Rotation
+
 allRotations :: Array Rotation
 allRotations = Rotation <$> [0, 1, 2, 3]
 
