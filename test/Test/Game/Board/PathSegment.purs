@@ -47,9 +47,10 @@ spec = do
       it "should fail to create" do
         singlePath Direction.Left Direction.Left ` shouldEqual` Left (InvalidSinglePath { from: Direction.Left, to: Direction.Left})
 
-    focus $ describe "singlePathSegmentFromPiece" do
-      pure unit
-
+    describe "singlePathSegmentFromPiece" do
+      it "should create single output wires" do
+        singlePathSegmentFromPiece { piece: idPiece, rotation: rotation 0}
+          `shouldEqual` pure { from: Direction.Left, to: Direction.Right }
 
     describe "dualPath" do
       it "should create" do
@@ -60,6 +61,7 @@ spec = do
           for_ singlePathSegments \seg2 ->
             (dualPath seg1 seg2 :: Either PathSegmentError PathSegment) `shouldEqual`
               dualPath seg2 seg1
+
     describe "toPiece" do
       it "should create pieces from single path segments" do
         toPiece (SinglePath leftToRight) `shouldEqual`
@@ -84,7 +86,7 @@ spec = do
         singlePathSegmentFromPiece { piece: andPiece, rotation: rotation 0 }
           `shouldEqual` Left (NoSimplificationForPiece andPiece)
 
-    focus $ describe "combineSegmentWithExtant" do
+    describe "combineSegmentWithExtant" do
       it "should return the " do
         pure unit
       it "dual " do

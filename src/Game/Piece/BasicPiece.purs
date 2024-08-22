@@ -3,162 +3,101 @@ module Game.Piece.BasicPiece where
 import Prelude
 
 import Control.Alt ((<|>))
+import Control.Alternative (guard)
 import Data.HeytingAlgebra (ff, tt)
 import Data.List (List)
 import Data.Map (Map)
 import Data.Map as M
-import Data.Maybe (Maybe(..))
+import Data.Maybe (Maybe(..), fromMaybe)
 import Data.Newtype (class Newtype)
 import Data.Traversable (class Foldable, traverse)
 import Data.Tuple (Tuple(..))
-import Data.Unfoldable (fromMaybe)
 import Game.Capacity (Capacity(..), clampSignal)
 import Game.Direction (CardinalDirection(..))
 import Game.Direction as Direction
-import Game.Expression (Expression(..), evaluate, ref)
 import Game.Piece.Complexity (Complexity)
 import Game.Piece.Complexity as Complexity
 import Game.Piece.Types (Piece(..), PieceId(..), mkPiece)
-import Game.Port (inputPort, outputPort)
-
-data BasicPort = BasicInput | BasicOutput Expression
+import Game.Port (PortType(..), createPort, inputPort, outputPort)
+import Game.Signal (Signal(..), xor)
 
 type BasicPiece =
   { name :: PieceId
+  , eval :: Map CardinalDirection Signal -> Map CardinalDirection Signal
+  , ports :: Map CardinalDirection PortType
   , capacity :: Capacity
-  , complexity :: Complexity
-  , ports :: Map CardinalDirection BasicPort
   }
 
 basicPiece :: BasicPiece -> Piece
 basicPiece basic = mkPiece
   { name: basic.name
-  , eval: \inputs -> flip M.mapMaybe basic.ports $ case _ of
-      BasicInput  -> Nothing
-      BasicOutput expression -> Just (clampSignal basic.capacity $  evaluate inputs expression)
-  , complexity: basic.complexity
+  , eval: basic.eval
+  , ports: map (\portType -> createPort portType basic.capacity) basic.ports
 
   , shouldRipple: true
-  , updateCapacity: \_ capacity -> Just $ basicPiece (basic { capacity = capacity })
-  
-  , ports: basic.ports <#> case _ of
-      BasicInput -> inputPort basic.capacity
-      BasicOutput _ -> outputPort basic.capacity
+  , updateCapacity: \dir capacity -> do
+      guard (M.member dir basic.ports)
+      pure $ basicPiece (basic { capacity = capacity })
   }
-
-
 
 allBasicPieces :: Array Piece
 allBasicPieces =
-  [ notPiece, orPiece, andPiece
-  , crossPiece, cornerCutPiece, chickenPiece
-  , xorPiece
-  ]
-
+  [ notPiece, orPiece, andPiece, xorPiece ]
 
 notPiece :: Piece
 notPiece = basicPiece
   { name: PieceId "not-piece"
-  , capacity: OneBit
-  , complexity: Complexity.space 2.0
+  , eval: \m ->
+      let l = fromMaybe (Signal 0) (M.lookup Left m)
+      in M.singleton Right (not l)
   , ports: M.fromFoldable
-    [ Tuple Left $ BasicInput
-    , Tuple Right $ BasicOutput (not (ref Left))
+    [ Tuple Left Input
+    , Tuple Right Output
     ]
+  , capacity: OneBit
   }
 
 orPiece :: Piece
 orPiece = basicPiece
   { name: PieceId "or-piece"
-  , capacity: OneBit
-  , complexity: Complexity.space 3.0
+  , eval: \m ->
+      let l = fromMaybe (Signal 0) (M.lookup Left m)
+          u = fromMaybe (Signal 0) (M.lookup Up m)
+      in M.singleton Right (l || u)
   , ports: M.fromFoldable
-    [ Tuple Left $ BasicInput  
-    , Tuple Up $ BasicInput 
-    , Tuple Right $ BasicOutput (ref Left || ref Up)
+    [ Tuple Left Input
+    , Tuple Up Input
+    , Tuple Right Output
     ]
+  , capacity: OneBit
   }
 
 andPiece :: Piece
 andPiece = basicPiece
   { name: PieceId "and-piece" 
-  , capacity: OneBit
-  , complexity: Complexity.space 3.0
+  , eval: \m ->
+      let l = fromMaybe (Signal 0) (M.lookup Left m)
+          u = fromMaybe (Signal 0) (M.lookup Up m)
+      in M.singleton Right (l && u)
   , ports: M.fromFoldable
-    [ Tuple Left $ BasicInput  
-    , Tuple Up $ BasicInput 
-    , Tuple Right $ BasicOutput (ref Left && ref Up)
+    [ Tuple Left Input
+    , Tuple Up Input
+    , Tuple Right Output
     ]
-  }
-
-crossPiece :: Piece
-crossPiece = basicPiece
-  { name: PieceId "cross-piece"
   , capacity: OneBit
-  , complexity: Complexity.space 2.0
-  , ports: M.fromFoldable
-    [ Tuple Left BasicInput
-    , Tuple Up   BasicInput
-    , Tuple Right $ BasicOutput (ref Left)
-    , Tuple Down  $ BasicOutput (ref Up)
-    ]
-  }
-
-{-
-  There are only 6 possible dual input/dual output pieces:
-  
-
--}
-
-
-cornerCutPiece :: Piece
-cornerCutPiece = basicPiece
-  { name: PieceId "corner-cut-piece"
-  , capacity: OneBit
-  , complexity: Complexity.space 2.0
-  , ports: M.fromFoldable
-    [ Tuple Left $ BasicInput
-    , Tuple Up $ BasicInput
-    , Tuple Right $ BasicOutput (ref Up)
-    , Tuple Down $ BasicOutput (ref Left)
-    ]
-  }
-
-
-chickenPiece :: Piece
-chickenPiece = basicPiece
-  { name: PieceId "chicken-piece"
-  , capacity: OneBit
-  , complexity: Complexity.space 2.0
-  , ports: M.fromFoldable
-    [ Tuple Left $ BasicInput 
-    , Tuple Right $ BasicInput 
-    , Tuple Up $ BasicOutput  (ref Right)
-    , Tuple Down $ BasicOutput (ref Left) 
-    ]
-  }
-
-reverseChickenPiece :: Piece
-reverseChickenPiece = basicPiece
-  { name: PieceId "reverse-chicken-piece"
-  , capacity: OneBit
-  , complexity: Complexity.space 2.0
-  , ports: M.fromFoldable
-    [ Tuple Left $ BasicInput 
-    , Tuple Right $ BasicInput 
-    , Tuple Up $ BasicOutput  (ref Left)
-    , Tuple Down $ BasicOutput (ref Right) 
-    ]
   }
 
 xorPiece :: Piece
 xorPiece = basicPiece 
   { name: PieceId "xor-piece" 
-  , capacity: OneBit
-  , complexity: Complexity.space 5.0
+  , eval: \m ->
+      let l = fromMaybe (Signal 0) (M.lookup Left m)
+          u = fromMaybe (Signal 0) (M.lookup Up m)
+      in M.singleton Right (xor l u)
   , ports: M.fromFoldable
-    [ Tuple Left $ BasicInput
-    , Tuple Up $ BasicInput
-    , Tuple Right $ BasicOutput (ref Left `Xor` ref Up)
+    [ Tuple Left Input
+    , Tuple Up Input
+    , Tuple Right Output
     ]
+  , capacity: OneBit
   }
