@@ -65,6 +65,7 @@ type State =
 data Query a
   = GetBoard (Board -> a)
   | AddPiece Location Piece
+  | AddPath CardinalDirection (Array Location) CardinalDirection
   | RemovePiece Location 
   | GetMouseOverLocation (Location -> a)
   | SetInputs (Map CardinalDirection Signal) (Map CardinalDirection Signal -> a)

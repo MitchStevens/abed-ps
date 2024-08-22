@@ -54,7 +54,7 @@ import Debug (trace)
 import Effect.Aff.Class (class MonadAff)
 import Effect.Class (class MonadEffect, liftEffect)
 import Effect.Class.Console (log, logShow)
-import Game.Board (Board(..), _pieces, _size, addBoardPath, addPiece, buildEvaluableBoard, capacityRipple, decreaseSize, evalBoardM, evalWithPortInfo, getBoardPortEdge, getPieceInfo, increaseSize, pieceDropped, removePiece, rotatePieceBy, runEvaluableM, toLocalInputs)
+import Game.Board (Board(..), _pieces, _size, addPath, addPiece, buildEvaluableBoard, capacityRipple, decreaseSize, evalBoardM, evalWithPortInfo, getBoardPortEdge, getPieceInfo, increaseSize, pieceDropped, removePiece, rotatePieceBy, runEvaluableM, toLocalInputs)
 import Game.Capacity (maxValue)
 import Game.Direction (CardinalDirection, allDirections)
 import Game.Direction as Direction
@@ -198,51 +198,64 @@ component = mkComponent { eval , initialState , render }
     , receive: \_ -> Nothing 
     }
 
-  handleQuery :: forall a. Query a -> HalogenM State Action Slots Output m (Maybe a)
-  handleQuery = case _ of
-    GetBoard f -> do
-      Just <<< f <$> use _board
-    AddPiece loc piece -> do
-      liftBoardM (addPiece loc piece) >>= case _ of
-        Left boardError -> do
-          Animate.headShake (DA.selector DA.location loc)
-        Right (Tuple _ board) -> do
-        --updateStore (BoardEvent (AddedPiece loc (name piece)))
-      -- raise as a board event so other components can be notified
-          handleAction (SetBoard board)
-      pure Nothing
-    RemovePiece loc -> do
-      liftBoardM (removePiece loc) >>= traverse_ \(Tuple piece board) -> do
-        handleAction (SetBoard board)
-        -- raise as a board event so other components can be notified
-        --updateStore (BoardEvent (RemovedPiece loc (name piece)))
-      pure Nothing
-    GetMouseOverLocation f -> do
-      maybeDst <- gets (_.isMouseOverLocation)
-      pure (f <$> maybeDst)
-    SetGoalPorts boardPorts -> do
-      lift $ debug (tag "boardPorts" (show boardPorts)) "Set goal ports on board"
-      modify_ $ _ { boardPorts = boardPorts }
-      forWithIndex_ boardPorts \dir port -> do
-        when (isInput port) do
-          _inputs <<< at dir .= Just ff
 
-      handleAction EvaluateBoard
-      pure Nothing
-    SetInputs inputs f -> do
-      _inputs .= inputs
-      handleAction EvaluateBoard
-      Just <$> f <$> gets (_.outputs)
-    IncrementBoardSize f -> do
-      liftBoardM increaseSize >>= traverse_ \(Tuple _ board) -> do
+handleQuery :: forall m a
+  . MonadAff m
+  => MonadLogger m
+  => Query a -> HalogenM State Action Slots Output m (Maybe a)
+handleQuery = case _ of
+  GetBoard f -> do
+    Just <<< f <$> use _board
+  AddPiece loc piece -> do
+    liftBoardM (addPiece loc piece) >>= case _ of
+      Left boardError -> do
+        Animate.headShake (DA.selector DA.location loc)
+      Right (Tuple _ board) -> do
+      --updateStore (BoardEvent (AddedPiece loc (name piece)))
+    -- raise as a board event so other components can be notified
         handleAction (SetBoard board)
-        --updateStore (BoardEvent IncrementSize)
-      pure Nothing
-    DecrementBoardSize f -> do
-      liftBoardM decreaseSize >>= traverse_ \(Tuple _ board) -> do
+    pure Nothing
+  AddPath initial locations terminal -> do
+    liftBoardM (addPath initial locations terminal) >>= case _ of
+      Left boardError ->
+        -- TODO: what should game do here?
+        pure unit
+      Right (Tuple _ board) ->
         handleAction (SetBoard board)
-        --updateStore (BoardEvent DecrementSize)
-      pure Nothing
+    pure Nothing
+
+  RemovePiece loc -> do
+    liftBoardM (removePiece loc) >>= traverse_ \(Tuple piece board) -> do
+      handleAction (SetBoard board)
+      -- raise as a board event so other components can be notified
+      --updateStore (BoardEvent (RemovedPiece loc (name piece)))
+    pure Nothing
+  GetMouseOverLocation f -> do
+    maybeDst <- gets (_.isMouseOverLocation)
+    pure (f <$> maybeDst)
+  SetGoalPorts boardPorts -> do
+    lift $ debug (tag "boardPorts" (show boardPorts)) "Set goal ports on board"
+    modify_ $ _ { boardPorts = boardPorts }
+    forWithIndex_ boardPorts \dir port -> do
+      when (isInput port) do
+        _inputs <<< at dir .= Just ff
+
+    handleAction EvaluateBoard
+    pure Nothing
+  SetInputs inputs f -> do
+    _inputs .= inputs
+    handleAction EvaluateBoard
+    Just <$> f <$> gets (_.outputs)
+  IncrementBoardSize f -> do
+    liftBoardM increaseSize >>= traverse_ \(Tuple _ board) -> do
+      handleAction (SetBoard board)
+      --updateStore (BoardEvent IncrementSize)
+    pure Nothing
+  DecrementBoardSize f -> do
+    liftBoardM decreaseSize >>= traverse_ \(Tuple _ board) -> do
+      handleAction (SetBoard board)
+      --updateStore (BoardEvent DecrementSize)
+    pure Nothing
 
 handleAction :: forall m. MonadAff m => MonadLogger m 
   => Action -> HalogenM State Action Slots Output m Unit
@@ -330,17 +343,13 @@ handleAction = case _ of
       when (last creatingWire.locations /= Just loc) do
         _wireLocations <>= [loc]
   LocationOnMouseUp loc me -> void $ runMaybeT do
-    creatingWire <- MaybeT $ gets (_.isCreatingWire)
+    { initialDirection: initial, locations } <- MaybeT $ gets (_.isCreatingWire)
     eventTarget <- MaybeT $ pure $ target (MouseEvent.toEvent me)
     element <- MaybeT $ pure $ fromEventTarget eventTarget
     bb <- liftEffect (getBoundingClientRect element)
-    let terminalDirection = getDirectionClicked me bb
+    let terminal = getDirectionClicked me bb
 
-    Tuple pathAdded board <- runState (addBoardPath creatingWire.initialDirection creatingWire.locations terminalDirection) <$> use _board
-    when pathAdded do
-      --updateStore (BoardEvent boardEvent)
-      lift $ handleAction (SetBoard board)
-    modify_ $ _ { isCreatingWire = Nothing }
+    lift $ handleQuery (AddPath initial locations terminal)
 
 
   SetBoard board -> do

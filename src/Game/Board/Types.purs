@@ -54,6 +54,7 @@ data BoardError
   | InvalidBoardInitialisation Int
   | BadBoardSize Int
   | Cyclic
+  | Other String
 derive instance Eq BoardError
 
 instance Show BoardError where
@@ -64,6 +65,7 @@ instance Show BoardError where
     InvalidBoardInitialisation n -> "Invalid Board Initialisation: " <> show n <> " is not a valid board size"
     BadBoardSize n -> "Boards of size " <>  show n <>" are not valid"
     Cyclic -> "ABED does not admit cyclic boards"
+    Other other -> "Other error: " <>  other
 
 _size :: Lens' Board Int
 _size = _Newtype <<< prop (Proxy :: _ "size")
