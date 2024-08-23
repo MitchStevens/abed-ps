@@ -16,7 +16,7 @@ import Component.Multimeter as Multimeter
 import Component.Piece as Piece
 import Component.Rendering.Path (renderPathWithEvents)
 import Component.Rendering.Port (portPath)
-import Control.Monad.Except (ExceptT, lift)
+import Control.Monad.Except (ExceptT, lift, throwError)
 import Control.Monad.Logger.Class (class MonadLogger, debug, info, warn)
 import Control.Monad.Maybe.Trans (MaybeT(..), runMaybeT)
 import Control.Monad.Reader (class MonadAsk, class MonadReader)
@@ -54,7 +54,7 @@ import Debug (trace)
 import Effect.Aff.Class (class MonadAff)
 import Effect.Class (class MonadEffect, liftEffect)
 import Effect.Class.Console (log, logShow)
-import Game.Board (Board(..), _pieces, _size, addPath, addPiece, buildEvaluableBoard, capacityRipple, decreaseSize, evalBoardM, evalWithPortInfo, getBoardPortEdge, getPieceInfo, increaseSize, pieceDropped, removePiece, rotatePieceBy, runEvaluableM, toLocalInputs)
+import Game.Board (Board(..), BoardError, BoardM, _pieces, _size, addPath, addPiece, buildEvaluableBoard, capacityRipple, decreaseSize, evalBoardM, evalWithPortInfo, getBoardPortEdge, getPieceInfo, increaseSize, pieceDropped, removePiece, rotatePieceBy, runBoardM, runEvaluableM, toLocalInputs)
 import Game.Capacity (maxValue)
 import Game.Direction (CardinalDirection, allDirections)
 import Game.Direction as Direction
@@ -200,41 +200,35 @@ component = mkComponent { eval , initialState , render }
 
 
 handleQuery :: forall m a
-  . MonadAff m
+  .  MonadAff m
   => MonadLogger m
   => Query a -> HalogenM State Action Slots Output m (Maybe a)
 handleQuery = case _ of
   GetBoard f -> do
     Just <<< f <$> use _board
+
   AddPiece loc piece -> do
     liftBoardM (addPiece loc piece) >>= case _ of
       Left boardError -> do
         Animate.headShake (DA.selector DA.location loc)
-      Right (Tuple _ board) -> do
-      --updateStore (BoardEvent (AddedPiece loc (name piece)))
-    -- raise as a board event so other components can be notified
-        handleAction (SetBoard board)
+      Right _ -> pure unit
     pure Nothing
+
   AddPath initial locations terminal -> do
-    liftBoardM (addPath initial locations terminal) >>= case _ of
-      Left boardError ->
-        -- TODO: what should game do here?
-        pure unit
-      Right (Tuple _ board) ->
-        handleAction (SetBoard board)
+    _ <- liftBoardM (addPath initial locations terminal)
     pure Nothing
 
   RemovePiece loc -> do
-    liftBoardM (removePiece loc) >>= traverse_ \(Tuple piece board) -> do
-      handleAction (SetBoard board)
-      -- raise as a board event so other components can be notified
-      --updateStore (BoardEvent (RemovedPiece loc (name piece)))
+    _ <- liftBoardM (removePiece loc) 
     pure Nothing
+
   GetMouseOverLocation f -> do
     maybeDst <- gets (_.isMouseOverLocation)
     pure (f <$> maybeDst)
+
   SetGoalPorts boardPorts -> do
     lift $ debug (tag "boardPorts" (show boardPorts)) "Set goal ports on board"
+
     modify_ $ _ { boardPorts = boardPorts }
     forWithIndex_ boardPorts \dir port -> do
       when (isInput port) do
@@ -242,19 +236,18 @@ handleQuery = case _ of
 
     handleAction EvaluateBoard
     pure Nothing
+
   SetInputs inputs f -> do
     _inputs .= inputs
     handleAction EvaluateBoard
     Just <$> f <$> gets (_.outputs)
+
   IncrementBoardSize f -> do
-    liftBoardM increaseSize >>= traverse_ \(Tuple _ board) -> do
-      handleAction (SetBoard board)
-      --updateStore (BoardEvent IncrementSize)
+    _ <- liftBoardM increaseSize
     pure Nothing
+
   DecrementBoardSize f -> do
-    liftBoardM decreaseSize >>= traverse_ \(Tuple _ board) -> do
-      handleAction (SetBoard board)
-      --updateStore (BoardEvent DecrementSize)
+    _ <- liftBoardM decreaseSize
     pure Nothing
 
 handleAction :: forall m. MonadAff m => MonadLogger m 
@@ -264,34 +257,32 @@ handleAction = case _ of
     emitter <- liftEffect $ globalKeyDownEventEmitter
     void $ subscribe (GlobalOnKeyDown <$> emitter)
     raise =<< NewBoardState <$> use _board
-  PieceOutput (Piece.Rotated loc rot) ->
-    liftBoardM (rotatePieceBy loc rot) >>= traverse_ \(Tuple _ board) -> do
-      lift $ debug (tag "rotation" (show rot)) ("Piece rotated at " <> show loc)
-      --updateStore (BoardEvent (RotatedPiece loc rot))
-      handleAction (SetBoard board)
+
+  PieceOutput (Piece.Rotated loc rot) -> do
+    void $ liftBoardM (rotatePieceBy loc rot)
+
   PieceOutput (Piece.Dropped src) -> do
     lift $ debug M.empty ("Piece dropped at " <> show src)
     -- when a piece is dropped, it can be dropped over a new location or outside the game board 
     maybeDst <- gets (_.isMouseOverLocation)
-    eitherPiece <- liftBoardM (pieceDropped src maybeDst)
-    case eitherPiece of
+
+    liftBoardM (pieceDropped src maybeDst) >>= case _ of
       Left boardError -> do
         lift $ warn M.empty (show boardError) -- todo: what do we want to do here??
         Animate.headShake (DA.selector DA.location src)
       Right _ -> do
-        board <- use _board
-        handleAction (SetBoard board)
+        pure unit
 
 
+  -- set values of the  
   PieceOutput (Piece.NewMultimeterFocus focus) ->
     tell slot.multimeter unit (\_ -> Multimeter.NewFocus focus)
 
   -- todo: fix this
   MultimeterOutput (Multimeter.SetCapacity relativeEdge capacity) -> do
-    board' <- execState (capacityRipple relativeEdge capacity) <$> use _board
-    handleAction (SetBoard board')
+    void $ liftBoardM (capacityRipple relativeEdge capacity)
 
-      -- update the multimeter after the port has changed
+    -- update the multimeter after the port has changed
     signals <- gets (_.lastEvalWithPortInfo)
     let focus = do
           info <- M.lookup relativeEdge signals
@@ -315,14 +306,17 @@ handleAction = case _ of
   ToggleInput dir -> do
     _inputs <<< ix dir %= \signal -> if signal == ff then tt else ff
     handleAction EvaluateBoard
+
   IncrementInput dir -> do
     gets (_.boardPorts >>> M.lookup dir) >>= traverse_ \port ->
       _inputs <<< ix dir %= \signal -> if signal == maxValue (portCapacity port) then ff else signal <> one
     handleAction EvaluateBoard
+
   DecrementInput dir -> do
     gets (_.boardPorts >>> M.lookup dir) >>= traverse_ \port ->
       _inputs <<< ix dir %= \(Signal n) -> if n == 0 then maxValue (portCapacity port) else Signal (n-1)
     handleAction EvaluateBoard
+
   SetOutputs outputs -> do
     modify_ $ _ { outputs = outputs }
     gets (_.isMouseOverBoardPort) >>= traverse_ \dir ->
@@ -338,10 +332,12 @@ handleAction = case _ of
     bb <- liftEffect (getBoundingClientRect element)
     let initialDirection = getDirectionClicked me bb
     modify_ (_ { isCreatingWire = Just { initialDirection, locations: [loc] } })
+
   LocationOnMouseOver loc _ -> do
     gets (_.isCreatingWire) >>= traverse_ \creatingWire -> do
       when (last creatingWire.locations /= Just loc) do
         _wireLocations <>= [loc]
+
   LocationOnMouseUp loc me -> void $ runMaybeT do
     { initialDirection: initial, locations } <- MaybeT $ gets (_.isCreatingWire)
     eventTarget <- MaybeT $ pure $ target (MouseEvent.toEvent me)
@@ -359,6 +355,7 @@ handleAction = case _ of
     handleAction EvaluateBoard
     -- tell puzzle component that board state has been changed
     raise (NewBoardState board)
+
   EvaluateBoard -> do
     boardPorts <- gets (_.boardPorts)
     inputs <- gets (_.inputs)
@@ -434,3 +431,19 @@ getDirectionClicked me bb = case isTopOrRight, isTopOrLeft of
     Tuple x y = Tuple (toNumber (clientX me) - bb.left) (toNumber (clientY me) - bb.top)
     isTopOrRight = x > y
     isTopOrLeft = x + y < bb.width
+ 
+{-
+  Lift a `BoardM` operation in the `HalogenM` Monad for this component.
+-}
+liftBoardM :: forall m a
+  .  MonadAff m
+  => MonadLogger m
+  => BoardM a -> HalogenM State Action Slots Output m (Either BoardError a)
+liftBoardM boardM =  do
+  board <- use _board
+  case runBoardM boardM board of
+    Left boardError ->
+     pure (throwError boardError)
+    Right (Tuple a board') -> do
+      handleAction (SetBoard board')
+      pure (Right a)

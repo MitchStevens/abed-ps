@@ -143,6 +143,8 @@ pieceDropped src maybeDst =
     Nothing -> removePiece src
 
 
+
+
 rotatePieceBy :: forall m. MonadError BoardError m => MonadState Board m => Location -> Rotation -> m Unit
 rotatePieceBy loc rot = do
   checkInsideBoard loc
@@ -159,6 +161,13 @@ validBoardSize n =
     then throwError (BadBoardSize n)
     else pure n
 
+
+{-
+  The user should be able to switch between 3x3 games of size 3x3, 5x5, 7x7, and 9x9. Any circuit that requires larger games should be split into sub pieces (functionality not implemented yet).
+
+
+  When we toggle between size, we want to ensure that we don't lose any of the piece on the outside of the board.
+-}
 decreaseSize :: forall m. MonadState Board m => MonadError BoardError m => m Unit
 decreaseSize = do
   Board {size: n, pieces} <- get
@@ -178,29 +187,3 @@ increaseSize = do
   put $ Board
     { size: newSize
     , pieces: unsafeMapKey (\(Location {x, y}) -> location (x+1) (y+1)) pieces }
-
---buildEvaluationOrder :: forall m. MonadError BoardError m =>
---  Map RelativeEdge RelativeEdge -> m (List Location)
---buildEvaluationOrder M.Leaf = pure Nil
---buildEvaluationOrder connections = pure Nil
---  -- get locations with no incoming nodes
-
-
-
-
-applyBoardEvent :: forall m. MonadState Board m => MonadError BoardError m => BoardEvent -> m Unit
-applyBoardEvent = case _ of
-  AddedPiece loc pieceId -> addPiece loc (pieceLookup pieceId)
-  --AddedPieceWithRotation loc pieceId rot -> addPieceWithRotation loc (pieceLookup pieceId) rot
-  RemovedPiece loc _ -> void $ removePiece loc
-  MovedPiece src dst -> void $ movePiece src dst
-  RotatedPiece loc rot -> rotatePieceBy loc rot
-  UndoBoardEvent -> pure unit
-  IncrementSize -> increaseSize
-  DecrementSize -> decreaseSize
-  {-
-    for some 
-  -}
-  Multiple boardEvents -> do
-    trace ("board events: " <> show boardEvents) \_ -> for_ (boardEvents) \boardEvent ->
-      trace ("applying board event " <> show boardEvent) \_ -> applyBoardEvent boardEvent

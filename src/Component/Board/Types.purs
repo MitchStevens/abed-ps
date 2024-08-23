@@ -11,7 +11,7 @@ module Component.Board.Types
   , _wireLocations
   , boardPortInfo
   , initialState
-  , liftBoardM
+  --, liftBoardM
   , slot
   )
   where
@@ -147,8 +147,8 @@ boardPortInfo = do
     let relEdge = evalState (getBoardPortEdge dir) board
     gets (_.lastEvalWithPortInfo >>> M.lookup relEdge >>> fromMaybe { connected: false, port, signal: Signal 0})
 
-liftBoardM :: forall m a. MonadState State m => BoardM a -> m (Either BoardError (Tuple a Board))
-liftBoardM boardM = do
-  eitherBoard <- runBoardM boardM <$> use _board
-  for_ eitherBoard \(Tuple _ board) -> _board .= board
-  pure eitherBoard
+--liftBoardM :: forall m a. MonadState State m => BoardM a -> m (Either BoardError (Tuple a Board))
+--liftBoardM boardM = do
+--  eitherBoard <- runBoardM boardM <$> use _board
+--  for_ eitherBoard \(Tuple _ board) -> _board .= board
+--  pure eitherBoard
