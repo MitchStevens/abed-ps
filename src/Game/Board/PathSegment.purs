@@ -81,8 +81,8 @@ singlePathSegmentFromPiece
   -> Either PathSegmentError SinglePathSegment
 singlePathSegmentFromPiece {piece, rotation} = 
   case isSimplifiable piece of
-    Just (IsConnection connections) -> case M.toUnfoldable connections of
-      [Tuple from to ] -> singlePath (rotateDirection from rotation) (rotateDirection to rotation)
+    Just (Connection connections) -> case M.toUnfoldable connections of
+      [Tuple to from ] -> singlePath (rotateDirection from rotation) (rotateDirection to rotation)
       _ -> throwError (NoSimplificationForPiece piece)
     _ -> throwError (NoSimplificationForPiece piece)
 

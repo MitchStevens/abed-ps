@@ -10,7 +10,6 @@ import Game.GameEvent (count, firstTime, latest, pieceAdded, pieceMovedTo, secon
 import Game.Level (LevelSuite, binaryTestInputs, defaultLevel)
 import Game.Level.Problem (defaultProblem)
 import Game.Piece (andPiece, crossPiece, idPiece, leftPiece, name, notPiece, orPiece, rightPiece, superPiece, xorPiece)
-import Game.Piece.BasicPiece (allBasicPieces, crossPiece, xorPiece)
 
 intermediateSuite :: LevelSuite
 intermediateSuite = fromHomogeneous

@@ -5,6 +5,7 @@ import Prelude
 import Data.Array (fold)
 import Data.Int (hexadecimal, odd, toStringAs)
 import Data.Int.Bits (complement, shl, shr, (.&.), (.|.))
+import Data.Int.Bits as Bits
 import Data.Newtype (class Newtype, over, over2)
 import Data.String (toUpper)
 
@@ -42,6 +43,10 @@ instance Semiring Signal where
   add (Signal a) (Signal b) = Signal (a+b)
   one = Signal 1
   mul (Signal a) (Signal b) = Signal (a*b)
+
+xor :: Signal -> Signal -> Signal
+xor (Signal a) (Signal b) = Signal (Bits.xor a b)
+
 
 nthBit :: Signal -> Int -> Boolean
 nthBit (Signal s) n = odd (shr s n)

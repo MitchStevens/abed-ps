@@ -81,7 +81,7 @@ mkWirePiece wire = mkPiece
             else pure $ mkWirePiece (wire { outputs = newOutputs })
   , isSimplifiable:
       let connections = M.fromFoldable $ S.map (\out -> Tuple out Direction.Left) wire.outputs
-      in Just (IsConnection connections)
+      in Just (Connection connections)
   
   }
   where
@@ -93,7 +93,10 @@ isWirePiece :: Piece -> Boolean
 isWirePiece piece = name piece `elem` wirePieceNames
 
 allWirePieces :: Array Piece
-allWirePieces = [ idPiece, leftPiece, rightPiece, superPiece ]
+allWirePieces =
+  [ idPiece, leftPiece, rightPiece, superPiece 
+  , crossPiece , cornerCutPiece , chickenPiece , reverseChickenPiece
+  ]
 
 idPiece :: Piece
 idPiece = mkWirePiece
@@ -117,4 +120,73 @@ superPiece :: Piece
 superPiece = mkWirePiece 
   { capacity: OneBit
   , outputs: S.fromFoldable [Direction.Up, Direction.Right, Direction.Down]
+  }
+
+
+type DualWirePiece =
+  { name :: PieceId
+  , capacity :: Capacity
+  , output1 :: CardinalDirection
+  , input2 :: CardinalDirection
+  , output2 :: CardinalDirection
+  }
+
+dualWirePiece :: DualWirePiece -> Piece
+dualWirePiece dualWire = mkPiece
+  { name: dualWire.name
+  , eval: \m ->
+      let a1 = fromMaybe (Signal 0) (M.lookup Direction.Left m)
+          a2 = fromMaybe (Signal 0) (M.lookup dualWire.input2 m)
+      in M.fromFoldable
+          [ Tuple dualWire.output1 a1
+          , Tuple dualWire.output2 a2
+          ]
+  , ports: M.fromFoldable
+      [ Tuple Direction.Left   (inputPort  dualWire.capacity)
+      , Tuple dualWire.input2  (inputPort  dualWire.capacity)
+      , Tuple dualWire.output1 (outputPort dualWire.capacity)
+      , Tuple dualWire.output2 (outputPort dualWire.capacity)
+      ]
+  , updateCapacity: \_ capacity -> Just $ dualWirePiece (dualWire { capacity = capacity})
+
+  , isSimplifiable: Just $ Connection $ M.fromFoldable
+      [ Tuple dualWire.output1 Direction.Left
+      , Tuple dualWire.output2 dualWire.input2
+      ]
+  }
+
+crossPiece :: Piece
+crossPiece = dualWirePiece
+  { name: PieceId "cross-piece"
+  , capacity: OneBit
+  , output1: Direction.Right
+  , input2: Direction.Up
+  , output2: Direction.Down
+  }
+
+cornerCutPiece :: Piece
+cornerCutPiece = dualWirePiece
+  { name: PieceId "corner-cut-piece"
+  , capacity: OneBit
+  , output1: Direction.Down
+  , input2: Direction.Up
+  , output2: Direction.Right
+  }
+
+chickenPiece :: Piece
+chickenPiece = dualWirePiece
+  { name: PieceId "chicken-piece"
+  , capacity: OneBit
+  , output1: Direction.Down
+  , input2: Direction.Right
+  , output2: Direction.Up
+  }
+
+reverseChickenPiece :: Piece
+reverseChickenPiece = dualWirePiece
+  { name: PieceId "reverse-chicken-piece"
+  , capacity: OneBit
+  , output1: Direction.Right
+  , input2: Direction.Up
+  , output2: Direction.Down
   }
