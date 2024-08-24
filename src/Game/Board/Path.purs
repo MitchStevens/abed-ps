@@ -41,7 +41,7 @@ import Data.Zipper as Z
 import Debug (trace)
 import Effect.Aff (Aff, error)
 import Game.Board.Operation (addPieceNoUpdate, removePieceNoUpdate, updatePortsAround)
-import Game.Board.PathSegment (PathSegmentError, SinglePathSegment, combineSegmentWithExtant, singlePath)
+import Game.Board.PathSegment (PathSegment(..), PathSegmentError, combineSegmentWithExtant, singlePath)
 import Game.Board.PieceInfo (PieceInfo)
 import Game.Board.Types (Board(..), BoardError, _pieces)
 import Game.Direction (CardinalDirection, oppositeDirection)
@@ -88,7 +88,7 @@ toPath initial locations terminal = do
     directionTo' curr prev = 
       note (LocationsAreNotAdjacent curr prev) (directionTo curr prev)
 
-partitionPath :: Path ->  Either PathError (Map Location SinglePathSegment)
+partitionPath :: Path ->  Either PathError (Map Location PathSegment)
 partitionPath { initial, start, segments, terminal } =
   case A.uncons segments of
     Nothing -> lmap PathSegmentError $ M.singleton start <$> singlePath initial terminal

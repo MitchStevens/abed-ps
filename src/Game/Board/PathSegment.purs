@@ -29,19 +29,15 @@ import Partial.Unsafe (unsafeCrashWith)
   Assertions:
 
 -}
-type SinglePathSegment = { from :: CardinalDirection, to :: CardinalDirection }
-
-data PathSegment
-  = SinglePath SinglePathSegment
-  | DualPath SinglePathSegment SinglePathSegment
+newtype PathSegment = PathSegment (Map CardinalDirection CardinalDirection)
 derive instance Generic PathSegment _
 derive instance Eq PathSegment
 instance Show PathSegment where
   show = genericShow
 
 data PathSegmentError
-  = InvalidSinglePath SinglePathSegment
-  | InvalidDualPath SinglePathSegment SinglePathSegment
+  = InvalidPathSegment (Map CardinalDirection CardinalDirection)
+  | CantCombinePathSegments PathSegment PathSegment
   | NoSimplificationForPiece Piece
 derive instance Generic PathSegmentError _
 derive instance Eq PathSegmentError
@@ -59,31 +55,37 @@ instance Show PathSegmentError where
 singlePath
   :: CardinalDirection
   -> CardinalDirection 
-  -> Either PathSegmentError SinglePathSegment
-singlePath from to =
-  if from /= to
-    then pure {from, to}
-    else throwError (InvalidSinglePath {from, to})
-
-dualPath
-  :: SinglePathSegment
-  -> SinglePathSegment 
   -> Either PathSegmentError PathSegment
-dualPath sp1 sp2 =
-  if A.length (A.nub [sp1.from, sp1.to, sp2.from, sp2.to]) == 4
-    then pure (DualPath (min sp1 sp2) (max sp1 sp2))
-    else throwError (InvalidDualPath (min sp1 sp2) (max sp1 sp2))
+singlePath from to = pathSegment (M.singleton from to)
+
+pathSegment :: Map CardinalDirection CardinalDirection -> Either PathSegmentError PathSegment
+pathSegment connections = 
+  if S.size (M.keys connections <> S.fromFoldable (M.values connections)) == M.size connections * 2
+    then pure (PathSegment connections) 
+    else throwError (InvalidPathSegment connections)
+
 
 {-
+  When can we combine path segments? Precisly when the combined connection maps form a valid `PathSegment`
 -}
-singlePathSegmentFromPiece 
+combine
+  :: PathSegment
+  -> PathSegment
+  -> Either PathSegmentError PathSegment
+combine path1@(PathSegment conn1) path2@(PathSegment conn2) = do
+  let conn3 = M.union conn1 conn2
+  when (M.isSubmap conn1 conn3 || M.isSubmap conn2 conn3) do
+    throwError (CantCombinePathSegments path1 path2)
+  pathSegment conn3
+  
+{-
+-}
+fromPiece 
   :: PieceInfo
-  -> Either PathSegmentError SinglePathSegment
-singlePathSegmentFromPiece {piece, rotation} = 
+  -> Either PathSegmentError PathSegment
+fromPiece {piece, rotation} = 
   case isSimplifiable piece of
-    Just (Connection connections) -> case M.toUnfoldable connections of
-      [Tuple to from ] -> singlePath (rotateDirection from rotation) (rotateDirection to rotation)
-      _ -> throwError (NoSimplificationForPiece piece)
+    Just (Connection connections) -> pathSegment connections
     _ -> throwError (NoSimplificationForPiece piece)
 
 
@@ -91,28 +93,30 @@ singlePathSegmentFromPiece {piece, rotation} =
   Using the assertions of the `PathSegment` type, this function is made total via `crashWith`
 -}
 toPiece :: PathSegment -> PieceInfo
-toPiece (SinglePath {from, to}) =
-  let rotation = clockwiseRotation Direction.Left from
-  in 
-   { piece: mkWirePiece
-    { capacity: OneBit
-    , outputs: S.singleton (rotateDirection to (-rotation))
+toPiece (PathSegment connections) = case M.toUnfoldable connections of
+  [ Tuple from to ] ->
+    let rotation = clockwiseRotation Direction.Left from
+    in 
+    { piece: mkWirePiece
+      { capacity: OneBit
+      , outputs: S.singleton (rotateDirection to (-rotation))
+      }
+    , rotation
     }
-   , rotation
-   }
-toPiece (DualPath sp1 sp2) =
-  let Rotation r1 = clockwiseRotation sp1.from sp1.to
-      Rotation r2 = clockwiseRotation sp1.from sp2.from
-      Rotation r3 = clockwiseRotation sp1.from sp2.to
-      rotation = clockwiseRotation Direction.Left sp1.from
-  in case r1, r2, r3 of
-    1, 2, 3 -> { piece: reverseChickenPiece, rotation}
-    1, 3, 2 -> { piece: cornerCutPiece,      rotation: (rotation <> Rotation 1 )}
-    2, 1, 3 -> { piece: crossPiece,          rotation}
-    2, 3, 1 -> { piece: crossPiece,          rotation: (rotation <> Rotation 1)}
-    3, 1, 2 -> { piece: cornerCutPiece,      rotation}
-    3, 2, 1 -> { piece: chickenPiece,        rotation}
-    _, _, _ -> unsafeCrashWith ("couldn't create a piece")
+  [ Tuple from1 to1, Tuple from2 to2 ] ->
+    let Rotation r1 = clockwiseRotation from1 to1
+        Rotation r2 = clockwiseRotation from1 from2
+        Rotation r3 = clockwiseRotation from1 to2
+        rotation = clockwiseRotation Direction.Left from1
+    in case r1, r2, r3 of
+      1, 2, 3 -> { piece: reverseChickenPiece, rotation}
+      1, 3, 2 -> { piece: cornerCutPiece,      rotation: (rotation <> Rotation 1 )}
+      2, 1, 3 -> { piece: crossPiece,          rotation}
+      2, 3, 1 -> { piece: crossPiece,          rotation: (rotation <> Rotation 1)}
+      3, 1, 2 -> { piece: cornerCutPiece,      rotation}
+      3, 2, 1 -> { piece: chickenPiece,        rotation}
+      _, _, _ -> unsafeCrashWith ("couldn't create a piece")
+  _ -> unsafeCrashWith ("couldn't create a piece")
 
 {-
   This function asks: Given a path segment and a possible extant piece, does there exist a piece that would combine the functionality of the path segment and the extant piece
@@ -125,11 +129,13 @@ toPiece (DualPath sp1 sp2) =
     ┠─────┨ -> add path -> ┠──┼──┨ 
     ┗━━━━━┛                ┗━━┷━━┛
 
-  See tests for examples
+  Possbible valid combinations:
+    **Extant Piece is `Nothing`**: 
+
 -}
-combineSegmentWithExtant :: SinglePathSegment -> Maybe PieceInfo -> Either PathSegmentError PieceInfo
-combineSegmentWithExtant path = map toPiece <<< case _ of
-  Nothing -> pure (SinglePath path)
+combineSegmentWithExtant :: PathSegment -> Maybe PieceInfo -> Either PathSegmentError PieceInfo
+combineSegmentWithExtant segment = map toPiece <<< case _ of
+  Nothing -> pure segment
   Just pieceInfo -> do
-    extantPath <- singlePathSegmentFromPiece pieceInfo
-    dualPath path extantPath
+    extantPathSegment <- fromPiece pieceInfo
+    combine segment extantPathSegment

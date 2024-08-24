@@ -25,6 +25,7 @@ spec =
           `shouldEqual` Just (Connection $ M.singleton Direction.Right Direction.Left)
         isSimplifiable leftPiece
           `shouldEqual` Just (Connection $ M.singleton Direction.Up Direction.Left)
+      
         --isSimplifiable crossPiece
         --  `shouldEqual` Just (Connection $ M.fromFoldable
         --    [ Tuple Direction.Down Direction.Up
