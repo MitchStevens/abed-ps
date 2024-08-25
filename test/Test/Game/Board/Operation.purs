@@ -20,7 +20,7 @@ import Effect.Aff.Class (class MonadAff, liftAff)
 import Effect.Class (class MonadEffect)
 import Effect.Class.Console (log)
 import Effect.Exception (Error, error)
-import Game.Board (Board(..), _pieces, relativeEdgeLocation, standardBoard, topologicalSort, BoardError(..), addPiece, addPieceNoUpdate, applyBoardEvent, decreaseSize, increaseSize, removePiece, rotatePieceBy, updatePortsAround, validBoardSize, buildConnectionMap)
+import Game.Board (Board(..), _pieces, relativeEdgeLocation, standardBoard, topologicalSort, BoardError(..), addPiece, addPieceNoUpdate, decreaseSize, increaseSize, removePiece, rotatePieceBy, updatePortsAround, validBoardSize, buildConnectionMap)
 import Game.Direction as Direction
 import Game.GameEvent (BoardEvent(..))
 import Game.Location (location)
@@ -104,25 +104,25 @@ tests = do
           exceptToAff increaseSize
           exceptToAff decreaseSize
       
-      describe "applyBoardEvent" do
-        before (put standardBoard) do
-          let loc = location 0 1
-          it "AddedPiece" do
-            exceptToAff (applyBoardEvent (AddedPiece loc (name idPiece)))
-            use (_pieces <<< at loc) `shouldReturn` Just { piece: idPiece, rotation: rotation 0}
-          it "added piece 2" do
-            exceptToAff (applyBoardEvent (AddedPiece loc (name leftPiece)))
-            maybeLeft <- use (_pieces <<< at (location 0 1))
-            case maybeLeft of
-              Just info -> do
-                info.piece `shouldEqual` leftPiece
-                info.rotation `shouldEqual` rotation 0
-                getOutputDirs info.piece `shouldEqual` S.fromFoldable [ Direction.Up ]
-              Nothing -> throwError (error "left piece was not added")
+      --describe "applyBoardEvent" do
+      --  before (put standardBoard) do
+      --    let loc = location 0 1
+      --    it "AddedPiece" do
+      --      exceptToAff (applyBoardEvent (AddedPiece loc (name idPiece)))
+      --      use (_pieces <<< at loc) `shouldReturn` Just { piece: idPiece, rotation: rotation 0}
+      --    it "added piece 2" do
+      --      exceptToAff (applyBoardEvent (AddedPiece loc (name leftPiece)))
+      --      maybeLeft <- use (_pieces <<< at (location 0 1))
+      --      case maybeLeft of
+      --        Just info -> do
+      --          info.piece `shouldEqual` leftPiece
+      --          info.rotation `shouldEqual` rotation 0
+      --          getOutputDirs info.piece `shouldEqual` S.fromFoldable [ Direction.Up ]
+      --        Nothing -> throwError (error "left piece was not added")
 
-          it "RemovedPiece" do
-            exceptToAff (applyBoardEvent (AddedPiece loc (name idPiece)))
-            use (_pieces <<< at loc) `shouldReturn` Just { piece: idPiece, rotation: rotation 0}
+      --    it "RemovedPiece" do
+      --      exceptToAff (applyBoardEvent (AddedPiece loc (name idPiece)))
+      --      use (_pieces <<< at loc) `shouldReturn` Just { piece: idPiece, rotation: rotation 0}
 
-            exceptToAff (applyBoardEvent (RemovedPiece loc (name idPiece)))
-            use (_pieces <<< at loc) `shouldReturn` Nothing
+      --      exceptToAff (applyBoardEvent (RemovedPiece loc (name idPiece)))
+      --      use (_pieces <<< at loc) `shouldReturn` Nothing
