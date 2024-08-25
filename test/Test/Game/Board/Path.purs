@@ -219,19 +219,19 @@ tests =
           use (_pieces <<< at l11) `shouldReturn` Just { piece: crossPiece, rotation: rotation 1 }
           use (_pieces <<< at l10) `shouldReturn` Just { piece: idPiece, rotation: rotation 1 }
 
-        it "should create a cross over with rotation 2" do
+        it "should create a cross over when paths are flipped" do
           pathAdded <- exceptToAff do
             _ <- addPath Direction.Right [ l21, l11, l01 ] Direction.Left
             addPath Direction.Down [ l12, l11, l10 ] Direction.Up
           pathAdded `shouldEqual` true
-          use (_pieces <<< at l11) `shouldReturn` Just { piece: crossPiece, rotation: rotation 2 }
+          use (_pieces <<< at l11) `shouldReturn` Just { piece: crossPiece, rotation: rotation 0 }
 
         it "should create a cross over with rotation 3" do
           pathAdded <- exceptToAff do
             _ <- addPath Direction.Down [ l12, l11, l10 ] Direction.Up
             addPath Direction.Left [ l01, l11, l21 ] Direction.Right
           pathAdded `shouldEqual` true
-          use (_pieces <<< at l11) `shouldReturn` Just { piece: crossPiece, rotation: rotation 3 }
+          use (_pieces <<< at l11) `shouldReturn` Just { piece: crossPiece, rotation: rotation 1 }
 
       describe "Weird edge cases" do
         it "cruz" do

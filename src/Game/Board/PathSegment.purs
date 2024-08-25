@@ -13,7 +13,7 @@ import Data.Map as M
 import Data.Maybe (Maybe(..), fromMaybe, isJust, maybe)
 import Data.Set as S
 import Data.Show.Generic (genericShow)
-import Data.Tuple (Tuple(..))
+import Data.Tuple (Tuple(..), swap)
 import Data.Zipper (Zipper(..))
 import Game.Board.PieceInfo (PieceInfo)
 import Game.Capacity (Capacity(..))
@@ -21,7 +21,7 @@ import Game.Direction (CardinalDirection, clockwiseRotation, rotateDirection)
 import Game.Direction as Direction
 import Game.Location (Location(..), directionTo)
 import Game.Piece (Piece(..), Simplification(..), chickenPiece, cornerCutPiece, crossPiece, isSimplifiable, mkWirePiece, reverseChickenPiece)
-import Game.Rotation (Rotation(..), rotation)
+import Game.Rotation (Rotation(..), mod2, rotation)
 import Halogen.Svg.Attributes (m)
 import Partial.Unsafe (unsafeCrashWith)
 
@@ -40,7 +40,12 @@ data PathSegmentError
   | CantCombinePathSegments PathSegment PathSegment
   | NoSimplificationForPiece Piece
 derive instance Generic PathSegmentError _
-derive instance Eq PathSegmentError
+instance Eq PathSegmentError where
+  eq (InvalidPathSegment conn1) (InvalidPathSegment conn2) = conn1 == conn2
+  eq (CantCombinePathSegments a1 b1) (CantCombinePathSegments a2 b2) = (a1==b1 && a2==b2) || (a1==b2 && a2==b1)
+  eq (NoSimplificationForPiece p1) (NoSimplificationForPiece p2) = p1 == p2
+  eq _ _ = false
+
 instance Show PathSegmentError where
   show = genericShow
 
@@ -74,7 +79,7 @@ combine
   -> Either PathSegmentError PathSegment
 combine path1@(PathSegment conn1) path2@(PathSegment conn2) = do
   let conn3 = M.union conn1 conn2
-  when (M.isSubmap conn1 conn3 || M.isSubmap conn2 conn3) do
+  when (M.isSubmap conn3 conn1 || M.isSubmap conn3 conn2) do
     throwError (CantCombinePathSegments path1 path2)
   pathSegment conn3
   
@@ -85,8 +90,10 @@ fromPiece
   -> Either PathSegmentError PathSegment
 fromPiece {piece, rotation} = 
   case isSimplifiable piece of
-    Just (Connection connections) -> pathSegment connections
+    Just (Connection connections) -> pathSegment (M.fromFoldable $ (map @Array f) $ M.toUnfoldable connections)
     _ -> throwError (NoSimplificationForPiece piece)
+  where
+    f (Tuple from to) = Tuple (rotateDirection to rotation) (rotateDirection from rotation)
 
 
 {-
@@ -105,17 +112,17 @@ toPiece (PathSegment connections) = case M.toUnfoldable connections of
     }
   [ Tuple from1 to1, Tuple from2 to2 ] ->
     let Rotation r1 = clockwiseRotation from1 to1
-        Rotation r2 = clockwiseRotation from1 from2
-        Rotation r3 = clockwiseRotation from1 to2
-        rotation = clockwiseRotation Direction.Left from1
-    in case r1, r2, r3 of
-      1, 2, 3 -> { piece: reverseChickenPiece, rotation}
-      1, 3, 2 -> { piece: cornerCutPiece,      rotation: (rotation <> Rotation 1 )}
-      2, 1, 3 -> { piece: crossPiece,          rotation}
-      2, 3, 1 -> { piece: crossPiece,          rotation: (rotation <> Rotation 1)}
-      3, 1, 2 -> { piece: cornerCutPiece,      rotation}
-      3, 2, 1 -> { piece: chickenPiece,        rotation}
-      _, _, _ -> unsafeCrashWith ("couldn't create a piece")
+        Rotation r2 = clockwiseRotation from2 to2
+    in case A.sort [ r1, r2 ] of
+      [ 1, 1 ] -> { piece: reverseChickenPiece, rotation: mod2 (clockwiseRotation from1 Direction.Left) }
+      [ 2, 2 ] -> 
+        let primaryInput = if clockwiseRotation from1 from2 == Rotation 1 then from1 else from2
+        in  { piece: crossPiece, rotation: mod2 (clockwiseRotation primaryInput Direction.Left) }
+      [ 3, 3 ] -> { piece: chickenPiece, rotation: mod2 (clockwiseRotation from1 Direction.Left) }
+      [ 1, 3 ] -> 
+        let primaryInput = if clockwiseRotation from1 from2 == Rotation 1 then from1 else from2
+        in  { piece: cornerCutPiece, rotation: clockwiseRotation primaryInput Direction.Left }
+      _        -> unsafeCrashWith ("couldn't create a piece")
   _ -> unsafeCrashWith ("couldn't create a piece")
 
 {-

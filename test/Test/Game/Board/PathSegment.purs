@@ -17,7 +17,7 @@ import Data.Maybe (Maybe(..))
 import Data.Tuple (Tuple(..))
 import Game.Board.PathSegment (PathSegment(..), PathSegmentError(..), combine, combineSegmentWithExtant, fromPiece, singlePath, toPiece)
 import Game.Direction as Direction
-import Game.Piece (andPiece, crossPiece, idPiece, rightPiece)
+import Game.Piece (andPiece, chickenPiece, cornerCutPiece, crossPiece, idPiece, rightPiece)
 import Game.Rotation (rotation)
 import Test.Spec (Spec, describe, describeOnly, focus, it)
 import Test.Spec.Assertions (shouldEqual, shouldReturn)
@@ -29,15 +29,23 @@ leftToRight :: PathSegment
 leftToRight = PathSegment $ M.singleton Direction.Left Direction.Right
 leftToDown  :: PathSegment
 leftToDown  = PathSegment $ M.singleton Direction.Left Direction.Down
+upToRight    :: PathSegment
+upToRight    = PathSegment $ M.singleton Direction.Up Direction.Right
 upToDown    :: PathSegment
 upToDown    = PathSegment $ M.singleton Direction.Up Direction.Down
+rightToLeft :: PathSegment
+rightToLeft = PathSegment $ M.singleton Direction.Right Direction.Left
+rightToUp :: PathSegment
+rightToUp = PathSegment $ M.singleton Direction.Right Direction.Up
+downToUp    :: PathSegment
+downToUp    = PathSegment $ M.singleton Direction.Down Direction.Up
 downToRight :: PathSegment
 downToRight = PathSegment $ M.singleton Direction.Down Direction.Right
 
 spec :: Spec Unit
 spec = do
   describe "Game.Board.PathSegment" do
-    let singlePathSegments = [ leftToUp, leftToRight, leftToDown, upToDown, downToRight ]
+    let singlePathSegments = [ leftToUp, leftToRight, leftToDown, upToDown, rightToLeft, downToUp, downToRight ]
 
     describe "singlePath" do
       it "should create these paths" do
@@ -54,10 +62,12 @@ spec = do
         fromPiece { piece: idPiece, rotation: rotation 0}
           `shouldEqual` pure leftToRight
 
-    describe "dualPath" do
+    describe "combine" do
       it "should create" do
         combine leftToRight upToDown `shouldEqual`
           Right (PathSegment $ M.fromFoldable [ Tuple Direction.Up Direction.Down, Tuple Direction.Left Direction.Right ])
+        combine leftToRight downToUp `shouldEqual`
+          Right (PathSegment $ M.fromFoldable [ Tuple Direction.Down Direction.Up, Tuple Direction.Left Direction.Right ])
       it "dual path segments should be commutative" do
         for_ singlePathSegments \seg1 ->
           for_ singlePathSegments \seg2 ->
@@ -71,9 +81,24 @@ spec = do
           { piece: idPiece, rotation: rotation 1 }
         toPiece downToRight `shouldEqual`
           { piece: rightPiece, rotation: rotation 3}
-      --it "should create pieces from dual path segments" do
-      --  toPiece (combine leftToRight upToDown) `shouldEqual`
-      --    { piece: crossPiece, rotation: rotation 0}
+      describe "dual input pieces" do
+        it "crossPiece" do
+          map toPiece (combine leftToRight upToDown) `shouldEqual`
+            pure { piece: crossPiece, rotation: rotation 0}
+          map toPiece (combine leftToRight downToUp) `shouldEqual`
+            pure { piece: crossPiece, rotation: rotation 1}
+          map toPiece (combine rightToLeft downToUp) `shouldEqual`
+            pure { piece: crossPiece, rotation: rotation 0}
+          map toPiece (combine rightToLeft upToDown) `shouldEqual`
+            pure { piece: crossPiece, rotation: rotation 1}
+        it "cornerCut" do
+          map toPiece (combine leftToDown upToRight) `shouldEqual`
+            pure { piece: cornerCutPiece, rotation: rotation 0}
+        it "chickenPiece" do
+          map toPiece (combine leftToDown rightToUp) `shouldEqual`
+            pure { piece: chickenPiece, rotation: rotation 0}
+        it "reverseChickenPiece" do
+          pure unit
 
     describe "fromPiece" do
       it "should create path segments for pieces that are simplifiable" do
@@ -89,7 +114,10 @@ spec = do
 
     describe "combineSegmentWithExtant" do
       it "should return the " do
-        pure unit
+        combineSegmentWithExtant leftToRight Nothing
+          `shouldEqual` pure { piece: idPiece, rotation: rotation 0}
+        combineSegmentWithExtant downToRight Nothing
+          `shouldEqual` pure { piece: rightPiece, rotation: rotation 3 }
       it "dual " do
         combineSegmentWithExtant leftToRight (Just { piece: idPiece, rotation: rotation 1})
           `shouldEqual` pure { piece: crossPiece, rotation: rotation 0 }

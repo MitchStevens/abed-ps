@@ -4,6 +4,7 @@ module Game.Piece.Types
   , PieceId(..)
   , Simplification(..)
   , eval
+  , evaluatePiece
   , getInputDirs
   , getOutputDirs
   , getPort
@@ -21,18 +22,20 @@ import Prelude
 
 import Data.Array (fold)
 import Data.Foldable (and)
+import Data.FunctorWithIndex (mapWithIndex)
 import Data.Generic.Rep (class Generic)
 import Data.Map (Map)
 import Data.Map as M
-import Data.Maybe (Maybe(..))
+import Data.Maybe (Maybe(..), maybe)
 import Data.Newtype (class Newtype)
 import Data.Set (Set)
 import Data.Show.Generic (genericShow)
-import Game.Capacity (Capacity)
+import Data.TraversableWithIndex (forWithIndex)
+import Game.Capacity (Capacity, clampSignal)
 import Game.Direction (CardinalDirection)
 import Game.Piece.Complexity (Complexity(..))
 import Game.Piece.Complexity as Complexity
-import Game.Port (Port(..), PortType, isInput, isOutput)
+import Game.Port (Port(..), PortType, isInput, isOutput, portCapacity)
 import Game.Signal (Signal(..))
 import Prim.Row (class Union)
 import Record.Unsafe.Union (unsafeUnion)
@@ -229,3 +232,16 @@ getInputDirs (Piece p) = M.keys $ M.filter isInput p.ports
 
 getOutputDirs :: Piece -> Set CardinalDirection
 getOutputDirs (Piece p) = M.keys $ M.filter isOutput p.ports
+
+{-
+  When running a piece standalone (ie. not part of a board), inputs and outputs need to be clamped before/after 
+-}
+evaluatePiece :: Piece -> Map CardinalDirection Signal -> Map CardinalDirection Signal
+evaluatePiece piece inputs =
+  flip mapWithIndex (eval piece truncatedInputs) \dir output ->
+      let capacity = portCapacity <$> getPort piece dir
+      in maybe (Signal 0) (\c -> clampSignal c output) capacity
+  where
+    truncatedInputs = flip mapWithIndex inputs \dir input -> 
+      let capacity = portCapacity <$> getPort piece dir
+      in maybe (Signal 0) (\c -> clampSignal c input) capacity

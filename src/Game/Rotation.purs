@@ -5,6 +5,7 @@ import Prelude
 import Data.Enum (class BoundedEnum, class Enum, Cardinality(..))
 import Data.Group (class Group)
 import Data.Int (toNumber)
+import Data.Int.Bits as Bits
 import Data.Maybe (Maybe(..))
 import Data.Newtype (class Newtype)
 import Data.Number (pi)
@@ -44,11 +45,15 @@ instance Group Rotation where
 derive newtype instance Semiring Rotation
 derive newtype instance Ring Rotation
 
+mod2 :: Rotation -> Rotation
+mod2 (Rotation n) = Rotation (Bits.and n 1)
+
+
 allRotations :: Array Rotation
 allRotations = Rotation <$> [0, 1, 2, 3]
 
 rotation :: Int -> Rotation
-rotation n = Rotation (n `mod` 4)
+rotation n = Rotation (Bits.and n 3)
 
 toDegrees :: Rotation -> Number
 toDegrees (Rotation n) = toNumber n * 90.0

@@ -20,7 +20,7 @@ import Debug (trace)
 import Effect.Aff (Aff, Error, error)
 import Effect.Aff.Class (class MonadAff)
 import Effect.Class.Console (log)
-import Game.Board (Board(..), RelativeEdge, absolute, addPiece, adjacentRelativeEdge, execBoardM, getBoardPortEdge, getPortOnEdge, increaseSize, relative, rotatePieceBy, standardBoard, toAbsoluteEdge, toRelativeEdge)
+import Game.Board (Board(..), RelativeEdge, absolute, addPath, addPiece, adjacentRelativeEdge, execBoardM, getBoardPortEdge, getPortOnEdge, increaseSize, relative, rotatePieceBy, standardBoard, toAbsoluteEdge, toRelativeEdge)
 import Game.Capacity (Capacity(..))
 import Game.Direction (CardinalDirection, allDirections)
 import Game.Direction as Direction
@@ -52,13 +52,13 @@ testBoardCrossOver = either (show >>> unsafeCrashWith) identity $
     addPiece (location 2 2) xorPiece
     addPiece (location 4 2) xorPiece
     addPiece (location 2 4) xorPiece
-    --rotatePieceBy (location 2 4) (rotation 1)
-    --_ <- addBoardPath Direction.Left [ location 0 2, location 1 2 ] Direction.Right
-    --_ <- addBoardPath Direction.Left [ location 3 2, location 4 2 ] Direction.Right
-    --_ <- addBoardPath Direction.Up [ location 2 0, location 2 1 ] Direction.Down
-    --_ <- addBoardPath Direction.Up [ location 3 3, location 3 4 ] Direction.Left
-    --_ <- addBoardPath Direction.Left [ location 3 1, location 4 1 ] Direction.Down
-    --_ <- addBoardPath Direction.Up [ location 1 3, location 2 3 ] Direction.Down
+    rotatePieceBy (location 2 4) (rotation 1)
+    _ <- addPath Direction.Left [ location 0 2, location 1 2 ] Direction.Right
+    _ <- addPath Direction.Left [ location 3 2, location 4 2 ] Direction.Right
+    _ <- addPath Direction.Up [ location 2 0, location 2 1 ] Direction.Down
+    _ <- addPath Direction.Up [ location 3 3, location 3 4 ] Direction.Left
+    _ <- addPath Direction.Left [ location 3 1, location 4 1 ] Direction.Down
+    _ <- addPath Direction.Up [ location 1 3, location 2 3 ] Direction.Down
     pure unit
 
 

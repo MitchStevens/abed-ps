@@ -19,7 +19,7 @@ spec =
         getInputDirs leftPiece `shouldEqual` S.fromFoldable [Direction.Left]
         getOutputDirs leftPiece `shouldEqual` S.fromFoldable [ Direction.Up ]
 
-    describeOnly "isSimplifiable" do
+    describe "isSimplifiable" do
       it "should simplify wire pieces" do
         isSimplifiable idPiece
           `shouldEqual` Just (Connection $ M.singleton Direction.Right Direction.Left)

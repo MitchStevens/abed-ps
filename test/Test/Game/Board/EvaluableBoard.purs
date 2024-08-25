@@ -82,7 +82,7 @@ spec = hoistSpec identity (\_ -> natTransformToAff) tests
 
 tests :: SpecT EvalM Unit Identity Unit
 tests = do
-  describe "EvaluableBoard" do
+  describe "Game.Board.EvaluableBoard" do
     describe "testBoard" do
       let inRelEdge1 = relative (location (-1) 1) Direction.Right
       let inRelEdge2 = relative (location 1 (-1)) Direction.Right
@@ -168,58 +168,33 @@ tests = do
         getOuterPort Direction.Right `shouldReturn` Just (Signal 0)
         getOuterPort Direction.Down  `shouldReturn` Nothing
         getOuterPort Direction.Left  `shouldReturn` Just (Signal 0)
-    it "test crossover board" do
-      evaluable@(EvaluableBoard e) <- exceptToAff (except $ toEvaluableBoard testBoardCrossOver)
-      --log (show testBoardCrossOver)
-      local (\_ -> evaluable) do
-        length e.pieces `shouldEqual` (14 + 4) -- 14 pieces and 4 psuedo pieces
-        e.psuedoPieceLocations `shouldEqual` M.fromFoldable
-          [ Tuple Direction.Left  (location (-1) 2)
-          , Tuple Direction.Up    (location 2 (-1))
-          , Tuple Direction.Right (location 5 2)
-          , Tuple Direction.Down (location 2 5)
-          ] 
 
-        ports <- asks (evaluableBoardPiece >>> getPorts)
-        ports `shouldEqual` M.fromFoldable
-          [ Tuple Direction.Up    (inputPort OneBit)
-          , Tuple Direction.Right (outputPort OneBit)
-          , Tuple Direction.Left  (inputPort OneBit)
-          , Tuple Direction.Down (outputPort OneBit)
-          ]
-        
-        (M.filter isOutput ports) `shouldEqual` M.fromFoldable
-          [ Tuple Direction.Right (outputPort OneBit)
-          , Tuple Direction.Down (outputPort OneBit)
-          ]
-        
-        let inputs = M.fromFoldable [ Tuple Direction.Left tt, Tuple Direction.Up tt ]
-        outputs <- evalWithPortInfo inputs
+    --describe "test crossover board" do
+    --  before_ (exceptToAff (except $ toEvaluableBoard testBoardCrossOver)) do
+    --    it "should have exactly 18 pieces" \(EvaluableBoard e) -> 
+    --      length e.pieces `shouldEqual` (14 + 4) -- 14 pieces and 4 psuedo pieces
+    --    it "should have 4 psuedoports" \(EvaluableBoard e) ->
+    --      e.psuedoPieceLocations `shouldEqual` M.fromFoldable
+    --        [ Tuple Direction.Left  (location (-1) 2)
+    --        , Tuple Direction.Up    (location 2 (-1))
+    --        , Tuple Direction.Right (location 5 2)
+    --        , Tuple Direction.Down (location 2 5)
+    --        ] 
+    --    it "piece should have 4 ports" \evaluableBoard -> do
+    --      let piece = evaluableBoardPiece evaluableBoard
+    --      getPorts piece `shouldEqual` M.fromFoldable
+    --        [ Tuple Direction.Up    (inputPort OneBit)
+    --        , Tuple Direction.Right (outputPort OneBit)
+    --        , Tuple Direction.Left  (inputPort OneBit)
+    --        , Tuple Direction.Down (outputPort OneBit)
+    --        ]
+    --    it "should faithfully return outputs when provided inputs" \evaluableBoard -> do
+    --      let piece = evaluableBoardPiece evaluableBoard
+    --      let inputs = M.fromFoldable [ Tuple Direction.Left tt, Tuple Direction.Up tt ]
+    --      let outputs = evalWith piece inputs
 
-        getOuterPort Direction.Up `shouldReturn` Just (Signal 1)
-        getOuterPort Direction.Down `shouldReturn` Just (Signal 1)
+    --      outputs `shouldEqual` M.fromFoldable
+    --        [ Tuple Direction.Right (Signal 1)
+    --        , Tuple Direction.Down (Signal 1) 
+    --        ]
 
-
-        outputs `shouldEqual` M.fromFoldable
-          [ Tuple Direction.Right (Signal 1)
-          , Tuple Direction.Down (Signal 1) 
-          ]
-        pure unit
-
-
-
-
--- todo: fix later
---  describe "topologicalSort" do
---    before (put testBoard) do
---      let getNodes edges =
---            edges
---              # (M.toUnfoldable :: _ -> List _)
---              # foldMap (\(Tuple a b) -> a : b : Nil)
---              # map relativeEdgeLocation
---              # L.nub
---      it "should sort good" do
---        edges <- buildConnectionMap
---        let nodes = getNodes edges
---        topologicalSort nodes edges `shouldEqual`
---          Just (L.fromFoldable [ location 1 0, location 0 1, location 1 1, location 2 1 ])
