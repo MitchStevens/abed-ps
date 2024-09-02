@@ -168,28 +168,3 @@ component = H.mkComponent { eval , initialState , render }
 
   testEval :: Map CardinalDirection Signal -> HalogenM State Action Slots o m (Map CardinalDirection Signal)
   testEval inputs = fromMaybe M.empty <$> H.request _board unit (Board.SetInputs inputs)
-
--- this should be CPS but it's fine for small number of inputs
---runAllTests :: forall m. MonadAff m => MonadAsk GlobalState m
---  => Piece -> List (Map CardinalDirection Signal) -> (Map CardinalDirection Signal -> m (Map CardinalDirection Signal)) -> m (Either FailedTestCase Unit)
---runAllTests piece inputs testEval = runTestsAcc 1 inputs
---  where
---    totalTestDurationMs = 2000
---    n = length inputs
---
---    runTestsAcc i = case _ of
---      Nil -> pure (Right unit)
---      --Cons input Nil -> runSingleTest piece input testEval
---      Cons input rest -> do
---        log (show input)
---        result <- runSingleTest piece input testEval
---        liftAff (delay delayDuration)
---        case result of
---          Left err -> do
---            sendMessage (htmlMessage "/test" (renderTestError err i n))
---            pure $ Left err
---          Right _ -> do
---            sendMessage (htmlMessage "/test" (renderTestSuccess i n))
---            runTestsAcc (i+1) rest
-
-
