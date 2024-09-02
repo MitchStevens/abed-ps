@@ -28,8 +28,6 @@ import Web.HTML (HTMLElement)
 
 main :: Effect Unit
 main = do
-  --args <- argv 
-  --log (show args)
   HA.runHalogenAff do
     runLoggerT (info M.empty "Starting ABED") (logMessage Info)
     HA.awaitLoad

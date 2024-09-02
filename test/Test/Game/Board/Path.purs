@@ -215,7 +215,6 @@ tests =
             addPath Direction.Up [ l10, l11, l12 ] Direction.Down
           pathAdded `shouldEqual` true
           b <- get
-          trace (show b) \_ -> pure unit
           use (_pieces <<< at l11) `shouldReturn` Just { piece: crossPiece, rotation: rotation 1 }
           use (_pieces <<< at l10) `shouldReturn` Just { piece: idPiece, rotation: rotation 1 }
 

@@ -152,7 +152,6 @@ component = H.mkComponent { eval, initialState, render }
         , handleQuery = case _ of
             NewFocus focus -> do
               modify_ (_ { focus = focus })
-              log (show focus)
               pure Nothing
             SetSignal signal -> do
               gets (_.focus) >>= traverse_ \focus ->

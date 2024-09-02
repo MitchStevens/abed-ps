@@ -7,7 +7,7 @@ import Test.Spec (Spec, describe, it, itOnly)
 import Test.Spec.Assertions (shouldEqual)
 
 spec :: Spec Unit
-spec = describe "Multimeter" do
+spec = describe "Component.Multimeter" do
   it "padStart" do
     padStart "*" 0 "123" `shouldEqual` "123"
     padStart "*" 3 "123" `shouldEqual` "123"

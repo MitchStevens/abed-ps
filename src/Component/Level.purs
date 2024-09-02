@@ -139,7 +139,6 @@ component = H.mkComponent { eval , initialState , render }
         H.tell _board unit (\_ -> Board.AddPiece loc (pieceLookup pieceId))
     SidebarOutput (Sidebar.PieceAdded pieceId) -> do
       H.request _board unit Board.GetBoard >>= traverse_ \board -> do
-        log (show (firstEmptyLocation board) )
         for_ (firstEmptyLocation board) \loc ->
           H.tell _board unit (\_ -> Board.AddPiece loc (pieceLookup pieceId))
     SidebarOutput Sidebar.BoardSizeIncremented ->

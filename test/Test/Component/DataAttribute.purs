@@ -19,11 +19,12 @@ import Test.Game.Level.Completion (genPortMismatch)
 import Test.Game.Location (genLocation)
 import Test.Game.Port (genPort, genPortType)
 import Test.Game.Signal (genSignal)
-import Test.QuickCheck (Result, arbitrary, assertEquals, quickCheckGen)
+import Test.QuickCheck (Result, arbitrary, assertEquals, quickCheckGen, randomSeed)
 import Test.QuickCheck.Gen (Gen, chooseInt)
 import Test.Rotation (genRotation)
 import Test.Spec (Spec, describe, describeOnly, it, itOnly)
 import Test.Spec.Assertions (shouldEqual)
+import Test.Spec.QuickCheck (quickCheckPure)
 
 roundTripProperty :: forall a. Eq a => Show a => DataAttribute a -> Gen a -> Gen Result
 roundTripProperty da gen = do
@@ -37,19 +38,20 @@ spec = describe "Component.DataAttribute" do
       `shouldEqual` "input-1-port-expected-at-up"
   it "parse" do
     pure unit
-  it "round trips" $ liftEffect do
-    quickCheckGen (roundTripProperty DA.signal genSignal)
-    quickCheckGen (roundTripProperty DA.int (chooseInt 0 2147483647))
-    quickCheckGen (roundTripProperty DA.boolean arbitrary)
-    quickCheckGen (roundTripProperty DA.pieceId (PieceId <$> arbitrary))
-    quickCheckGen (roundTripProperty DA.location genLocation)
-    quickCheckGen (roundTripProperty DA.direction genDirection)
-    quickCheckGen (roundTripProperty DA.rotation genRotation)
+  it "round trips" do
+    seed <- liftEffect randomSeed
+    quickCheckPure seed 100 (roundTripProperty DA.signal genSignal)
+    quickCheckPure seed 100 (roundTripProperty DA.int (chooseInt 0 2147483647))
+    quickCheckPure seed 100 (roundTripProperty DA.boolean arbitrary)
+    quickCheckPure seed 100 (roundTripProperty DA.pieceId (PieceId <$> arbitrary))
+    quickCheckPure seed 100 (roundTripProperty DA.location genLocation)
+    quickCheckPure seed 100 (roundTripProperty DA.direction genDirection)
+    quickCheckPure seed 100 (roundTripProperty DA.rotation genRotation)
+    quickCheckPure seed 100 (roundTripProperty DA.portType genPortType)
+    quickCheckPure seed 100 (roundTripProperty DA.capacity genCapacity)
+    quickCheckPure seed 100 (roundTripProperty DA.port genPort)
+    quickCheckPure seed 100 (roundTripProperty DA.portMismatch genPortMismatch)
     -- quickCheckGen (roundTripProperty DA.rotation genRotation) completion status
-    quickCheckGen (roundTripProperty DA.portType genPortType)
-    quickCheckGen (roundTripProperty DA.capacity genCapacity)
-    quickCheckGen (roundTripProperty DA.port genPort)
-    quickCheckGen (roundTripProperty DA.portMismatch genPortMismatch)
 
 
  -- = PortExpected { direction :: CardinalDirection, expected :: Port }
