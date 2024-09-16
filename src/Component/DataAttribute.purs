@@ -8,7 +8,7 @@ import Data.Array as A
 import Data.Either (hush)
 import Data.Int (fromString)
 import Data.Int as Int
-import Data.Maybe (Maybe(..), maybe)
+import Data.Maybe (Maybe(..), isJust, maybe)
 import Data.Newtype (class Newtype, unwrap, wrap)
 import Data.String (Pattern(..), split, stripPrefix, stripSuffix, toLower)
 import Data.String.CodeUnits (fromCharArray)
@@ -55,6 +55,10 @@ selector :: forall a. DataAttribute a -> a -> QuerySelector
 selector da a = QuerySelector ("["<> attr <>"='" <> da.attrPrint a <> "']")
   where AttrName attr = da.attrName
 
+selectAll :: forall a. DataAttribute a -> QuerySelector
+selectAll da = QuerySelector ("[" <> attr <> "]")
+  where AttrName attr = da.attrName
+
 attr :: forall a p i. DataAttribute a -> a -> IProp p i
 attr da a = HP.attr da.attrName (da.attrPrint a)
 
@@ -63,6 +67,9 @@ getAttr da element = do
   let AttrName attr = da.attrName
   maybeAttrStr <- getAttribute attr element
   pure $ maybeAttrStr >>= (\s -> hush (runParser s da.attrParse))
+
+hasAttr :: forall a. DataAttribute a -> Element -> Effect Boolean
+hasAttr da element = isJust <$> getAttr da element
 
 print :: forall a. DataAttribute a -> a -> String
 print da a = da.attrPrint a
