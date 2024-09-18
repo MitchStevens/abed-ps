@@ -53,7 +53,6 @@ render state =
       [ pieces
       , boardPorts
       , [ multimeter ]
-      , [ HH.slot_ slot.gameEventLogger unit GameEventLogger.component unit ]
       ]
   where
     gridTemplate = "25fr repeat(" <> show n <> ", 100fr) 25fr"
@@ -112,7 +111,7 @@ render state =
           ]
         ]
       where
-        rotation = toDegrees (clockwiseRotation Direction.Left dir) + 180.0
+        rotation = toDegrees (clockwiseRotation Direction.Up dir) + 180.0
 
         path = portPath portInfo
 

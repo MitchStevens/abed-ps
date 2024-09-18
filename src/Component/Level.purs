@@ -6,6 +6,7 @@ import AppM (AppM)
 import Capability.Progress as Progress
 import Component.Board as Board
 import Component.Chat as Chat
+import Component.GameEventLogger as GameEventLogger
 import Component.Sidebar as Sidebar
 import Control.Alt ((<|>))
 import Control.Monad.Cont (ContT(..), callCC, lift, runContT)
@@ -74,12 +75,15 @@ data Action
 type Slots =
   ( board   :: Slot Board.Query Board.Output Unit
   , chat    :: Slot Chat.Query Chat.Output Unit
-  , sidebar :: Slot Sidebar.Query Sidebar.Output Unit )
+  , sidebar :: Slot Sidebar.Query Sidebar.Output Unit
+  , gameEventLogger :: forall q. Slot q Void Unit
+  )
 
 --_sidebar = Proxy :: Proxy "sidebar"
 _board   = Proxy :: Proxy "board"
 _chat    = Proxy :: Proxy "chat"
 _sidebar = Proxy :: Proxy "sidebar"
+_gameEventLogger = Proxy :: Proxy "gameEventLogger"
 
 
 component :: forall q o. Component q Input o AppM
@@ -96,6 +100,7 @@ component = H.mkComponent { eval , initialState , render }
     [ HH.slot _board    unit Board.component { board: Board initialBoard} BoardOutput
     , HH.slot_ _chat    unit Chat.component { conversation: level.conversation }
     , HH.slot _sidebar  unit Sidebar.component { problem: level.problem, completionStatus, boardSize, boardPorts } SidebarOutput
+    , HH.slot_ _gameEventLogger unit GameEventLogger.component unit
     ]
 
   eval :: HalogenQ q Action Input ~> HalogenM State Action Slots o AppM

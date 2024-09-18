@@ -109,7 +109,6 @@ data Output
 type Slots =
   ( piece :: Slot Piece.Query Piece.Output Location
   , multimeter :: Slot Multimeter.Query Multimeter.Output Unit
-  , gameEventLogger :: forall q. Slot q Void Unit
   )
 
 initialState :: Input -> State
@@ -127,7 +126,6 @@ initialState { board } =
 slot =
   { piece: Proxy :: _ "piece"
   , multimeter: Proxy :: _ "multimeter"
-  , gameEventLogger: Proxy :: _ "gameEventLogger"
   }
 
 _board :: Lens' State Board
