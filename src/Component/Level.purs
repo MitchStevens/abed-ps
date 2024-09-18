@@ -2,6 +2,7 @@ module Component.Level where
 
 import Prelude
 
+import AppM (AppM)
 import Capability.Progress as Progress
 import Component.Board as Board
 import Component.Chat as Chat
@@ -10,7 +11,6 @@ import Control.Alt ((<|>))
 import Control.Monad.Cont (ContT(..), callCC, lift, runContT)
 import Control.Monad.Except (ExceptT(..), runExceptT)
 import Control.Monad.Logger.Class (class MonadLogger, debug, info)
-import Control.Monad.Reader (class MonadAsk, class MonadReader)
 import Control.Monad.State (evalState)
 import Data.Array (intercalate, intersperse)
 import Data.Array as A
@@ -36,7 +36,7 @@ import Effect.Class (class MonadEffect, liftEffect)
 import Effect.Class.Console (log)
 import Game.Board (Board(..), _size, firstEmptyLocation, getBoardPorts, standardBoard)
 import Game.Direction (CardinalDirection)
-import Game.GameEvent (GameEvent, GameEventStore)
+import Game.GameEvent (GameEvent)
 import Game.Level (LevelId, Level)
 import Game.Level.Completion (CompletionStatus(..), FailedTestCase, isReadyForTesting, runSingleTest)
 import Game.Piece (Piece(..), pieceLookup)
@@ -82,11 +82,7 @@ _chat    = Proxy :: Proxy "chat"
 _sidebar = Proxy :: Proxy "sidebar"
 
 
-component :: forall q o m
-  . MonadAff m
-  => MonadAsk GlobalState m
-  => MonadLogger m
-  => Component q Input o m
+component :: forall q o. Component q Input o AppM
 component = H.mkComponent { eval , initialState , render }
   where
   Board initialBoard = standardBoard
@@ -102,7 +98,7 @@ component = H.mkComponent { eval , initialState , render }
     , HH.slot _sidebar  unit Sidebar.component { problem: level.problem, completionStatus, boardSize, boardPorts } SidebarOutput
     ]
 
-  eval :: HalogenQ q Action Input ~> HalogenM State Action Slots o m
+  eval :: HalogenQ q Action Input ~> HalogenM State Action Slots o AppM
   eval = H.mkEval
     { finalize: Nothing
     , handleAction
@@ -112,7 +108,7 @@ component = H.mkComponent { eval , initialState , render }
     , receive: const Nothing -- :: input -> Maybe action
     }
 
-  handleAction :: Action -> HalogenM State Action Slots o m Unit
+  handleAction :: Action -> HalogenM State Action Slots o AppM Unit
   handleAction = case _ of
     Initialise -> do
       levelId <- gets (_.levelId)
@@ -124,7 +120,7 @@ component = H.mkComponent { eval , initialState , render }
 
       -- make the board component display goal ports
       Piece piece <- H.gets (_.level.problem.goal)
-      H.tell _board unit (\_ -> Board.SetGoalPorts piece.ports)
+      H.tell _board unit (Board.SetGoalPorts piece.ports)
     BoardOutput (Board.NewBoardState board) -> do
       -- the side bar updates the puzzle completion status, if the board is ready to be
       -- shown, trigger to test is on the sidebar
@@ -136,13 +132,13 @@ component = H.mkComponent { eval , initialState , render }
     SidebarOutput (Sidebar.PieceDropped pieceId) -> do
       maybeLocation <- H.request _board unit (Board.GetMouseOverLocation)
       for_ maybeLocation \loc -> 
-        H.tell _board unit (\_ -> Board.AddPiece loc (pieceLookup pieceId))
+        H.request _board unit (Board.AddPiece loc (pieceLookup pieceId))
     SidebarOutput (Sidebar.PieceAdded pieceId) -> do
       H.request _board unit Board.GetBoard >>= traverse_ \board -> do
         for_ (firstEmptyLocation board) \loc ->
-          H.tell _board unit (\_ -> Board.AddPiece loc (pieceLookup pieceId))
+          H.request _board unit (Board.AddPiece loc (pieceLookup pieceId))
     SidebarOutput Sidebar.BoardSizeIncremented ->
-      void $ H.request _board unit Board.IncrementBoardSize
+      H.tell _board unit Board.IncrementBoardSize
     SidebarOutput Sidebar.BoardSizeDecremented ->
       void $ H.request _board unit Board.DecrementBoardSize
     SidebarOutput Sidebar.TestsTriggered -> do
@@ -166,5 +162,5 @@ component = H.mkComponent { eval , initialState , render }
           modify_ $ _ { completionStatus = Completed }
 
 
-  testEval :: Map CardinalDirection Signal -> HalogenM State Action Slots o m (Map CardinalDirection Signal)
+  testEval :: Map CardinalDirection Signal -> HalogenM State Action Slots o AppM (Map CardinalDirection Signal)
   testEval inputs = fromMaybe M.empty <$> H.request _board unit (Board.SetInputs inputs)

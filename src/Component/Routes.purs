@@ -2,6 +2,7 @@ module Component.Routes where
 
 import Prelude
 
+import AppM (AppM)
 import Capability.Navigate (Route(..))
 import Component.About as About
 import Component.Home as Home
@@ -9,7 +10,6 @@ import Component.Instructions as Instructions
 import Component.Level as Level
 import Component.LevelSelect as LevelSelect
 import Control.Monad.Logger.Class (class MonadLogger, debug)
-import Control.Monad.Reader (class MonadAsk, lift)
 import Data.Foldable (oneOf)
 import Data.Log.Tag (tag)
 import Data.Map as M
@@ -18,9 +18,8 @@ import Debug (trace)
 import Effect.Aff.Class (class MonadAff)
 import Effect.Class.Console (log)
 import Foreign.Object as Object
-import Game.GameEvent (GameEvent, GameEventStore)
 import GlobalState (GlobalState)
-import Halogen (Component, Slot, mkEval)
+import Halogen (Component, Slot, lift, mkEval)
 import Halogen as H
 import Halogen.HTML as HH
 import Record as Record
@@ -59,17 +58,12 @@ type Slots =
   , level         :: forall q. Slot q Void Unit
   )
 
-component 
-  :: forall m
-   . MonadAff m
-  => MonadAsk GlobalState m
-  => MonadLogger m
-  => Component Query Unit Void m
+component :: Component Query Unit Void AppM
 component = H.mkComponent { eval, initialState, render }
   where
   initialState _ = { route: Home }
   
-  render :: State -> H.ComponentHTML Action Slots m
+  render :: State -> H.ComponentHTML Action Slots AppM
   render { route } = case route of
       Home ->
         HH.slot_ (Proxy :: _ "home") unit Home.component unit

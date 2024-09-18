@@ -33,7 +33,7 @@ import Data.TraversableWithIndex (forWithIndex)
 import Data.Tuple (Tuple(..))
 import Data.Zipper (Zipper)
 import Data.Zipper as Z
-import Game.Board (Board(..), BoardError, BoardM, RelativeEdge, getBoardPortEdge, runBoardM, standardBoard)
+import Game.Board (Board(..), BoardError, BoardM, RelativeEdge, PieceInfo, getBoardPortEdge, runBoardM, standardBoard)
 import Game.Direction (CardinalDirection)
 import Game.Location (Location(..))
 import Game.Piece (Piece(..))
@@ -42,6 +42,7 @@ import Game.PortInfo (PortInfo)
 import Game.Signal (Signal(..))
 import Halogen (Slot)
 import Type.Proxy (Proxy(..))
+import Web.Event.Internal.Types (Event)
 import Web.HTML.Event.DragEvent (DragEvent)
 import Web.UIEvent.KeyboardEvent (KeyboardEvent)
 import Web.UIEvent.MouseEvent (MouseEvent)
@@ -64,21 +65,20 @@ type State =
 
 data Query a
   = GetBoard (Board -> a)
-  | AddPiece Location Piece
-  | AddPath CardinalDirection (Array Location) CardinalDirection
-  | RemovePiece Location 
+  | AddPiece Location Piece (Either BoardError Unit -> a)
+  | AddPath CardinalDirection (Array Location) CardinalDirection (Either BoardError Boolean -> a)
+  | RemovePiece Location  (Either BoardError PieceInfo -> a)
   | GetMouseOverLocation (Location -> a)
   | SetInputs (Map CardinalDirection Signal) (Map CardinalDirection Signal -> a)
-  | SetGoalPorts (Map CardinalDirection Port)
-  | IncrementBoardSize (Board -> a)
-  | DecrementBoardSize (Board -> a)
+  | SetGoalPorts (Map CardinalDirection Port) a
+  | IncrementBoardSize a
+  | DecrementBoardSize (Either BoardError Unit -> a)
 
 data Action
   = Initialise
   | PieceOutput Piece.Output
   | MultimeterOutput Multimeter.Output
-  | Undo
-  | Redo
+  | Undo | Redo
 
   | ToggleInput CardinalDirection
   | IncrementInput CardinalDirection
@@ -95,9 +95,10 @@ data Action
   | LocationOnMouseOver Location MouseEvent
   | LocationOnMouseUp Location MouseEvent
   | LocationOnDragEnter Location DragEvent
-  | LocationOnDragOver Location DragEvent
-  | LocationOnDragLeave DragEvent
+  -- | LocationOnDragOver Location DragEvent
+  -- | LocationOnDragLeave DragEvent
   | LocationOnDrop Location DragEvent
+  | PreventDefault Event
 
   | BoardPortOnMouseEnter CardinalDirection
   | BoardPortOnMouseLeave
@@ -108,6 +109,7 @@ data Output
 type Slots =
   ( piece :: Slot Piece.Query Piece.Output Location
   , multimeter :: Slot Multimeter.Query Multimeter.Output Unit
+  , gameEventLogger :: forall q. Slot q Void Unit
   )
 
 initialState :: Input -> State
@@ -125,6 +127,7 @@ initialState { board } =
 slot =
   { piece: Proxy :: _ "piece"
   , multimeter: Proxy :: _ "multimeter"
+  , gameEventLogger: Proxy :: _ "gameEventLogger"
   }
 
 _board :: Lens' State Board

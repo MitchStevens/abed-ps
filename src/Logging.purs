@@ -16,5 +16,7 @@ import Game.GameEvent (GameEvent)
 logMessage :: forall m. MonadEffect m => LogLevel -> Log.Message -> m Unit
 logMessage logLevel = minimumLevel logLevel $ prettyFormatter >=> log
 
+
 logGameEvent :: forall m. MonadLogger m => GameEvent -> m Unit
-logGameEvent gameEvent = debug (tag "game-event" "") "GAME EVENT"
+logGameEvent gameEvent = debug (tag "game-event" "") "game EVENT"
+

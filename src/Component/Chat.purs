@@ -65,7 +65,9 @@ data Output
 
 _messages = prop (Proxy :: Proxy "messages")
 
-component :: forall m. MonadAsk GlobalState m => MonadAff m => H.Component Query Input Output m
+component :: forall m
+  . MonadAff m
+  => H.Component Query Input Output m
 component = H.mkComponent { eval , initialState , render }
   where
   initialState { conversation } = { conversation, messages: [], scrollToBottom: true } 

@@ -34,7 +34,6 @@ import Game.Board.Types (Board(..), BoardError(..), _pieces)
 import Game.Direction (allDirections)
 import Game.Direction as Direction
 import Game.Edge (Edge(..), edgeLocation)
-import Game.GameEvent (BoardEvent(..))
 import Game.Location (Location(..), location)
 import Game.Piece (Piece(..), pieceLookup, updatePort)
 import Game.Port (PortType, portType)
@@ -99,7 +98,7 @@ addPiece loc piece = do
    addPieceNoUpdate loc piece (rotation 0)
    updatePortsAround loc
 
-removePieceNoUpdate :: forall m. MonadError BoardError m => MonadState Board m => Location -> m Piece
+removePieceNoUpdate :: forall m. MonadError BoardError m => MonadState Board m => Location -> m PieceInfo
 removePieceNoUpdate loc = do
   checkInsideBoard loc
   maybePieceInfo <- use (_pieces <<< at loc)
@@ -107,9 +106,9 @@ removePieceNoUpdate loc = do
     Nothing -> throwError (LocationNotOccupied loc)
     Just pieceInfo -> do
       _pieces <<< at loc .= Nothing
-      pure pieceInfo.piece
+      pure pieceInfo
 
-removePiece :: forall m. MonadError BoardError m => MonadState Board m => Location -> m Piece
+removePiece :: forall m. MonadError BoardError m => MonadState Board m => Location -> m PieceInfo
 removePiece loc = do
   piece <- removePieceNoUpdate loc
   updatePortsAround loc
@@ -117,7 +116,7 @@ removePiece loc = do
 
 
 movePiece :: forall m. MonadError BoardError m => MonadState Board m
-  => Location -> Location -> m Piece
+  => Location -> Location -> m PieceInfo
 movePiece src dst = do
   use (_pieces <<< at src) >>= case _ of
     Just pieceInfoSrc -> do
@@ -128,12 +127,12 @@ movePiece src dst = do
       _pieces <<< at dst .= Just pieceInfoSrc
       updatePortsAround src
       updatePortsAround dst
-      pure $ pieceInfoSrc.piece
+      pure $ pieceInfoSrc
     Nothing ->
       throwError (LocationNotOccupied src)
 
 pieceDropped :: forall m. MonadState Board m => MonadError BoardError m
-  => Location -> Maybe Location -> m Piece
+  => Location -> Maybe Location -> m PieceInfo
 pieceDropped src maybeDst =
   -- when a piece is dropped, it can be dropped over a new location or outside the game board 
   case maybeDst of

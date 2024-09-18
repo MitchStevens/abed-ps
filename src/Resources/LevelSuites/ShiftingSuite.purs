@@ -8,7 +8,6 @@ import Data.Set as S
 import Foreign.Object (fromHomogeneous)
 import Game.Capacity (Capacity(..))
 import Game.Direction as Direction
-import Game.GameEvent (count, firstTime, latest, pieceAdded, pieceMovedTo, secondTime)
 import Game.Level (LevelSuite, binaryTestInputs, defaultLevel)
 import Game.Piece (fusePiece, idPiece, leftPiece, mkShiftLeftBy, rightPiece, severPiece)
 import Game.Signal (Signal(..))

@@ -17,7 +17,6 @@ import Effect.Class (liftEffect)
 import Effect.Class.Console (log)
 import Foreign.Object (fromHomogeneous)
 import Game.Direction as Direction
-import Game.GameEvent (count, firstTime, latest, pieceAdded, pieceMovedTo, secondTime)
 import Game.Level (LevelSuite, binaryTestInputs, defaultLevel)
 import Game.Level.Problem (defaultProblem)
 import Game.Level.RulesEngine (Rule(..))

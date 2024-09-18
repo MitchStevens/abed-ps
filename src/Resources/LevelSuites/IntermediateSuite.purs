@@ -6,7 +6,6 @@ import Component.DataAttribute as DataAttr
 import Data.Set as S
 import Foreign.Object (fromHomogeneous)
 import Game.Direction as Direction
-import Game.GameEvent (count, firstTime, latest, pieceAdded, pieceMovedTo, secondTime)
 import Game.Level (LevelSuite, binaryTestInputs, defaultLevel)
 import Game.Level.Problem (defaultProblem)
 import Game.Piece (andPiece, crossPiece, idPiece, leftPiece, name, notPiece, orPiece, rightPiece, superPiece, xorPiece)

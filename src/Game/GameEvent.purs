@@ -3,74 +3,60 @@ module Game.GameEvent where
 import Prelude
 
 import Data.Foldable (find, foldMap, sum)
+import Data.Generic.Rep (class Generic)
 import Data.List (List(..), head)
+import Data.Log.Level as LogLevel
+import Data.Log.Message (Message)
+import Data.Log.Tag (tag)
 import Data.Map (Map)
 import Data.Map as M
 import Data.Maybe (Maybe(..), maybe)
 import Data.Predicate (Predicate(..))
+import Data.Show.Generic (genericShow, genericShow')
 import Data.Tuple (Tuple(..))
+import Game.Board (PieceInfo)
+import Game.Direction (CardinalDirection)
 import Game.Location (Location(..))
-import Game.Piece.Types (PieceId(..))
+import Game.Piece.Types (Piece(..), PieceId(..))
 import Game.Rotation (Rotation(..))
 
 data GameEvent
-  = BoardEvent BoardEvent
+  = GameStarted
+  | BoardEvent BoardEvent
   | SidebarEvent SidebarEvent
 derive instance Eq GameEvent
 derive instance Ord GameEvent
 
-type GameEventStore =
-  { gameEventHistory :: List GameEvent -- todo: cap this list to a finite length maybe
-  , allGameEvents :: Map GameEvent Int
-  }
-
-empty :: GameEventStore
-empty = { gameEventHistory: Nil, allGameEvents: M.empty }
-
-cons :: GameEvent -> GameEventStore -> GameEventStore
-cons gameEvent store =
-  { gameEventHistory: Cons gameEvent store.gameEventHistory
-  , allGameEvents: M.insertWith add gameEvent 1 store.allGameEvents
-  }
-
+-- for use with logging
 data BoardEvent
-  = AddedPiece Location PieceId
-  | RemovedPiece Location PieceId
-  | MovedPiece Location Location
-  | RotatedPiece Location Rotation
-  | UndoBoardEvent
-  | IncrementSize
-  | DecrementSize
-  | Multiple (List BoardEvent)
+  = AddPieceEvent Location Piece
+  | RemovePieceEvent Location PieceInfo
+  | MovePieceEvent Location Location
+  | RotatePieceEvent Location Rotation
+  | AddPathEvent CardinalDirection (Array Location) CardinalDirection
+  | IncrementSizeEvent
+  | DecrementSizeEvent
+derive instance Generic BoardEvent _
 derive instance Eq BoardEvent
 derive instance Ord BoardEvent
-
+-- TODO: make a better instance
 instance Show BoardEvent where
-  show = case _ of
-    AddedPiece loc pieceId -> "Added " <> show pieceId <> " at " <> show loc
-    RemovedPiece loc pieceId -> "Removed " <> show pieceId <> " at " <> show loc
-    MovedPiece src dst -> "Moved piece from " <> show src <> " to " <> show dst
-    RotatedPiece loc rot -> "Rotated piece by " <> show rot <> " at " <> show loc
-    UndoBoardEvent -> "Undo last boardEvent"
-    IncrementSize -> "Incremented board size"
-    DecrementSize -> "Decremented board size"
-    Multiple boardEvents -> "Multiple boardEvents: " <> show boardEvents
+  show = genericShow
 
 {-
   if the board changed, it probably changed in a specific location.
   Nothing -> unknown how many locations were modified, redraw the whole board
   Just l -> redraw l and pieces adjacent to l
 -}
-boardEventLocationsChanged :: BoardEvent -> Maybe (Array Location)
-boardEventLocationsChanged = case _ of
-  AddedPiece loc _     -> Just [loc]
-  RemovedPiece loc _   -> Just [loc]
-  MovedPiece src dst   -> Just [src, dst]
-  RotatedPiece loc _   -> Just [loc]
-  UndoBoardEvent       -> Nothing
-  IncrementSize        -> Nothing
-  DecrementSize        -> Nothing
-  Multiple boardEvents -> foldMap boardEventLocationsChanged boardEvents
+--boardEventLocationsChanged :: BoardEvent -> Maybe (Array Location)
+--boardEventLocationsChanged = case _ of
+--  AddedPiece loc _     -> Just [loc]
+--  RemovedPiece loc _   -> Just [loc]
+--  MovedPiece src dst   -> Just [src, dst]
+--  RotatedPiece loc _   -> Just [loc]
+--  UndoBoardEvent       -> Nothing
+--  IncrementSize        -> Nothing
+--  DecrementSize        -> Nothing
 
 data SidebarEvent
   = BoardSizeIncrementClicked
@@ -80,61 +66,61 @@ derive instance Ord SidebarEvent
 
 
 -- pPre
-boardEvent :: Predicate GameEvent
-boardEvent = Predicate $ case _ of
-  BoardEvent _ -> true
-  _ -> false
-
-pieceAdded :: Predicate GameEvent
-pieceAdded = Predicate $ case _ of
-  BoardEvent (AddedPiece _ _) -> true
-  _ -> false
-
-pieceRemoved :: Predicate GameEvent
-pieceRemoved = Predicate $ case _ of
-  BoardEvent (RemovedPiece _ _) -> true
-  _ -> false
-
-pieceMoved :: Predicate GameEvent
-pieceMoved = Predicate $ case _ of
-  BoardEvent (MovedPiece _ _) -> true
-  _ -> false
-
-pieceMovedTo :: Location -> Predicate GameEvent
-pieceMovedTo loc = Predicate $ case _ of
-  BoardEvent (MovedPiece _ dst) -> loc == dst
-  _ -> false
-
-pieceRotated :: Predicate GameEvent
-pieceRotated = Predicate $ case _ of
-  BoardEvent (RotatedPiece _ _) -> true
-  _ -> false
-
-locationAt :: Location -> Predicate GameEvent
-locationAt loc = Predicate $ case _ of
-  BoardEvent (AddedPiece loc' _) -> loc == loc'
-  BoardEvent (RemovedPiece loc' _) -> loc == loc'
-  BoardEvent (MovedPiece _ dst) -> loc == dst
-  BoardEvent (RotatedPiece loc' _) -> loc == loc'
-  _ -> false
-
-pieceId :: PieceId -> Predicate GameEvent
-pieceId pieceId = Predicate $ case _ of
-  BoardEvent (AddedPiece _ id) -> pieceId == id
-  BoardEvent (RemovedPiece _ id) -> pieceId == id
-  _ -> false
-
-latest :: Predicate GameEvent -> Predicate GameEventStore
-latest (Predicate p) = Predicate $ \store ->
-  maybe false p (head store.gameEventHistory)
-
--- todo: write this with a foldr, may be able to use short circuiting
-count :: (Int -> Int -> Boolean) -> Int -> Predicate GameEvent -> Predicate GameEventStore
-count cmp n (Predicate p)= Predicate $ \store -> 
-  cmp (sum (M.filterKeys p store.allGameEvents)) n
-
-firstTime :: Predicate GameEvent -> Predicate GameEventStore
-firstTime = latest && count eq 1
-
-secondTime :: Predicate GameEvent -> Predicate GameEventStore
-secondTime = latest && count eq 2
+--boardEvent :: Predicate GameEvent
+--boardEvent = Predicate $ case _ of
+--  BoardEvent _ -> true
+--  _ -> false
+--
+--pieceAdded :: Predicate GameEvent
+--pieceAdded = Predicate $ case _ of
+--  BoardEvent (AddedPiece _ _) -> true
+--  _ -> false
+--
+--pieceRemoved :: Predicate GameEvent
+--pieceRemoved = Predicate $ case _ of
+--  BoardEvent (RemovedPiece _ _) -> true
+--  _ -> false
+--
+--pieceMoved :: Predicate GameEvent
+--pieceMoved = Predicate $ case _ of
+--  BoardEvent (MovedPiece _ _) -> true
+--  _ -> false
+--
+--pieceMovedTo :: Location -> Predicate GameEvent
+--pieceMovedTo loc = Predicate $ case _ of
+--  BoardEvent (MovedPiece _ dst) -> loc == dst
+--  _ -> false
+--
+--pieceRotated :: Predicate GameEvent
+--pieceRotated = Predicate $ case _ of
+--  BoardEvent (RotatedPiece _ _) -> true
+--  _ -> false
+--
+--locationAt :: Location -> Predicate GameEvent
+--locationAt loc = Predicate $ case _ of
+--  BoardEvent (AddedPiece loc' _) -> loc == loc'
+--  BoardEvent (RemovedPiece loc' _) -> loc == loc'
+--  BoardEvent (MovedPiece _ dst) -> loc == dst
+--  BoardEvent (RotatedPiece loc' _) -> loc == loc'
+--  _ -> false
+--
+--pieceId :: PieceId -> Predicate GameEvent
+--pieceId pieceId = Predicate $ case _ of
+--  BoardEvent (AddedPiece _ id) -> pieceId == id
+--  BoardEvent (RemovedPiece _ id) -> pieceId == id
+--  _ -> false
+--
+--latest :: Predicate GameEvent -> Predicate GameEventStore
+--latest (Predicate p) = Predicate $ \store ->
+--  maybe false p (head store.gameEventHistory)
+--
+---- todo: write this with a foldr, may be able to use short circuiting
+--count :: (Int -> Int -> Boolean) -> Int -> Predicate GameEvent -> Predicate GameEventStore
+--count cmp n (Predicate p)= Predicate $ \store -> 
+--  cmp (sum (M.filterKeys p store.allGameEvents)) n
+--
+--firstTime :: Predicate GameEvent -> Predicate GameEventStore
+--firstTime = latest && count eq 1
+--
+--secondTime :: Predicate GameEvent -> Predicate GameEventStore
+--secondTime = latest && count eq 2

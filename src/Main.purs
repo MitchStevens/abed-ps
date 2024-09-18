@@ -8,7 +8,6 @@ import Component.Routes as Routes
 import Control.Monad.Error.Class (throwError)
 import Control.Monad.Logger.Class (info)
 import Control.Monad.Logger.Trans (runLoggerT)
-import Control.Monad.Reader (ReaderT, runReaderT)
 import Data.Either (either, fromRight)
 import Data.Log.Level (LogLevel(..))
 import Data.Map as M
