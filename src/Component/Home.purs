@@ -46,7 +46,7 @@ component = H.mkComponent { eval , initialState , render }
     { titleText: "" } 
 
   render state = defaultLayout $
-    HH.div [ HP.id "home-component" ]
+    HH.h1 [ HP.id "home-component" ]
       [ --HH.slot_ (Proxy :: Proxy "title") unit Title.component { typeTitle: true }
       --, HH.br_
       HH.a 

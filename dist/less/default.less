@@ -1,25 +1,51 @@
 @red: #e74747;
 @green: #47e76a;
 
-
 @import "board-component";
 @import "piece-component";
 @import "chat-component";
 @import "sidebar-component";
-@import (less) "driver.css";
+@import "parchment";
 
 body { margin: 0; }
 
 #content {
     min-height: 100vh;
+    min-width: 100%;
     display: inline-grid;
-    grid-template-columns: 1fr 1fr 1fr;
+    grid-template-columns: 1fr 900px 1fr;
 }
 
 #abed {
+    color:#333;
     user-select: none;
-    min-height: 100vh;
+    min-height: 100%;
     grid-area: 1 / 2;
+    margin-top: 50px;
+    font-family: bilbo;
+
+
+    #title {
+        font-size: 100px;
+    }
+
+    h1 {
+        font-size: 40px;
+    }
+
+    h2 {
+        margin-bottom: 0px;
+    }
+
+    h1, h2, h3, h4, #title {
+        font-weight: 400;
+        font-family: pirata;
+    }
+
+    ul {
+        margin: 0px
+    }
+
     & .spotlight {
         animation-name: blink;
         animation-duration: 1s;
@@ -54,17 +80,21 @@ body { margin: 0; }
         white-space: nowrap;
     }
 
-
+    .inner {
+        margin-left: 25px;
+    }
 }
 
 #default-layout {
     padding-left: 100px;
     padding-right: 100px;
-    min-width: 700px;
+    min-width: 100%;
 
     & textarea#title {
         font-size: 14px;
     }
+
+
 
 }
 
@@ -85,14 +115,13 @@ span.green { color: @green }
 
 #puzzle-component {
     display: inline-grid;
+    width: 100%;
     grid-template-columns: auto 350px;
     grid-template-rows: 75% auto;
     padding: 10px;
     grid-gap: 10px;
     height: 100vh;
     box-sizing: border-box;
-    background-color: beige;
-
 
     & #board-component {
         grid-area: 1 / 1;
@@ -109,20 +138,29 @@ span.green { color: @green }
 }
 
 #home-component {
-    justify-items: center;
-    padding: 75px;
-
+    display: grid;
+    grid-auto-flow: row;
+    grid-column-gap: 10px;
 
     & .link {
-        font-size: 20px;
-        font-family: monospace;
-    }
-
-    & #title {
-        font-size: 20px;
+        font-size: 40px;
     }
 }
 
 .rough-annotation {
     z-index: 10;
 }
+
+#abed:root {
+    position: absolute;
+    display: flex;
+      width: 75%;
+    min-height: calc((1vw + 1vh) * 75);
+    /* center page with absolute position */
+    top: 0%; left: 50%; transform: translate(-50%, 0);
+    margin: 2em 0;
+      padding: 4em;
+      box-shadow: 2px 3px 20px black, 0 0 60px #8a4d0f inset;
+      background: #fffef0;
+    filter: url(#wavy2);
+  }

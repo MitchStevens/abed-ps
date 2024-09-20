@@ -9,10 +9,15 @@
     <title>ABED Game</title>
   </head>
   <body>
+    <svg style="display: none">
+      <filter id="wavy2">
+        <feTurbulence x="0" y="0" baseFrequency="0.02" numOctaves="5" seed="1"></feTurbulence>
+        <feDisplacementMap in="SourceGraphic" scale="20" />
+      </filter>
+    </svg>
     <script src="./abed.js"></script>
     <div id="content">
-      <div id="abed">
-
-      </div>
+      <div id="abed"></div>
+      <div id="parchment"></div>
     </div>
 </html>

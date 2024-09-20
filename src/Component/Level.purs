@@ -98,7 +98,7 @@ component = H.mkComponent { eval , initialState , render }
   render { level, levelId, completionStatus, boardSize, boardPorts } = HH.div
     [ HP.id "puzzle-component"]
     [ HH.slot _board    unit Board.component { board: Board initialBoard} BoardOutput
-    , HH.slot_ _chat    unit Chat.component { conversation: level.conversation }
+    --, HH.slot_ _chat    unit Chat.component { conversation: level.conversation }
     , HH.slot _sidebar  unit Sidebar.component { problem: level.problem, completionStatus, boardSize, boardPorts } SidebarOutput
     , HH.slot_ _gameEventLogger unit GameEventLogger.component unit
     ]

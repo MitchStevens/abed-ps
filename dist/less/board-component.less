@@ -4,6 +4,7 @@
     aspect-ratio: 1 / 1;
     border-spacing: 0px;
     display: grid;
+    overflow: auto;
 
     & .piece {
         display: block;
@@ -14,6 +15,11 @@
         z-index: 0;
         border: lightgray 2px solid;
         overflow: hidden;
+
+        .location-text {
+            padding-left: 10px;
+            padding-top: 2px;
+        }
     }
 
     & .board-port {

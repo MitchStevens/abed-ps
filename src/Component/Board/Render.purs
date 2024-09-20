@@ -26,7 +26,7 @@ import Data.Zipper as Z
 import Game.Board (_size, evalBoardM, getPieceInfo)
 import Game.Direction (CardinalDirection, clockwiseRotation)
 import Game.Direction as Direction
-import Game.Location (location)
+import Game.Location (Location(..), location)
 import Game.PortInfo (PortInfo)
 import Game.Rotation (Rotation(..), toDegrees)
 import Halogen.Component (ComponentSlot(..))
@@ -134,6 +134,9 @@ render state =
     pieceHTML piece location =
         HH.slot slot.piece location Piece.component { piece, location } PieceOutput
     
-    emptyPieceHTML location = HH.text (show location)
+    emptyPieceHTML (Location {x, y}) =
+      HH.div 
+        [ HP.class_ (ClassName "location-text") ]
+        [ HH.text (show x <> "," <> show y) ]
 
     multimeter = HH.slot slot.multimeter unit Multimeter.component {} MultimeterOutput
