@@ -63,6 +63,7 @@ to generate this file without the comments in this block.
   , "tuples"
   , "unfoldable"
   , "unsafe-coerce"
+  , "uuidv4"
   , "web-dom"
   , "web-events"
   , "web-html"
