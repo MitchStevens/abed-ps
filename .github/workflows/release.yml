@@ -4,7 +4,7 @@ on:
     tags:
       - 'v*' # Push events to matching v*, i.e. v1.0, v20.15.10
 
-name: Create Release
+name: Compile on release
 
 jobs:
   build:
@@ -13,17 +13,20 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
-      - name: Create Release
-        id: create_release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # This token is provided by Actions, you do not need to create your own token
+
+      - name: Set up Node.js (if using Node.js, adjust if using another language)
+        uses: actions/setup-node@v3
         with:
-          tag_name: ${{ github.ref }}
-          release_name: Release ${{ github.ref }}
-          body: |
-            Changes in this Release
-            - First Change
-            - Second Change
-          draft: false
-          prerelease: false
+          node-version: 'lts-iron' 
+      
+      - name: Install dependencies
+        run: npm install
+
+      - name: Compile project
+        run: npm run build-prod 
+      
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: compiled-project
+          path: ./dist # Path to the compiled output 

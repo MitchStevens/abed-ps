@@ -7,12 +7,14 @@ import Capability.Progress as Progress
 import Component.Board as Board
 import Component.Chat as Chat
 import Component.GameEventLogger as GameEventLogger
+import Component.Marginalia.Types (Marginalia, marginalia)
+import Component.Marginalium as Marginalium
 import Component.Sidebar as Sidebar
 import Control.Alt ((<|>))
 import Control.Monad.Cont (ContT(..), callCC, lift, runContT)
 import Control.Monad.Except (ExceptT(..), runExceptT)
 import Control.Monad.Logger.Class (class MonadLogger, debug, info)
-import Control.Monad.State (evalState)
+import Control.Monad.State (evalState, modify_)
 import Data.Array (intercalate, intersperse)
 import Data.Array as A
 import Data.Bifunctor (lmap)
@@ -27,9 +29,11 @@ import Data.Map (Map)
 import Data.Map as M
 import Data.Maybe (Maybe(..), fromMaybe)
 import Data.Time.Duration (Milliseconds(..), Seconds(..))
-import Data.Traversable (for)
+import Data.Traversable (for, traverse)
 import Data.TraversableWithIndex (forWithIndex)
 import Data.Tuple (Tuple(..), fst, snd)
+import Data.UUID.Random (UUIDv4)
+import Data.UUID.Random as UUID
 import Debug (spy)
 import Effect.Aff (delay)
 import Effect.Aff.Class (class MonadAff, liftAff)
@@ -60,6 +64,7 @@ type Input =
 type State =
   { levelId :: LevelId
   , level :: Level 
+  , marginalia :: Map UUIDv4 Marginalia
   , completionStatus :: CompletionStatus
   , boardSize :: Int
   , boardPorts :: Map CardinalDirection Port
@@ -71,11 +76,13 @@ data Action
   = Initialise
   | BoardOutput Board.Output
   | SidebarOutput Sidebar.Output
+  | MarginaliumOutput Marginalium.Output
 
 type Slots =
   ( board   :: Slot Board.Query Board.Output Unit
-  , chat    :: Slot Chat.Query Chat.Output Unit
+  --, chat    :: Slot Chat.Query Chat.Output Unit
   , sidebar :: Slot Sidebar.Query Sidebar.Output Unit
+  , marginalia :: Slot Marginalium.Query Marginalium.Output UUIDv4
   , gameEventLogger :: forall q. Slot q Void Unit
   )
 
@@ -83,6 +90,7 @@ type Slots =
 _board   = Proxy :: Proxy "board"
 _chat    = Proxy :: Proxy "chat"
 _sidebar = Proxy :: Proxy "sidebar"
+_marginalia = Proxy :: _ "marginalia"
 _gameEventLogger = Proxy :: Proxy "gameEventLogger"
 
 
@@ -91,15 +99,21 @@ component = H.mkComponent { eval , initialState , render }
   where
   Board initialBoard = standardBoard
 
-
-  initialState {levelId, level } = {levelId, level, completionStatus: NotStarted, boardSize: initialBoard.size, boardPorts: evalState getBoardPorts (Board initialBoard) }
+  initialState { levelId, level } = 
+    { levelId
+    , level, completionStatus: NotStarted
+    , boardSize: initialBoard.size
+    , boardPorts: evalState getBoardPorts (Board initialBoard)
+    , marginalia: M.empty
+    }
 
   --render :: State -> HalogenM State Action Slots o m Unit
-  render { level, levelId, completionStatus, boardSize, boardPorts } = HH.div
+  render { level, levelId, marginalia, completionStatus, boardSize, boardPorts } = HH.div
     [ HP.id "puzzle-component"]
     [ HH.slot _board    unit Board.component { board: Board initialBoard} BoardOutput
-    , HH.slot_ _chat    unit Chat.component { conversation: level.conversation }
+    --, HH.slot_ _chat    unit Chat.component { conversation: level.conversation }
     , HH.slot _sidebar  unit Sidebar.component { problem: level.problem, completionStatus, boardSize, boardPorts } SidebarOutput
+    , HH.div [ HP.id "marginalia" ] ((M.toUnfoldable marginalia :: Array _) <#> \(Tuple uuid m) -> HH.slot _marginalia uuid Marginalium.component { uuid, marginalia: m } MarginaliumOutput)
     , HH.slot_ _gameEventLogger unit GameEventLogger.component unit
     ]
 
@@ -117,10 +131,16 @@ component = H.mkComponent { eval , initialState , render }
   handleAction = case _ of
     Initialise -> do
       levelId <- gets (_.levelId)
-      lift $ debug M.empty ("initialised level " <> show levelId)
+      lift $ debug M.empty ("Initialised level " <> show levelId)
 
       -- initialise the chat server with conversation text
       -- initialConversation <- H.gets (_.level.conversation)
+
+      --init marginalia
+      gets (_.level.marginalia) >>= traverse_ \m -> do
+        lift $ info M.empty "initialising marginalia"
+        uuid <- UUID.make
+        modify_ (\state -> state { marginalia = M.insert uuid m state.marginalia})
 
 
       -- make the board component display goal ports
@@ -165,6 +185,15 @@ component = H.mkComponent { eval , initialState , render }
           levelId <-  gets (_.levelId)
           liftEffect $ Progress.saveLevelProgress levelId Progress.Completed
           modify_ $ _ { completionStatus = Completed }
+
+    MarginaliumOutput (Marginalium.TriggerNext marginalia) -> do
+      uuid <- UUID.make
+      modify_ (\state -> state { marginalia = M.insert uuid marginalia state.marginalia})
+
+    MarginaliumOutput (Marginalium.RemoveThis uuid) -> do
+      modify_ \state -> state { marginalia = M.delete uuid state.marginalia }
+      log "removed!" 
+
 
 
   testEval :: Map CardinalDirection Signal -> HalogenM State Action Slots o AppM (Map CardinalDirection Signal)

@@ -24,8 +24,11 @@ data GameEvent
   = GameStarted
   | BoardEvent BoardEvent
   | SidebarEvent SidebarEvent
+derive instance Generic GameEvent _
 derive instance Eq GameEvent
 derive instance Ord GameEvent
+instance Show GameEvent where
+  show = genericShow
 
 -- for use with logging
 data BoardEvent
@@ -61,8 +64,11 @@ instance Show BoardEvent where
 data SidebarEvent
   = BoardSizeIncrementClicked
   | BoardSizeDecrementClicked
+derive instance Generic SidebarEvent _
 derive instance Eq SidebarEvent
 derive instance Ord SidebarEvent
+instance Show SidebarEvent where
+  show = genericShow
 
 
 -- pPre

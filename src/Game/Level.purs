@@ -2,6 +2,7 @@ module Game.Level where
 
 import Prelude
 
+import Component.Marginalia.Types (Marginalia)
 import Data.Array (zip, zipWith)
 import Data.HeytingAlgebra (ff, tt)
 import Data.Map (Map)
@@ -26,7 +27,8 @@ type LevelOptions =
 type Level =
   { problem :: Problem
   --, boardDeltaRulesEngine :: Array (Rule GameEventStore Message)
-  , conversation :: Conversation
+  --, conversation :: Conversation
+  , marginalia :: Array Marginalia
   , options :: LevelOptions
   }
 
@@ -43,7 +45,8 @@ defaultLevel :: Level
 defaultLevel = 
   { problem: defaultProblem
   --, boardDeltaRulesEngine: []
-  , conversation: pure unit
+  --, conversation: pure unit
+  , marginalia: []
   , options: defaultLevelOptions
   }
 

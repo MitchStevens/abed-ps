@@ -33,10 +33,8 @@ component = mkComponent { render, eval, initialState }
       { handleAction = case _ of
           Initialise -> do
             subscribe selectGameEvents GameEvent
-            log "INITED!"
           GameEvent gameEvent -> do
-            lift $ Log.info (tag "game event" "t") "GAME EVENT"
-            log "GAME EVENT!"
+            lift $ Log.info (tag "game event" (show gameEvent)) "New GameEvent"
       , initialize = Just Initialise
       }
     )

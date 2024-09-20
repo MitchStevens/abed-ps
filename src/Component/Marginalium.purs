@@ -2,61 +2,79 @@ module Component.Marginalium where
 
 import Prelude
 
-import Control.Monad.Logger.Class (class MonadLogger)
+import AppM (AppM)
+import Component.GameEventLogger (selectGameEvents)
+import Component.Marginalia.Types (Marginalia, MarginaliaNode(..), MarginaliumDescription)
+import Control.Monad.Logger.Class (class MonadLogger, info)
 import Control.Monad.State.Class (gets, modify_)
+import Data.DateTime.Instant (Instant)
 import Data.Foldable (traverse_)
-import Data.Maybe (Maybe(..))
-import Effect.Aff (Aff, forkAff)
-import Effect.Aff.Class (class MonadAff)
+import Data.List (List(..))
+import Data.List.NonEmpty as NE
+import Data.Map as M
+import Data.Maybe (Maybe(..), maybe)
+import Data.Newtype (unwrap)
+import Data.Predicate (Predicate)
+import Data.Time.Duration (fromDuration)
+import Data.UUID.Random (UUIDv4)
+import Effect.Aff (Aff, delay, forkAff)
+import Effect.Aff.Class (class MonadAff, liftAff)
 import Effect.Class (class MonadEffect)
-import Halogen (HalogenM, liftAff)
+import Effect.Class.Console (log)
+import Game.GameEvent (GameEvent)
+import Halogen (ClassName(..), HalogenM, lift, liftAff)
 import Halogen as H
 import Halogen.HTML (HTML, object)
 import Halogen.HTML as HH
+import Halogen.HTML.Properties as HP
+import Halogen.Store.Connect (subscribe)
+import Promise (then_)
 import Web.DOM (Element)
 import Web.HTML (Location)
 
-data Marginalium =
-  Glosses String
-
 type Input = 
-  { marginalium :: Marginalium
-  , displayOn :: Aff (Maybe Element)
-  , removeOn :: Aff Unit
+  { uuid :: UUIDv4
+  , marginalia :: Marginalia
   }
 
-type State = 
-  { marginalium :: Marginalium
-  , displayOn :: Aff (Maybe Element)
-  , removeOn :: Aff Unit
-  , isShowing :: Boolean
-  , pointingAt :: Maybe Element
+type State =
+  { uuid :: UUIDv4
+  , description :: Maybe MarginaliumDescription
+  , removeOn :: Predicate GameEvent
+  , nextMarginalia :: List MarginaliaNode
+  --, createdAt :: Instant
+  , isDisplaying :: Boolean
   }
 
 data Action
   = Initialise
-  | Display Element
+  | NewGameEvent GameEvent
+  | Display
   | Remove
 
 data Query :: Type -> Type
 data Query a
 
-data Output =
-  Removed
+data Output
+  = TriggerNext Marginalia
+  | RemoveThis UUIDv4
 
-component :: forall m
-  .  MonadAff m 
-  => MonadLogger m
-  => H.Component Query Input Output m
+component :: H.Component Query Input Output AppM
 component = H.mkComponent { eval, initialState, render }
   where 
-    initialState { marginalium, displayOn, removeOn } =
-      { marginalium, displayOn, removeOn, isShowing: false, pointingAt: Nothing }
+    initialState { uuid, marginalia } = { uuid, description, removeOn, nextMarginalia: tail, isDisplaying: false }
+      where
+        {head, tail} = NE.uncons marginalia
+        { description, removeOn } = case head of
+          Description desc -> { description: Just desc, removeOn: desc.removeOn }
+          WaitingOn removeOn -> { description: Nothing, removeOn }
 
     render state =
-      HH.div []
-        [ renderMarginalium state.marginalium
-        ]
+      HH.div
+        [ HP.class_ (ClassName "marginalium")] $
+        if state.isDisplaying
+          then maybe [] (renderMarginalium >>> pure) state.description
+          else []
 
     eval = H.mkEval (H.defaultEval
       { handleAction = handleAction
@@ -71,25 +89,40 @@ component = H.mkComponent { eval, initialState, render }
 --  => Query a -> HalogenM State Action slots Output m (Maybe a)
 --handleQuery _ = pure Nothing
 
-handleAction :: forall slots m
-  .  MonadAff m
-  => MonadLogger m 
-  => Action -> HalogenM State Action slots Output m Unit
+handleAction :: forall slots. Action -> HalogenM State Action slots Output AppM Unit
 handleAction = case _ of
   Initialise -> do
-    displayOn <- gets (_.displayOn)
-    removeOn <- gets (_.removeOn)
-    _ <- H.fork $
-      (liftAff displayOn) >>= traverse_ \element -> handleAction (Display element)
-    _ <- H.fork $
-      liftAff removeOn *> handleAction Remove 
-    pure unit
-  Display element -> do
-    modify_ (_ { isShowing = true, pointingAt = Just element })
-  Remove -> do
-    H.raise Removed
+    gets (_.description) >>= traverse_ \desc -> do
+      _ <- H.fork do
+        lift $ info M.empty "start lead timer"
+        liftAff $ delay (fromDuration desc.leadTime)
+        lift $ info M.empty "end lead timer"
+        handleAction Display
+      _ <- H.fork do
+        liftAff $ delay (fromDuration desc.maxTimeToDisplay)
+        handleAction Remove
+      pure unit
+    subscribe selectGameEvents NewGameEvent
 
-renderMarginalium :: forall p i. Marginalium -> HTML p i
-renderMarginalium = case _ of
-  Glosses text -> HH.div_
-    [ HH.text text ]
+  Display -> do
+    modify_ (_ {isDisplaying = true})
+
+  NewGameEvent gameEvent -> do
+    log "GOT GAME event from marginalia" 
+    pred <- gets (_.removeOn)
+    when (unwrap pred gameEvent) do
+      gets (_.nextMarginalia >>> NE.fromList) >>= case _ of
+        Just marginalia -> do
+          H.raise (TriggerNext marginalia)
+          handleAction Remove
+        Nothing -> do
+          handleAction Remove
+
+  Remove -> do
+      uuid <- gets (_.uuid)
+      H.raise (RemoveThis uuid)
+
+renderMarginalium :: forall p i. MarginaliumDescription -> HTML p i
+renderMarginalium description = 
+  HH.div_
+    [ HH.text description.message ]
