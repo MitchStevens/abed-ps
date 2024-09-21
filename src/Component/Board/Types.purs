@@ -35,6 +35,7 @@ import Data.Zipper (Zipper)
 import Data.Zipper as Z
 import Game.Board (Board(..), BoardError, BoardM, RelativeEdge, PieceInfo, getBoardPortEdge, runBoardM, standardBoard)
 import Game.Direction (CardinalDirection)
+import Game.GameEvent (BoardEvent)
 import Game.Location (Location(..))
 import Game.Piece (Piece(..))
 import Game.Port (Port(..))
@@ -73,12 +74,14 @@ data Query a
   | SetGoalPorts (Map CardinalDirection Port) a
   | IncrementBoardSize a
   | DecrementBoardSize (Either BoardError Unit -> a)
+  | Undo a
+  | Redo a
+  | Clear a
 
 data Action
   = Initialise
   | PieceOutput Piece.Output
   | MultimeterOutput Multimeter.Output
-  | Undo | Redo
 
   | ToggleInput CardinalDirection
   | IncrementInput CardinalDirection
@@ -95,16 +98,16 @@ data Action
   | LocationOnMouseOver Location MouseEvent
   | LocationOnMouseUp Location MouseEvent
   | LocationOnDragEnter Location DragEvent
-  -- | LocationOnDragOver Location DragEvent
-  -- | LocationOnDragLeave DragEvent
+  | LocationOnDragOver Location DragEvent
+  | LocationOnDragLeave DragEvent
   | LocationOnDrop Location DragEvent
-  | PreventDefault Event
 
   | BoardPortOnMouseEnter CardinalDirection
   | BoardPortOnMouseLeave
 
 data Output
   = NewBoardState Board
+  | BoardEvent BoardEvent
 
 type Slots =
   ( piece :: Slot Piece.Query Piece.Output Location

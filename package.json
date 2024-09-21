@@ -9,7 +9,8 @@
     "build-watch": "npm run compile-css-watch & npm run build -- --watch",
     "build-prod": "spago -x prod.dhall build && purs-backend-es bundle-app --no-build --minify --to dist/abed.js && npm run compile-css",
     "test": "spago -x test.dhall test",
-    "test-watch": "npm run test -- --watch"
+    "test-watch": "npm run test -- --watch",
+    "clean": "rm -fr output"
   },
   "devDependencies": {
     "esbuild": "^0.18.15",

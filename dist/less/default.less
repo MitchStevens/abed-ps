@@ -1,5 +1,6 @@
 @red: #e74747;
 @green: #47e76a;
+@brown: #39230d;
 
 @import "board-component";
 @import "piece-component";
@@ -7,22 +8,26 @@
 @import "sidebar-component";
 @import "parchment";
 
-body { margin: 0; }
+body {
+    margin: 0; 
+    background: url(./images/fancy-cushion.webp);
+    background-size: 500px;
+}
 
 #content {
-    min-height: 100vh;
+    height: 100vh;
     min-width: 100%;
     display: inline-grid;
     grid-template-columns: 1fr 900px 1fr;
 }
 
 #abed {
-    color:#333;
+    color: @brown;
     user-select: none;
     min-height: 100%;
     grid-area: 1 / 2;
-    margin-top: 50px;
     font-family: bilbo;
+    font-size: 20px;
 
 
     #title {
@@ -40,6 +45,10 @@ body { margin: 0; }
     h1, h2, h3, h4, #title {
         font-weight: 400;
         font-family: pirata;
+    }
+
+    h3, h4 {
+        margin: 0;
     }
 
     ul {
@@ -66,6 +75,15 @@ body { margin: 0; }
         margin-right: auto;
     }
 
+    button {
+        background: none;
+        font-family: bilbo;
+        font-size: 20px;
+        border-width: 2px;
+        border-color: @brown;
+        border-style: solid;
+    }
+
 
     .piece-name {
         border-radius: 3px;
@@ -86,16 +104,11 @@ body { margin: 0; }
 }
 
 #default-layout {
-    padding-left: 100px;
-    padding-right: 100px;
-    min-width: 100%;
+    padding: 4em;
 
     & textarea#title {
         font-size: 14px;
     }
-
-
-
 }
 
 
@@ -118,7 +131,10 @@ span.green { color: @green }
     width: 100%;
     grid-template-columns: auto 350px;
     grid-template-rows: 75% auto;
-    padding: 10px;
+    padding-top: 50px;
+    padding-bottom: 50px;
+    padding-left: 20px;
+    padding-right: 20px;
     grid-gap: 10px;
     height: 100vh;
     box-sizing: border-box;
@@ -150,17 +166,3 @@ span.green { color: @green }
 .rough-annotation {
     z-index: 10;
 }
-
-#abed:root {
-    position: absolute;
-    display: flex;
-      width: 75%;
-    min-height: calc((1vw + 1vh) * 75);
-    /* center page with absolute position */
-    top: 0%; left: 50%; transform: translate(-50%, 0);
-    margin: 2em 0;
-      padding: 4em;
-      box-shadow: 2px 3px 20px black, 0 0 60px #8a4d0f inset;
-      background: #fffef0;
-    filter: url(#wavy2);
-  }

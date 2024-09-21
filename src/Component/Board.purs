@@ -56,11 +56,11 @@ import Debug (trace)
 import Effect.Aff.Class (class MonadAff)
 import Effect.Class (class MonadEffect, liftEffect)
 import Effect.Class.Console (log, logShow)
-import Game.Board (Board(..), BoardError, BoardM, _pieces, _size, addPath, addPiece, buildEvaluableBoard, capacityRipple, decreaseSize, evalBoardM, evalWithPortInfo, getBoardPortEdge, getPieceInfo, increaseSize, pieceDropped, removePiece, rotatePieceBy, runBoardM, runEvaluableM, toLocalInputs)
+import Game.Board (Board(..), BoardError, BoardM, _pieces, _size, addPath, addPiece, buildEvaluableBoard, capacityRipple, decreaseSize, evalBoardM, evalWithPortInfo, execBoardM, getBoardPortEdge, getPieceInfo, increaseSize, pieceDropped, removePiece, rotatePieceBy, runBoardM, runEvaluableM, toLocalInputs)
 import Game.Capacity (maxValue)
 import Game.Direction (CardinalDirection, allDirections)
 import Game.Direction as Direction
-import Game.GameEvent (BoardEvent(..), GameEvent(..))
+import Game.GameEvent (BoardEvent(..))
 import Game.Location (Location(..), location)
 import Game.Port (isInput, portCapacity)
 import Game.PortInfo (PortInfo)
@@ -68,6 +68,7 @@ import Game.Rotation (Rotation(..))
 import Game.Signal (Signal(..))
 import GlobalState (GlobalState, newBoardEvent)
 import Halogen (AttrName(..), ClassName(..), Component, ComponentHTML, ComponentSlot, HalogenM(..), HalogenQ, Slot, mkComponent, mkEval, raise, subscribe, tell)
+import Halogen as H
 import Halogen.HTML (HTML, PlainHTML, fromPlainHTML)
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
@@ -103,8 +104,7 @@ component = mkComponent { eval , initialState , render }
     , receive: \_ -> Nothing 
     }
     where
-      handleQuery :: forall a.
-        Query a -> HalogenM State Action Slots Output AppM (Maybe a)
+      handleQuery :: forall a. Query a -> HalogenM State Action Slots Output AppM (Maybe a)
       handleQuery = case _ of
         GetBoard f -> do
           Just <<< f <$> use _board
@@ -115,19 +115,19 @@ component = mkComponent { eval , initialState , render }
             Left boardError -> 
               Animate.headShake (DA.selector DA.location loc)
             Right _ ->
-              updateStore (newBoardEvent (AddPieceEvent loc piece))
+              H.raise (BoardEvent (AddPieceEvent loc piece))
           pure (Just (f result))
 
         AddPath initial locations terminal f -> do
           result <- liftBoardM (addPath initial locations terminal)
           when (isRight result) do
-            updateStore (newBoardEvent (AddPathEvent initial locations terminal))
+            H.raise (BoardEvent (AddPathEvent initial locations terminal))
           pure (Just (f result))
 
         RemovePiece loc f -> do
           result <- liftBoardM (removePiece loc)
           for_ result \info ->
-            updateStore (newBoardEvent (RemovePieceEvent loc info))
+            H.raise (BoardEvent (RemovePieceEvent loc info))
           pure (Just (f result))
 
         GetMouseOverLocation f -> do
@@ -157,6 +157,28 @@ component = mkComponent { eval , initialState , render }
         DecrementBoardSize f -> do
           result <- liftBoardM decreaseSize 
           pure (Just (f result))
+
+        Undo next -> do
+          maybeZipper <- Z.moveLeft <$> gets (_.boardHistory)
+          for_ maybeZipper \t -> do
+            modify_ (_ { boardHistory = t })
+            handleAction EvaluateBoard
+          pure (Just next)
+
+        Redo next -> do
+          maybeZipper <- Z.moveRight <$> gets (_.boardHistory)
+          for_ maybeZipper \t -> do
+            modify_ (_ { boardHistory = t })
+            handleAction EvaluateBoard
+          pure (Just next)
+        
+        Clear next -> do
+          _ <- liftBoardM do
+            pieces <- use _pieces
+            forWithIndex_ pieces \loc _ ->
+              removePiece loc
+          pure (Just next)
+
 
       --handleAction :: Action -> HalogenM State Action Slots Output _ Unit
       handleAction = case _ of
@@ -193,17 +215,6 @@ component = mkComponent { eval , initialState , render }
                 pure { info, relativeEdge }
             
           tell slot.multimeter unit (\_ -> Multimeter.NewFocus focus)
-
-        Undo -> do
-          maybeZipper <- Z.moveLeft <$> gets (_.boardHistory)
-          for_ maybeZipper \t -> do
-            modify_ (_ { boardHistory = t })
-            handleAction EvaluateBoard
-        Redo -> do
-          maybeZipper <- Z.moveRight <$> gets (_.boardHistory)
-          for_ maybeZipper \t -> do
-            modify_ (_ { boardHistory = t })
-            handleAction EvaluateBoard
 
         ToggleInput dir -> do
           _inputs <<< ix dir %= \signal -> if signal == ff then tt else ff
@@ -288,20 +299,24 @@ component = mkComponent { eval , initialState , render }
             tell slot.piece loc (\_ -> Piece.SetPiece info.piece)
             tell slot.piece loc (\_ -> Piece.SetRotation info.rotation)
 
-
         -- can these events be simplified? do we need all of them?
         LocationOnDragEnter loc dragEvent -> do
           liftEffect $ preventDefault (toEvent dragEvent)
           modify_ (_ { isMouseOverLocation = Just loc } )
+        LocationOnDragOver loc dragEvent -> do
+          liftEffect $ preventDefault (toEvent dragEvent)
         LocationOnDrop loc dragEvent -> do
           modify_ (_ { isMouseOverLocation = Just loc } )
           liftEffect $ preventDefault (toEvent dragEvent)
-        PreventDefault event -> do
-          liftEffect $ preventDefault event
-        GlobalOnKeyDown ke -> do
+        LocationOnDragLeave _ -> do
+          modify_ (_ { isMouseOverLocation = Nothing } )
+
+        GlobalOnKeyDown ke -> 
           case key ke of
-            "z" -> when (ctrlKey ke) (handleAction Undo)
-            "y" -> when (ctrlKey ke) (handleAction Redo)
+            "z" -> when (ctrlKey ke) do
+              void $ handleQuery (Undo unit)
+            "y" -> when (ctrlKey ke) do
+              void $ handleQuery (Redo unit)
             "e" -> gets (_.isMouseOverBoardPort) >>= traverse_ \dir ->
               handleAction (IncrementInput dir)
             "E" -> gets (_.isMouseOverBoardPort) >>= traverse_ \dir ->

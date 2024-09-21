@@ -79,10 +79,11 @@ render state =
         , HE.onMouseOver (LocationOnMouseOver loc)
         , HE.onMouseUp (LocationOnMouseUp loc)
         , HE.onDragEnter (LocationOnDragEnter loc)
-        , HE.onDragOver (DragEvent.toEvent >>> PreventDefault)
-        , HE.onDragLeave (DragEvent.toEvent >>> PreventDefault)
+        , HE.onDragOver (LocationOnDragOver loc)
+        , HE.onDragLeave LocationOnDragLeave
         , HE.onDrop (LocationOnDrop loc)
         ]
+
         [ maybe emptyPieceHTML pieceHTML maybePiece loc ]
       where
         loc = location i j
@@ -137,6 +138,6 @@ render state =
     emptyPieceHTML (Location {x, y}) =
       HH.div 
         [ HP.class_ (ClassName "location-text") ]
-        [ HH.text (show x <> "," <> show y) ]
+        [ HH.text (show (x+1) <> "," <> show (y+1)) ]
 
     multimeter = HH.slot slot.multimeter unit Multimeter.component {} MultimeterOutput

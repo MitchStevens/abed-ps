@@ -39,6 +39,7 @@ data BoardEvent
   | AddPathEvent CardinalDirection (Array Location) CardinalDirection
   | IncrementSizeEvent
   | DecrementSizeEvent
+  | ClearEvent
 derive instance Generic BoardEvent _
 derive instance Eq BoardEvent
 derive instance Ord BoardEvent

@@ -28,7 +28,6 @@ import Halogen.HTML (HTML, object)
 import Halogen.HTML as HH
 import Halogen.HTML.Properties as HP
 import Halogen.Store.Connect (subscribe)
-import Promise (then_)
 import Web.DOM (Element)
 import Web.HTML (Location)
 
