@@ -42,8 +42,8 @@ marginalia predicate marginaliaDescription =
 description :: String -> Predicate GameEvent -> MarginaliumDescription
 description message removeOn =
   { message
-  , leadTime: Seconds 10.0
-  , maxTimeToDisplay: Seconds 20.0
+  , leadTime: Seconds 0.0 --Seconds 10.0
+  , maxTimeToDisplay: Seconds 100000.0 --Seconds 20.0
   , removeOn
   }
 

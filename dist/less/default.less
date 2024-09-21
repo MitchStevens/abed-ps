@@ -6,6 +6,7 @@
 @import "piece-component";
 @import "chat-component";
 @import "sidebar-component";
+@import "marginalium-component";
 @import "parchment";
 
 body {
@@ -18,7 +19,7 @@ body {
     height: 100vh;
     min-width: 100%;
     display: inline-grid;
-    grid-template-columns: 1fr 900px 1fr;
+    grid-template-columns: minmax(300px, 1fr) 900px 1fr;
 }
 
 #abed {

@@ -70,10 +70,14 @@ component = H.mkComponent { eval, initialState, render }
 
     render state =
       HH.div
-        [ HP.class_ (ClassName "marginalium")] $
-        if state.isDisplaying
-          then maybe [] (renderMarginalium >>> pure) state.description
-          else []
+        [ HP.class_ (ClassName "marginalium")]
+        [ --HH.div [ HP.class_ (ClassName "parchment") ] []
+        HH.div_ $
+          if state.isDisplaying
+            then maybe [] (renderMarginalium >>> pure) state.description
+            else []
+        ]
+
 
     eval = H.mkEval (H.defaultEval
       { handleAction = handleAction
