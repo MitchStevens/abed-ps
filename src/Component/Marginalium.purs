@@ -5,11 +5,10 @@ import Prelude
 import AppM (AppM)
 import Component.GameEventLogger (selectGameEvents)
 import Component.Marginalia.Types (Marginalia, MarginaliaNode(..), MarginaliumDescription)
-import Control.Monad.Logger.Class (class MonadLogger, info)
+import Control.Monad.Logger.Class (info)
 import Control.Monad.State.Class (gets, modify_)
-import Data.DateTime.Instant (Instant)
 import Data.Foldable (traverse_)
-import Data.List (List(..))
+import Data.List (List)
 import Data.List.NonEmpty as NE
 import Data.Map as M
 import Data.Maybe (Maybe(..), maybe)
@@ -28,8 +27,6 @@ import Halogen.HTML (HTML, object)
 import Halogen.HTML as HH
 import Halogen.HTML.Properties as HP
 import Halogen.Store.Connect (subscribe)
-import Web.DOM (Element)
-import Web.HTML (Location)
 
 type Input = 
   { uuid :: UUIDv4
@@ -41,7 +38,6 @@ type State =
   , description :: Maybe MarginaliumDescription
   , removeOn :: Predicate GameEvent
   , nextMarginalia :: List MarginaliaNode
-  --, createdAt :: Instant
   , isDisplaying :: Boolean
   }
 

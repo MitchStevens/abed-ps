@@ -40,8 +40,8 @@ component = H.mkComponent { eval , initialState , render }
         , HH.br_
         , HH.text "Source Code: "
         , HH.a
-          [ HP.href "https://github.com/MitchStevens/abed-ps" ]
-          [ HH.text "https://github.com/MitchStevens/abed-ps" ]
+          [ HP.href "github.com/MitchStevens/abed-ps" ]
+          [ HH.text "github.com/MitchStevens/abed-ps" ]
         , HH.br_
         , HH.button
           [ HE.onClick (\_ -> DeleteProgress ) ]
