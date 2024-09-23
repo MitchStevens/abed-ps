@@ -3,20 +3,17 @@ module Component.Level where
 import Prelude
 
 import AppM (AppM)
-import Capability.Progress as Progress
+import Capability.Navigate (Route(..), navigateTo)
 import Component.Board as Board
-import Component.Chat as Chat
 import Component.GameEventLogger as GameEventLogger
 import Component.Marginalia.Types (Marginalia, marginalia)
 import Component.Marginalium as Marginalium
-import Component.Sidebar (Output(..))
 import Component.Sidebar as Sidebar
 import Control.Alt ((<|>))
 import Control.Monad.Cont (ContT(..), callCC, lift, runContT)
 import Control.Monad.Except (ExceptT(..), runExceptT)
 import Control.Monad.Logger.Class (class MonadLogger, debug, info)
 import Control.Monad.State (evalState, modify_)
-import Data.Array (intercalate, intersperse)
 import Data.Array as A
 import Data.Bifunctor (lmap)
 import Data.Either (Either(..), either, isRight)
@@ -24,8 +21,6 @@ import Data.Foldable (fold, foldMap, for_, length, traverse_)
 import Data.FoldableWithIndex (forWithIndex_)
 import Data.Int (toNumber)
 import Data.Lens ((^.))
-import Data.List (List(..))
-import Data.List as L
 import Data.Map (Map)
 import Data.Map as M
 import Data.Maybe (Maybe(..), fromMaybe)
@@ -35,19 +30,16 @@ import Data.TraversableWithIndex (forWithIndex)
 import Data.Tuple (Tuple(..), fst, snd)
 import Data.UUID.Random (UUIDv4)
 import Data.UUID.Random as UUID
-import Debug (spy)
-import Effect.Aff (delay)
 import Effect.Aff.Class (class MonadAff, liftAff)
 import Effect.Class (class MonadEffect, liftEffect)
 import Effect.Class.Console (log)
 import Game.Board (Board(..), _size, firstEmptyLocation, getBoardPorts, standardBoard)
 import Game.Direction (CardinalDirection)
-import Game.GameEvent (GameEvent)
 import Game.Level (LevelId, Level)
-import Game.Level.Completion (CompletionStatus(..), FailedTestCase, isReadyForTesting, runSingleTest)
+import Game.Level.Completion (CompletionStatus(..), RunningTestCase, isReadyForTesting, runSingleTest)
 import Game.Piece (Piece(..), pieceLookup)
 import Game.Port (Port(..))
-import Game.Signal (Signal(..))
+import Game.Signal (Base, Signal(..), SignalRepresentation)
 import GlobalState (GlobalState, newBoardEvent)
 import Halogen (ClassName(..), Component, HalogenM, HalogenQ, Slot, gets, modify_)
 import Halogen as H
@@ -70,6 +62,7 @@ type State =
   , completionStatus :: CompletionStatus
   , boardSize :: Int
   , boardPorts :: Map CardinalDirection Port
+  , base :: Base
   }
 
 --data Query a
@@ -108,14 +101,17 @@ component = H.mkComponent { eval , initialState , render }
     , boardSize: initialBoard.size
     , boardPorts: evalState getBoardPorts (Board initialBoard)
     , marginalia: M.empty
+    , base: level.options.base
     }
 
   --render :: State -> HalogenM State Action Slots o m Unit
-  render { level, levelId, marginalia, completionStatus, boardSize, boardPorts } = HH.div
+  render { level, levelId, marginalia, completionStatus, boardSize, boardPorts, base } = HH.div
     [ HP.id "puzzle-component"]
-    [ HH.slot _board    unit Board.component { board: Board initialBoard} BoardOutput
+    [ HH.slot _board unit Board.component { board: Board initialBoard} BoardOutput
     --, HH.slot_ _chat    unit Chat.component { conversation: level.conversation }
-    , HH.slot _sidebar  unit Sidebar.component { problem: level.problem, completionStatus, boardSize, boardPorts } SidebarOutput
+    , HH.slot _sidebar unit Sidebar.component
+        { problem: level.problem, completionStatus, boardSize, boardPorts, base }
+        SidebarOutput
     , HH.div [ HP.id "marginalia" ] ((M.toUnfoldable marginalia :: Array _) <#> \(Tuple uuid m) -> HH.slot _marginalia uuid Marginalium.component { uuid, marginalia: m } MarginaliumOutput)
     , HH.slot_ _gameEventLogger unit GameEventLogger.component unit
     ]
@@ -163,39 +159,47 @@ component = H.mkComponent { eval , initialState , render }
         maybeLocation <- H.request _board unit (Board.GetMouseOverLocation)
         for_ maybeLocation \loc -> 
           H.request _board unit (Board.AddPiece loc (pieceLookup pieceId))
-      Sidebar.PieceAdded pieceId -> do
-        H.request _board unit Board.GetBoard >>= traverse_ \board -> do
-          for_ (firstEmptyLocation board) \loc ->
-            H.request _board unit (Board.AddPiece loc (pieceLookup pieceId))
-      Sidebar.BoardSizeIncremented ->
-        H.tell _board unit Board.IncrementBoardSize
-      Sidebar.BoardSizeDecremented ->
-        void $ H.request _board unit Board.DecrementBoardSize
-      Sidebar.TestsTriggered -> do
-        let minTotalTestDurationMs = 2000
-        problem <- gets (_.level.problem)
-        let numTests = A.length problem.testCases
-        let delayDuration =  Milliseconds (toNumber (minTotalTestDurationMs `div` numTests))
+      Sidebar.ButtonOutput button -> case button of
+        Sidebar.AddPiece pieceId -> do
+          H.request _board unit Board.GetBoard >>= traverse_ \board -> do
+            for_ (firstEmptyLocation board) \loc ->
+              H.request _board unit (Board.AddPiece loc (pieceLookup pieceId))
+        Sidebar.BackToLevelSelect  ->
+          liftEffect $ navigateTo LevelSelect
+        Sidebar.IncrementBoardSize ->
+          H.tell _board unit Board.IncrementBoardSize
+        Sidebar.DecrementBoardSize ->
+          void $ H.request _board unit Board.DecrementBoardSize
+        Sidebar.Undo ->
+          H.tell _board unit Board.Undo
+        Sidebar.Redo ->
+          H.tell _board unit Board.Redo
+        Sidebar.RunTests -> do
+          let minTotalTestDurationMs = 2000
+          problem <- gets (_.level.problem)
+          let numTests = A.length problem.testCases
+          let delayDuration =  Milliseconds (toNumber (minTotalTestDurationMs `div` numTests))
 
-        testResult <- runExceptT $ forWithIndex problem.testCases \testIndex testCase  -> do
-          modify_ $ _ { completionStatus = RunningTest { testIndex, numTests } }
-          res <- ExceptT $ runSingleTest problem.goal testIndex testCase testEval
-          liftAff (delay delayDuration)
-          pure res
+          --testResult <- runExceptT $ forWithIndex problem.testCases \testIndex testCase  -> do
+          --  modify_ $ _ { completionStatus = RunningTestCase { testIndex, numTests } }
+          --  res <- ExceptT $ runSingleTest problem.goal testIndex testCase testEval
+          --  liftAff (delay delayDuration)
+          --  pure res
 
-        case testResult of
-          Left failedTestCase -> do
-            modify_ $ _ { completionStatus = FailedTestCase failedTestCase }
-          Right _  -> do
-            levelId <-  gets (_.levelId)
-            liftEffect $ Progress.saveLevelProgress levelId Progress.Completed
-            modify_ $ _ { completionStatus = Completed }
-      UndoTriggered -> do
-        H.tell _board unit Board.Undo
-      RedoTriggered -> do
-        H.tell _board unit Board.Redo
-      ClearTriggered -> do
-        H.tell _board unit Board.Clear
+          --pure unit
+          --case testResult of
+          --  Left failedTestCase -> do
+          --    modify_ $ _ { completionStatus = FailedTestCase failedTestCase }
+          --  Right _  -> do
+          --    levelId <-  gets (_.levelId)
+          --    liftEffect $ Progress.saveLevelProgress levelId Progress.Completed
+          --    modify_ $ _ { completionStatus = Completed }
+          pure unit
+        Sidebar.Clear ->
+          H.tell _board unit Board.Clear
+        Sidebar.Base base ->
+          modify_ $ _ { base = base }
+
       
     MarginaliumOutput marginaliaOutput -> case marginaliaOutput of
       Marginalium.TriggerNext marginalia -> do

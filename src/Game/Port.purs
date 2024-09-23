@@ -10,7 +10,7 @@ import Data.Lens.Record (prop)
 import Data.Maybe (Maybe(..))
 import Data.Newtype (class Newtype)
 import Game.Capacity (Capacity)
-import Game.Signal (Signal(..), nthBit)
+import Game.Signal (Signal(..))
 import Type.Proxy (Proxy(..))
 
 data PortType = Input | Output

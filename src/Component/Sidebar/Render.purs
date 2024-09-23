@@ -17,12 +17,13 @@ import Data.Maybe (Maybe(..))
 import Data.String (Pattern(..), split)
 import Data.Tuple (Tuple(..), fst, snd)
 import Game.Capacity (toInt)
-import Game.Level.Completion (CompletionStatus(..), FailedTestCase, PortMismatch(..))
+import Game.Level.Completion (CompletionStatus(..), PortMismatch(..))
 import Game.Location (location)
 import Game.Message (green, red)
 import Game.Piece (PieceId(..), name, pieceVault)
 import Game.Port (Port(..))
 import Game.Port as Port
+import Game.Signal (Base(..), SignalRepresentation(..), printSignal)
 import Halogen (ClassName(..), ComponentHTML)
 import Halogen.HTML (HTML)
 import Halogen.HTML as HH
@@ -49,6 +50,7 @@ render state =
     , renderBoardSize
     , renderUndoRedo
     , renderClear
+    , renderSignalRepresentation
     , renderGiveUp
     ]
   where
@@ -81,18 +83,18 @@ render state =
         ]
 
     renderAvailablePiece piece =
-        let input = { piece, location: location 0 0, portStates: M.empty }
-            pieceId = name piece
-        in HH.div 
-          [ DA.attr DA.availablePiece (name piece)
-          , HP.draggable true
-          , HP.classes [ ClassName "available-piece" ]
-          , HE.onDragEnd (PieceOnDrop pieceId)
-          , HE.onClick (PieceOnClick pieceId)
-          ]
-          [ mapActionOverHTML (\_ -> DoNothing) (renderPiece (Piece.initialState { piece, location: location 0 0 }))
-          , HH.text (show pieceId) 
-          ]
+      HH.div 
+        [ DA.attr DA.availablePiece pieceId
+        , HP.draggable true
+        , HP.classes [ ClassName "available-piece" ]
+        , HE.onDragEnd (PieceOnDrop pieceId)
+        , HE.onClick (ButtonClicked (AddPiece pieceId))
+        ]
+        [ mapActionOverHTML (\_ -> DoNothing) (renderPiece (Piece.initialState { piece, location: location 0 0 }))
+        , HH.text (show pieceId) 
+        ]
+      where
+        pieceId = name piece
 
     renderCompletionStatus = HH.div_
         case state.completionStatus of
@@ -119,25 +121,25 @@ render state =
             [ HH.text "Ready for testing: "
             , HH.button
                 [ HP.class_ (ClassName "ready-for-testing")
-                , HE.onClick RunTests ]
+                , HE.onClick (ButtonClicked RunTests) ]
                 [ HH.text "Run Tests"]
             ]
-          RunningTest { testIndex, numTests } ->
+          RunningTestCase { testIndex, numTests } ->
             [ HH.b_ [ HH.text "Running tests..." ]
             , HH.br_
             , HH.text $ "Running "<> show (testIndex+1) <>"/"<> show numTests
             ]
-          FailedTestCase failedTestCase ->
-            [ renderTestError failedTestCase ]
+          TestCaseOutcome failedTestCase -> []
+            --[ renderTestError failedTestCase ]
           Completed ->
             [ HH.text "Level Complete!"
             , HH.button
                 [ HP.class_ (ClassName "run-tests-again")
-                , HE.onClick RunTests ]
+                , HE.onClick (ButtonClicked RunTests) ]
                 [ HH.text "Run Tests again"]
             , HH.button
                 [ HP.class_ (ClassName "back-to-level-select")
-                , HE.onClick BackToLevelSelect ]
+                , HE.onClick (ButtonClicked BackToLevelSelect) ]
                 [ HH.text "Back to Level Select "]
             ]
           where
@@ -148,42 +150,42 @@ render state =
             renderTestSuccess :: forall p i. Int -> Int -> HTML p i
             renderTestSuccess i n = HH.span_ [ green (show i <> "/" <> show n), HH.text " Sucessful" ]
 
-            renderTestError :: FailedTestCase -> ComponentHTML Action s m
-            renderTestError { testIndex, inputs, expected, recieved } = HH.div_
-              [ HH.b_ [ HH.text  $ "Test " <> show (testIndex+1) <> " Failed:" ]
-              , HH.br_
-              , HH.text "inputs: ", printPorts inputs
-              , HH.br_
-              , HH.text "expected: ", printPorts expected
-              , HH.br_
-              , HH.text "recieved: ", printReceivedOutputs
-              ]
-              where
-                showTuple (Tuple dir signal) = show dir <> ": " <> show signal
+            --renderTestError :: FailedTestCase -> ComponentHTML Action s m
+            --renderTestError { testIndex, inputs, expected, recieved } = HH.div_
+            --  [ HH.b_ [ HH.text  $ "Test " <> show (testIndex+1) <> " Failed:" ]
+            --  , HH.br_
+            --  , HH.text "inputs: ", printPorts inputs
+            --  , HH.br_
+            --  , HH.text "expected: ", printPorts expected
+            --  , HH.br_
+            --  , HH.text "recieved: ", printReceivedOutputs
+            --  ]
+            --  where
+            --    showTuple (Tuple dir signal) = show dir <> ": " <> printSignal state.signalRepresentation signal
 
-                printPorts m = HH.text $
-                  A.intercalate ", " $ map showTuple (M.toUnfoldable m :: Array _)
+            --    printPorts m = HH.text $
+            --      A.intercalate ", " $ map showTuple (M.toUnfoldable m :: Array _)
 
-                printReceivedOutputs = HH.span_ $
-                  A.intersperse (HH.text ", ") $ (M.toUnfoldable recieved :: Array _) <#> \tuple ->
-                    if M.lookup (fst tuple) expected == Just (snd tuple)
-                      then green (showTuple tuple)
-                      else red (showTuple tuple)
+            --    printReceivedOutputs = HH.span_ $
+            --      A.intersperse (HH.text ", ") $ (M.toUnfoldable recieved :: Array _) <#> \tuple ->
+            --        if M.lookup (fst tuple) expected == Just (snd tuple)
+            --          then green (showTuple tuple)
+            --          else red (showTuple tuple)
 
     renderBoardSize =
       HH.div_
         [ HH.h3_ [ HH.text "Board size" ]
         , HH.div
           [ HP.classes [ ClassName "buttons"] ]
-          [ HH.b [ HE.onClick DecrementBoardSize] [ HH.text "-" ]
+          [ HH.b [ HE.onClick (ButtonClicked DecrementBoardSize) ] [ HH.text "-" ]
           , HH.text (" " <> show state.boardSize <> " ")
-          , HH.b [ HE.onClick IncrementBoardSize ] [ HH.text "+" ]
+          , HH.b [ HE.onClick (ButtonClicked IncrementBoardSize) ] [ HH.text "+" ]
           ]
         ]
     
     renderGiveUp = 
       HH.div
-        [ HE.onClick BackToLevelSelect ]
+        [ HE.onClick (ButtonClicked BackToLevelSelect) ]
         [ HH.h3_ [ HH.text "Resign" ]
         , HH.div_ [HH.text "Choose another level"]
         ]
@@ -191,20 +193,42 @@ render state =
     renderUndoRedo = 
       HH.div_
         [ HH.h3_
-          [ HH.span [ HE.onClick Undo ] [ HH.text "Undo" ]
+          [ HH.span [ HE.onClick (ButtonClicked Undo) ] [ HH.text "Undo" ]
           , HH.text "/"
-          , HH.span [ HE.onClick Redo ] [ HH.text "Redo" ]
+          , HH.span [ HE.onClick (ButtonClicked Redo) ] [ HH.text "Redo" ]
           ]
         , HH.span_
-          [ HH.span [ HE.onClick Undo ] [ HH.text "Ctrl-Z" ]
+          [ HH.span [ HE.onClick (ButtonClicked Undo) ] [ HH.text "Ctrl-Z" ]
           , HH.text "/"
-          , HH.span [ HE.onClick Redo ] [ HH.text "Ctrl-Y" ]
+          , HH.span [ HE.onClick (ButtonClicked Redo) ] [ HH.text "Ctrl-Y" ]
           ]
         ]
     
     renderClear = 
       HH.div
-        [ HE.onClick Clear ]
+        [ HE.onClick (ButtonClicked Clear) ]
         [ HH.h3_ [ HH.text "Obliterate" ]
         , HH.div_ [HH.text "Remove all pieces"]
         ]
+    
+    renderSignalRepresentation =
+      HH.div_
+        [ HH.h3_ [ HH.text "Radix" ]
+        , HH.div_ 
+          [ signalRepresentationOption Binary "Binary"
+          , HH.text " | "
+          , signalRepresentationOption Decimal "Decimal"
+          , HH.text " | "
+          , signalRepresentationOption Hexadecimal "Hexidecimal"
+          ]
+        ]
+      where
+        signalRepresentationOption :: Base -> String -> ComponentHTML Action s m
+        signalRepresentationOption base text =
+          HH.span
+            [ HE.onClick (ButtonClicked (Base base)) ]
+            (if state.base == base
+              then [ HH.b_ [ HH.text text ] ]
+              else [ HH.text text ])
+
+        

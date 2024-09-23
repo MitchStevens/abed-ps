@@ -12,7 +12,7 @@ import Data.Maybe (Maybe(..), fromMaybe)
 import Data.Newtype (class Newtype)
 import Data.Traversable (class Foldable, traverse)
 import Data.Tuple (Tuple(..))
-import Game.Capacity (Capacity(..), clampSignal)
+import Game.Capacity (Capacity(..))
 import Game.Direction (CardinalDirection(..))
 import Game.Direction as Direction
 import Game.Piece.Complexity (Complexity)
@@ -48,7 +48,7 @@ notPiece :: Piece
 notPiece = basicPiece
   { name: PieceId "not-piece"
   , eval: \m ->
-      let l = fromMaybe (Signal 0) (M.lookup Left m)
+      let l = fromMaybe zero (M.lookup Left m)
       in M.singleton Right (not l)
   , ports: M.fromFoldable
     [ Tuple Left Input
@@ -61,8 +61,8 @@ orPiece :: Piece
 orPiece = basicPiece
   { name: PieceId "or-piece"
   , eval: \m ->
-      let l = fromMaybe (Signal 0) (M.lookup Left m)
-          u = fromMaybe (Signal 0) (M.lookup Up m)
+      let l = fromMaybe zero (M.lookup Left m)
+          u = fromMaybe zero (M.lookup Up m)
       in M.singleton Right (l || u)
   , ports: M.fromFoldable
     [ Tuple Left Input
@@ -76,8 +76,8 @@ andPiece :: Piece
 andPiece = basicPiece
   { name: PieceId "and-piece" 
   , eval: \m ->
-      let l = fromMaybe (Signal 0) (M.lookup Left m)
-          u = fromMaybe (Signal 0) (M.lookup Up m)
+      let l = fromMaybe zero (M.lookup Left m)
+          u = fromMaybe zero (M.lookup Up m)
       in M.singleton Right (l && u)
   , ports: M.fromFoldable
     [ Tuple Left Input
@@ -91,8 +91,8 @@ xorPiece :: Piece
 xorPiece = basicPiece 
   { name: PieceId "xor-piece" 
   , eval: \m ->
-      let l = fromMaybe (Signal 0) (M.lookup Left m)
-          u = fromMaybe (Signal 0) (M.lookup Up m)
+      let l = fromMaybe zero (M.lookup Left m)
+          u = fromMaybe zero (M.lookup Up m)
       in M.singleton Right (xor l u)
   , ports: M.fromFoldable
     [ Tuple Left Input

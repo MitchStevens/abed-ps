@@ -26,7 +26,7 @@ import Game.Board (RelativeEdge)
 import Game.Capacity (Capacity(..), toInt)
 import Game.Port (portCapacity)
 import Game.PortInfo (PortInfo)
-import Game.Signal (Signal(..), nthBit)
+import Game.Signal (Signal(..))
 import Halogen (ClassName(..), RefLabel(..), gets, modify_)
 import Halogen as H
 import Halogen.HTML (HTML(..), PlainHTML, fromPlainHTML)
@@ -175,20 +175,21 @@ multimeterText = A.zipWith ($) prefixes <<< maybe defaultValues multimeterTextVa
 
 
 multimeterTextValues :: PortInfo -> Array String
-multimeterTextValues info = [ binaryText , decimalText , capacityText , connectedText ]
-  where
-    binaryText =
-      (enumFromTo (toInt (portCapacity info.port) - 1) 0 :: Array _)
-        <#> nthBit info.signal
-        # foldMap (\b -> if b then "1" else "0")
-        # padStart " " 8
-    
-    decimalText =
-      let Signal n = info.signal
-      in padStart "0" 3 (show n)
-
-    capacityText = show (toInt (portCapacity info.port)) <> "bit"
-    connectedText = if info.connected then "true" else "fals"
+multimeterTextValues _ = [ "FIX ME" ]
+--multimeterTextValues info = [ binaryText , decimalText , capacityText , connectedText ]
+--  where
+--    binaryText =
+--      (enumFromTo (toInt (portCapacity info.port) - 1) 0 :: Array _)
+--        <#> nthBit info.signal
+--        # foldMap (\b -> if b then "1" else "0")
+--        # padStart " " 8
+--    
+--    decimalText =
+--      let Signal n = info.signal
+--      in padStart "0" 3 (show n)
+--
+--    capacityText = show (toInt (portCapacity info.port)) <> "bit"
+--    connectedText = if info.connected then "true" else "fals"
 
 defaultValues :: Array String
 defaultValues =

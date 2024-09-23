@@ -23,7 +23,6 @@ import Game.Direction as Direction
 import Game.GameEvent (BoardEvent(..), GameEvent(..))
 import Game.Level (LevelSuite, binaryTestInputs, defaultLevel)
 import Game.Level.Problem (defaultProblem)
-import Game.Level.RulesEngine (Rule(..))
 import Game.Location (location)
 import Game.Message (Conversation, Message(..), button, guideMessage, noUser, sendMessage)
 import Game.Piece (idPiece, leftPiece, notPiece, orPiece)

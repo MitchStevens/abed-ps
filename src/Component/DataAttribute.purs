@@ -12,6 +12,7 @@ import Data.Maybe (Maybe(..), isJust, maybe)
 import Data.Newtype (class Newtype, unwrap, wrap)
 import Data.String (Pattern(..), split, stripPrefix, stripSuffix, toLower)
 import Data.String.CodeUnits (fromCharArray)
+import Data.UInt (UInt, fromInt)
 import Effect (Effect)
 import Game.Capacity (Capacity(..))
 import Game.Direction (CardinalDirection)
@@ -83,6 +84,9 @@ int = dataAttribute (AttrName "int") show attrParse
       digitStr <- fromCharArray <<< A.fromFoldable <$> many1 digit
       maybe (fail digitStr) pure (Int.fromString digitStr)
 
+uint :: DataAttribute UInt
+uint = dataAttribute (AttrName "uint") show (map fromInt int.attrParse)
+
 boolean :: DataAttribute Boolean
 boolean = dataAttribute (AttrName "boolean") attrPrint attrParse
   where
@@ -139,8 +143,8 @@ rotation = wrapAttribute (AttrName "data-rotation") int
 isConnected :: DataAttribute Boolean
 isConnected = boolean { attrName = AttrName "data-is-connected" } 
 
-signal :: DataAttribute Signal
-signal = wrapAttribute (AttrName "data-signal") int
+--signal :: DataAttribute Signal
+--signal = dataAttribute (AttrName "data-signal") () (map mkSignal uint.attrParse)
 
 isDragging :: DataAttribute Boolean
 isDragging = boolean { attrName = AttrName "data-is-dragging" } 
@@ -154,8 +158,8 @@ completionStatus = dataAttribute (AttrName "data-completion-status") attrPrint a
       NotEvaluable _ -> "not-evaluable"
       PortMismatch _ -> "port-mismatch"
       ReadyForTesting -> "ready-for-testing"
-      RunningTest _ -> "running-test"
-      FailedTestCase _ -> "failed-test-case"
+      RunningTestCase _ -> "running-test"
+      TestCaseOutcome _ -> "testCaseOutcome"
       Completed -> "completed"
     attrParse = fail "no parser for completion status!"
 

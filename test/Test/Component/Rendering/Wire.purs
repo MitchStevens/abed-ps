@@ -9,7 +9,7 @@ import Data.Tuple (Tuple(..))
 import Game.Capacity (Capacity(..))
 import Game.Direction as Direction
 import Game.Port (inputPort, outputPort)
-import Game.Signal (Signal(..))
+import Game.Signal (Signal)
 import Halogen.Svg.Attributes (CommandPositionReference(..), l, m, q)
 import Test.Spec (Spec, describe, it, itOnly)
 import Test.Spec.Assertions (shouldEqual)
@@ -18,7 +18,7 @@ spec :: Spec Unit
 spec = do
   describe "Component.Rendering.Wire" do
     it "wirePath" do
-      let signal = Signal 0
+      let signal = zero
       let id = M.fromFoldable [ Tuple Direction.Left {connected: false, port: inputPort OneBit, signal} , Tuple Direction.Right {connected: false, port: outputPort OneBit, signal} ]
       let left = M.fromFoldable [ Tuple Direction.Left {connected: false, port: inputPort OneBit, signal} , Tuple Direction.Up {connected: false, port: outputPort OneBit, signal} ]
       let super = M.fromFoldable

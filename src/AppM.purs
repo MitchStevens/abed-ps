@@ -45,4 +45,4 @@ runAppM component = do
 
   where
     unLogger :: forall m a. MonadEffect m => LoggerT m a -> m a
-    unLogger loggerT = runLoggerT loggerT (logMessage Debug)
+    unLogger loggerT = runLoggerT loggerT (logMessage Info)

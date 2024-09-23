@@ -25,8 +25,8 @@ data CompletionStatus
   | NotEvaluable BoardError
   | PortMismatch PortMismatch
   | ReadyForTesting
-  | RunningTest RunningTest
-  | FailedTestCase FailedTestCase
+  | RunningTestCase RunningTestCase
+  | TestCaseOutcome TestCaseOutcome
   | Completed
 
 derive instance Eq CompletionStatus
@@ -55,9 +55,9 @@ instance Show PortMismatch where
 --  IncorrectPortType { direction, capacity, received, expected } -> received /= expected
 --  IncorrectCapacity { direction, portType, received, expected } -> received /= expected
 
-type RunningTest = { testIndex :: Int, numTests :: Int }
+type RunningTestCase = { testIndex :: Int, numTests :: Int }
 
-type FailedTestCase =
+type TestCaseOutcome = 
   { testIndex :: Int
   , inputs :: Map CardinalDirection Signal
   , expected :: Map CardinalDirection Signal
@@ -104,10 +104,8 @@ checkOtherRestrictions problem board = for_ problem.otherRestrictions \r ->
     throwError { name: r.name, description: r.description }
 
 runSingleTest :: forall m. Monad m
-  => Piece -> Int -> Map CardinalDirection Signal -> (Map CardinalDirection Signal -> m (Map CardinalDirection Signal)) -> m (Either FailedTestCase Unit)
+  => Piece -> Int -> Map CardinalDirection Signal -> (Map CardinalDirection Signal -> m (Map CardinalDirection Signal)) -> m TestCaseOutcome
 runSingleTest piece testIndex inputs testEval = do
   let expected = eval piece inputs
   recieved <- testEval inputs
-  if expected == recieved
-    then pure $ Right unit
-    else pure $ Left { testIndex, inputs, expected, recieved }
+  pure { testIndex, inputs, expected, recieved }

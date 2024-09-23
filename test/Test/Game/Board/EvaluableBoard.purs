@@ -32,11 +32,12 @@ import Game.Level (binaryTestInputs)
 import Game.Location (location)
 import Game.Port (inputPort, isOutput, outputPort)
 import Game.PortInfo (PortInfo)
-import Game.Signal (Signal(..))
+import Game.Signal (Signal)
 import Test.Game.Board (testBoard, testBoardCrossOver, toAff)
 import Test.Game.Board.Operation (exceptToAff)
 import Test.Spec (Spec, SpecT, before, beforeAll_, describe, describeOnly, hoistSpec, it, itOnly)
 import Test.Spec.Assertions (shouldEqual, shouldNotSatisfy, shouldReturn, shouldSatisfy)
+import Test.Unit.AssertExtra (shouldEqualMap)
 
 testEvaluableBoard :: EvaluableBoard
 testEvaluableBoard = EvaluableBoard
@@ -98,31 +99,34 @@ tests = do
       it "injectInputs" do
         get `shouldReturn` M.empty
         injectInputs inputs
-        get `shouldReturn` M.fromFoldable
-          [ Tuple inRelEdge1 { connected: false, port: outputPort OneBit, signal: Signal 1}
-          , Tuple inRelEdge2 { connected: false, port: outputPort OneBit, signal: Signal 1}
+
+        info <- get
+        info `shouldEqualMap` M.fromFoldable
+          [ Tuple inRelEdge1 { connected: false, port: outputPort OneBit, signal: tt }
+          , Tuple inRelEdge2 { connected: false, port: outputPort OneBit, signal: tt }
           ]
 
       it "evalWithPortInfoAt" do
         get `shouldReturn` M.empty
         injectInputs inputs
-        use (at inRelEdge1) `shouldReturn` Just { connected: false, port: outputPort OneBit, signal: Signal 1}
-        use (at inRelEdge2) `shouldReturn` Just { connected: false, port: outputPort OneBit, signal: Signal 1}
+
+        use (at inRelEdge1) `shouldReturn` Just { connected: false, port: outputPort OneBit, signal: tt }
+        use (at inRelEdge2) `shouldReturn` Just { connected: false, port: outputPort OneBit, signal: tt }
 
         evalWithPortInfoAt (location (-1) 1)
         evalWithPortInfoAt (location 1 (-1))
-        use (at inRelEdge1) `shouldReturn` Just { connected: false, port: outputPort OneBit, signal: Signal 1 }
-        use (at inRelEdge2) `shouldReturn` Just { connected: false, port: outputPort OneBit, signal: Signal 1 }
+        use (at inRelEdge1) `shouldReturn` Just { connected: false, port: outputPort OneBit, signal: tt }
+        use (at inRelEdge2) `shouldReturn` Just { connected: false, port: outputPort OneBit, signal: tt }
 
         evalWithPortInfoAt (location 0 1)
         use (at (relative (location 0 1) Direction.Left)) `shouldReturn`
-          Just { connected: true, port: inputPort OneBit, signal: Signal 1 }
+          Just { connected: true, port: inputPort OneBit, signal: tt }
         use (at (relative (location 0 1) Direction.Right)) `shouldReturn`
           Just { connected: false, port: outputPort OneBit, signal: ff }
         
         evalWithPortInfoAt (location 1 0)
         use (at (relative (location 1 0) Direction.Left)) `shouldReturn`
-          Just { connected: true, port: inputPort OneBit, signal: Signal 1 }
+          Just { connected: true, port: inputPort OneBit, signal: tt }
         use (at (relative (location 1 0) Direction.Right)) `shouldReturn`
           Just { connected: false, port: outputPort OneBit, signal: ff }
 
@@ -138,17 +142,17 @@ tests = do
         use (at (relative (location 2 1) Direction.Left)) `shouldReturn`
           Just { connected: true, port: inputPort OneBit, signal: ff }
         use (at (relative (location 2 1) Direction.Right)) `shouldReturn`
-          Just { connected: false, port: outputPort OneBit, signal: Signal 1 }
+          Just { connected: false, port: outputPort OneBit, signal: tt }
 
         evalWithPortInfoAt (location 3 1)
         use (at (relative (location 2 1) Direction.Right)) `shouldReturn`
-          Just { connected: true, port: outputPort OneBit, signal: Signal 1 }
+          Just { connected: true, port: outputPort OneBit, signal: tt }
         use (at (relative (location 3 1) Direction.Right)) `shouldReturn`
-          Just { connected: true, port: inputPort OneBit, signal: Signal 1 }
+          Just { connected: true, port: inputPort OneBit, signal: tt }
       it "evalWithPortInfo" do
         let inputs = M.fromFoldable [ Tuple Direction.Left tt, Tuple Direction.Up tt ]
         outputs <- evalWithPortInfo inputs
-        outputs `shouldEqual` M.singleton Direction.Right (Signal 1)
+        outputs `shouldEqual` M.singleton Direction.Right tt
       it "eval" do
         for_ (binaryTestInputs [Direction.Left, Direction.Up]) \inputs ->
           eval (evaluableBoardPiece testEvaluableBoard) inputs `shouldEqual` eval orPiece inputs
@@ -164,10 +168,10 @@ tests = do
         M.lookup (location (-1) 1) pieces `shouldSatisfy` maybe false isPseudoInput
         M.lookup (location 3 1) pieces `shouldNotSatisfy` maybe false isPseudoInput
       it "getOuterPort" do
-        getOuterPort Direction.Up    `shouldReturn` Just (Signal 0)
-        getOuterPort Direction.Right `shouldReturn` Just (Signal 0)
+        getOuterPort Direction.Up    `shouldReturn` Just zero
+        getOuterPort Direction.Right `shouldReturn` Just zero
         getOuterPort Direction.Down  `shouldReturn` Nothing
-        getOuterPort Direction.Left  `shouldReturn` Just (Signal 0)
+        getOuterPort Direction.Left  `shouldReturn` Just zero
 
     --describe "test crossover board" do
     --  before_ (exceptToAff (except $ toEvaluableBoard testBoardCrossOver)) do
