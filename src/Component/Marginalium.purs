@@ -1,4 +1,12 @@
-module Component.Marginalium where
+module Component.Marginalium
+  ( Action(..)
+  , Input
+  , Output(..)
+  , Query
+  , State
+  , component
+  )
+  where
 
 import Prelude
 

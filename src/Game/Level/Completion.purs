@@ -21,12 +21,10 @@ import Game.Signal (Signal(..))
 
 data CompletionStatus
   = NotStarted
+  | PortMismatch PortMismatch
   | FailedRestriction FailedRestriction
   | NotEvaluable BoardError
-  | PortMismatch PortMismatch
   | ReadyForTesting
-  | RunningTestCase RunningTestCase
-  | TestCaseOutcome TestCaseOutcome
   | Completed
 
 derive instance Eq CompletionStatus
@@ -61,7 +59,7 @@ type TestCaseOutcome =
   { testIndex :: Int
   , inputs :: Map CardinalDirection Signal
   , expected :: Map CardinalDirection Signal
-  , recieved :: Map CardinalDirection Signal
+  , received :: Map CardinalDirection Signal
   }
 
 type FailedRestriction =
@@ -107,5 +105,5 @@ runSingleTest :: forall m. Monad m
   => Piece -> Int -> Map CardinalDirection Signal -> (Map CardinalDirection Signal -> m (Map CardinalDirection Signal)) -> m TestCaseOutcome
 runSingleTest piece testIndex inputs testEval = do
   let expected = eval piece inputs
-  recieved <- testEval inputs
-  pure { testIndex, inputs, expected, recieved }
+  received <- testEval inputs
+  pure { testIndex, inputs, expected, received }

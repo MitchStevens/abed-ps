@@ -7,7 +7,9 @@ import Component.DataAttribute as DA
 import Component.Piece as Piece
 import Component.Rendering.BoardPortDiagram (renderBoardPortDiagram)
 import Component.Rendering.Piece (renderPiece)
+import Component.TestRunner as TestRunner
 import Data.Array as A
+import Data.Array.NonEmpty.Internal (NonEmptyArray(..))
 import Data.Either (Either(..))
 import Data.Filterable (eitherBool)
 import Data.List (List(..), (:))
@@ -31,7 +33,7 @@ import Halogen.HTML.Events as HE
 import Halogen.HTML.Extras (mapActionOverHTML)
 import Halogen.HTML.Properties as HP
 
-render :: forall m s. State -> ComponentHTML Action s m
+render :: forall m. State -> ComponentHTML Action Slots m
 render state = 
   HH.div 
     [ HP.id "sidebar-component" ]
@@ -78,7 +80,7 @@ render state =
           [ HH.h3_ [ HH.text "Available pieces:"]
           , HH.span [ HP.class_ (ClassName "pieces") ] $
             renderAvailablePiece <$>
-              A.nub state.problem.availablePieces
+              A.nub (A.fromFoldable state.problem.availablePieces)
           ]
         ]
 
@@ -119,18 +121,8 @@ render state =
             ]
           ReadyForTesting ->
             [ HH.text "Ready for testing: "
-            , HH.button
-                [ HP.class_ (ClassName "ready-for-testing")
-                , HE.onClick (ButtonClicked RunTests) ]
-                [ HH.text "Run Tests"]
+            , HH.slot_ TestRunner.slot unit TestRunner.component { ports: state.boardPorts, base: state.base, inputs: NonEmptyArray state.problem.testCases, model: state.problem.goal }
             ]
-          RunningTestCase { testIndex, numTests } ->
-            [ HH.b_ [ HH.text "Running tests..." ]
-            , HH.br_
-            , HH.text $ "Running "<> show (testIndex+1) <>"/"<> show numTests
-            ]
-          TestCaseOutcome failedTestCase -> []
-            --[ renderTestError failedTestCase ]
           Completed ->
             [ HH.text "Level Complete!"
             , HH.button
@@ -223,7 +215,7 @@ render state =
           ]
         ]
       where
-        signalRepresentationOption :: Base -> String -> ComponentHTML Action s m
+        signalRepresentationOption :: Base -> String -> ComponentHTML Action Slots m
         signalRepresentationOption base text =
           HH.span
             [ HE.onClick (ButtonClicked (Base base)) ]

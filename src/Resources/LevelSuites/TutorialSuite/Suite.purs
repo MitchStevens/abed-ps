@@ -6,6 +6,7 @@ import Component.DataAttribute as DA
 import Component.Marginalia.Types (description, marginalia)
 import Control.Monad.Reader (ask, lift)
 import Control.Plus ((<|>))
+import Data.Array.NonEmpty.Internal (NonEmptyArray(..))
 import Data.FunctorWithIndex (mapWithIndex)
 import Data.HeytingAlgebra (ff, tt)
 import Data.Lens ((.~))
@@ -40,7 +41,7 @@ tutorialSuite = fromHomogeneous
         , title = "From A to B"
         , description = "Propagate the signal inputed on the Left to the Right"
         , testCases = binaryTestInputs [ Direction.Left ]
-        , availablePieces = [ idPiece ]
+        , availablePieces = NonEmptyArray [ idPiece ]
         }
       , marginalia = [ marginalia (tt) (description "wow this is great marginalia!!" ff) ]
       --, conversation = do
@@ -86,7 +87,7 @@ tutorialSuite = fromHomogeneous
         , description: "Negate the signal inputed on the Left and output it on the Right"
         , testCases: binaryTestInputs [Direction.Left]
         , requiresAutomaticTesting: false
-        , availablePieces: [ idPiece, notPiece ]
+        , availablePieces: NonEmptyArray [ idPiece, notPiece ]
         , otherRestrictions: []
         }
       --, conversation = do
@@ -104,7 +105,7 @@ tutorialSuite = fromHomogeneous
       , title = "Two enter, one leaves"
       , description = ""
       , testCases = binaryTestInputs [ Direction.Left, Direction.Up ]
-      , availablePieces = [ idPiece, orPiece ]
+      , availablePieces = NonEmptyArray [ idPiece, orPiece ]
       }
     }
   , "Take a Left": defaultLevel
@@ -113,7 +114,7 @@ tutorialSuite = fromHomogeneous
       , title = "Take a Left"
       , description = ""
       , testCases = binaryTestInputs [Direction.Left]
-      , availablePieces = [ idPiece, orPiece ]
+      , availablePieces = NonEmptyArray [ idPiece, orPiece ]
       }
     }
   }

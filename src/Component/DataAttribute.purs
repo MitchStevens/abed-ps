@@ -154,12 +154,12 @@ completionStatus = dataAttribute (AttrName "data-completion-status") attrPrint a
   where
     attrPrint = case _ of
       NotStarted -> "not-started"
+      PortMismatch _ -> "port-mismatch"
       FailedRestriction _ -> "failed-restriction"
       NotEvaluable _ -> "not-evaluable"
-      PortMismatch _ -> "port-mismatch"
       ReadyForTesting -> "ready-for-testing"
-      RunningTestCase _ -> "running-test"
-      TestCaseOutcome _ -> "testCaseOutcome"
+      --RunningTestCase _ -> "running-test"
+      --TestCaseOutcome _ -> "testCaseOutcome"
       Completed -> "completed"
     attrParse = fail "no parser for completion status!"
 

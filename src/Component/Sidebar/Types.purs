@@ -2,6 +2,7 @@ module Component.Sidebar.Types where
 
 import Prelude
 
+import Component.TestRunner as TestRunner
 import Data.Map (Map)
 import Game.Direction (CardinalDirection)
 import Game.Level.Completion (CompletionStatus)
@@ -9,6 +10,8 @@ import Game.Level.Problem (Problem)
 import Game.Piece (PieceId(..))
 import Game.Port (Port(..))
 import Game.Signal (Base, SignalRepresentation)
+import Halogen (Slot)
+import Type.Proxy (Proxy(..))
 import Web.HTML.Event.DragEvent (DragEvent)
 import Web.UIEvent.MouseEvent (MouseEvent)
 
@@ -60,3 +63,9 @@ data Action
 data Output
   = PieceDropped PieceId
   | ButtonOutput Button
+
+type Slots =
+  ( testRunner :: Slot TestRunner.Query TestRunner.Output Unit )
+
+slot =
+  { testRunner: Proxy :: _ "testRunner" }
