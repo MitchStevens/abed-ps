@@ -5,16 +5,16 @@ import Prelude
 import Control.Alternative (guard)
 import Data.Array (elem)
 import Data.Foldable (fold, foldMap)
-import Data.Int.Bits (and, or, shl, shr)
 import Data.Map as M
 import Data.Maybe (Maybe(..), fromMaybe)
 import Data.Tuple (Tuple(..))
+import Data.UInt (fromInt, shl, shr, (.&.), (.|.))
 import Game.Capacity (Capacity(..), doubleCapacity, halveCapacity, toInt)
 import Game.Direction as Direction
 import Game.Piece.Complexity as Complexity
 import Game.Piece.Types (Piece(..), PieceId(..), mkPiece)
 import Game.Port (inputPort, outputPort)
-import Game.Signal (Signal(..))
+import Game.Signal (Signal(..), over2Signal, overSignal)
 
 allFusePieces :: Array Piece
 allFusePieces = [ fusePiece, severPiece ]
@@ -57,9 +57,10 @@ mkFusePiece { inputCapacity } = mkPiece
   }
   
 fuseSignals :: Capacity -> Signal -> Signal -> Signal
-fuseSignals inputCapacity (Signal high) (Signal low) = Signal (shl high n `or` (low `and` (shl 1 n - 1)))
+fuseSignals inputCapacity = over2Signal $ \high low -> 
+  shl high n .|. (low .&. (shl one n - one))
   where
-    n = toInt inputCapacity
+    n = fromInt (toInt inputCapacity)
 
 
 type SeverPiece = { outputCapacity :: Capacity }
@@ -94,8 +95,8 @@ mkSeverPiece { outputCapacity } = mkPiece
   }
 
 severSignal :: Capacity -> Signal -> Tuple Signal Signal
-severSignal outputCapacity (Signal s) = Tuple (Signal high) (Signal low)
+severSignal outputCapacity signal = Tuple high low
   where
-    high = shr s n
-    low = s `and` (shl 1 n - 1)
-    n = toInt outputCapacity
+    high = overSignal (\s -> shr s n) signal
+    low = overSignal (\s -> s .&. (shl one n - one)) signal
+    n = fromInt (toInt outputCapacity)

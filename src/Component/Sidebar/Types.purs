@@ -2,12 +2,16 @@ module Component.Sidebar.Types where
 
 import Prelude
 
+import Component.TestRunner as TestRunner
 import Data.Map (Map)
 import Game.Direction (CardinalDirection)
 import Game.Level.Completion (CompletionStatus)
 import Game.Level.Problem (Problem)
 import Game.Piece (PieceId(..))
 import Game.Port (Port(..))
+import Game.Signal (Base, SignalRepresentation)
+import Halogen (Slot)
+import Type.Proxy (Proxy(..))
 import Web.HTML.Event.DragEvent (DragEvent)
 import Web.UIEvent.MouseEvent (MouseEvent)
 
@@ -16,6 +20,7 @@ type Input =
   , completionStatus :: CompletionStatus
   , boardSize :: Int
   , boardPorts :: Map CardinalDirection Port
+  , base :: Base
   }
 
 type State =
@@ -23,21 +28,26 @@ type State =
   , completionStatus :: CompletionStatus
   , boardSize :: Int
   , boardPorts :: Map CardinalDirection Port
+  , base :: Base
   }
 
 data Query a
 
+data Button
+  = AddPiece PieceId
+  | BackToLevelSelect 
+  | IncrementBoardSize
+  | DecrementBoardSize
+  | Undo
+  | Redo
+  | RunTests
+  | Clear
+  | Base Base
+
 data Action
   = Initialise Input
   | PieceOnDrop PieceId DragEvent
-  | PieceOnClick PieceId MouseEvent
-  | BackToLevelSelect MouseEvent
-  | IncrementBoardSize MouseEvent
-  | DecrementBoardSize MouseEvent
-  | Undo MouseEvent
-  | Redo MouseEvent
-  | RunTests MouseEvent
-  | Clear MouseEvent
+  | ButtonClicked Button MouseEvent
   {-
     the sidebar creates little icons using the same piece rendering as pieces. the type of HTML used in piece rendering is:
       `ComponentHTML Piece.Action s m`
@@ -52,10 +62,10 @@ data Action
 
 data Output
   = PieceDropped PieceId
-  | PieceAdded PieceId
-  | BoardSizeIncremented
-  | BoardSizeDecremented
-  | UndoTriggered
-  | RedoTriggered
-  | TestsTriggered
-  | ClearTriggered
+  | ButtonOutput Button
+
+type Slots =
+  ( testRunner :: Slot TestRunner.Query TestRunner.Output Unit )
+
+slot =
+  { testRunner: Proxy :: _ "testRunner" }

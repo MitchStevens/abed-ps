@@ -35,7 +35,7 @@ createPortGradient { port, connected, signal } = { id, def }
 
     id = intercalate "-" [ "port-gradient", portId, signalId, capacityId ]
     portId = if isInput port then "in" else "out"
-    signalId = if signal == Signal 0 then "off" else "on"
+    signalId = if signal == zero then "off" else "on"
     capacityId = show (toInt (portCapacity port)) <> "bit"
 
 setAlpha :: Number -> Color -> Color
@@ -45,7 +45,7 @@ setAlpha alpha = case _ of
   color -> color
 
 portColor :: Port -> Signal -> Color
-portColor port signal = (if signal == Signal 0 then shadeColor (-30) else identity) $
+portColor port signal = (if signal == zero then shadeColor (-30) else identity) $
   case portCapacity port of
     OneBit    -> portColours.teal
     TwoBit    -> portColours.blue

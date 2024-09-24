@@ -24,7 +24,7 @@ import Game.Location (Location(..), location)
 import Game.Piece (Piece(..))
 import Game.PortInfo (PortInfo)
 import Game.Rotation (Rotation(..), rotation)
-import Game.Signal (Signal(..))
+import Game.Signal (Signal)
 import Type.Proxy (Proxy(..))
 import Web.HTML.Event.DragEvent (DragEvent)
 import Web.UIEvent.KeyboardEvent (KeyboardEvent)
@@ -75,7 +75,7 @@ initialState { piece: Piece p, location } =
   , rotation: rotation 0
   , isRotating: Nothing
   , isDragging: false
-  , portStates: map (\port -> { port, signal: Signal 0, connected: false }) $ p.ports
+  , portStates: map (\port -> { port, signal: zero, connected: false }) $ p.ports
   }
 
 _portStates :: Lens' State (Map CardinalDirection PortInfo)

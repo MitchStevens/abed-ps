@@ -56,7 +56,7 @@ mkWirePiece :: WirePiece -> Piece
 mkWirePiece wire = mkPiece
   { name: fromMaybe' nameErr (M.lookup wire.outputs wirePieceNames)
   , eval: \inputs -> 
-      let signal = fromMaybe (Signal 0) (M.lookup Direction.Left inputs)
+      let signal = fromMaybe zero (M.lookup Direction.Left inputs)
       in S.toMap wire.outputs $> signal
   , complexity: Complexity.space (toNumber (length wire.outputs))
 
@@ -135,8 +135,8 @@ dualWirePiece :: DualWirePiece -> Piece
 dualWirePiece dualWire = mkPiece
   { name: dualWire.name
   , eval: \m ->
-      let a1 = fromMaybe (Signal 0) (M.lookup Direction.Left m)
-          a2 = fromMaybe (Signal 0) (M.lookup dualWire.input2 m)
+      let a1 = fromMaybe zero (M.lookup Direction.Left m)
+          a2 = fromMaybe zero (M.lookup dualWire.input2 m)
       in M.fromFoldable
           [ Tuple dualWire.output1 a1
           , Tuple dualWire.output2 a2

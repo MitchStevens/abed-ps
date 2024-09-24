@@ -18,15 +18,11 @@ import Data.Unfoldable (class Unfoldable1, unfoldr, unfoldr1)
 data Zipper a = Zipper (List a) a (List a)
 derive instance Eq a => Eq (Zipper a)
 
---instance Eq1 Zipper where
---  eq1 = eq1 `on` asList
---    where asList (Zipper ls v rs) = L.reverse ls <> Cons v rs
---
---instance Eq a => Eq (Zipper a) where
---  eq = eq1
-
 instance Show a => Show (Zipper a) where
   show (Zipper ls v rs) = "Z " <> show (L.reverse ls) <> " " <> show v <> " " <> show rs
+
+instance Semigroup (Zipper a) where
+  append (Zipper ls1 v1 r1) z1 = Zipper ls1 v1 (r1 <> L.fromFoldable z1)
 
 instance Functor Zipper where
   map f (Zipper ls v rs) = Zipper (map f ls) (f v) (map f rs)
@@ -40,6 +36,10 @@ instance Traversable Zipper where
   traverse f (Zipper ls v rs) = Zipper <$> (L.reverse <$> traverse f (L.reverse ls)) <*> f v <*> traverse f rs
   sequence (Zipper ls v rs) = Zipper <$> (L.reverse <$> sequence (L.reverse ls)) <*> v <*> sequence rs
 
+instance Unfoldable1 Zipper where
+  unfoldr1 f b = case f b of
+    Tuple a Nothing -> Zipper Nil a Nil
+    Tuple a (Just b') -> Zipper Nil a (unfoldr1 f b')
 
 instance Extend Zipper where
   extend f zipper = Zipper (map f lefts) (f zipper) (map f rights)
@@ -80,6 +80,9 @@ append v' (Zipper ls v rs) = Zipper (Cons v ls) v' Nil
 
 singleton :: forall a. a -> Zipper a
 singleton v = Zipper Nil v Nil
+
+currentIndex :: forall a. Zipper a -> Int
+currentIndex (Zipper ls v rs) = L.length ls
 
 undo = moveLeft
 redo = moveRight

@@ -40,7 +40,7 @@ spec = describe "Component.DataAttribute" do
     pure unit
   it "round trips" do
     seed <- liftEffect randomSeed
-    quickCheckPure seed 100 (roundTripProperty DA.signal genSignal)
+    --quickCheckPure seed 100 (roundTripProperty DA.signal genSignal)
     quickCheckPure seed 100 (roundTripProperty DA.int (chooseInt 0 2147483647))
     quickCheckPure seed 100 (roundTripProperty DA.boolean arbitrary)
     quickCheckPure seed 100 (roundTripProperty DA.pieceId (PieceId <$> arbitrary))

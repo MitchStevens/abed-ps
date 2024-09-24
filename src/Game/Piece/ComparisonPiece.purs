@@ -14,7 +14,7 @@ import Game.Direction as Direction
 import Game.Piece (Piece(..), PieceId(..), mkPiece)
 import Game.Piece as Complexity
 import Game.Port (inputPort, outputPort)
-import Game.Signal (Signal(..))
+import Game.Signal (Signal)
 
 allComparisonPieces :: Array Piece
 allComparisonPieces =
@@ -35,7 +35,7 @@ mkComparisonPiece piece@{ name, comparison, capacity } = mkPiece
   , eval: \inputs ->
       let a = fold (M.lookup Direction.Left inputs)
           b = fold (M.lookup Direction.Up inputs)
-      in M.singleton Direction.Right (Signal (if comparison a b then 1 else 0))
+      in M.singleton Direction.Right (if comparison a b then one else zero)
   , complexity: Complexity.space 0.0
 
   , updateCapacity: \dir capacity' -> do

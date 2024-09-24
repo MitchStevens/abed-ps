@@ -5,7 +5,6 @@ import Prelude
 import Data.Array (range)
 import Data.Int.Bits as Bits
 import Data.Maybe (Maybe(..))
-import Game.Signal (Signal(..), nthBit)
 
 data Capacity = OneBit | TwoBit | FourBit | EightBit
 derive instance Eq Capacity
@@ -35,19 +34,3 @@ halveCapacity = case _ of
   TwoBit   -> Just OneBit
   FourBit  -> Just TwoBit
   EightBit -> Just FourBit
-
-maxValue :: Capacity -> Signal
-maxValue = case _ of
-  OneBit   -> Signal 1
-  TwoBit   -> Signal 3
-  FourBit  -> Signal 15
-  EightBit -> Signal 255
-
-clampSignal :: Capacity -> Signal -> Signal
-clampSignal capacity = conj (maxValue capacity)
-
--- from lowest to highest bits
-clampedBits :: Capacity -> Signal -> Array Boolean
-clampedBits capacity signal  =
-  nthBit signal <$> range 0 (toInt capacity - 1)
-

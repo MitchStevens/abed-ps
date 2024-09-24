@@ -2,13 +2,24 @@ module Test.Unit.AssertExtra where
 
 import Prelude
 
+import Control.Monad.Error.Class (class MonadThrow)
 import Control.Monad.Trans.Class (lift)
 import Data.Array (findIndex, findLastIndex)
 import Data.Either (Either(..))
-import Data.Foldable (class Foldable, elem, foldr)
+import Data.Foldable (class Foldable, elem, foldr, for_)
 import Data.FoldableWithIndex (foldMapWithIndex)
+import Data.Map (Map)
+import Data.Map as M
 import Data.Maybe (Maybe(..))
 import Effect.Aff.Class (class MonadAff, liftAff)
+import Effect.Exception (Error)
+import Test.Spec.Assertions (shouldEqual)
+
+shouldEqualMap :: forall k v m. Ord k => Eq v => Show v => MonadThrow Error m => Map k v -> Map k v -> m Unit
+shouldEqualMap m1 m2 = 
+  for_ (M.keys m1 <> M.keys m2) \k -> 
+    M.lookup k m1 `shouldEqual` M.lookup k m2
+
 
 
 {-

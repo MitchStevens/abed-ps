@@ -8,12 +8,12 @@ import Data.Map (Map)
 import Data.Map as M
 import Data.Maybe (Maybe(..), fromMaybe)
 import Data.Tuple (Tuple(..))
-import Game.Capacity (Capacity(..), doubleCapacity, halveCapacity, maxValue, toInt)
+import Game.Capacity (Capacity(..), doubleCapacity, halveCapacity)
 import Game.Direction as Direction
 import Game.Piece.Complexity as Complexity
 import Game.Piece.Types (Piece(..), PieceId(..), mkPiece, shouldRipple)
 import Game.Port (inputPort, outputPort)
-import Game.Signal (Signal(..))
+import Game.Signal (Signal(..), maxValue)
 
 succPiece :: Piece
 succPiece = mkSuccPiece TwoBit
@@ -40,13 +40,13 @@ mkAdder :: Capacity -> Piece
 mkAdder capacity = mkPiece
   { name: PieceId "adder-piece"
   , eval: \m ->
-      let Signal a = fold (M.lookup Direction.Left m)
-          Signal b = fold (M.lookup Direction.Up m)
-          sum = a+b `mod` (Int.pow 2 (toInt capacity))
-          carry = if a+b > Int.pow 2 (toInt capacity) then 1 else 0
+      let a = fold (M.lookup Direction.Left m)
+          b = fold (M.lookup Direction.Up m)
+          sum = a + b
+          carry = if a+b > maxValue capacity then one else zero
       in  M.fromFoldable 
-            [ Tuple Direction.Right (Signal sum)
-            , Tuple Direction.Down (Signal carry)
+            [ Tuple Direction.Right sum
+            , Tuple Direction.Down carry
             ]
   , complexity: Complexity.space 10.0
 
@@ -66,9 +66,9 @@ mkMultiplier :: Capacity -> Piece
 mkMultiplier capacity = mkPiece
   { name: PieceId "multiplier-piece"
   , eval: \m ->
-      let Signal a = fold (M.lookup Direction.Left m)
-          Signal b = fold (M.lookup Direction.Up m)
-      in  M.singleton Direction.Right (Signal (a * b))
+      let a = fold (M.lookup Direction.Left m)
+          b = fold (M.lookup Direction.Up m)
+      in  M.singleton Direction.Right (a * b)
   , complexity: Complexity.space 10.0
 
   , shouldRipple: false

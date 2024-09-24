@@ -14,20 +14,18 @@ import Foreign.Object (Object)
 import Game.Direction (CardinalDirection)
 import Game.Level.Problem (Problem, defaultProblem)
 import Game.Message (Message, Conversation)
-import Game.Signal (Signal(..))
+import Game.Signal (Base(..), Signal(..), SignalRepresentation(..))
 import Web.DOM.ParentNode (QuerySelector(..))
 import Web.HTML.Common (AttrName(..))
 
 type LevelOptions =
   { enableBoardSizeChange :: Boolean
   , compulsory :: Boolean
-  , tutorial :: Maybe (Effect Unit) 
-   }
+  , base :: Base
+  }
 
 type Level =
   { problem :: Problem
-  --, boardDeltaRulesEngine :: Array (Rule GameEventStore Message)
-  --, conversation :: Conversation
   , marginalia :: Array Marginalia
   , options :: LevelOptions
   }
@@ -38,7 +36,7 @@ defaultLevelOptions :: LevelOptions
 defaultLevelOptions =
   { enableBoardSizeChange: true
   , compulsory: false
-  , tutorial: Nothing
+  , base: Binary
   }
 
 defaultLevel :: Level
@@ -54,5 +52,5 @@ type LevelSuite = Object Level
 
 binaryTestInputs :: Array CardinalDirection -> Array (Map CardinalDirection Signal)
 binaryTestInputs directions = do
-  inputs <- traverse (\_ -> [Signal 0, Signal 1]) directions
+  inputs <- traverse (\_ -> [zero, one]) directions
   pure $ M.fromFoldable (zip directions inputs)

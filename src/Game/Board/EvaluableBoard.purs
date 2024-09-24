@@ -53,14 +53,14 @@ import Game.Board.PseudoPiece (getPsuedoPiecePort, isPseudoInput, isPseudoPiece,
 import Game.Board.Query (adjacentRelativeEdge, buildConnectionMap, getBoardEdgePseudoLocation, getBoardPorts, getPortOnEdge, toRelativeEdge)
 import Game.Board.RelativeEdge (RelativeEdge, absolute, relative, relativeEdgeLocation)
 import Game.Board.Types (Board(..), BoardError(..), _pieces)
-import Game.Capacity (Capacity, clampSignal)
+import Game.Capacity (Capacity)
 import Game.Direction (CardinalDirection, allDirections, clockwiseRotation, oppositeDirection)
 import Game.Direction as Direction
 import Game.Location (Location(..), followDirection)
 import Game.Piece (Piece(..), PieceId(..), mkPiece)
 import Game.Piece as Complexity
 import Game.Port (Port(..), inputPort, isInput, isOutput, matchingPort, outputPort, portCapacity)
-import Game.PortInfo (PortInfo, getClampedSignal)
+import Game.PortInfo (PortInfo)
 import Game.Signal (Signal(..))
 import Halogen.Svg.Attributes (m)
 
@@ -88,7 +88,7 @@ getOuterPort :: forall m. MonadReader EvaluableBoard m => MonadState (Map Relati
 getOuterPort dir = do
   maybeLoc <- asks (unwrap >>> (_.psuedoPieceLocations) >>> M.lookup dir)
   for maybeLoc \loc ->
-    maybe (Signal 0) (_.signal) <$> gets (M.lookup (relative loc Direction.Right))
+    maybe zero (_.signal) <$> gets (M.lookup (relative loc Direction.Right))
 
 {-
   Note: you can only set an outer port if the pseudopiece is an input psuedopiece
@@ -101,7 +101,7 @@ setOuterPort dir signal = void $ runMaybeT do
   when (isPseudoInput piece) do
     port <- MaybeT $ pure (getPsuedoPiecePort piece)
     let relEdge = relative loc Direction.Right
-    let portInfo = { connected: false, port, signal: clampSignal (portCapacity port) signal }
+    let portInfo = { connected: false, port, signal }
     modify_ (M.insert relEdge portInfo)
 
 
@@ -180,7 +180,6 @@ injectInputs :: forall m. MonadReader EvaluableBoard m => MonadState (Map Relati
 injectInputs inputs = do
   psuedoPieceLocations <- asks (unwrap >>> (_.psuedoPieceLocations))
   forWithIndex_ psuedoPieceLocations \dir loc -> do
-
     for_ (M.lookup dir inputs) \signal -> do
       setOuterPort dir signal
 
@@ -195,14 +194,14 @@ getInputOnEdge inRelEdge capacity = do
   connections <- asks (unwrap >>> (_.connections))
   case (M.lookup inRelEdge connections) of
     Just outRelEdge -> do
-      maybeSignal <- use (at outRelEdge) >>= traverse \info -> do
-        let signal = getClampedSignal info
-        at inRelEdge  .= Just { connected: true, signal: signal, port: inputPort  capacity }
-        at outRelEdge .= Just { connected: true, signal: signal, port: outputPort capacity }
+      maybeSignal <- use (at outRelEdge) >>= traverse \{ port, connected, signal} -> do
+        --let signal = getClampedSignal info
+        at inRelEdge  .= Just { connected: true, signal, port: inputPort  capacity }
+        at outRelEdge .= Just { connected: true, signal, port: outputPort capacity }
         pure signal
-      pure $ fromMaybe (Signal 0) maybeSignal
+      pure $ fromMaybe zero maybeSignal
     Nothing -> do
-      signal <- maybe (Signal 0) (_.signal) <$> use (at inRelEdge)
+      signal <- maybe zero (_.signal) <$> use (at inRelEdge)
       at inRelEdge .= Just { connected: false, signal: signal, port: inputPort capacity }
       pure signal
 
@@ -221,7 +220,8 @@ evalWithPortInfoAt loc = do
       let outputs = p.eval inputs
       let outputPorts = M.filter isOutput p.ports
       forWithIndex_ outputPorts \dir port -> do
-        let signal = foldMap (clampSignal (portCapacity port)) (M.lookup dir outputs)
+        --let signal = foldMap (ca (portCapacity port)) (M.lookup dir outputs)
+        let signal = fold (M.lookup dir outputs)
         at (relative loc dir) .= Just { connected: false, signal, port }
 
 extractOutputs :: forall m. MonadReader EvaluableBoard m => MonadState (Map RelativeEdge PortInfo) m

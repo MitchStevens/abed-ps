@@ -3,6 +3,7 @@ module Resources.LevelSuites.IntermediateSuite where
 import Prelude
 
 import Component.DataAttribute as DataAttr
+import Data.Array.NonEmpty.Internal (NonEmptyArray(..))
 import Data.Set as S
 import Foreign.Object (fromHomogeneous)
 import Game.Direction as Direction
@@ -20,7 +21,7 @@ intermediateSuite = fromHomogeneous
         , description: "Propogate the signal on the left to the right, and the top to the bottom"
         , testCases: binaryTestInputs [ Direction.Left, Direction.Up ]
         , requiresAutomaticTesting: false
-        , availablePieces: [idPiece, superPiece, leftPiece, rightPiece, xorPiece]
+        , availablePieces: NonEmptyArray [idPiece, superPiece, leftPiece, rightPiece, xorPiece]
         , otherRestrictions: []
         }
       --, boardDeltaRulesEngine = []
@@ -53,7 +54,7 @@ intermediateSuite = fromHomogeneous
         , title ="From Or, birthed And"
         , description = "Create an and-piece using only or-piece and not-piece"
         , testCases = binaryTestInputs [ Direction.Left, Direction.Up ]
-        , availablePieces = [ orPiece, notPiece ]
+        , availablePieces = NonEmptyArray[ orPiece, notPiece ]
         } 
       }
     , "Exclusive Or: Pick One": defaultLevel
@@ -63,7 +64,7 @@ intermediateSuite = fromHomogeneous
         , description: "Output true when EXACTLY one input is true. If both inputs are true, output false"
         , testCases: binaryTestInputs [ Direction.Left, Direction.Up ]
         , requiresAutomaticTesting: false
-        , availablePieces: [ idPiece, notPiece, orPiece, andPiece, crossPiece ]
+        , availablePieces: NonEmptyArray[ idPiece, notPiece, orPiece, andPiece, crossPiece ]
         , otherRestrictions: []
         }
       }

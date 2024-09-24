@@ -5,6 +5,8 @@ import Prelude
 import Control.Alt (alt)
 import Control.Monad.Except (class MonadError, ExceptT, lift, throwError)
 import Control.Plus (empty)
+import Data.Array.NonEmpty (NonEmptyArray)
+import Data.Array.NonEmpty as NE
 import Data.Either (Either(..), blush)
 import Data.Enum (enumFromTo)
 import Data.Foldable (fold, foldMap, foldl, for_, length)
@@ -28,21 +30,21 @@ import Game.Signal (Signal(..))
 import Type.Proxy (Proxy(..))
 import Web.DOM.ParentNode (QuerySelector(..))
 
+type Restriction = 
+  { name :: String
+  , restriction :: Board -> Boolean
+  , description :: String
+  }
+
 type Problem = 
   { goal :: Piece
   , title :: String
   , description :: String
   , testCases :: Array (Map CardinalDirection Signal)
   , requiresAutomaticTesting :: Boolean
-  , availablePieces :: Array Piece
-  , otherRestrictions :: Array
-    { name :: String
-    , restriction :: Board -> Boolean
-    , description :: String
-    }
+  , availablePieces :: NonEmptyArray Piece
+  , otherRestrictions :: Array Restriction
   }
-
-
 
 defaultProblem :: Problem
 defaultProblem = 
@@ -51,16 +53,6 @@ defaultProblem =
   , description: "default description"
   , testCases: []
   , requiresAutomaticTesting: false
-  , availablePieces: []
+  , availablePieces: NE.singleton idPiece
   , otherRestrictions: []
   }
-
-
-showMismatch :: forall r a. Show a => { received :: a, expected :: a | r } -> String
-showMismatch r = "received: " <> show r.received <> ", expected: " <> show r.expected
-
---countPiecesOfType :: Board -> Piece -> Int
---countPiecesOfType (Board board) (Piece piece) = length $ M.filter (\p -> piece == p.piece) board.pieces
-
-
-

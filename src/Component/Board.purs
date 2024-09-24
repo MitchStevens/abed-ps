@@ -57,7 +57,6 @@ import Effect.Aff.Class (class MonadAff)
 import Effect.Class (class MonadEffect, liftEffect)
 import Effect.Class.Console (log, logShow)
 import Game.Board (Board(..), BoardError, BoardM, _pieces, _size, addPath, addPiece, buildEvaluableBoard, capacityRipple, decreaseSize, evalBoardM, evalWithPortInfo, execBoardM, getBoardPortEdge, getPieceInfo, increaseSize, pieceDropped, removePiece, rotatePieceBy, runBoardM, runEvaluableM, toLocalInputs)
-import Game.Capacity (maxValue)
 import Game.Direction (CardinalDirection, allDirections)
 import Game.Direction as Direction
 import Game.GameEvent (BoardEvent(..))
@@ -65,7 +64,7 @@ import Game.Location (Location(..), location)
 import Game.Port (isInput, portCapacity)
 import Game.PortInfo (PortInfo)
 import Game.Rotation (Rotation(..))
-import Game.Signal (Signal(..))
+import Game.Signal (Signal(..), maxValue)
 import GlobalState (GlobalState, newBoardEvent)
 import Halogen (AttrName(..), ClassName(..), Component, ComponentHTML, ComponentSlot, HalogenM(..), HalogenQ, Slot, mkComponent, mkEval, raise, subscribe, tell)
 import Halogen as H
@@ -227,7 +226,7 @@ component = mkComponent { eval , initialState , render }
 
         DecrementInput dir -> do
           gets (_.boardPorts >>> M.lookup dir) >>= traverse_ \port ->
-            _inputs <<< ix dir %= \(Signal n) -> if n == 0 then maxValue (portCapacity port) else Signal (n-1)
+            _inputs <<< ix dir %= \n -> if n == zero then maxValue (portCapacity port) else n - one
           handleAction EvaluateBoard
 
         SetOutputs outputs -> do

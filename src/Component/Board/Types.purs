@@ -40,7 +40,7 @@ import Game.Location (Location(..))
 import Game.Piece (Piece(..))
 import Game.Port (Port(..))
 import Game.PortInfo (PortInfo)
-import Game.Signal (Signal(..))
+import Game.Signal (Signal)
 import Halogen (Slot)
 import Type.Proxy (Proxy(..))
 import Web.Event.Internal.Types (Event)
@@ -149,7 +149,7 @@ boardPortInfo = do
   board <- use _board
   forWithIndex boardPorts \dir port -> do
     let relEdge = evalState (getBoardPortEdge dir) board
-    gets (_.lastEvalWithPortInfo >>> M.lookup relEdge >>> fromMaybe { connected: false, port, signal: Signal 0})
+    gets (_.lastEvalWithPortInfo >>> M.lookup relEdge >>> fromMaybe { connected: false, port, signal: zero})
 
 --liftBoardM :: forall m a. MonadState State m => BoardM a -> m (Either BoardError (Tuple a Board))
 --liftBoardM boardM = do
