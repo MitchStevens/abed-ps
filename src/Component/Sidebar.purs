@@ -15,29 +15,43 @@ where
 import Component.Sidebar.Types
 import Prelude
 
-import Capability.Navigate (Route(..), navigateTo)
+import AppM (AppM)
+import Component.DataAttribute (completionStatus)
 import Component.Sidebar.Render (render)
-import Control.Monad.State (put)
+import Component.TestRunner as TestRunner
+import Control.Monad.State (modify_, put)
+import Data.Lens ((.=))
 import Data.Maybe (Maybe(..))
 import Effect.Aff.Class (class MonadAff)
+import Game.Level.Completion (CompletionStatus(..))
 import Halogen (Component, HalogenM, HalogenQ, mkComponent, mkEval)
 import Halogen as H
 
-component :: forall m. MonadAff m => Component Query Input Output m
+component :: Component Query Input Output AppM
 component = mkComponent { eval , initialState , render }
   where
-  initialState = identity
+    eval :: HalogenQ Query Action Input ~> HalogenM State Action Slots Output AppM
+    eval = mkEval
+      { finalize: Nothing
+      , handleAction: case _ of
+          Initialise input -> put (initialState input)
+          PieceOnDrop piece _ -> do
+            H.raise (PieceDropped piece)
+          ButtonClicked button _ -> do
+            when (button == RunTests) do
+              _completionStatus .= ReadyForTesting
+            H.raise (ButtonOutput button)
+          TestRunnerOutput testRunnerOutput -> case testRunnerOutput of
+            TestRunner.TestCaseData testCaseData ->
+              H.raise (RunTestCase testCaseData)
+            TestRunner.AllTestsPassed -> do
+              modify_ $ _ { completionStatus = Completed }
+          DoNothing -> pure unit
+      , handleQuery: case _ of
+          TestCaseOutcome testCaseOutcome next -> do
+            H.tell TestRunner.slot unit (TestRunner.TestCaseOutcome testCaseOutcome)
+            pure (Just next)
 
-  eval :: forall slots. HalogenQ Query Action Input ~> HalogenM State Action slots Output m
-  eval = mkEval
-    { finalize: Nothing
-    , handleAction: case _ of
-        Initialise input -> put (initialState input)
-        PieceOnDrop piece _ -> do
-          H.raise (PieceDropped piece)
-        ButtonClicked button _ -> H.raise (ButtonOutput button)
-        DoNothing -> pure unit
-    , handleQuery: \_ -> pure Nothing
-    , initialize: Nothing
-    , receive: Just <<< Initialise
-    }
+      , initialize: Nothing
+      , receive: Just <<< Initialise
+      }

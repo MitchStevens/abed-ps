@@ -24,7 +24,6 @@ import Data.Map as M
 import Data.Maybe (Maybe(..), fromMaybe, isJust, isNothing, maybe)
 import Data.Number (acos, atan2, pi, sqrt)
 import Data.Tuple (Tuple(..))
-import Debug (trace)
 import Effect (Effect)
 import Effect.Class (class MonadEffect, liftEffect)
 import Effect.Class.Console (log, logShow)
@@ -157,15 +156,15 @@ component = mkComponent { eval , initialState , render }
           raise (NewMultimeterFocus Nothing)
 
     , handleQuery: case _ of
-        SetPortStates portStates -> do
+        SetPortStates portStates next -> do
           modify_ $ _ { portStates = portStates }
-          pure Nothing
-        SetPiece piece -> do
+          pure (Just next)
+        SetPiece piece next -> do
           modify_ (_ {piece = piece})
-          pure Nothing
-        SetRotation rot -> do
+          pure (Just next)
+        SetRotation rot next -> do
           modify_ (_ { rotation = rot })
-          pure Nothing
+          pure (Just next)
     , initialize: Nothing
     , receive: \_ -> Nothing --Just <<< Initialise -- :: input -> Maybe action
     }

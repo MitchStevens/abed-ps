@@ -25,16 +25,16 @@ import Test.Spec (Spec, describe, it)
 import Test.Spec.Assertions (shouldEqual, shouldNotEqual)
 import Test.Spec.QuickCheck (quickCheck)
 
-problemDescription :: Problem
-problemDescription =
-  { goal: idPiece
-  , title: "Double negation"
-  , description: "create an idenity from not gate"
-  , testCases: [ M.singleton Direction.Left ff, M.singleton Direction.Left tt ]
-  , requiresAutomaticTesting: false
-  , availablePieces: []
-  , otherRestrictions: []
-  }
+--problemDescription :: Problem
+--problemDescription =
+--  { goal: idPiece
+--  , title: "Double negation"
+--  , description: "create an idenity from not gate"
+--  , testCases: [ M.singleton Direction.Left ff, M.singleton Direction.Left tt ]
+--  , requiresAutomaticTesting: false
+--  , availablePieces: []
+--  , otherRestrictions: []
+--  }
 
 --spec :: forall m. MonadState Board m => SpecT Aff Unit m Unit
 --spec = describe "Problem" do

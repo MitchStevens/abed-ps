@@ -133,11 +133,11 @@ render state =
       "grid-area: " <> show (j+2) <> " / " <> show (i+2)
 
     pieceHTML piece location =
-        HH.slot slot.piece location Piece.component { piece, location } PieceOutput
+        HH.slot Piece.slot location Piece.component { piece, location } PieceOutput
     
     emptyPieceHTML (Location {x, y}) =
       HH.div 
         [ HP.class_ (ClassName "location-text") ]
         [ HH.text (show (x+1) <> "," <> show (y+1)) ]
 
-    multimeter = HH.slot slot.multimeter unit Multimeter.component {} MultimeterOutput
+    multimeter = HH.slot Multimeter.slot unit Multimeter.component {} MultimeterOutput

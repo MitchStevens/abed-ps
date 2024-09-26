@@ -3,6 +3,7 @@ module Component.Sidebar.Render where
 import Component.Sidebar.Types
 import Prelude
 
+import AppM (AppM)
 import Component.DataAttribute as DA
 import Component.Piece as Piece
 import Component.Rendering.BoardPortDiagram (renderBoardPortDiagram)
@@ -33,7 +34,7 @@ import Halogen.HTML.Events as HE
 import Halogen.HTML.Extras (mapActionOverHTML)
 import Halogen.HTML.Properties as HP
 
-render :: forall m. State -> ComponentHTML Action Slots m
+render :: State -> ComponentHTML Action Slots AppM
 render state = 
   HH.div 
     [ HP.id "sidebar-component" ]
@@ -44,9 +45,9 @@ render state =
       [ HP.classes [ ClassName "completion-status"]
       , DA.attr DA.completionStatus state.completionStatus
       ]
-        [ renderCompletionStatus
-        , renderBoardPortDiagram state.problem.goal state.boardPorts
-        ]
+      [ renderCompletionStatus
+      --, renderBoardPortDiagram state.problem.goal state.boardPorts
+      ]
     , renderAvailablePieces
     , HH.br_
     , renderBoardSize
@@ -120,8 +121,8 @@ render state =
               ]
             ]
           ReadyForTesting ->
-            [ HH.text "Ready for testing: "
-            , HH.slot_ TestRunner.slot unit TestRunner.component { ports: state.boardPorts, base: state.base, inputs: NonEmptyArray state.problem.testCases, model: state.problem.goal }
+            [ HH.h3_ [ HH.text "Ready for testing" ]
+            , HH.slot TestRunner.slot unit TestRunner.component { base: state.base, inputs: NonEmptyArray state.problem.testCases, model: state.problem.goal } TestRunnerOutput
             ]
           Completed ->
             [ HH.text "Level Complete!"
@@ -215,7 +216,7 @@ render state =
           ]
         ]
       where
-        signalRepresentationOption :: Base -> String -> ComponentHTML Action Slots m
+        signalRepresentationOption :: Base -> String -> ComponentHTML Action Slots AppM
         signalRepresentationOption base text =
           HH.span
             [ HE.onClick (ButtonClicked (Base base)) ]

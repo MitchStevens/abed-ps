@@ -65,6 +65,7 @@ import Game.Port (isInput, portCapacity)
 import Game.PortInfo (PortInfo)
 import Game.Rotation (Rotation(..))
 import Game.Signal (Signal(..), maxValue)
+import Game.TestCase (testCaseOutcome)
 import GlobalState (GlobalState, newBoardEvent)
 import Halogen (AttrName(..), ClassName(..), Component, ComponentHTML, ComponentSlot, HalogenM(..), HalogenQ, Slot, mkComponent, mkEval, raise, subscribe, tell)
 import Halogen as H
@@ -177,6 +178,10 @@ component = mkComponent { eval , initialState , render }
             forWithIndex_ pieces \loc _ ->
               removePiece loc
           pure (Just next)
+        
+        RunTestCase { inputs, expected } f -> do
+          handleQuery $ SetInputs inputs \received -> 
+             f (testCaseOutcome { inputs, expected } received)
 
 
       --handleAction :: Action -> HalogenM State Action Slots Output _ Unit
@@ -202,7 +207,7 @@ component = mkComponent { eval , initialState , render }
 
         -- set values of the  
         PieceOutput (Piece.NewMultimeterFocus focus) ->
-          tell slot.multimeter unit (\_ -> Multimeter.NewFocus focus)
+          tell Multimeter.slot unit (Multimeter.NewFocus focus)
 
         -- todo: fix this
         MultimeterOutput (Multimeter.SetCapacity relativeEdge capacity) -> do
@@ -213,7 +218,7 @@ component = mkComponent { eval , initialState , render }
                 info <- M.lookup relativeEdge signals
                 pure { info, relativeEdge }
             
-          tell slot.multimeter unit (\_ -> Multimeter.NewFocus focus)
+          tell Multimeter.slot unit (Multimeter.NewFocus focus)
 
         ToggleInput dir -> do
           _inputs <<< ix dir %= \signal -> if signal == ff then tt else ff
@@ -232,7 +237,7 @@ component = mkComponent { eval , initialState , render }
         SetOutputs outputs -> do
           modify_ $ _ { outputs = outputs }
           gets (_.isMouseOverBoardPort) >>= traverse_ \dir ->
-            tell slot.multimeter unit (\_ -> Multimeter.SetSignal (fold (M.lookup dir outputs)))
+            tell Multimeter.slot unit (Multimeter.SetSignal (fold (M.lookup dir outputs)))
 
         BoardOnDragExit _ -> do
           modify_ (_ { isCreatingWire = Nothing })
@@ -294,9 +299,9 @@ component = mkComponent { eval , initialState , render }
           use (_board <<< _pieces) >>= traverseWithIndex_ \loc info -> do
             let portStates = toLocalInputs loc signals
             --lift $ debug (tag "port states" (show portStates)) ("update piece at :" <> show loc )
-            tell slot.piece loc (\_ -> Piece.SetPortStates portStates)
-            tell slot.piece loc (\_ -> Piece.SetPiece info.piece)
-            tell slot.piece loc (\_ -> Piece.SetRotation info.rotation)
+            tell Piece.slot loc (Piece.SetPortStates portStates)
+            tell Piece.slot loc (Piece.SetPiece info.piece)
+            tell Piece.slot loc (Piece.SetRotation info.rotation)
 
         -- can these events be simplified? do we need all of them?
         LocationOnDragEnter loc dragEvent -> do
@@ -327,10 +332,10 @@ component = mkComponent { eval , initialState , render }
           relativeEdge <- evalState (getBoardPortEdge dir) <$> use _board
           signals <- gets (_.lastEvalWithPortInfo)
           let focus = { info: _, relativeEdge } <$> M.lookup relativeEdge signals
-          tell slot.multimeter unit (\_ -> Multimeter.NewFocus focus)
+          tell Multimeter.slot unit (Multimeter.NewFocus focus)
         BoardPortOnMouseLeave -> do
           modify_ (_ { isMouseOverBoardPort = Nothing })
-          tell slot.multimeter unit (\_ -> Multimeter.NewFocus Nothing)
+          tell Multimeter.slot unit (Multimeter.NewFocus Nothing)
 
         {-
           Lift a `BoardM` operation in the `HalogenM` Monad for this component.

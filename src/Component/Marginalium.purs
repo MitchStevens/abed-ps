@@ -5,14 +5,15 @@ module Component.Marginalium
   , Query
   , State
   , component
+  , module Component.Marginalia.Types
   )
   where
 
 import Prelude
+import Component.Marginalia.Types
 
 import AppM (AppM)
 import Component.GameEventLogger (selectGameEvents)
-import Component.Marginalia.Types (Marginalia, MarginaliaNode(..), MarginaliumDescription)
 import Control.Monad.Logger.Class (class MonadLogger, info)
 import Control.Monad.State.Class (gets, modify_)
 import Data.DateTime.Instant (Instant)

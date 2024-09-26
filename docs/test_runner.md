@@ -9,38 +9,31 @@ flowchart TD
 
   ready_for_testing
 
-
-
-
   level_complete((Level Complete))
 
 
   not_started --- check_for_port_mismatch
-  test_n_succeeded --- check_for_port_mismatch
   check_for_port_mismatch --- check_for_failed_restriction
   check_for_failed_restriction --- convert_to_evaluable
   convert_to_evaluable --- ready_for_testing
-  ready_for_testing --- run_tests
-
-
-
+  ready_for_testing --- run_all_tests
 
 
   subgraph test_runner
-    run_tests
-    all_tests_succeeded
-    test_n_failed
-    test_n_succeeded
-    run_test_n
+    run_all_tests
+    run_single_test
+    single_test_failed
+    move_to_next_test
 
-    run_tests --- test_n_failed
-    run_tests --- all_tests_succeeded
-    test_n_failed --- run_test_n
-    run_test_n --- test_n_failed
-    run_test_n --- test_n_succeeded
+    run_all_tests -- test n failed --> single_test_failed
+    single_test_failed --> run_single_test
+    run_single_test -- Test n failed --> single_test_failed
+    run_single_test -- Test n succeeded --> move_to_next_test
+    move_to_next_test --  Start test (n+1) --> run_single_test
+    move_to_next_test -- no tests remaining --> run_all_tests
 
 
 
   end
-    all_tests_succeeded --- level_complete
+  run_all_tests -- All tests succeeded --> level_complete
 ```

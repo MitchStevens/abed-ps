@@ -3,6 +3,8 @@ module Component.Sidebar.Types where
 import Prelude
 
 import Component.TestRunner as TestRunner
+import Data.Lens (Lens')
+import Data.Lens.Record (prop)
 import Data.Map (Map)
 import Game.Direction (CardinalDirection)
 import Game.Level.Completion (CompletionStatus)
@@ -10,6 +12,7 @@ import Game.Level.Problem (Problem)
 import Game.Piece (PieceId(..))
 import Game.Port (Port(..))
 import Game.Signal (Base, SignalRepresentation)
+import Game.TestCase (TestCase, TestCaseOutcome, TestCaseData)
 import Halogen (Slot)
 import Type.Proxy (Proxy(..))
 import Web.HTML.Event.DragEvent (DragEvent)
@@ -32,6 +35,8 @@ type State =
   }
 
 data Query a
+  = TestCaseOutcome TestCaseOutcome a
+  
 
 data Button
   = AddPiece PieceId
@@ -43,11 +48,13 @@ data Button
   | RunTests
   | Clear
   | Base Base
+derive instance Eq Button
 
 data Action
   = Initialise Input
   | PieceOnDrop PieceId DragEvent
   | ButtonClicked Button MouseEvent
+  | TestRunnerOutput TestRunner.Output
   {-
     the sidebar creates little icons using the same piece rendering as pieces. the type of HTML used in piece rendering is:
       `ComponentHTML Piece.Action s m`
@@ -63,9 +70,16 @@ data Action
 data Output
   = PieceDropped PieceId
   | ButtonOutput Button
+  | RunTestCase TestCaseData
+
 
 type Slots =
   ( testRunner :: Slot TestRunner.Query TestRunner.Output Unit )
 
-slot =
-  { testRunner: Proxy :: _ "testRunner" }
+initialState :: Input -> State
+initialState = identity
+
+slot = Proxy :: Proxy "sidebar"
+
+_completionStatus :: Lens' State CompletionStatus
+_completionStatus = prop (Proxy :: Proxy "completionStatus")

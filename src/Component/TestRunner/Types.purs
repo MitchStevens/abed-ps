@@ -4,65 +4,65 @@ import Prelude
 
 import Data.Array.NonEmpty (NonEmptyArray)
 import Data.Array.NonEmpty as NE
+import Data.Generic.Rep (class Generic)
+import Data.Lens (Lens')
+import Data.Lens.Record (prop)
 import Data.LimitQueue (LimitQueue)
 import Data.List (List)
 import Data.Map (Map)
 import Data.Maybe (Maybe(..))
+import Data.Show.Generic (genericShow)
 import Data.Time.Duration (Milliseconds(..))
 import Data.Zipper (Zipper)
 import Game.Direction (CardinalDirection)
-import Game.Level.Completion (TestCaseOutcome)
 import Game.Piece (Piece(..), eval)
 import Game.Port (Port(..))
 import Game.Signal (Base, Signal)
+import Game.TestCase (TestCase)
+import Game.TestCase (TestCaseOutcome, TestCaseData, TestCase)
 import Type.Proxy (Proxy(..))
 
 maxRows = 5
 delayBetweenTests = Milliseconds 1000.0
 
-data TestCaseStatus = Pending | Completed | Failed
-
-type TestCase =
-  { status :: TestCaseStatus
-  , inputs :: Map CardinalDirection Signal
-  , expected :: Map CardinalDirection Signal
-  , received :: Maybe (Map CardinalDirection Signal)
-  }
-
 type Input =
-  { ports :: Map CardinalDirection Port
-  , base :: Base
+  { base :: Base
   , inputs :: NonEmptyArray (Map CardinalDirection Signal)
   , model :: Piece
   }
 
 type State =
-  { ports :: Map CardinalDirection Port
-  , base :: Base
+  { base :: Base
   , testCases :: Zipper TestCase
   , model :: Piece
+  , runNextTestOnPassed :: Boolean
   }
 
 data Query a
+  = TestCaseOutcome TestCaseOutcome a
+
 
 data Action
-  = StartTesting
-  | RunSingleTest 
-  | CurrentTestCaseCompleted TestCaseOutcome
+  = RunCurrentTest
+  | RunAllTests
 
 data Output
-  = SingleTestSucceeded { testIndex :: Int }
-  | AllTestsSucceed
+  = TestCaseData TestCaseData
+  | AllTestsPassed
 
 initialState :: Input -> State
-initialState { ports, base, inputs, model } =
-  { ports, base, model, testCases }
+initialState { base, inputs, model } =
+  { base, model, testCases, runNextTestOnPassed: true }
   where
     testCases = NE.toUnfoldable1 $ flip map inputs \i ->
-      { inputs: i
-      , expected: eval model i
-      , received: Nothing
-      , status: Pending
+      { data: { inputs: i, expected: eval model i }
+      , outcome: Nothing
       }
 
 slot = Proxy :: Proxy "testRunner"
+
+_testCases :: Lens' State (Zipper TestCase)
+_testCases = prop (Proxy :: Proxy "testCases")
+
+_runNextTestOnPassed :: Lens' State Boolean
+_runNextTestOnPassed = prop (Proxy :: Proxy "runNextTestOnPassed")

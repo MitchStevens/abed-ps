@@ -6,6 +6,7 @@ module Component.Piece.Types
   , State
   , _portStates
   , initialState
+  , slot
   )
   where
 
@@ -48,9 +49,9 @@ type State =
   }
 
 data Query a
-  = SetPortStates (Map CardinalDirection PortInfo)
-  | SetPiece Piece
-  | SetRotation Rotation
+  = SetPortStates (Map CardinalDirection PortInfo) a
+  | SetPiece Piece a 
+  | SetRotation Rotation a
 
 data Action
   = Initialise Input
@@ -67,6 +68,8 @@ data Output
   = Rotated Location Rotation
   | Dropped Location
   | NewMultimeterFocus (Maybe {info :: PortInfo, relativeEdge :: RelativeEdge })
+
+slot = Proxy :: Proxy "piece"
 
 initialState :: Input -> State
 initialState { piece: Piece p, location } = 
