@@ -15,6 +15,5 @@ defaultLayout inner =
   HH.div
     [ HP.id "default-layout" ]
     [ HH.div [ HP.id "title" ] [ HH.text "A.B.E.D." ]
-    , HH.br_
     , HH.div [ HP.class_ (ClassName "inner") ] [ inner ]
     ]

@@ -2,35 +2,20 @@ module Resources.LevelSuites.TutorialSuite.Suite where
 
 import Prelude
 
-import Component.DataAttribute as DA
+import Capability.Navigate (Route(..))
 import Component.Marginalia.Types (description, marginalia)
 import Control.Monad.Reader (ask, lift)
 import Control.Plus ((<|>))
 import Data.Array.NonEmpty.Internal (NonEmptyArray(..))
 import Data.FunctorWithIndex (mapWithIndex)
 import Data.HeytingAlgebra (ff, tt)
-import Data.Lens ((.~))
-import Data.Maybe (Maybe(..))
-import Data.Predicate (Predicate(..))
-import Data.Set as S
-import Data.Time.Duration (Milliseconds(..))
-import Effect.Aff (delay, parallel, sequential)
-import Effect.Aff.Class (liftAff)
-import Effect.Aff.Compat (fromEffectFnAff)
-import Effect.Class (liftEffect)
-import Effect.Class.Console (log)
 import Foreign.Object (fromHomogeneous)
 import Game.Direction as Direction
-import Game.GameEvent (BoardEvent(..), GameEvent(..))
 import Game.Level (LevelSuite, binaryTestInputs, defaultLevel)
 import Game.Level.Problem (defaultProblem)
 import Game.Location (location)
 import Game.Message (Conversation, Message(..), button, guideMessage, noUser, sendMessage)
 import Game.Piece (idPiece, leftPiece, notPiece, orPiece)
-import Halogen.HTML as HH
-import Halogen.Subscription as HS
-
---import Resources.LevelSuites.TutorialSuites.Guide (firstLevelGuide)
 
 tutorialSuite :: LevelSuite
 tutorialSuite = fromHomogeneous
@@ -43,7 +28,7 @@ tutorialSuite = fromHomogeneous
         , testCases = binaryTestInputs [ Direction.Left ]
         , availablePieces = NonEmptyArray [ idPiece ]
         }
-      , marginalia = [ marginalia (tt) (description "wow this is great marginalia!!" ff) ]
+      --, marginalia = [ marginalia (tt) (description "wow this is great marginalia!!" ff) ]
       --, conversation = do
       --   -- guideMessage "hey. guide here"
       --   -- guideMessage "you look a little green? have you played this game before?"

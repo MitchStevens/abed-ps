@@ -23,7 +23,8 @@ import Type.Proxy (Proxy(..))
 -}
 
 type MarginaliumDescription =
-  { message :: String
+  { title :: String
+  , message :: String
   , leadTime :: Seconds           -- how long should we wait before displaying marginalium after the level is loaded?
   , maxTimeToDisplay :: Seconds   -- how long should the message be shown
   , removeOn :: Predicate GameEvent -- under what `GameEvent`s should the marginalium be cancelled?
@@ -42,9 +43,10 @@ marginalia predicate marginaliaDescription =
   NE.cons' (WaitingOn predicate) Nil
     `chain` marginaliaDescription
 
-description :: String -> Predicate GameEvent -> MarginaliumDescription
-description message removeOn =
-  { message
+description :: String -> String -> Predicate GameEvent -> MarginaliumDescription
+description title message removeOn =
+  { title
+  , message
   , leadTime: Seconds 0.0 --Seconds 10.0
   , maxTimeToDisplay: Seconds 100000.0 --Seconds 20.0
   , removeOn
