@@ -67,6 +67,7 @@ data Action
 data Output
   = Rotated Location Rotation
   | Dropped Location
+  | RemoveThis Location
   | NewMultimeterFocus (Maybe {info :: PortInfo, relativeEdge :: RelativeEdge })
 
 slot = Proxy :: Proxy "piece"

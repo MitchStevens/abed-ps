@@ -53,6 +53,7 @@ import Data.Tuple.Nested (Tuple3, tuple3, tuple4, (/\))
 import Data.Zipper (Zipper)
 import Data.Zipper as Z
 import Debug (trace)
+import Effect (Effect)
 import Effect.Aff.Class (class MonadAff)
 import Effect.Class (class MonadEffect, liftEffect)
 import Effect.Class.Console (log, logShow)
@@ -90,6 +91,7 @@ import Web.HTML.Event.DragEvent (DragEvent, dataTransfer, toEvent)
 import Web.UIEvent.KeyboardEvent (KeyboardEvent, code, ctrlKey, fromEvent, key)
 import Web.UIEvent.MouseEvent (MouseEvent, clientX, clientY)
 import Web.UIEvent.MouseEvent as MouseEvent
+import Web.UIEvent.MouseEvent.Extras (MouseButton(..), button)
 
 component :: Component Query Input Output AppM
 component = mkComponent { eval , initialState , render }
@@ -204,10 +206,13 @@ component = mkComponent { eval , initialState , render }
               lift $ warn M.empty (show result)
               Animate.headShake (DA.selector DA.location src)
 
-
         -- set values of the  
         PieceOutput (Piece.NewMultimeterFocus focus) ->
           tell Multimeter.slot unit (Multimeter.NewFocus focus)
+
+        PieceOutput (Piece.RemoveThis loc) -> do
+          _ <- liftBoardM (removePiece loc)
+          pure unit
 
         -- todo: fix this
         MultimeterOutput (Multimeter.SetCapacity relativeEdge capacity) -> do
@@ -255,14 +260,13 @@ component = mkComponent { eval , initialState , render }
             when (last creatingWire.locations /= Just loc) do
               _wireLocations <>= [loc]
 
-        LocationOnMouseUp loc me -> void $ runMaybeT do
-          { initialDirection: initial, locations } <- MaybeT $ gets (_.isCreatingWire)
-          eventTarget <- MaybeT $ pure $ target (MouseEvent.toEvent me)
-          element <- MaybeT $ pure $ fromEventTarget eventTarget
-          bb <- liftEffect (getBoundingClientRect element)
-          let terminal = getDirectionClicked me bb
-
-          lift $ handleQuery (AddPath initial locations terminal (\_ -> unit))
+        -- todo: used to use MaybeT here, refactor?
+        LocationOnMouseUp loc me ->
+          when (button me == Primary) do 
+            gets (_.isCreatingWire) >>= traverse_ \{ initialDirection: initial, locations} -> do
+              (liftEffect $ boundingBoxFromMouseEvent me) >>= traverse_ \bb -> do
+                let terminal = getDirectionClicked me bb
+                handleQuery (AddPath initial locations terminal (\_ -> unit))
 
         SetBoard board -> do
           lift $ debug M.empty "Updating board"
@@ -349,6 +353,10 @@ component = mkComponent { eval , initialState , render }
           Right (Tuple a board') -> do
             handleAction (SetBoard board')
             pure (Right a)
+
+boundingBoxFromMouseEvent :: MouseEvent -> Effect (Maybe DOMRect)
+boundingBoxFromMouseEvent me =
+  for (target (MouseEvent.toEvent me) >>= fromEventTarget) getBoundingClientRect
 
 -- assumes that DOMRect is squareish
 getDirectionClicked :: MouseEvent -> DOMRect -> CardinalDirection
