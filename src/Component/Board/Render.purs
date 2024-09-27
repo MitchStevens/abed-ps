@@ -30,7 +30,7 @@ import Game.Location (Location(..), location)
 import Game.PortInfo (PortInfo)
 import Game.Rotation (Rotation(..), toDegrees)
 import Halogen.Component (ComponentSlot(..))
-import Halogen.HTML (ClassName(..), ComponentHTML, HTML, slot_)
+import Halogen.HTML (ClassName(..), HTML, ComponentHTML, slot_)
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
@@ -39,7 +39,7 @@ import Halogen.Svg.Attributes as SA
 import Halogen.Svg.Elements as SE
 import Web.HTML.Event.DragEvent as DragEvent
 
-render :: State -> HTML (ComponentSlot Slots AppM Action) Action
+render :: State -> ComponentHTML Action Slots AppM
 render state =
   HH.div
     [ HP.id "board-component"

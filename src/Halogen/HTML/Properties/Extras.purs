@@ -1,4 +1,4 @@
-module Halogen.Properties.Extras where
+module Halogen.HTML.Properties.Extras where
 
 import Prelude
 

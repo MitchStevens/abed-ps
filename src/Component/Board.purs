@@ -82,12 +82,16 @@ import Halogen.Svg.Attributes as SA
 import Halogen.Svg.Elements as SE
 import Type.Proxy (Proxy(..))
 import Web.DOM.Document (toEventTarget)
-import Web.DOM.Element (DOMRect, fromEventTarget, getBoundingClientRect)
-import Web.DOM.ParentNode (QuerySelector(..))
+import Web.DOM.Element (DOMRect, fromEventTarget, getBoundingClientRect, setAttribute)
+import Web.DOM.NonElementParentNode (getElementById)
+import Web.DOM.ParentNode (QuerySelector(..), querySelector)
 import Web.Event.Event (Event, preventDefault, target)
 import Web.Event.EventTarget (addEventListener, eventListener)
+import Web.HTML (window)
 import Web.HTML.Common (ClassName(..))
 import Web.HTML.Event.DragEvent (DragEvent, dataTransfer, toEvent)
+import Web.HTML.HTMLDocument as HTMLDocument
+import Web.HTML.Window (document)
 import Web.UIEvent.KeyboardEvent (KeyboardEvent, code, ctrlKey, fromEvent, key)
 import Web.UIEvent.MouseEvent (MouseEvent, clientX, clientY)
 import Web.UIEvent.MouseEvent as MouseEvent
@@ -192,6 +196,12 @@ component = mkComponent { eval , initialState , render }
           emitter <- liftEffect $ globalKeyDownEventEmitter
           void $ subscribe (GlobalOnKeyDown <$> emitter)
           raise =<< NewBoardState <$> use _board
+
+          -- add attribute oncontextmenu="return false;" to board-component in order to disable right click context menu over the board (we are using right click to remove pieces)
+          liftEffect do
+            parentNode <- window >>= document <#> HTMLDocument.toNonElementParentNode
+            getElementById "board-component" parentNode >>= traverse_ \element ->
+              setAttribute "oncontextmenu" "return false;" element
 
         PieceOutput (Piece.Rotated loc rot) -> do
           void $ liftBoardM (rotatePieceBy loc rot)

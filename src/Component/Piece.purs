@@ -36,7 +36,7 @@ import Halogen.HTML (HTML, PlainHTML, fromPlainHTML)
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
-import Halogen.Properties.Extras as HP
+import Halogen.HTML.Properties.Extras as HP
 import Halogen.Svg.Attributes (Color(..), Transform(..))
 import Halogen.Svg.Attributes as SA
 import Halogen.Svg.Elements as SE
@@ -49,7 +49,8 @@ import Web.HTML.HTMLElement (HTMLElement, fromElement, offsetHeight, offsetLeft,
 import Web.UIEvent.KeyboardEvent (key, shiftKey)
 import Web.UIEvent.MouseEvent (MouseEvent, clientX, clientY, screenX, screenY)
 import Web.UIEvent.MouseEvent as MouseEvent
-import Web.UIEvent.MouseEvent.Extras (MouseButton(..), button)
+
+--import Web.UIEvent.MouseEvent.Extras (MouseButton(..), button)
 
 component :: forall m. MonadEffect m => Component Query Input Output m
 component = mkComponent { eval , initialState , render }
@@ -68,8 +69,9 @@ component = mkComponent { eval , initialState , render }
       , HE.onDrag OnDrag
       , HE.onMouseDown OnMouseDown
       , HE.onMouseMove OnMouseMove
-      , HE.onMouseUp (OnMouseUp state.location)
+      , HE.onMouseUp OnMouseUp
       , HE.onKeyDown OnKeyDown
+      , HE.onAuxClick OnAuxClick
       ]
       [ renderPiece state ]
     where
@@ -100,29 +102,26 @@ component = mkComponent { eval , initialState , render }
           modify_ (_ { isDragging = true })
           pure unit
         OnMouseDown me ->
-          case button me of
-            Primary -> do
-              getHTMLElementRef (RefLabel "piece") >>= traverse_ \he -> do
-                r <- liftEffect $ mul 0.5 <$> clientWidth (toElement he)
-                c <- liftEffect $ elementCenterClient (toElement he)
-                let Tuple x y = sub (getPosition me) c
-                if r*r > x*x + y*y
-                -- if the mouse outside the inner circle of the piece...
-                  then do
-                    -- start dragging
-                    modify_ (_ { isRotating = Nothing })
-                  else do
-                    -- else start rotation
-                    liftEffect $ setDraggable false he
-                    rotation <- gets (_.rotation)
-                    modify_ (_
-                      { isRotating = Just { initialClickPosition: getPosition me, currentRotation: toRadians rotation }
-                      , isDragging = false
-                    })
-            Secondary -> do
-              loc <- gets (_.location)
-              H.raise (Dropped loc)
-            _ -> pure unit
+          getHTMLElementRef (RefLabel "piece") >>= traverse_ \he -> do
+            r <- liftEffect $ mul 0.5 <$> clientWidth (toElement he)
+            c <- liftEffect $ elementCenterClient (toElement he)
+            let Tuple x y = sub (getPosition me) c
+            if r*r > x*x + y*y
+            -- if the mouse outside the inner circle of the piece...
+              then do
+                -- start dragging
+                modify_ (_ { isRotating = Nothing })
+              else do
+                -- else start rotation
+                liftEffect $ setDraggable false he
+                rotation <- gets (_.rotation)
+                modify_ (_
+                  { isRotating = Just { initialClickPosition: getPosition me, currentRotation: toRadians rotation }
+                  , isDragging = false
+                })
+        OnAuxClick _ -> do
+          loc <- gets (_.location)
+          H.raise (Dropped loc)
 
         OnMouseMove me -> do
           getRef (RefLabel "piece") >>= traverse_ \e -> do
@@ -141,17 +140,13 @@ component = mkComponent { eval , initialState , render }
               modify_ (_ {
                 isRotating = Just { initialClickPosition, currentRotation: angle }
               })
-        OnMouseUp loc me -> do
-          logShow (button me)
-
-          case button me of
-            Primary ->
-              gets (_.isRotating) >>= traverse_ \{ initialClickPosition, currentRotation } -> do
-                let closestSnapPoint = rotation $ round (4.0 * currentRotation / (2.0 * pi))
-                rotation <- gets (_.rotation)
-                modify_ (_ { isRotating = Nothing })
-                raise (Rotated loc (closestSnapPoint <> ginverse rotation))
-            _ -> pure unit
+        OnMouseUp me -> do
+          gets (_.isRotating) >>= traverse_ \{ initialClickPosition, currentRotation } -> do
+            let closestSnapPoint = rotation $ round (4.0 * currentRotation / (2.0 * pi))
+            rotation <- gets (_.rotation)
+            location <- gets (_.location)
+            modify_ (_ { isRotating = Nothing })
+            raise (Rotated location (closestSnapPoint <> ginverse rotation))
         OnKeyDown ke -> do
           when (key ke == "r") do
             loc <- gets (_.location)

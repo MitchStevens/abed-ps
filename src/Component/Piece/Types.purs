@@ -59,7 +59,9 @@ data Action
   | OnDrag DragEvent
   | OnMouseDown MouseEvent
   | OnMouseMove MouseEvent
-  | OnMouseUp Location MouseEvent
+  -- | OnMouseUp Location MouseEvent
+  | OnMouseUp MouseEvent
+  | OnAuxClick MouseEvent
   | PortOnMouseEnter CardinalDirection
   | PortOnMouseLeave
   | OnKeyDown KeyboardEvent
