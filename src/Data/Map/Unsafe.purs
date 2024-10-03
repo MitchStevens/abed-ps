@@ -11,5 +11,4 @@ unsafeMapKey f = go
   where
     go = case _ of
       Map.Leaf -> Map.Leaf
-      Map.Two l k v r -> Map.Two (go l) (f k) v (go r)
-      Map.Three l k1 v1 m k2 v2 r -> Map.Three (go l) (f k1) v1 (go m) (f k2) v2 (go r)
+      Map.Node h s k v l r -> Map.Node h s (f k) v (go l) (go r)
