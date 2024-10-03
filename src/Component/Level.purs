@@ -87,7 +87,8 @@ component = H.mkComponent { eval , initialState , render }
   where
   initialState { levelId, level } = 
     { levelId
-    , level, completionStatus: NotStarted
+    , level
+    , completionStatus: NotStarted
     , boardSize: 3
     , boardPorts: evalState getBoardPorts standardBoard
     , marginalia: M.empty

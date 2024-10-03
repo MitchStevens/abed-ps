@@ -3,6 +3,7 @@ module Component.LevelSelect where
 import Prelude
 
 import Capability.Navigate (Route(..), navigateTo)
+import Capability.Navigate as Navigate
 import Capability.Progress (LevelProgress(..), saveLevelProgress)
 import Component.DataAttribute (attr)
 import Component.DataAttribute as DA
@@ -80,7 +81,7 @@ component = H.mkComponent { eval , initialState , render }
           H.modify_ (_ { levelProgress = progress})
         NavigateTo levelId -> do
           saveLevelProgress levelId Incomplete
-          navigateTo (Level levelId.suiteName levelId.levelName)
+          navigateTo (Navigate.level levelId)
     , initialize = Just Initialise
     }
 
