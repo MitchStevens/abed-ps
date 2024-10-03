@@ -43,8 +43,6 @@ workspace:
           - profunctor
           - profunctor-lenses
           - record
-          - refs
-          - rough-notation
           - routing
           - routing-duplex
           - strings
@@ -135,7 +133,6 @@ workspace:
           - random
           - record
           - refs
-          - rough-notation
           - routing
           - routing-duplex
           - safe-coerce
@@ -1817,20 +1814,6 @@ packages:
     dependencies:
       - effect
       - prelude
-  rough-notation:
-    type: registry
-    version: 1.0.2
-    integrity: sha256-x0KSrfrRURl9AUEBjV/kVLBD0gJ7G0KnKpj8OG4R4Jw=
-    dependencies:
-      - aff
-      - datetime
-      - effect
-      - maybe
-      - nullable
-      - prelude
-      - record
-      - unsafe-coerce
-      - web-dom
   routing:
     type: registry
     version: 11.0.0

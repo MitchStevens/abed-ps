@@ -6,8 +6,8 @@
     "compile-css": "lessc dist/less/default.less dist/default.css",
     "compile-css-watch": "find dist/less | entr -s 'npm run compile-css'",
     "build": "spago bundle",
-    "build-watch": "npm run compile-css-watch && fd . -e purs -e js -e less | entr -s 'npm run build'",
-    "build-prod": "npm run compile-css && purs-backend-es build && purs-backend-es bundle-app --no-build",
+    "build-watch": "npm run compile-css-watch & fd . -e purs -e js -e less | entr -s 'npm run build'",
+    "build-prod": "npm run compile-css & purs-backend-es build && purs-backend-es bundle-app --no-build",
     "test": "spago test -- --fail-fast",
     "test-watch": "fd . -e purs -e js | entr -s 'npm run test'"
   },

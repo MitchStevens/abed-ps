@@ -38,8 +38,8 @@ package:
     - profunctor
     - profunctor-lenses
     - record
-    - refs
-    - rough-notation
+    # - refs
+    #- rough-notation
     - routing
     - routing-duplex
     - strings
