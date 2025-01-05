@@ -18,6 +18,8 @@ import Halogen (ComponentHTML)
 import Halogen.HTML as HH
 import Halogen.HTML.Properties as HP
 
+
+
 render :: forall s m. State -> ComponentHTML Action s m
 render state = HH.table_ (renderHeaders <> renderRows)
   where

@@ -122,6 +122,12 @@ superPiece = mkWirePiece
   , outputs: S.fromFoldable [Direction.Up, Direction.Right, Direction.Down]
   }
 
+intersectionRightPiece :: Piece
+intersectionRightPiece = mkWirePiece 
+  { capacity: OneBit
+  , outputs: S.fromFoldable [Direction.Right, Direction.Down]
+  }
+
 
 type DualWirePiece =
   { name :: PieceId

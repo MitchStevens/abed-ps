@@ -39,15 +39,19 @@ import Data.Unfoldable (unfoldr)
 import Data.Zipper (Zipper(..))
 import Data.Zipper as Z
 import Debug (trace)
+import Debug as Debug
 import Effect.Aff (Aff, error)
-import Game.Board.Operation (addPieceNoUpdate, removePieceNoUpdate, updatePortsAround)
+import Game.Board.Operation (addPieceNoUpdate, removePieceNoUpdate, updateRelEdge)
 import Game.Board.PathSegment (PathSegment(..), PathSegmentError, combineSegmentWithExtant, singlePath)
 import Game.Board.PieceInfo (PieceInfo)
+import Game.Board.Query (adjacentRelativeEdge, toRelativeEdge)
+import Game.Board.RelativeEdge (absolute, relative)
 import Game.Board.Types (Board(..), BoardError, _pieces)
 import Game.Direction (CardinalDirection, oppositeDirection)
 import Game.Edge (Edge(..), edgeDirection, edgeLocation)
 import Game.Location (Location(..), directionTo, followDirection)
 import Game.Piece (Piece(..), chickenPiece, cornerCutPiece, crossPiece, idPiece, leftPiece, rightPiece)
+import Game.Port as PortType
 import Partial.Unsafe (unsafeCrashWith)
 
 data PathError
@@ -78,6 +82,9 @@ type Path =
   , segments :: Array CardinalDirection
   , terminal :: CardinalDirection
   }
+
+end :: Path -> Location
+end path = A.foldl followDirection path.start path.segments
 
 toPath :: CardinalDirection -> Array Location -> CardinalDirection -> Either PathError Path
 toPath initial locations terminal = do
@@ -110,7 +117,17 @@ addPath initialDir locations terminalDir =
     Left _ -> pure false
     Right path -> do
       board <- get
-      catchError (addPathToBoard path) (\_ -> put board *> pure false)
+      b <- catchError (addPathToBoard path) (\_ -> put board *> pure false)
+      updateEndPoints path
+      pure b
+
+updateEndPoints :: forall m
+  .  MonadState Board m
+  => Path -> m Unit
+updateEndPoints path = do
+  headAdj <- toRelativeEdge (absolute path.start path.initial) >>= adjacentRelativeEdge
+  updateRelEdge headAdj (Just PortType.Input)
+  --do tail later
 
 {-
 
@@ -123,7 +140,7 @@ addPathToBoard path = do
   case partitionPath path of
     Left _ -> pure false
     Right pathSegments -> do
-      and <$> forWithIndex pathSegments \loc segment -> do
+      res <- and <$> forWithIndex pathSegments \loc segment -> do
         extant <- use (_pieces <<< at loc)
         case combineSegmentWithExtant segment extant of
           Left _ -> pure false
@@ -131,3 +148,4 @@ addPathToBoard path = do
             catchError (void $ removePieceNoUpdate loc) (\_ -> pure unit)
             addPieceNoUpdate loc piece rotation
             pure true
+      pure res

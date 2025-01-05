@@ -25,6 +25,7 @@ import Data.Set as S
 import Data.Traversable (traverse)
 import Data.Tuple (Tuple(..), fst, snd)
 import Debug (trace)
+import Debug as Debug
 import Effect.Aff.Class (class MonadAff)
 import Effect.Class (class MonadEffect)
 import Game.Board.PieceInfo (PieceInfo, _rotation)
@@ -73,8 +74,9 @@ checkInsideBoard loc = whenM (not <$> isInsideBoard loc) (throwError (InvalidLoc
 updateRelEdge :: forall m. MonadState Board m => RelativeEdge -> Maybe PortType -> m Unit
 updateRelEdge (Relative (Edge {dir, loc})) portType = do
   use (_pieces <<< at loc) >>= traverse_ \info -> do
-    for_ (updatePort dir portType info.piece) \piece ->
-      _pieces <<< ix loc <<< prop (Proxy :: Proxy "piece") .= piece
+    for_ (updatePort dir portType info.piece) \piece -> 
+      Debug.trace (show (Edge {dir, loc})) $ \_ -> 
+        _pieces <<< ix loc <<< prop (Proxy :: Proxy "piece") .= piece
 
 updatePortsAround :: forall m. MonadState Board m => Location -> m Unit
 updatePortsAround loc = do
