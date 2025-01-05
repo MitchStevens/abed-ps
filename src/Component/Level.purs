@@ -9,8 +9,8 @@ import Component.Board as Board
 import Component.GameEventLogger as GameEventLogger
 import Component.Marginalia.Types (Marginalia, marginalia)
 import Component.Marginalium as Marginalium
-import Component.Sidebar as Sidebar
 import Component.Selector as Selector
+import Component.Sidebar as Sidebar
 import Control.Alt ((<|>))
 import Control.Monad.Cont (ContT(..), callCC, lift, runContT)
 import Control.Monad.Except (ExceptT(..), runExceptT)
@@ -211,7 +211,8 @@ component = H.mkComponent { eval , initialState , render }
           pure unit
         Sidebar.Clear ->
           H.tell _board unit Board.Clear
-        Sidebar.Base base ->
+        Sidebar.Base base -> do
+          log ("set base " <> show base)
           modify_ $ _ { base = base }
     SelectorOutput output -> evalSelector output
       

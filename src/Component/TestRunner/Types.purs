@@ -46,7 +46,8 @@ type State =
 data Query a
 
 data Action
-  = StartTesting
+  = Receive Input
+  | StartTesting
   | RunSingleTest 
   | CurrentTestCaseCompleted TestCaseOutcome
 

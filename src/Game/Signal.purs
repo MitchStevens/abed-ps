@@ -92,6 +92,11 @@ over2Signal f (Signal a) (Signal b) = Signal (f a b)
 --- 
 data Base = Binary | Decimal | Hexadecimal
 derive instance Eq Base
+instance Show Base where
+  show = case _ of
+    Binary -> "Binary"
+    Decimal -> "Decimal"
+    Hexadecimal -> "Hexadecimal"
 
 baseRadix :: Base -> Radix
 baseRadix = case _ of

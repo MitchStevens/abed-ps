@@ -35,6 +35,20 @@
     & .completion-status {
         height: 100px;
         flex-grow: 1;
+
+        & > * {
+            width: 100%;
+        }
+
+        & .test-runner {
+            & > span {
+                border: lightgray 2px solid;
+            }
+        }
+    }
+
+    & .test-runner {
+        display: grid;
     }
 }
 

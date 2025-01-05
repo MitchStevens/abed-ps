@@ -7,7 +7,7 @@ import Component.TestRunner.Render
 import Component.TestRunner.Types
 import Prelude
 
-import Control.Monad.State.Class (modify_)
+import Control.Monad.State.Class (get, modify_)
 import Data.Array as A
 import Data.FunctorWithIndex (mapWithIndex)
 import Data.LimitQueue (LimitQueue)
@@ -32,5 +32,18 @@ import Halogen.HTML.Properties as HP
 component :: forall m. H.Component Query Input Output m
 component = H.mkComponent { eval, initialState, render }
   where
-    eval = mkEval (defaultEval)
+    eval = mkEval
+      { handleAction: case _ of
+          Receive input -> do
+            modify_ (_ { base = input.base })
+
+          _ -> pure unit
+          -- StartTesting
+          -- RunSingleTest 
+          -- CurrentTestCaseCompleted TestCaseOutcome
+      , handleQuery: \_ -> pure Nothing
+      , receive: Just <<< Receive
+      , initialize: Nothing
+      , finalize: Nothing
+      }
 

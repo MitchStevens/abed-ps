@@ -68,7 +68,7 @@ component = mkComponent { eval, initialState, render }
             boardSize <- gets (_.boardSize)
             when (sliderValue /= boardSize) do
               liftEffect (setValue boardSize)
-              headShake (QuerySelector "#sidebar-component .board-size h3")
+              headShake (QuerySelector "#sidebar-component .board-size h2")
     
     render :: State -> ComponentHTML Action () m
     render state = 
