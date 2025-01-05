@@ -5,6 +5,7 @@ import Prelude
 import Control.Monad.Error.Class (throwError)
 import Control.Monad.Except (lift, runExceptT)
 import Control.Monad.State (get)
+import Data.Array.NonEmpty.Internal (NonEmptyArray(..))
 import Data.Either (Either(..), either)
 import Data.Foldable (sequence_, traverse_)
 import Data.HeytingAlgebra (ff, tt)
@@ -32,7 +33,7 @@ problemDescription =
   , description: "create an idenity from not gate"
   , testCases: [ M.singleton Direction.Left ff, M.singleton Direction.Left tt ]
   , requiresAutomaticTesting: false
-  , availablePieces: []
+  , availablePieces: NonEmptyArray []
   , otherRestrictions: []
   }
 

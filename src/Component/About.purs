@@ -35,6 +35,7 @@ component = H.mkComponent { eval , initialState , render }
       HH.div [ HP.class_ (ClassName "about-component") ]
         [ HH.h1_ [ HH.text "about page" ]
         , HH.h2_ [ HH.text "This game created by Mitch Stevens" ]
+        , HH.text "Note: I am not a \"\"\"web developer\"\"\". As a result, I don't know CSS and I have no idea how this will look on your browser. Since I know this \"\"game\"\"\" works on my machine, I suggest you play this game using the brave browser. Barring that, it'll probably look ok in chrome."
         , HH.br_
         , HH.text "email here"
         , HH.br_
@@ -43,8 +44,7 @@ component = H.mkComponent { eval , initialState , render }
           [ HP.href "https://github.com/MitchStevens/abed-ps" ]
           [ HH.text "https://github.com/MitchStevens/abed-ps" ]
         , HH.br_
-        , HH.button
-          [ HE.onClick (\_ -> DeleteProgress ) ]
+        , HH.button  [ HE.onClick (\_ -> DeleteProgress ) ]
           [ HH.text "Delete all progress" ] 
         ]
   

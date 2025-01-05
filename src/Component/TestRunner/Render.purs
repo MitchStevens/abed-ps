@@ -27,16 +27,16 @@ render state = HH.table_ (renderHeaders <> renderRows)
     renderHeaders =
       [ HH.tr_
         [ HH.td_
-          [ HH.text "Index" ]
+          [ HH.text "" ]
         , HH.td
           [ HP.colSpan (S.size inputDirs) ]
-          [ HH.text "Inputs" ]
+          [ HH.text "In." ]
         , HH.td
           [ HP.colSpan (S.size outputDirs) ]
-          [ HH.text "Expected" ]
+          [ HH.text "Ex." ]
         , HH.td
           [ HP.colSpan (S.size outputDirs) ]
-          [ HH.text "Reveived" ]
+          [ HH.text "Out." ]
         , HH.td_
           [ HH.text "Status" ]
         ]

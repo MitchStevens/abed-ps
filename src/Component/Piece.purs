@@ -52,13 +52,13 @@ import Web.UIEvent.MouseEvent (MouseEvent, clientX, clientY, screenX, screenY)
 component :: forall m. MonadEffect m => Component Query Input Output m
 component = mkComponent { eval , initialState , render }
   where
-  render state =
+  render = HH.lazy $ \state ->
     HH.div
       [ HP.classes [ ClassName "piece-component" ]
       , DA.attr DA.isDragging state.isDragging
       , DA.attr DA.rotation state.rotation
       , DA.attr DA.pieceId (name state.piece)
-      , HP.draggable isDraggable
+      , HP.draggable (isNothing state.isRotating)
       , HP.ref (RefLabel "piece")
       , HP.contentEditable true
 
@@ -70,10 +70,6 @@ component = mkComponent { eval , initialState , render }
       , HE.onKeyDown OnKeyDown
       ]
       [ renderPiece state ]
-    where
-      isDraggable = isNothing state.isRotating
-      --pieceRotation = maybe (toRadians state.rotation) (_.currentRotation) state.isRotating
-
 
   getPosition :: MouseEvent -> Tuple Number Number 
   getPosition e = Tuple (toNumber (clientX e)) (toNumber (clientY e))

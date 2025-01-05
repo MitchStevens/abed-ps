@@ -48,7 +48,7 @@ import Web.HTML.Event.DragEvent (DragEvent)
 import Web.UIEvent.KeyboardEvent (KeyboardEvent)
 import Web.UIEvent.MouseEvent (MouseEvent)
 
-type Input = { board ::Board }
+type Input = { board :: Board }
 
 type State = 
   { boardHistory :: Zipper Board -- todo: limit the number of boards in this data structure
@@ -72,8 +72,7 @@ data Query a
   | GetMouseOverLocation (Location -> a)
   | SetInputs (Map CardinalDirection Signal) (Map CardinalDirection Signal -> a)
   | SetGoalPorts (Map CardinalDirection Port) a
-  | IncrementBoardSize a
-  | DecrementBoardSize (Either BoardError Unit -> a)
+  | SetBoardSize Int (Either BoardError Unit -> a)
   | Undo a
   | Redo a
   | Clear a
@@ -126,6 +125,7 @@ initialState { board } =
   , isMouseOverBoardPort: Nothing
   }
 
+slot ∷ { multimeter ∷ Proxy "multimeter" , piece ∷ Proxy "piece" }
 slot =
   { piece: Proxy :: _ "piece"
   , multimeter: Proxy :: _ "multimeter"

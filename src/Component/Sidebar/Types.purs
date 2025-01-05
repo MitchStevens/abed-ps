@@ -2,8 +2,10 @@ module Component.Sidebar.Types where
 
 import Prelude
 
+import Component.Sidebar.BoardSizeSlider as BoardSizeSlider
 import Component.TestRunner as TestRunner
 import Data.Map (Map)
+import Data.Maybe (Maybe)
 import Game.Direction (CardinalDirection)
 import Game.Level.Completion (CompletionStatus)
 import Game.Level.Problem (Problem)
@@ -12,6 +14,7 @@ import Game.Port (Port(..))
 import Game.Signal (Base, SignalRepresentation)
 import Halogen (Slot)
 import Type.Proxy (Proxy(..))
+import Web.Event.Internal.Types (Event)
 import Web.HTML.Event.DragEvent (DragEvent)
 import Web.UIEvent.MouseEvent (MouseEvent)
 
@@ -32,22 +35,25 @@ type State =
   }
 
 data Query a
+  = AmendBoardSizeSlider Int a
 
 data Button
   = AddPiece PieceId
   | BackToLevelSelect 
-  | IncrementBoardSize
-  | DecrementBoardSize
   | Undo
   | Redo
   | RunTests
   | Clear
   | Base Base
 
+data InputField
+  = BoardSize Int -- needs to be maybe
+
 data Action
   = Initialise Input
   | PieceOnDrop PieceId DragEvent
   | ButtonClicked Button MouseEvent
+  | BoardSizeSliderOutput BoardSizeSlider.Output
   {-
     the sidebar creates little icons using the same piece rendering as pieces. the type of HTML used in piece rendering is:
       `ComponentHTML Piece.Action s m`
@@ -63,9 +69,15 @@ data Action
 data Output
   = PieceDropped PieceId
   | ButtonOutput Button
+  | InputFieldOutput InputField
 
 type Slots =
-  ( testRunner :: Slot TestRunner.Query TestRunner.Output Unit )
+  ( testRunner :: Slot TestRunner.Query TestRunner.Output Unit
+  , boardSizeSlider :: Slot BoardSizeSlider.Query BoardSizeSlider.Output Unit
+  )
 
+slot ∷ { boardSizeSlider ∷ Proxy "boardSizeSlider" , testRunner ∷ Proxy "testRunner" }
 slot =
-  { testRunner: Proxy :: _ "testRunner" }
+  { testRunner: Proxy :: _ "testRunner"
+  , boardSizeSlider: Proxy :: _ "boardSizeSlider"
+  }
