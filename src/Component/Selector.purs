@@ -7,8 +7,9 @@ import Component.DataAttribute as DA
 import Component.Piece as Piece
 import Component.Rendering.Piece (renderPiece)
 import Data.Array as A
-import Data.Array.NonEmpty (NonEmptyArray)
 import Data.Maybe (Maybe(..))
+import Data.Set (Set)
+import Data.Set as S
 import Game.Location (location)
 import Game.Piece (Piece(..), PieceId(..), name)
 import Halogen (ClassName(..), Component, ComponentHTML, HalogenM, HalogenQ, mkComponent, mkEval)
@@ -20,7 +21,7 @@ import Halogen.HTML.Properties as HP
 import Type.Proxy (Proxy(..))
 import Web.HTML.Event.DragEvent (DragEvent)
 
-type Input = { availablePieces :: NonEmptyArray Piece }
+type Input = { availablePieces :: Set Piece }
 
 type State = Input
 
@@ -57,13 +58,16 @@ eval = mkEval
 
 render :: forall m. State -> ComponentHTML Action () m
 render { availablePieces } = 
-  HH.div 
-    [ HP.id "selector-component" ]
-    [ HH.span
-      [ HP.class_ (ClassName "pieces") ]
-      (renderAvailablePiece <$> (A.fromFoldable availablePieces))
-    , HH.h2_ [ HH.text "Available pieces"]
-    ]
+  if S.isEmpty availablePieces
+    then HH.text ""
+    else
+      HH.div 
+        [ HP.id "selector-component" ]
+        [ HH.span
+          [ HP.class_ (ClassName "pieces") ]
+          (renderAvailablePiece <$> (A.fromFoldable availablePieces))
+        , HH.h2_ [ HH.text "Available pieces"]
+        ]
   where
     renderAvailablePiece piece =
       HH.div 

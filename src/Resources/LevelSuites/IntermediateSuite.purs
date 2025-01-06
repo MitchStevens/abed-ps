@@ -15,14 +15,12 @@ intermediateSuite :: LevelSuite
 intermediateSuite = fromHomogeneous
   { "Criss cross":
     defaultLevel
-      { problem =
-        { goal: crossPiece
-        , title: "Cross over"
-        , description: "Propogate the signal on the left to the right, and the top to the bottom"
-        , testCases: binaryTestInputs [ Direction.Left, Direction.Up ]
-        , requiresAutomaticTesting: false
-        , availablePieces: NonEmptyArray [idPiece, superPiece, leftPiece, rightPiece, xorPiece]
-        , otherRestrictions: []
+      { problem = defaultProblem
+        { goal = crossPiece
+        , title = "Cross over"
+        , description = "Propogate the signal on the left to the right, and the top to the bottom"
+        , testCases = binaryTestInputs [ Direction.Left, Direction.Up ]
+        , availablePieces = S.fromFoldable [idPiece, superPiece, leftPiece, rightPiece, xorPiece]
         }
       --, boardDeltaRulesEngine = []
       --  --let l1 = location 2 1
@@ -54,18 +52,16 @@ intermediateSuite = fromHomogeneous
         , title ="From Or, birthed And"
         , description = "Create an and-piece using only or-piece and not-piece"
         , testCases = binaryTestInputs [ Direction.Left, Direction.Up ]
-        , availablePieces = NonEmptyArray[ orPiece, notPiece ]
+        , availablePieces = S.fromFoldable[ orPiece, notPiece ]
         } 
       }
     , "Exclusive Or: Pick One": defaultLevel
-      { problem =
-        { goal: xorPiece
-        , title: "Exclusive Or: Pick One"
-        , description: "Output true when EXACTLY one input is true. If both inputs are true, output false"
-        , testCases: binaryTestInputs [ Direction.Left, Direction.Up ]
-        , requiresAutomaticTesting: false
-        , availablePieces: NonEmptyArray[ idPiece, notPiece, orPiece, andPiece, crossPiece ]
-        , otherRestrictions: []
+      { problem = defaultProblem
+        { goal = xorPiece
+        , title = "Exclusive Or: Pick One"
+        , description = "Output true when EXACTLY one input is true. If both inputs are true, output false"
+        , testCases = binaryTestInputs [ Direction.Left, Direction.Up ]
+        , availablePieces = S.fromFoldable [ idPiece, notPiece, orPiece, andPiece, crossPiece ]
         }
       }
     }

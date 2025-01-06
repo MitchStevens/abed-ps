@@ -212,7 +212,6 @@ component = H.mkComponent { eval , initialState , render }
         Sidebar.Clear ->
           H.tell _board unit Board.Clear
         Sidebar.Base base -> do
-          log ("set base " <> show base)
           modify_ $ _ { base = base }
     SelectorOutput output -> evalSelector output
       
