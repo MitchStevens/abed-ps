@@ -35,7 +35,7 @@ import Partial.Unsafe (unsafeCrashWith)
 import Test.Game.Board (testBoard, toAff)
 import Test.Game.Board.Operation (exceptToAff)
 import Test.Game.Board.PathSegment (leftToRight)
-import Test.Spec (Spec, SpecT, before, beforeAll, beforeAll_, before_, describe, describeOnly, focus, hoistSpec, it)
+import Test.Spec (Spec, SpecT, before, beforeAll, beforeAll_, before_, describe, describeOnly, focus, hoistSpec, it, itOnly)
 import Test.Spec.Assertions (shouldContain, shouldEqual, shouldReturn)
 
 pathTestBoard :: Board
@@ -231,6 +231,16 @@ tests =
             addPath Direction.Left [ l01, l11, l21 ] Direction.Right
           pathAdded `shouldEqual` true
           use (_pieces <<< at l11) `shouldReturn` Just { piece: crossPiece, rotation: rotation 1 }
+        
+        it "should update ports around" do
+          _ <- exceptToAff (addPath Direction.Left [ l10 ] Direction.Right)
+          use (_pieces <<< at l10) `shouldReturn` Just { piece: idPiece, rotation: rotation 0}
+
+          _ <- exceptToAff (addPath Direction.Up [ l11 ] Direction.Right)
+          use (_pieces <<< at l10) `shouldReturn` Just { piece: intersectionRightPiece, rotation: rotation 0}
+
+          pure unit
+
 
       describe "Weird edge cases" do
         it "cruz" do

@@ -24,9 +24,9 @@ tutorialSuite = fromHomogeneous
       { problem = defaultProblem
         { goal = idPiece
         , title = "From A to B"
-        , description = "Propagate the signal inputed on the Left to the Right"
+        , subtitle = Just "Propagate the signal inputed on the Left to the Right"
         , testCases = binaryTestInputs [ Direction.Left ]
-        , availablePieces = NonEmptyArray [ idPiece ]
+        , availablePieces = S.fromFoldable [ ]
         }
       , marginalia = [ marginalia (tt) (description "wow this is great marginalia!!" ff) ]
       --, conversation = do
@@ -66,14 +66,12 @@ tutorialSuite = fromHomogeneous
       }
   , "Negation":
     defaultLevel
-      { problem =
-        { goal: notPiece
-        , title: "Negation"
-        , description: "Negate the signal inputed on the Left and output it on the Right"
-        , testCases: binaryTestInputs [Direction.Left]
-        , requiresAutomaticTesting: false
-        , availablePieces: NonEmptyArray [ idPiece, notPiece ]
-        , otherRestrictions: []
+      { problem = defaultProblem
+        { goal = notPiece
+        , title = "Negation"
+        , description = "Negate the signal inputed on the Left and output it on the Right"
+        , testCases = binaryTestInputs [Direction.Left]
+        , availablePieces = S.fromFoldable [ idPiece, notPiece ]
         }
       --, conversation = do
       --    sendMessage $ Message
@@ -90,7 +88,7 @@ tutorialSuite = fromHomogeneous
       , title = "Two enter, one leaves"
       , description = ""
       , testCases = binaryTestInputs [ Direction.Left, Direction.Up ]
-      , availablePieces = NonEmptyArray [ idPiece, orPiece ]
+      , availablePieces = S.fromFoldable [ idPiece, orPiece ]
       }
     }
   , "Take a Left": defaultLevel
@@ -99,7 +97,7 @@ tutorialSuite = fromHomogeneous
       , title = "Take a Left"
       , description = ""
       , testCases = binaryTestInputs [Direction.Left]
-      , availablePieces = NonEmptyArray [ idPiece, orPiece ]
+      , availablePieces = S.fromFoldable [ idPiece, orPiece ]
       }
     }
   }

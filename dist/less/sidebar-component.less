@@ -3,10 +3,19 @@
     flex-direction: column;
     grid-gap: 7px;
 
+    margin-left:    0px;
+    margin-right:   20px;
+    margin-top:     20px;
+    margin-bottom:  20px;
+
     & > * {
         display: inline-flex;
         justify-content: space-between;
         width: 100%;
+
+        & > * {
+            align-content: center;
+        }
     }
 
     & .port { color:red; }
@@ -25,6 +34,21 @@
 
     & .completion-status {
         height: 100px;
+        flex-grow: 1;
+
+        & > * {
+            width: 100%;
+        }
+
+        & .test-runner {
+            & > span {
+                border: lightgray 2px solid;
+            }
+        }
+    }
+
+    & .test-runner {
+        display: grid;
     }
 }
 

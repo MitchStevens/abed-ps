@@ -1,0 +1,17 @@
+#selector-component {
+
+    margin-left:    20px;
+    margin-right:   0px;
+    margin-top:     0px;
+    margin-bottom:  20px;
+
+    & .pieces {
+        display: grid;
+        grid-template-columns: repeat(6, 1fr);
+        gap: 10px;
+
+        & > div  {
+            border: #39230d 1px solid;
+        }
+    }
+}

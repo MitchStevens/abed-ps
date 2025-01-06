@@ -25,12 +25,13 @@ import Data.Set as S
 import Data.Traversable (traverse)
 import Data.Tuple (Tuple(..), fst, snd)
 import Debug (trace)
+import Debug as Debug
 import Effect.Aff.Class (class MonadAff)
 import Effect.Class (class MonadEffect)
 import Game.Board.PieceInfo (PieceInfo, _rotation)
 import Game.Board.Query (adjacentRelativeEdge, getPortOnEdge, isInsideBoard)
 import Game.Board.RelativeEdge (RelativeEdge(..), relative)
-import Game.Board.Types (Board(..), BoardError(..), _pieces)
+import Game.Board.Types (Board(..), BoardError(..), _pieces, _size)
 import Game.Direction (allDirections)
 import Game.Direction as Direction
 import Game.Edge (Edge(..), edgeLocation)
@@ -73,8 +74,9 @@ checkInsideBoard loc = whenM (not <$> isInsideBoard loc) (throwError (InvalidLoc
 updateRelEdge :: forall m. MonadState Board m => RelativeEdge -> Maybe PortType -> m Unit
 updateRelEdge (Relative (Edge {dir, loc})) portType = do
   use (_pieces <<< at loc) >>= traverse_ \info -> do
-    for_ (updatePort dir portType info.piece) \piece ->
-      _pieces <<< ix loc <<< prop (Proxy :: Proxy "piece") .= piece
+    for_ (updatePort dir portType info.piece) \piece -> 
+      Debug.trace (show (Edge {dir, loc})) $ \_ -> 
+        _pieces <<< ix loc <<< prop (Proxy :: Proxy "piece") .= piece
 
 updatePortsAround :: forall m. MonadState Board m => Location -> m Unit
 updatePortsAround loc = do
@@ -169,20 +171,26 @@ validBoardSize n =
 -}
 decreaseSize :: forall m. MonadState Board m => MonadError BoardError m => m Unit
 decreaseSize = do
-  Board {size: n, pieces} <- get
-  newSize <- validBoardSize (n-2)
-  let insideSquare (Location {x, y}) = all (between 1 n) [x, y]
-  let firstPieceOusideSquare = find (not <<< insideSquare) (M.keys pieces) 
+  n <- use _size
+  setBoardSize (n-2)
+
+increaseSize :: forall m. MonadState Board m => MonadError BoardError m => m Unit
+increaseSize = do
+  n <- use _size
+  setBoardSize (n+2)
+
+setBoardSize :: forall m. MonadState Board m => MonadError BoardError m => Int -> m Unit
+setBoardSize n = do
+  Board {size, pieces} <- get
+  newSize <- validBoardSize n
+  let dSize = -(newSize - size) `div` 2
+
+  let insideSquare (Location {x, y}) = all (between 0 (newSize-1)) [x, y]
+  let shiftLocation (Location {x, y}) = location (x-dSize) (y - dSize)
+  let firstPieceOusideSquare = find (not <<< insideSquare <<< shiftLocation) (M.keys pieces) 
+
   case firstPieceOusideSquare of
     Just loc -> throwError (LocationOccupied loc)
     Nothing -> put $ Board
       { size: newSize
-      , pieces: unsafeMapKey (\(Location {x, y}) -> location (x-1) (y-1)) pieces }
-
-increaseSize :: forall m. MonadState Board m => MonadError BoardError m => m Unit
-increaseSize = do
-  Board { size: n, pieces } <- get
-  newSize <- validBoardSize (n+2)
-  put $ Board
-    { size: newSize
-    , pieces: unsafeMapKey (\(Location {x, y}) -> location (x+1) (y+1)) pieces }
+      , pieces: unsafeMapKey shiftLocation pieces }

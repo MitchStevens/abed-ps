@@ -12,7 +12,6 @@ import Game.GameEvent (GameEvent)
 import GlobalState (GlobalState)
 import Halogen (Component, defaultEval, lift, mkComponent, mkEval)
 import Halogen.HTML as HH
-import Halogen.Hooks as Hooks
 import Halogen.Store.Connect (subscribe)
 import Halogen.Store.Select (Selector(..), select)
 import Halogen.Store.UseSelector (useSelector)

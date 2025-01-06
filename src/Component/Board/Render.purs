@@ -59,6 +59,9 @@ render state =
     board = Z.head state.boardHistory
     n = board ^. _size
 
+
+    
+
     pieces :: Array (ComponentHTML Action Slots AppM)
     pieces = do
       i <- 0 .. (n-1)

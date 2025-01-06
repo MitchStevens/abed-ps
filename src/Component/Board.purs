@@ -56,7 +56,7 @@ import Debug (trace)
 import Effect.Aff.Class (class MonadAff)
 import Effect.Class (class MonadEffect, liftEffect)
 import Effect.Class.Console (log, logShow)
-import Game.Board (Board(..), BoardError, BoardM, _pieces, _size, addPath, addPiece, buildEvaluableBoard, capacityRipple, decreaseSize, evalBoardM, evalWithPortInfo, execBoardM, getBoardPortEdge, getPieceInfo, increaseSize, pieceDropped, removePiece, rotatePieceBy, runBoardM, runEvaluableM, toLocalInputs)
+import Game.Board (Board(..), BoardError, BoardM, _pieces, _size, addPath, addPiece, buildEvaluableBoard, capacityRipple, decreaseSize, evalBoardM, evalWithPortInfo, execBoardM, getBoardPortEdge, getPieceInfo, increaseSize, pieceDropped, removePiece, rotatePieceBy, runBoardM, runEvaluableM, setBoardSize, toLocalInputs)
 import Game.Direction (CardinalDirection, allDirections)
 import Game.Direction as Direction
 import Game.GameEvent (BoardEvent(..))
@@ -149,12 +149,16 @@ component = mkComponent { eval , initialState , render }
           handleAction EvaluateBoard
           Just <$> f <$> gets (_.outputs)
 
-        IncrementBoardSize next -> do
-          result <- liftBoardM increaseSize
-          pure (Just next)
+        --IncrementBoardSize next -> do
+        --  result <- liftBoardM increaseSize
+        --  pure (Just next)
 
-        DecrementBoardSize f -> do
-          result <- liftBoardM decreaseSize 
+        --DecrementBoardSize f -> do
+        --  result <- liftBoardM decreaseSize 
+        --  pure (Just (f result))
+
+        SetBoardSize n f -> do
+          result <- liftBoardM (setBoardSize n)
           pure (Just (f result))
 
         Undo next -> do
