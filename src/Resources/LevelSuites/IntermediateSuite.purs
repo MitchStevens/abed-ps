@@ -4,8 +4,10 @@ import Prelude
 
 import Component.DataAttribute as DataAttr
 import Data.Array.NonEmpty.Internal (NonEmptyArray(..))
+import Data.Foldable (all)
 import Data.Set as S
 import Foreign.Object (fromHomogeneous)
+import Game.Board (Board(..))
 import Game.Direction as Direction
 import Game.Level (LevelSuite, binaryTestInputs, defaultLevel)
 import Game.Level.Problem (defaultProblem)
@@ -21,6 +23,12 @@ intermediateSuite = fromHomogeneous
         , description = "Propogate the signal on the left to the right, and the top to the bottom"
         , testCases = binaryTestInputs [ Direction.Left, Direction.Up ]
         , availablePieces = S.fromFoldable [idPiece, superPiece, leftPiece, rightPiece, xorPiece]
+        , otherRestrictions =
+          [ { name: "Prohibited Piece"
+            , description: "You can't use the CrossOver piece in this level"
+            , restriction: \(Board b) -> flip all b.pieces (\info -> info.piece /= crossPiece)
+          }
+          ]
         }
       --, boardDeltaRulesEngine = []
       --  --let l1 = location 2 1

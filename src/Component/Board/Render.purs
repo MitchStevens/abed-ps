@@ -30,7 +30,7 @@ import Game.Location (Location(..), location)
 import Game.PortInfo (PortInfo)
 import Game.Rotation (Rotation(..), toDegrees)
 import Halogen.Component (ComponentSlot(..))
-import Halogen.HTML (ClassName(..), ComponentHTML, HTML, slot_)
+import Halogen.HTML (ClassName(..), HTML, ComponentHTML, slot_)
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
@@ -39,7 +39,7 @@ import Halogen.Svg.Attributes as SA
 import Halogen.Svg.Elements as SE
 import Web.HTML.Event.DragEvent as DragEvent
 
-render :: State -> HTML (ComponentSlot Slots AppM Action) Action
+render :: State -> ComponentHTML Action Slots AppM
 render state =
   HH.div
     [ HP.id "board-component"
@@ -136,11 +136,11 @@ render state =
       "grid-area: " <> show (j+2) <> " / " <> show (i+2)
 
     pieceHTML piece location =
-        HH.slot slot.piece location Piece.component { piece, location } PieceOutput
+        HH.slot Piece.slot location Piece.component { piece, location } PieceOutput
     
     emptyPieceHTML (Location {x, y}) =
       HH.div 
         [ HP.class_ (ClassName "location-text") ]
         [ HH.text (show (x+1) <> "," <> show (y+1)) ]
 
-    multimeter = HH.slot slot.multimeter unit Multimeter.component {} MultimeterOutput
+    multimeter = HH.slot Multimeter.slot unit Multimeter.component {} MultimeterOutput

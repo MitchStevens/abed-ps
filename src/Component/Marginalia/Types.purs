@@ -8,6 +8,7 @@ import Data.List.Types (List(..), NonEmptyList(..))
 import Data.Predicate (Predicate)
 import Data.Time.Duration (Seconds(..))
 import Game.GameEvent (GameEvent)
+import Type.Proxy (Proxy(..))
 
 {-
   Marginalia (singular: Marginalium) are little messages in the margin of a book. ABED uses marginalia to provide feedback to the user. It is non-trivial to trigger the display/hiding of Marginalia.
@@ -34,6 +35,8 @@ data MarginaliaNode
   | WaitingOn (Predicate GameEvent)
 
 type Marginalia = NonEmptyList MarginaliaNode
+
+slot = Proxy :: Proxy "marginalium"
 
 marginalia :: Predicate GameEvent -> MarginaliumDescription -> Marginalia
 marginalia predicate marginaliaDescription = 

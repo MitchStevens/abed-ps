@@ -5,7 +5,6 @@ import Prelude
 import Component.DataAttribute as DA
 import Control.Monad.Maybe.Trans (runMaybeT)
 import Data.Either (Either)
-import Data.Machine.Mealy (MealyT, Source, Step(..), mealy, runMealyT, source)
 import Data.Maybe (Maybe(..), fromMaybe', maybe, maybe')
 import Data.Nullable (Nullable, toMaybe)
 import Data.Traversable (traverse)

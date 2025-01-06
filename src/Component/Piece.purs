@@ -24,7 +24,6 @@ import Data.Map as M
 import Data.Maybe (Maybe(..), fromMaybe, isJust, isNothing, maybe)
 import Data.Number (acos, atan2, pi, sqrt)
 import Data.Tuple (Tuple(..))
-import Debug (trace)
 import Effect (Effect)
 import Effect.Class (class MonadEffect, liftEffect)
 import Effect.Class.Console (log, logShow)
@@ -32,22 +31,26 @@ import Game.Board (relative)
 import Game.Piece (name)
 import Game.Rotation (rotation, toRadians)
 import Halogen (AttrName(..), ClassName(..), Component, HalogenM, HalogenQ, RefLabel(..), getHTMLElementRef, getRef, gets, mkComponent, mkEval, raise)
+import Halogen as H
 import Halogen.HTML (HTML, PlainHTML, fromPlainHTML)
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
-import Halogen.Properties.Extras as HP
+import Halogen.HTML.Properties.Extras as HP
 import Halogen.Svg.Attributes (Color(..), Transform(..))
 import Halogen.Svg.Attributes as SA
 import Halogen.Svg.Elements as SE
 import Partial.Unsafe (unsafeCrashWith)
 import Type.Proxy (Proxy(..))
 import Web.DOM.Element (Element, clientHeight, clientLeft, clientTop, clientWidth, getBoundingClientRect)
-import Web.Event.Event (EventType(..), type_)
+import Web.Event.Event (EventType(..), preventDefault, type_)
 import Web.HTML.Event.DragEvent (DragEvent)
 import Web.HTML.HTMLElement (HTMLElement, fromElement, offsetHeight, offsetLeft, offsetTop, offsetWidth, setDraggable, toElement)
 import Web.UIEvent.KeyboardEvent (key, shiftKey)
 import Web.UIEvent.MouseEvent (MouseEvent, clientX, clientY, screenX, screenY)
+import Web.UIEvent.MouseEvent as MouseEvent
+
+--import Web.UIEvent.MouseEvent.Extras (MouseButton(..), button)
 
 component :: forall m. MonadEffect m => Component Query Input Output m
 component = mkComponent { eval , initialState , render }
@@ -66,8 +69,9 @@ component = mkComponent { eval , initialState , render }
       , HE.onDrag OnDrag
       , HE.onMouseDown OnMouseDown
       , HE.onMouseMove OnMouseMove
-      , HE.onMouseUp (OnMouseUp state.location)
+      , HE.onMouseUp OnMouseUp
       , HE.onKeyDown OnKeyDown
+      , HE.onAuxClick OnAuxClick
       ]
       [ renderPiece state ]
 
@@ -111,7 +115,11 @@ component = mkComponent { eval , initialState , render }
                   { isRotating = Just { initialClickPosition: getPosition me, currentRotation: toRadians rotation }
                   , isDragging = false
                 })
-        OnMouseMove me -> do --pure unit --do
+        OnAuxClick _ -> do
+          loc <- gets (_.location)
+          H.raise (Dropped loc)
+
+        OnMouseMove me -> do
           getRef (RefLabel "piece") >>= traverse_ \e -> do
             -- if the piece is being rotated...
             gets (_.isRotating) >>= traverse_ \{ initialClickPosition, currentRotation } -> do
@@ -128,12 +136,13 @@ component = mkComponent { eval , initialState , render }
               modify_ (_ {
                 isRotating = Just { initialClickPosition, currentRotation: angle }
               })
-        OnMouseUp loc _ -> do
+        OnMouseUp me -> do
           gets (_.isRotating) >>= traverse_ \{ initialClickPosition, currentRotation } -> do
             let closestSnapPoint = rotation $ round (4.0 * currentRotation / (2.0 * pi))
             rotation <- gets (_.rotation)
+            location <- gets (_.location)
             modify_ (_ { isRotating = Nothing })
-            raise (Rotated loc (closestSnapPoint <> ginverse rotation))
+            raise (Rotated location (closestSnapPoint <> ginverse rotation))
         OnKeyDown ke -> do
           when (key ke == "r") do
             loc <- gets (_.location)
@@ -153,15 +162,15 @@ component = mkComponent { eval , initialState , render }
           raise (NewMultimeterFocus Nothing)
 
     , handleQuery: case _ of
-        SetPortStates portStates -> do
+        SetPortStates portStates next -> do
           modify_ $ _ { portStates = portStates }
-          pure Nothing
-        SetPiece piece -> do
+          pure (Just next)
+        SetPiece piece next -> do
           modify_ (_ {piece = piece})
-          pure Nothing
-        SetRotation rot -> do
+          pure (Just next)
+        SetRotation rot next -> do
           modify_ (_ { rotation = rot })
-          pure Nothing
+          pure (Just next)
     , initialize: Nothing
     , receive: \_ -> Nothing --Just <<< Initialise -- :: input -> Maybe action
     }

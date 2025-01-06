@@ -15,10 +15,13 @@ import Halogen.HTML as HH
 import Halogen.Store.Connect (subscribe)
 import Halogen.Store.Select (Selector(..), select)
 import Halogen.Store.UseSelector (useSelector)
+import Type.Proxy (Proxy(..))
 
 data Action
   = Initialise
   | GameEvent GameEvent
+
+slot = Proxy :: Proxy "gameEventLogger"
 
 selectGameEvents :: Selector GlobalState GameEvent
 selectGameEvents = select eq (_.lastGameEvent)

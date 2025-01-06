@@ -15,6 +15,7 @@ where
 import Component.Sidebar.Types
 import Prelude
 
+import AppM (AppM)
 import Capability.Animate (headShake)
 import Capability.Navigate (Route(..), navigateTo)
 import Component.Sidebar.BoardSizeSlider as BoardSizeSlider
@@ -34,12 +35,34 @@ import Web.Event.Event (Event)
 import Web.Event.Event as Event
 import Web.HTML.HTMLInputElement as HTMLInputElement
 
-component :: forall m. MonadAff m => Component Query Input Output m
+component :: Component Query Input Output AppM
 component = mkComponent { eval , initialState , render }
   where
-  initialState = identity
+    {-
+    eval :: HalogenQ Query Action Input ~> HalogenM State Action Slots Output AppM
+    eval = mkEval
+      { finalize: Nothing
+      , handleAction: case _ of
+          Initialise input -> put (initialState input)
+          PieceOnDrop piece _ -> do
+            H.raise (PieceDropped piece)
+          ButtonClicked button _ -> do
+            when (button == RunTests) do
+              _completionStatus .= ReadyForTesting
+            H.raise (ButtonOutput button)
+          TestRunnerOutput testRunnerOutput -> case testRunnerOutput of
+            TestRunner.TestCaseData testCaseData ->
+              H.raise (RunTestCase testCaseData)
+            TestRunner.AllTestsPassed -> do
+              modify_ $ _ { completionStatus = Completed }
+          DoNothing -> pure unit
+      , handleQuery: case _ of
+          TestCaseOutcome testCaseOutcome next -> do
+            H.tell TestRunner.slot unit (TestRunner.TestCaseOutcome testCaseOutcome)
+            pure (Just next)
+            -}
 
-  eval :: HalogenQ Query Action Input ~> HalogenM State Action Slots Output m
+  eval :: HalogenQ Query Action Input ~> HalogenM State Action Slots Output AppM
   eval = mkEval
     { finalize: Nothing
     , handleAction: case _ of
@@ -66,3 +89,8 @@ getValueFromEvent :: Event -> Effect (Maybe Number)
 getValueFromEvent = 
     (Event.target >=> HTMLInputElement.fromEventTarget) 
       >>> traverse HTMLInputElement.valueAsNumber
+--
+--      , initialize: Nothing
+--      , receive: Just <<< Initialise
+--      }
+-- >>>>>>> 23f884ca6d049f83b197a624058326ab47ad69b3

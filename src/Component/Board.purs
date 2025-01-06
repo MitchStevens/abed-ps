@@ -53,6 +53,7 @@ import Data.Tuple.Nested (Tuple3, tuple3, tuple4, (/\))
 import Data.Zipper (Zipper)
 import Data.Zipper as Z
 import Debug (trace)
+import Effect (Effect)
 import Effect.Aff.Class (class MonadAff)
 import Effect.Class (class MonadEffect, liftEffect)
 import Effect.Class.Console (log, logShow)
@@ -65,6 +66,7 @@ import Game.Port (isInput, portCapacity)
 import Game.PortInfo (PortInfo)
 import Game.Rotation (Rotation(..))
 import Game.Signal (Signal(..), maxValue)
+import Game.TestCase (testCaseOutcome)
 import GlobalState (GlobalState, newBoardEvent)
 import Halogen (AttrName(..), ClassName(..), Component, ComponentHTML, ComponentSlot, HalogenM(..), HalogenQ, Slot, mkComponent, mkEval, raise, subscribe, tell)
 import Halogen as H
@@ -80,15 +82,20 @@ import Halogen.Svg.Attributes as SA
 import Halogen.Svg.Elements as SE
 import Type.Proxy (Proxy(..))
 import Web.DOM.Document (toEventTarget)
-import Web.DOM.Element (DOMRect, fromEventTarget, getBoundingClientRect)
-import Web.DOM.ParentNode (QuerySelector(..))
+import Web.DOM.Element (DOMRect, fromEventTarget, getBoundingClientRect, setAttribute)
+import Web.DOM.NonElementParentNode (getElementById)
+import Web.DOM.ParentNode (QuerySelector(..), querySelector)
 import Web.Event.Event (Event, preventDefault, target)
 import Web.Event.EventTarget (addEventListener, eventListener)
+import Web.HTML (window)
 import Web.HTML.Common (ClassName(..))
 import Web.HTML.Event.DragEvent (DragEvent, dataTransfer, toEvent)
+import Web.HTML.HTMLDocument as HTMLDocument
+import Web.HTML.Window (document)
 import Web.UIEvent.KeyboardEvent (KeyboardEvent, code, ctrlKey, fromEvent, key)
 import Web.UIEvent.MouseEvent (MouseEvent, clientX, clientY)
 import Web.UIEvent.MouseEvent as MouseEvent
+import Web.UIEvent.MouseEvent.Extras (MouseButton(..), button)
 
 component :: Component Query Input Output AppM
 component = mkComponent { eval , initialState , render }
@@ -181,6 +188,10 @@ component = mkComponent { eval , initialState , render }
             forWithIndex_ pieces \loc _ ->
               removePiece loc
           pure (Just next)
+        
+        RunTestCase { inputs, expected } f -> do
+          handleQuery $ SetInputs inputs \received -> 
+             f (testCaseOutcome { inputs, expected } received)
 
 
       --handleAction :: Action -> HalogenM State Action Slots Output _ Unit
@@ -189,6 +200,12 @@ component = mkComponent { eval , initialState , render }
           emitter <- liftEffect $ globalKeyDownEventEmitter
           void $ subscribe (GlobalOnKeyDown <$> emitter)
           raise =<< NewBoardState <$> use _board
+
+          -- add attribute oncontextmenu="return false;" to board-component in order to disable right click context menu over the board (we are using right click to remove pieces)
+          liftEffect do
+            parentNode <- window >>= document <#> HTMLDocument.toNonElementParentNode
+            getElementById "board-component" parentNode >>= traverse_ \element ->
+              setAttribute "oncontextmenu" "return false;" element
 
         PieceOutput (Piece.Rotated loc rot) -> do
           void $ liftBoardM (rotatePieceBy loc rot)
@@ -203,10 +220,13 @@ component = mkComponent { eval , initialState , render }
               lift $ warn M.empty (show result)
               Animate.headShake (DA.selector DA.location src)
 
-
         -- set values of the  
         PieceOutput (Piece.NewMultimeterFocus focus) ->
-          tell slot.multimeter unit (\_ -> Multimeter.NewFocus focus)
+          tell Multimeter.slot unit (Multimeter.NewFocus focus)
+
+        PieceOutput (Piece.RemoveThis loc) -> do
+          _ <- liftBoardM (removePiece loc)
+          pure unit
 
         -- todo: fix this
         MultimeterOutput (Multimeter.SetCapacity relativeEdge capacity) -> do
@@ -217,7 +237,7 @@ component = mkComponent { eval , initialState , render }
                 info <- M.lookup relativeEdge signals
                 pure { info, relativeEdge }
             
-          tell slot.multimeter unit (\_ -> Multimeter.NewFocus focus)
+          tell Multimeter.slot unit (Multimeter.NewFocus focus)
 
         ToggleInput dir -> do
           _inputs <<< ix dir %= \signal -> if signal == ff then tt else ff
@@ -236,7 +256,7 @@ component = mkComponent { eval , initialState , render }
         SetOutputs outputs -> do
           modify_ $ _ { outputs = outputs }
           gets (_.isMouseOverBoardPort) >>= traverse_ \dir ->
-            tell slot.multimeter unit (\_ -> Multimeter.SetSignal (fold (M.lookup dir outputs)))
+            tell Multimeter.slot unit (Multimeter.SetSignal (fold (M.lookup dir outputs)))
 
         BoardOnDragExit _ -> do
           modify_ (_ { isCreatingWire = Nothing })
@@ -254,14 +274,13 @@ component = mkComponent { eval , initialState , render }
             when (last creatingWire.locations /= Just loc) do
               _wireLocations <>= [loc]
 
-        LocationOnMouseUp loc me -> void $ runMaybeT do
-          { initialDirection: initial, locations } <- MaybeT $ gets (_.isCreatingWire)
-          eventTarget <- MaybeT $ pure $ target (MouseEvent.toEvent me)
-          element <- MaybeT $ pure $ fromEventTarget eventTarget
-          bb <- liftEffect (getBoundingClientRect element)
-          let terminal = getDirectionClicked me bb
-
-          lift $ handleQuery (AddPath initial locations terminal (\_ -> unit))
+        -- todo: used to use MaybeT here, refactor?
+        LocationOnMouseUp loc me ->
+          when (button me == Primary) do 
+            gets (_.isCreatingWire) >>= traverse_ \{ initialDirection: initial, locations} -> do
+              (liftEffect $ boundingBoxFromMouseEvent me) >>= traverse_ \bb -> do
+                let terminal = getDirectionClicked me bb
+                handleQuery (AddPath initial locations terminal (\_ -> unit))
 
         SetBoard board -> do
           lift $ debug M.empty "Updating board"
@@ -298,9 +317,9 @@ component = mkComponent { eval , initialState , render }
           use (_board <<< _pieces) >>= traverseWithIndex_ \loc info -> do
             let portStates = toLocalInputs loc signals
             --lift $ debug (tag "port states" (show portStates)) ("update piece at :" <> show loc )
-            tell slot.piece loc (\_ -> Piece.SetPortStates portStates)
-            tell slot.piece loc (\_ -> Piece.SetPiece info.piece)
-            tell slot.piece loc (\_ -> Piece.SetRotation info.rotation)
+            tell Piece.slot loc (Piece.SetPortStates portStates)
+            tell Piece.slot loc (Piece.SetPiece info.piece)
+            tell Piece.slot loc (Piece.SetRotation info.rotation)
 
         -- can these events be simplified? do we need all of them?
         LocationOnDragEnter loc dragEvent -> do
@@ -331,10 +350,10 @@ component = mkComponent { eval , initialState , render }
           relativeEdge <- evalState (getBoardPortEdge dir) <$> use _board
           signals <- gets (_.lastEvalWithPortInfo)
           let focus = { info: _, relativeEdge } <$> M.lookup relativeEdge signals
-          tell slot.multimeter unit (\_ -> Multimeter.NewFocus focus)
+          tell Multimeter.slot unit (Multimeter.NewFocus focus)
         BoardPortOnMouseLeave -> do
           modify_ (_ { isMouseOverBoardPort = Nothing })
-          tell slot.multimeter unit (\_ -> Multimeter.NewFocus Nothing)
+          tell Multimeter.slot unit (Multimeter.NewFocus Nothing)
 
         {-
           Lift a `BoardM` operation in the `HalogenM` Monad for this component.
@@ -348,6 +367,10 @@ component = mkComponent { eval , initialState , render }
           Right (Tuple a board') -> do
             handleAction (SetBoard board')
             pure (Right a)
+
+boundingBoxFromMouseEvent :: MouseEvent -> Effect (Maybe DOMRect)
+boundingBoxFromMouseEvent me =
+  for (target (MouseEvent.toEvent me) >>= fromEventTarget) getBoundingClientRect
 
 -- assumes that DOMRect is squareish
 getDirectionClicked :: MouseEvent -> DOMRect -> CardinalDirection

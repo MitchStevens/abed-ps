@@ -41,6 +41,7 @@ import Game.Piece (Piece(..))
 import Game.Port (Port(..))
 import Game.PortInfo (PortInfo)
 import Game.Signal (Signal)
+import Game.TestCase (TestCase, TestCaseData, TestCaseOutcome)
 import Halogen (Slot)
 import Type.Proxy (Proxy(..))
 import Web.Event.Internal.Types (Event)
@@ -76,6 +77,7 @@ data Query a
   | Undo a
   | Redo a
   | Clear a
+  | RunTestCase TestCaseData (TestCaseOutcome -> a)
 
 data Action
   = Initialise
@@ -125,11 +127,7 @@ initialState { board } =
   , isMouseOverBoardPort: Nothing
   }
 
-slot ∷ { multimeter ∷ Proxy "multimeter" , piece ∷ Proxy "piece" }
-slot =
-  { piece: Proxy :: _ "piece"
-  , multimeter: Proxy :: _ "multimeter"
-  }
+slot = Proxy :: Proxy "board"
 
 _board :: Lens' State Board
 _board = prop (Proxy :: Proxy "boardHistory") <<< Z._head
@@ -150,9 +148,3 @@ boardPortInfo = do
   forWithIndex boardPorts \dir port -> do
     let relEdge = evalState (getBoardPortEdge dir) board
     gets (_.lastEvalWithPortInfo >>> M.lookup relEdge >>> fromMaybe { connected: false, port, signal: zero})
-
---liftBoardM :: forall m a. MonadState State m => BoardM a -> m (Either BoardError (Tuple a Board))
---liftBoardM boardM = do
---  eitherBoard <- runBoardM boardM <$> use _board
---  for_ eitherBoard \(Tuple _ board) -> _board .= board
---  pure eitherBoard

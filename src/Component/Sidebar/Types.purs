@@ -4,6 +4,8 @@ import Prelude
 
 import Component.Sidebar.BoardSizeSlider as BoardSizeSlider
 import Component.TestRunner as TestRunner
+import Data.Lens (Lens')
+import Data.Lens.Record (prop)
 import Data.Map (Map)
 import Data.Maybe (Maybe)
 import Game.Direction (CardinalDirection)
@@ -12,6 +14,7 @@ import Game.Level.Problem (Problem)
 import Game.Piece (PieceId(..))
 import Game.Port (Port(..))
 import Game.Signal (Base, SignalRepresentation)
+import Game.TestCase (TestCase, TestCaseOutcome, TestCaseData)
 import Halogen (Slot)
 import Type.Proxy (Proxy(..))
 import Web.Event.Internal.Types (Event)
@@ -45,6 +48,7 @@ data Button
   | RunTests
   | Clear
   | Base Base
+derive instance Eq Button
 
 data InputField
   = BoardSize Int -- needs to be maybe
@@ -76,8 +80,10 @@ type Slots =
   , boardSizeSlider :: Slot BoardSizeSlider.Query BoardSizeSlider.Output Unit
   )
 
-slot ∷ { boardSizeSlider ∷ Proxy "boardSizeSlider" , testRunner ∷ Proxy "testRunner" }
-slot =
-  { testRunner: Proxy :: _ "testRunner"
-  , boardSizeSlider: Proxy :: _ "boardSizeSlider"
-  }
+initialState :: Input -> State
+initialState = identity
+
+slot = Proxy :: Proxy "sidebar"
+
+_completionStatus :: Lens' State CompletionStatus
+_completionStatus = prop (Proxy :: Proxy "completionStatus")

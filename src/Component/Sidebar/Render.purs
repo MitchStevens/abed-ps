@@ -50,7 +50,7 @@ render state =
     , H.slot BoardSizeSlider.slot unit BoardSizeSlider.component { boardSize: state.boardSize } BoardSizeSliderOutput
     , renderUndoRedo
     , renderClear
-    , renderSignalRepresentation
+    --, renderSignalRepresentation
     , renderGiveUp
     ]
   where
@@ -127,7 +127,11 @@ render state =
             ]
           ReadyForTesting ->
             [ HH.h3_ [ HH.text "Ready for testing:" ]
-            , HH.slot_ TestRunner.slot unit TestRunner.component { ports: state.boardPorts, base: state.base, inputs: NonEmptyArray state.problem.testCases, model: state.problem.goal }
+            , HH.slot_ TestRunner.slot unit TestRunner.component { base: state.base, inputs: NonEmptyArray state.problem.testCases, model: state.problem.goal }
+
+--             [ HH.h3_ [ HH.text "Ready for testing" ]
+--             , HH.slot TestRunner.slot unit TestRunner.component { base: state.base, inputs: NonEmptyArray state.problem.testCases, model: state.problem.goal } TestRunnerOutput
+-- >>>>>>> 23f884ca6d049f83b197a624058326ab47ad69b3
             ]
           Completed ->
             [ HH.text "Level Complete!"

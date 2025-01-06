@@ -21,6 +21,7 @@ import Data.Bifunctor (lmap)
 import Data.Either (Either(..), either, isRight)
 import Data.Foldable (fold, foldMap, for_, length, traverse_)
 import Data.FoldableWithIndex (forWithIndex_)
+import Data.FunctorWithIndex (mapWithIndex)
 import Data.Int (toNumber)
 import Data.Lens ((^.))
 import Data.Map (Map)
@@ -43,7 +44,7 @@ import Game.Piece (Piece(..), pieceLookup)
 import Game.Port (Port(..))
 import Game.Signal (Base, Signal(..), SignalRepresentation)
 import GlobalState (GlobalState, newBoardEvent)
-import Halogen (ClassName(..), Component, HalogenM, HalogenQ, Slot, gets, modify_)
+import Halogen (ClassName(..), Component, HalogenM, HalogenQ, Slot, ComponentHTML, gets, modify_)
 import Halogen as H
 import Halogen.HTML (PlainHTML)
 import Halogen.HTML as HH
@@ -80,31 +81,22 @@ data Action
 
 type Slots =
   ( board   :: Slot Board.Query Board.Output Unit
-  --, chat    :: Slot Chat.Query Chat.Output Unit
   , sidebar :: Slot Sidebar.Query Sidebar.Output Unit
   , selector :: Slot Selector.Query Selector.Output Unit
   , marginalia :: Slot Marginalium.Query Marginalium.Output UUIDv4
+--  , marginalium :: Slot Marginalium.Query Marginalium.Output UUIDv4
   , gameEventLogger :: forall q. Slot q Void Unit
   )
-
---_sidebar = Proxy :: Proxy "sidebar"
-_board   = Proxy :: Proxy "board"
-_chat    = Proxy :: Proxy "chat"
-_sidebar = Proxy :: Proxy "sidebar"
-_marginalia = Proxy :: _ "marginalia"
-_gameEventLogger = Proxy :: Proxy "gameEventLogger"
-
 
 component :: forall q o. Component q Input o AppM
 component = H.mkComponent { eval , initialState , render }
   where
-  Board initialBoard = standardBoard
-
   initialState { levelId, level } = 
     { levelId
-    , level, completionStatus: NotStarted
-    , boardSize: initialBoard.size
-    , boardPorts: evalState getBoardPorts (Board initialBoard)
+    , level
+    , completionStatus: NotStarted
+    , boardSize: 3
+    , boardPorts: evalState getBoardPorts standardBoard
     , marginalia: M.empty
     , base: level.options.base
     }
@@ -112,11 +104,11 @@ component = H.mkComponent { eval , initialState , render }
   --render :: State -> HalogenM State Action Slots o m Unit
   render { level, levelId, marginalia, completionStatus, boardSize, boardPorts, base } = HH.div
     [ HP.id "puzzle-component"]
-    [ HH.slot _board unit Board.component { board: Board initialBoard } BoardOutput
-    , HH.slot _sidebar unit Sidebar.component sidebarInput SidebarOutput
+    [ HH.slot Board.slot unit Board.component { board: standardBoard } BoardOutput
+    , HH.slot Sidebar.slot unit Sidebar.component sidebarInput SidebarOutput
     , HH.slot Selector.slot unit Selector.component { availablePieces: level.problem.availablePieces } SelectorOutput
     --, HH.div [ HP.id "marginalia" ] ((M.toUnfoldable marginalia :: Array _) <#> \(Tuple uuid m) -> HH.slot _marginalia uuid Marginalium.component { uuid, marginalia: m } MarginaliumOutput)
-    , HH.slot_ _gameEventLogger unit GameEventLogger.component unit
+    --, HH.slot_ _gameEventLogger unit GameEventLogger.component unit
     ]
     where sidebarInput = { problem: level.problem, completionStatus, boardSize, boardPorts, base }
 
@@ -144,7 +136,7 @@ component = H.mkComponent { eval , initialState , render }
 
       -- make the board component display goal ports
       Piece piece <- H.gets (_.level.problem.goal)
-      H.tell _board unit (Board.SetGoalPorts piece.ports)
+      H.tell Board.slot unit (Board.SetGoalPorts piece.ports)
 
     BoardOutput boardOutput -> case boardOutput of
       Board.NewBoardState board -> do
@@ -160,23 +152,23 @@ component = H.mkComponent { eval , initialState , render }
 
     SidebarOutput sidebarOutput -> case sidebarOutput of
       Sidebar.PieceDropped pieceId -> do
-        maybeLocation <- H.request _board unit (Board.GetMouseOverLocation)
+        maybeLocation <- H.request Board.slot unit (Board.GetMouseOverLocation)
         for_ maybeLocation \loc -> 
-          H.request _board unit (Board.AddPiece loc (pieceLookup pieceId))
+          H.request Board.slot unit (Board.AddPiece loc (pieceLookup pieceId))
       Sidebar.InputFieldOutput (Sidebar.BoardSize n) ->
-        H.request _board unit (Board.SetBoardSize n) >>= case _ of
+        H.request Board.slot unit (Board.SetBoardSize n) >>= case _ of
           Just (Right _) -> modify_ (_ {boardSize = n})
           Just (Left err) -> do
             size <- gets (_.boardSize) 
-            H.tell _sidebar unit (Sidebar.AmendBoardSizeSlider size)
+            H.tell Sidebar.slot unit (Sidebar.AmendBoardSizeSlider size)
           Nothing -> pure unit -- do something here?
       Sidebar.InputFieldOutput _ -> pure unit
 
       Sidebar.ButtonOutput button -> case button of
         Sidebar.AddPiece pieceId -> do
-          H.request _board unit Board.GetBoard >>= traverse_ \board -> do
+          H.request Board.slot unit Board.GetBoard >>= traverse_ \board -> do
             for_ (firstEmptyLocation board) \loc ->
-              H.request _board unit (Board.AddPiece loc (pieceLookup pieceId))
+              H.request Board.slot unit (Board.AddPiece loc (pieceLookup pieceId))
         Sidebar.BackToLevelSelect  ->
           liftEffect $ navigateTo LevelSelect
         --Sidebar.IncrementBoardSize ->
@@ -185,9 +177,9 @@ component = H.mkComponent { eval , initialState , render }
         --  void $ H.request _board unit Board.DecrementBoardSize
 
         Sidebar.Undo ->
-          H.tell _board unit Board.Undo
+          H.tell Board.slot unit Board.Undo
         Sidebar.Redo ->
-          H.tell _board unit Board.Redo
+          H.tell Board.slot unit Board.Redo
         Sidebar.RunTests -> do
           let minTotalTestDurationMs = 2000
           problem <- gets (_.level.problem)
@@ -210,7 +202,7 @@ component = H.mkComponent { eval , initialState , render }
           --    modify_ $ _ { completionStatus = Completed }
           pure unit
         Sidebar.Clear ->
-          H.tell _board unit Board.Clear
+          H.tell Board.slot unit Board.Clear
         Sidebar.Base base -> do
           modify_ $ _ { base = base }
     SelectorOutput output -> evalSelector output
@@ -226,15 +218,15 @@ component = H.mkComponent { eval , initialState , render }
   evalSelector :: Selector.Output -> HalogenM State Action Slots o AppM Unit
   evalSelector = case _ of
     Selector.AddPiece pieceId -> 
-      H.request _board unit Board.GetBoard >>= traverse_ \board -> do
+      H.request Board.slot unit Board.GetBoard >>= traverse_ \board -> do
         for_ (firstEmptyLocation board) \loc ->
-          H.request _board unit (Board.AddPiece loc (pieceLookup pieceId))
+          H.request Board.slot unit (Board.AddPiece loc (pieceLookup pieceId))
     Selector.PieceDropped pieceId -> do
-      maybeLocation <- H.request _board unit (Board.GetMouseOverLocation)
+      maybeLocation <- H.request Board.slot unit (Board.GetMouseOverLocation)
       for_ maybeLocation \loc -> 
-        H.request _board unit (Board.AddPiece loc (pieceLookup pieceId))
+        H.request Board.slot unit (Board.AddPiece loc (pieceLookup pieceId))
     Selector.DoNothing -> pure unit
 
 
   testEval :: Map CardinalDirection Signal -> HalogenM State Action Slots o AppM (Map CardinalDirection Signal)
-  testEval inputs = fromMaybe M.empty <$> H.request _board unit (Board.SetInputs inputs)
+  testEval inputs = fromMaybe M.empty <$> H.request Board.slot unit (Board.SetInputs inputs)

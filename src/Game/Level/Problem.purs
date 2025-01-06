@@ -13,8 +13,8 @@ import Game.Signal (Signal)
 
 type Restriction = 
   { name :: String
-  , restriction :: Board -> Boolean
   , description :: String
+  , restriction :: Board -> Boolean
   }
 
 type Problem = 

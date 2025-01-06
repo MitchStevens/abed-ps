@@ -19,7 +19,7 @@ data Zipper a = Zipper (List a) a (List a)
 derive instance Eq a => Eq (Zipper a)
 
 instance Show a => Show (Zipper a) where
-  show (Zipper ls v rs) = "Z " <> show (L.reverse ls) <> " " <> show v <> " " <> show rs
+  show (Zipper ls v rs) = "Z " <> show (L.reverse ls) <> " (" <> show v <> ") " <> show rs
 
 instance Semigroup (Zipper a) where
   append (Zipper ls1 v1 r1) z1 = Zipper ls1 v1 (r1 <> L.fromFoldable z1)
@@ -28,8 +28,9 @@ instance Functor Zipper where
   map f (Zipper ls v rs) = Zipper (map f ls) (f v) (map f rs)
 
 instance Foldable Zipper where
-  foldr f z (Zipper ls v rs) = foldr f (f v (foldl (flip f) z ls)) rs
-  foldl f z (Zipper ls v rs) = foldl f (f (foldr (flip f) z rs) v) ls
+  --foldr f z (Zipper ls v rs) = foldr f (f v (foldl (flip f) z ls)) rs
+  foldl f z (Zipper ls v rs) = flip (foldl f) rs $ flip f v $ foldr (flip f) z ls
+  foldr f z (Zipper ls v rs) = flip (foldl (flip f)) ls $ f v $ foldr f z rs
   foldMap f (Zipper ls v rs) = foldMap f (L.reverse ls) <> f v <> foldMap f rs
 
 instance Traversable Zipper where
@@ -45,7 +46,7 @@ instance Extend Zipper where
   extend f zipper = Zipper (map f lefts) (f zipper) (map f rights)
     where
       dup x = Tuple x x
-      lefts = unfoldr (\z -> map dup (moveLeft z)) zipper
+      lefts = L.reverse $ unfoldr (\z -> map dup (moveLeft z)) zipper
       rights = unfoldr (\z -> map dup (moveRight z)) zipper
 
 instance Comonad Zipper where
@@ -68,6 +69,9 @@ moveRight :: forall a. Zipper a -> Maybe (Zipper a)
 moveRight (Zipper ls v rs) = case rs of
   Nil -> Nothing
   Cons v' rs' -> Just (Zipper (Cons v ls) v' rs')
+
+isSingleton :: forall a. Eq a => Zipper a -> Boolean
+isSingleton (Zipper ls _ rs) = ls == Nil && rs == Nil
 
 head :: forall a. Zipper a -> a
 head = extract

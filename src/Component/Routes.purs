@@ -3,7 +3,7 @@ module Component.Routes where
 import Prelude
 
 import AppM (AppM)
-import Capability.Navigate (Route(..))
+import Capability.Navigate (Route(..), Underscore(..), fromUnderscore)
 import Component.About as About
 import Component.Home as Home
 import Component.Instructions as Instructions
@@ -28,14 +28,14 @@ import Routing.Match (Match, lit, str)
 import Type.Proxy (Proxy(..))
 import Web.UIEvent.KeyboardEvent (KeyboardEvent)
 
-route :: Match Route
-route = oneOf
-  [ Home <$ lit "home"
-  , About <$ lit "about"
-  , Instructions <$ lit "how-to-play"
-  , LevelSelect <$ lit "level-select"
-  , Level <$> (lit "level" *> str) <*> str
-  ]
+--route :: Match Route
+--route = oneOf
+--  [ Home <$ lit "home"
+--  , About <$ lit "about"
+--  , Instructions <$ lit "how-to-play"
+--  , LevelSelect <$ lit "level-select"
+--  , Level <$> (lit "level" *> str) <*> str
+--  ]
 
 type Input = {}
 
@@ -73,11 +73,13 @@ component = H.mkComponent { eval, initialState, render }
         HH.slot_ (Proxy :: _ "instructions") unit Instructions.component unit
       LevelSelect ->
         HH.slot_ (Proxy :: _ "levelSelect") unit LevelSelect.component unit
-      Level suiteName levelName -> fromMaybe (HH.text "coublent find tht roblem" ) do
-        levelSuite <- Object.lookup suiteName allLevelSuites
-        level <- Object.lookup levelName levelSuite
-        pure $ HH.slot_ (Proxy :: _ "level") unit Level.component $
-          { levelId: { suiteName, levelName }, level }
+      Level { suiteName, levelName } -> fromMaybe (HH.text "couldn't find that problem" ) do
+        levelSuite <- Object.lookup (fromUnderscore suiteName) allLevelSuites
+        level <- Object.lookup (fromUnderscore levelName) levelSuite
+        pure $ HH.slot_ (Proxy :: _ "level") unit Level.component
+          { levelId: {suiteName: fromUnderscore suiteName, levelName: fromUnderscore levelName}, level }
+
+  
 
   eval = mkEval 
     { finalize: Nothing 

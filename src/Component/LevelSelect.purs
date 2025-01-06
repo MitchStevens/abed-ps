@@ -2,7 +2,8 @@ module Component.LevelSelect where
 
 import Prelude
 
-import Capability.Navigate (Route(..), navigateTo)
+import Capability.Navigate (Route(..), navigateTo, level)
+import Capability.Navigate as Navigate
 import Capability.Progress (LevelProgress(..), saveLevelProgress)
 import Component.DataAttribute (attr)
 import Component.DataAttribute as DA
@@ -74,7 +75,7 @@ component = H.mkComponent { eval , initialState , render }
             [ HH.text levelName
             , renderLevelProgress (M.lookup {suiteName, levelName} state.levelProgress)
             ]
-        
+
         renderLevelProgress maybeProgress = case maybeProgress of
           Just Completed ->  HH.span [ attr DataAttr.progress Completed ]  [ HH.text "  ✔" ]
           Just Incomplete -> HH.span [ attr DataAttr.progress Incomplete ] [ HH.text " ✶" ]
@@ -89,8 +90,6 @@ component = H.mkComponent { eval , initialState , render }
             H.modify_ (_ { levelProgress = progress})
           NavigateTo levelId -> do
             saveLevelProgress levelId Incomplete
-            navigateTo (Level levelId.suiteName levelId.levelName)
+            navigateTo (level levelId)
       , initialize = Just Initialise
       }
-
-

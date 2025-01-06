@@ -1,0 +1,116 @@
+package:
+  dependencies:
+    - aff
+    - arrays
+    - bifunctors
+    - console
+    - contravariant
+    - control
+    - datetime
+    - debug
+    - effect
+    - either
+    - enums
+    - exceptions
+    - filterable
+    - foldable-traversable
+    - foreign-object
+    - generate-values
+    - group
+    - halogen
+    - halogen-subscriptions
+    - halogen-svg-elems
+    - halogen-vdom
+    - identity
+    - integers
+    - lists
+    - maybe
+    - monad-logger
+    - newtype
+    - now
+    - nullable
+    - numbers
+    - ordered-collections
+    - parallel
+    - parsing
+    - partial
+    - prelude
+    - profunctor
+    - profunctor-lenses
+    - record
+    # - refs
+    #- rough-notation
+    - routing
+    - routing-duplex
+    - strings
+    - tailrec
+    - uint
+    - halogen-store
+    - uuidv4
+    - these
+    - transformers
+    - tuples
+    - unfoldable
+    - unsafe-coerce
+    - variant
+    - web-dom
+    - web-events
+    - web-html
+    - web-storage
+    - web-uievents
+  name: abed
+  run:
+    main: CSS.GenerateStylesheets
+
+  bundle:
+    minify: false
+    # Entrypoint for the bundle
+    module: Main
+    # The path of the bundle file
+    outfile: "dist/abed.js"
+    # Possible values are 'node' or 'browser'
+    platform: browser
+    # Possible values are 'app' or 'module'
+    type: "app"
+
+  test:
+    main: Test.Main
+    dependencies:
+      - "spec"
+      - "spec-node"
+      - "spec-discovery"
+      - "spec-quickcheck"
+      - "quickcheck"
+    censor_test_warnings: all
+
+workspace:
+  package_set:
+    registry: 62.2.5
+    #registry: 60.2.1
+    #url: https://raw.githubusercontent.com/purescript/package-sets/psc-0.15.9-20230629/packages.json
+  extra_packages:
+    #spec-discovery: 8.2.0
+    halogen-svg-elems:
+      dependencies:
+        - halogen
+      git: https://github.com/MitchStevens/purescript-halogen-svg-elems.git
+      ref: df7b35f
+    #rough-notation:
+    #  git: https://github.com/MitchStevens/purescript-rough-notation.git
+    #  ref: fde3337
+    #tecton:
+    #  dependencies:
+    #    - "colors"
+    #    - "either"
+    #    - "foldable-traversable"
+    #    - "integers"
+    #    - "lists"
+    #    - "numbers"
+    #    - "prelude"
+    #    - "record"
+    #    - "strings"
+    #    - "transformers"
+    #    - "tuples"
+    #    - "web-html"
+    #  git: https://github.com/MitchStevens/purescript-tecton.git
+    #  ref: 111d91e6c6f99bdcd486344ea13ba17b8743636a

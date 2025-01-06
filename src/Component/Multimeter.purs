@@ -38,6 +38,7 @@ import Halogen.Svg.Attributes as BaseLine
 import Halogen.Svg.Attributes as SA
 import Halogen.Svg.Elements as SE
 import Halogen.VDom as VDom
+import Type.Proxy (Proxy(..))
 import Web.UIEvent.KeyboardEvent (KeyboardEvent, key)
 import Web.UIEvent.MouseEvent (MouseEvent, pageX, pageY)
 
@@ -59,17 +60,21 @@ data Action
   | GlobalKeyDown KeyboardEvent
 
 data Query a
-  = NewFocus (Maybe { relativeEdge :: RelativeEdge, info :: PortInfo})
-  | SetSignal Signal
+  = NewFocus (Maybe { relativeEdge :: RelativeEdge, info :: PortInfo}) a
+  | SetSignal Signal a
 
 data Output
   = SetCapacity RelativeEdge Capacity
 
+slot = Proxy :: Proxy "multimeter"
+
+initialState :: Input -> State
+initialState {} = { focus: Nothing, display: false, currentPosition: { x: 0, y: 0 } }
+
+
 component :: forall m. MonadEffect m => H.Component Query Input Output m
 component = H.mkComponent { eval, initialState, render }
   where
-    initialState {} = { focus: Nothing, display: false, currentPosition: { x: 0, y: 0 } }
-
     render state =
       HH.div
         [ HP.id "multimeter"
@@ -150,13 +155,13 @@ component = H.mkComponent { eval, initialState, render }
                   _   -> pure unit
 
         , handleQuery = case _ of
-            NewFocus focus -> do
+            NewFocus focus next -> do
               modify_ (_ { focus = focus })
-              pure Nothing
-            SetSignal signal -> do
+              pure (Just next)
+            SetSignal signal next -> do
               gets (_.focus) >>= traverse_ \focus ->
                 modify_ $ _ { focus = Just ( focus { info = focus.info { signal = signal } } ) }
-              pure Nothing
+              pure (Just next)
         }
       )
 

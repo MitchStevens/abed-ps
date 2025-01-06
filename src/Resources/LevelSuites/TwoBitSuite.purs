@@ -1,6 +1,5 @@
 module Resources.LevelSuites.TwoBitSuite where
 
-import Game
 import Prelude
 
 import Component.DataAttribute (selector)

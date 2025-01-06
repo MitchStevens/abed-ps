@@ -30,10 +30,11 @@ problemDescription :: Problem
 problemDescription =
   { goal: idPiece
   , title: "Double negation"
+  , subtitle: Nothing
   , description: "create an idenity from not gate"
   , testCases: [ M.singleton Direction.Left ff, M.singleton Direction.Left tt ]
   , requiresAutomaticTesting: false
-  , availablePieces: NonEmptyArray []
+  , availablePieces: S.empty
   , otherRestrictions: []
   }
 

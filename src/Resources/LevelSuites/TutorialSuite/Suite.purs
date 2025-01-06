@@ -8,6 +8,8 @@ import Control.Monad.Reader (ask, lift)
 import Control.Plus ((<|>))
 import Data.Array.NonEmpty.Internal (NonEmptyArray(..))
 import Data.FunctorWithIndex (mapWithIndex)
+import Data.Maybe (Maybe(..))
+import Data.Set as S
 import Data.HeytingAlgebra (ff, tt)
 import Foreign.Object (fromHomogeneous)
 import Game.Direction as Direction
@@ -28,7 +30,7 @@ tutorialSuite = fromHomogeneous
         , testCases = binaryTestInputs [ Direction.Left ]
         , availablePieces = S.fromFoldable [ ]
         }
-      , marginalia = [ marginalia (tt) (description "wow this is great marginalia!!" ff) ]
+      --, marginalia = [ marginalia (tt) (description "wow this is great marginalia!!" ff) ]
       --, conversation = do
       --   -- guideMessage "hey. guide here"
       --   -- guideMessage "you look a little green? have you played this game before?"

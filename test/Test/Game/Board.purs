@@ -34,7 +34,7 @@ import Halogen.HTML (object)
 import Partial.Unsafe (unsafeCrashWith)
 import Test.Game.Location (allLocations)
 import Test.Spec (Spec, SpecT, before, describe, hoistSpec, it, itOnly)
-import Test.Spec.Assertions (shouldContain, shouldEqual, shouldReturn)
+import Test.Spec.Assertions (fail, shouldContain, shouldEqual, shouldReturn)
 
 testBoard :: Board
 testBoard = either (show >>> unsafeCrashWith) identity $ 
