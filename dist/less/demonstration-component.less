@@ -1,0 +1,43 @@
+#demonstration-component {
+  position: absolute;
+  display: grid;
+  @width: 600px;
+  @height: 800px;
+
+  top: 50%;
+  margin-top: -(@height/2);
+
+  left: 50%;
+  margin-left: -(@width/2);
+
+  height: @height;
+  width: @width;
+  box-sizing: border-box;
+
+
+
+  & > div {
+    z-index: 2;
+    grid-area: 1 / 1;
+    padding-top: 70px;
+    padding-bottom: 70px;
+    padding-right: 30px;
+    padding-left: 35px;
+
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+
+    video { width: 100%; }
+
+    button {
+      font-size: 40px;
+      font-family: pirata;
+    }
+  }
+
+  .parchment {
+    z-index: 1;
+    grid-area: 1 / 1;
+  }
+}

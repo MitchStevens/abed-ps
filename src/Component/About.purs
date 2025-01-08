@@ -34,10 +34,14 @@ component = H.mkComponent { eval , initialState , render }
     defaultLayout $
       HH.div [ HP.class_ (ClassName "about-component") ]
         [ HH.h1_ [ HH.text "about page" ]
-        , HH.h2_ [ HH.text "This game created by Mitch Stevens" ]
-        , HH.text "Note: I am not a \"\"\"web developer\"\"\". As a result, I don't know CSS and I have no idea how this will look on your browser. Since I know this \"\"game\"\"\" works on my machine, I suggest you play this game using the brave browser. Barring that, it'll probably look ok in chrome."
+        , HH.h3_ [ HH.text "This game created by Mitch Stevens 🇦🇺" ]
+        , HH.text "Note: I am not a \"\"\"web developer\"\"\". As a result, I don't know CSS and I have no idea how this will look on your browser. Since I know this \"\"game\"\"\" works on my machine, I suggest you play this using:"
+        , HH.ul_
+          [ HH.li_ [ HH.text "Brave browser, chrome is probably also fine." ]
+          , HH.li_ [ HH.text "At least 768px screen width; if you use phone you're gonna have a bad time."]
+          ]
         , HH.br_
-        , HH.text "email here"
+        , HH.text "email here: mitchstevens95 at gmail dot com"
         , HH.br_
         , HH.text "Source Code: "
         , HH.a

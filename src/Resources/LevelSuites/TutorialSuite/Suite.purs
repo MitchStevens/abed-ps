@@ -7,17 +7,22 @@ import Component.Marginalia.Types (description, marginalia)
 import Control.Monad.Reader (ask, lift)
 import Control.Plus ((<|>))
 import Data.Array.NonEmpty.Internal (NonEmptyArray(..))
+import Data.Functor.Joker (Joker)
 import Data.FunctorWithIndex (mapWithIndex)
-import Data.Maybe (Maybe(..))
-import Data.Set as S
 import Data.HeytingAlgebra (ff, tt)
+import Data.Maybe (Maybe(..))
+import Data.MediaType (MediaType(..))
+import Data.Set as S
 import Foreign.Object (fromHomogeneous)
 import Game.Direction as Direction
 import Game.Level (LevelSuite, binaryTestInputs, defaultLevel)
+import Game.Level.Demonstration (videoDemonstration)
 import Game.Level.Problem (defaultProblem)
 import Game.Location (location)
 import Game.Message (Conversation, Message(..), button, guideMessage, noUser, sendMessage)
 import Game.Piece (idPiece, leftPiece, notPiece, orPiece)
+import Halogen.HTML as HH
+import Halogen.HTML.Properties as HP
 
 tutorialSuite :: LevelSuite
 tutorialSuite = fromHomogeneous
@@ -27,6 +32,11 @@ tutorialSuite = fromHomogeneous
         { goal = idPiece
         , title = "From A to B"
         , subtitle = Just "Propagate the signal inputed on the Left to the Right"
+        , demonstration = Just $ videoDemonstration
+          { title: "some text goes here!!!"
+          , videoUrl: "./images/demonstrations/new_path.mp4"
+          , description: "some  more text can go here"
+          }
         , testCases = binaryTestInputs [ Direction.Left ]
         , availablePieces = S.fromFoldable [ ]
         }

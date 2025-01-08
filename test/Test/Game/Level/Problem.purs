@@ -19,7 +19,7 @@ import Effect.Aff (Aff, error)
 import Effect.Exception (error)
 import Game.Board (Board(..), standardBoard)
 import Game.Direction as Direction
-import Game.Level.Problem (Problem)
+import Game.Level.Problem (Problem, defaultProblem)
 import Game.Piece (idPiece)
 import Test.Spec (Spec, SpecT)
 import Test.Spec (Spec, describe, it)
@@ -28,15 +28,12 @@ import Test.Spec.QuickCheck (quickCheck)
 
 problemDescription :: Problem
 problemDescription =
-  { goal: idPiece
-  , title: "Double negation"
-  , subtitle: Nothing
-  , description: "create an idenity from not gate"
-  , testCases: [ M.singleton Direction.Left ff, M.singleton Direction.Left tt ]
-  , requiresAutomaticTesting: false
-  , availablePieces: S.empty
-  , otherRestrictions: []
-  }
+  defaultProblem
+    { goal = idPiece
+    , title = "Double negation"
+    , description = "create an idenity from not gate"
+    , testCases = [ M.singleton Direction.Left ff, M.singleton Direction.Left tt ]
+    }
 
 --spec :: forall m. MonadState Board m => SpecT Aff Unit m Unit
 --spec = describe "Problem" do

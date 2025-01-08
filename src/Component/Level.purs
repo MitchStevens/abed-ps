@@ -6,6 +6,7 @@ import AppM (AppM)
 import Capability.Animate (headShake)
 import Capability.Navigate (Route(..), navigateTo)
 import Component.Board as Board
+import Component.Demonstration as Demonstration
 import Component.GameEventLogger as GameEventLogger
 import Component.Marginalia.Types (Marginalia, marginalia)
 import Component.Marginalium as Marginalium
@@ -15,6 +16,7 @@ import Control.Alt ((<|>))
 import Control.Monad.Cont (ContT(..), callCC, lift, runContT)
 import Control.Monad.Except (ExceptT(..), runExceptT)
 import Control.Monad.Logger.Class (class MonadLogger, debug, info)
+import Control.Monad.Rec.Class (forever)
 import Control.Monad.State (evalState, gets, modify_)
 import Data.Array as A
 import Data.Bifunctor (lmap)
@@ -26,13 +28,16 @@ import Data.Int (toNumber)
 import Data.Lens ((^.))
 import Data.Map (Map)
 import Data.Map as M
-import Data.Maybe (Maybe(..), fromMaybe)
+import Data.Maybe (Maybe(..), fromMaybe, maybe)
+import Data.Time (Millisecond)
 import Data.Time.Duration (Milliseconds(..), Seconds(..))
 import Data.Traversable (for, traverse)
 import Data.TraversableWithIndex (forWithIndex)
 import Data.Tuple (Tuple(..), fst, snd)
 import Data.UUID.Random (UUIDv4)
 import Data.UUID.Random as UUID
+import Effect.Aff (forkAff)
+import Effect.Aff as Aff
 import Effect.Aff.Class (class MonadAff, liftAff)
 import Effect.Class (class MonadEffect, liftEffect)
 import Effect.Class.Console (log)
@@ -46,10 +51,12 @@ import Game.Signal (Base, Signal(..), SignalRepresentation)
 import GlobalState (GlobalState, newBoardEvent)
 import Halogen (ClassName(..), Component, HalogenM, HalogenQ, Slot, ComponentHTML, gets, modify_)
 import Halogen as H
-import Halogen.HTML (PlainHTML)
+import Halogen.HTML (PlainHTML, i)
 import Halogen.HTML as HH
 import Halogen.HTML.Properties as HP
 import Halogen.Store.Monad (updateStore)
+import Halogen.Subscription (Emitter)
+import Halogen.Subscription as HS
 import Type.Proxy (Proxy(..))
 import Web.DOM.ParentNode (QuerySelector(..))
 import Web.UIEvent.KeyboardEvent (KeyboardEvent)
@@ -73,6 +80,7 @@ type State =
 
 data Action
   = Initialise
+  | TriggerDemonstration
   | BoardOutput       Board.Output
   | SidebarOutput     Sidebar.Output
   | SelectorOutput    Selector.Action
@@ -80,10 +88,11 @@ data Action
 
 
 type Slots =
-  ( board   :: Slot Board.Query Board.Output Unit
-  , sidebar :: Slot Sidebar.Query Sidebar.Output Unit
-  , selector :: Slot Selector.Query Selector.Output Unit
-  , marginalia :: Slot Marginalium.Query Marginalium.Output UUIDv4
+  ( board           :: Slot Board.Query         Board.Output Unit
+  , sidebar         :: Slot Sidebar.Query       Sidebar.Output Unit
+  , selector        :: Slot Selector.Query      Selector.Output Unit
+  , marginalia      :: Slot Marginalium.Query   Marginalium.Output UUIDv4
+  , demonstration   :: Slot Demonstration.Query Demonstration.Output Unit
 --  , marginalium :: Slot Marginalium.Query Marginalium.Output UUIDv4
   , gameEventLogger :: forall q. Slot q Void Unit
   )
@@ -109,6 +118,7 @@ component = H.mkComponent { eval , initialState , render }
     , HH.slot Selector.slot unit Selector.component { availablePieces: level.problem.availablePieces } SelectorOutput
     --, HH.div [ HP.id "marginalia" ] ((M.toUnfoldable marginalia :: Array _) <#> \(Tuple uuid m) -> HH.slot _marginalia uuid Marginalium.component { uuid, marginalia: m } MarginaliumOutput)
     --, HH.slot_ _gameEventLogger unit GameEventLogger.component unit
+    , maybe (HH.text "") (HH.slot_ Demonstration.slot unit Demonstration.component) level.problem.demonstration -- level.problem.demonstration
     ]
     where sidebarInput = { problem: level.problem, completionStatus, boardSize, boardPorts, base }
 
@@ -133,6 +143,14 @@ component = H.mkComponent { eval , initialState , render }
         lift $ info M.empty "initialising marginalia"
         uuid <- UUID.make
         modify_ (\state -> state { marginalia = M.insert uuid m state.marginalia})
+      
+      -- init demonstration
+      _ <- delay (Milliseconds 1000.0) TriggerDemonstration >>= H.subscribe
+      pure unit
+
+      
+    TriggerDemonstration -> do
+      H.tell Demonstration.slot unit (Demonstration.OpenDemonstration)
 
       -- make the board component display goal ports
       Piece piece <- H.gets (_.level.problem.goal)
@@ -205,6 +223,8 @@ component = H.mkComponent { eval , initialState , render }
           H.tell Board.slot unit Board.Clear
         Sidebar.Base base -> do
           modify_ $ _ { base = base }
+        Sidebar.RunDemonstration -> do
+          handleAction TriggerDemonstration
     SelectorOutput output -> evalSelector output
       
       
@@ -230,3 +250,11 @@ component = H.mkComponent { eval , initialState , render }
 
   testEval :: Map CardinalDirection Signal -> HalogenM State Action Slots o AppM (Map CardinalDirection Signal)
   testEval inputs = fromMaybe M.empty <$> H.request Board.slot unit (Board.SetInputs inputs)
+
+delay :: forall m a. MonadAff m => Milliseconds -> a -> m (Emitter a)
+delay duration val = do
+  { emitter, listener } <- H.liftEffect HS.create
+  _ <- liftAff $ forkAff do
+    Aff.delay duration
+    H.liftEffect $ HS.notify listener val
+  pure emitter

@@ -48,6 +48,7 @@ data Button
   | RunTests
   | Clear
   | Base Base
+  | RunDemonstration
 derive instance Eq Button
 
 data InputField

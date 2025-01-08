@@ -24,10 +24,10 @@ import Web.HTML.Common (AttrName(..))
 
 allLevelSuites :: Object LevelSuite
 allLevelSuites = fromHomogeneous
-  { "Tutorial Suite": tutorialSuite
-  , "Intermediate Suite": intermediateSuite
-  , "Two Bit Suite": twoBitSuite
-  , "Shifting Suite": shiftingSuite
+  { "Tutorial": tutorialSuite
+  , "Intermediate": intermediateSuite
+  , "Two Bit": twoBitSuite
+  , "Shifting": shiftingSuite
   }
 
 getAllLevelProgress :: forall m. MonadEffect m => m (Map LevelId LevelProgress)

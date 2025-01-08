@@ -8,6 +8,7 @@ import Data.Set (Set)
 import Data.Set as S
 import Game.Board (Board(..))
 import Game.Direction (CardinalDirection)
+import Game.Level.Demonstration (Demonstration)
 import Game.Piece (Piece(..), idPiece)
 import Game.Signal (Signal)
 
@@ -22,6 +23,7 @@ type Problem =
   , title :: String
   , subtitle :: Maybe String
   , description :: String
+  , demonstration :: Maybe Demonstration
   , testCases :: Array (Map CardinalDirection Signal)
   , requiresAutomaticTesting :: Boolean
   , availablePieces :: Set Piece -- doesn't need to be non empty
@@ -34,6 +36,7 @@ defaultProblem =
   , title: "default title"
   , subtitle: Nothing
   , description: "default description"
+  , demonstration: Nothing
   , testCases: []
   , requiresAutomaticTesting: false
   , availablePieces: S.empty

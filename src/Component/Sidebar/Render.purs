@@ -47,10 +47,11 @@ render state =
     , renderCompletionInfo
     --, renderAvailablePieces
     --, renderBoardSize
+    , renderRunDemonstration
     , H.slot BoardSizeSlider.slot unit BoardSizeSlider.component { boardSize: state.boardSize } BoardSizeSliderOutput
     , renderUndoRedo
     , renderClear
-    --, renderSignalRepresentation
+    , renderSignalRepresentation
     , renderGiveUp
     ]
   where
@@ -79,30 +80,6 @@ render state =
         asHTML :: forall p i. Either String String -> HTML p i
         asHTML (Left pieceName) = HH.span [ HP.class_ (ClassName "piece-name") ] [ HH.text pieceName ]
         asHTML (Right text) = HH.text text
-
-    renderAvailablePieces =
-      HH.div_
-        [ HH.span_
-          [ HH.h3_ [ HH.text "Available pieces:"]
-          , HH.span [ HP.class_ (ClassName "pieces") ] $
-            renderAvailablePiece <$>
-              A.nub (A.fromFoldable state.problem.availablePieces)
-          ]
-        ]
-
-    renderAvailablePiece piece =
-      HH.div 
-        [ DA.attr DA.availablePiece pieceId
-        , HP.draggable true
-        , HP.classes [ ClassName "available-piece" ]
-        , HE.onDragEnd (PieceOnDrop pieceId)
-        , HE.onClick (ButtonClicked (AddPiece pieceId))
-        ]
-        [ mapActionOverHTML (\_ -> DoNothing) (renderPiece (Piece.initialState { piece, location: location 0 0 }))
-        , HH.text (show pieceId) 
-        ]
-      where
-        pieceId = name piece
 
     renderCompletionStatus = HH.div_
         case state.completionStatus of
@@ -173,6 +150,17 @@ render state =
     --      , HH.option [ HP.value "9" ] []
     --      ]
     --    ]
+
+    renderRunDemonstration = segment (ClassName "demonstrate") title html
+      where
+        title = 
+          HH.span
+            [ HE.onClick (ButtonClicked RunDemonstration) ]
+            [ HH.text "Demonstrate" ]
+        html = 
+          HH.span
+            [ HE.onClick (ButtonClicked RunDemonstration) ]
+            [ HH.text "Provide guidance" ]
 
     renderGiveUp = segment (ClassName "give-up") title html
       where

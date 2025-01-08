@@ -39,7 +39,6 @@ package:
     - profunctor-lenses
     - record
     # - refs
-    #- rough-notation
     - routing
     - routing-duplex
     - strings
