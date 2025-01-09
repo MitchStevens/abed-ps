@@ -39,16 +39,26 @@
         & > * {
             width: 100%;
         }
-
-        & .test-runner {
-            & > span {
-                border: lightgray 2px solid;
-            }
-        }
     }
 
     & .test-runner {
-        display: grid;
+        & table {
+            width: 100%;
+            border-collapse: collapse;
+            & * { border: black 1px solid; }
+
+            & colgroup col {
+                & .test-case-index {
+                    min-width: 3px;
+                    max-width: 3px;
+                }
+                & .test-case-input, .test-case-expected, .test-case-recieved {
+                    width: auto;
+                    max-width: 10px;
+                }
+                & .test-case-status { width: 50px; }
+            }
+        }
     }
 }
 

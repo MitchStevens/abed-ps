@@ -43,8 +43,8 @@ data Query a
 
 data Action
   = Receive Input
-  | StartTesting
-  | RunSingleTest 
+  | RunSingleTest
+  | RunAllTests 
   | CurrentTestCaseCompleted TestCaseOutcome
 
 data Output

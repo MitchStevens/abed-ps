@@ -9,10 +9,12 @@ data GlobalStateAction =
   NewGameEvent GameEvent
 
 type GlobalState = 
-  { lastGameEvent :: GameEvent }
+  { lastGameEvent :: GameEvent
+  , enableDemonstrations :: Boolean
+  }
 
 initialGlobalState :: GlobalState
-initialGlobalState = { lastGameEvent: GameStarted }
+initialGlobalState = { lastGameEvent: GameStarted, enableDemonstrations: true }
 
 reduce :: GlobalState -> GlobalStateAction -> GlobalState
 reduce state = case _ of
