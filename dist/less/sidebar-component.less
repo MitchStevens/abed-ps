@@ -42,21 +42,41 @@
     }
 
     & .test-runner {
+        @red: #812d2db2;
+
         & table {
+            @border: @red 2px solid;
             width: 100%;
             border-collapse: collapse;
-            & * { border: black 1px solid; }
+            text-align: center;
+            
+            & thead { 
+                border-bottom: @border;
+                border-top: @border
+            }
 
-            & colgroup col {
-                & .test-case-index {
+            & tfoot {
+                border-top: @border;
+            }
+            
+
+            & colgroup {
+                & col.test-case-index {
                     min-width: 3px;
                     max-width: 3px;
                 }
-                & .test-case-input, .test-case-expected, .test-case-recieved {
+
+                
+                & col.test-case-input, col.test-case-expected, col.test-case-recieved {
                     width: auto;
                     max-width: 10px;
+                    border-left: @border;
+                    border-right: @border;
                 }
-                & .test-case-status { width: 50px; }
+
+                & col.test-case-status {
+                    width: 50px;
+                }
             }
         }
     }

@@ -9,6 +9,7 @@ import Data.Foldable (length)
 import Data.FunctorWithIndex (mapWithIndex)
 import Data.Map as M
 import Data.Maybe (Maybe(..), maybe)
+import Data.Monoid (guard)
 import Data.Set as S
 import Data.String as String
 import Data.Tuple (Tuple(..))
@@ -36,10 +37,7 @@ render state =
       , body
       , footers
       ]
-    , HH.span_
-      [ renderRunAllTestsButton
-      --, renderRunAllTestsButton
-      ]
+    , buttons
     ]
   where
     inputDirs = A.fromFoldable $ getInputDirs state.model
@@ -48,7 +46,7 @@ render state =
     numOutputs = A.length outputDirs
 
     colgroup = HH.colgroup_ $ join
-      [ replicate 1          ( HH.col [ HP.class_ (ClassName "test-case-index") ])
+      [ replicate 1          (HH.col [ HP.class_ (ClassName "test-case-index") ])
       , replicate numInputs  (HH.col [ HP.class_ (ClassName "test-case-input") ])
       , replicate numOutputs (HH.col [ HP.class_ (ClassName "test-case-expected") ])
       , replicate numOutputs (HH.col [ HP.class_ (ClassName "test-case-recieved") ])
@@ -81,8 +79,9 @@ render state =
     footers = HH.tfoot_ 
       [ HH.tr_ 
         [ HH.td
-          [ HP.colSpan 4 ]
-          [ HH.text "foot goes here" ]
+          [ HP.colSpan (1 + numInputs + 2 * numOutputs) ]
+          [ HH.text "Tests completed:" ]
+        , HH.td_ [ HH.text (show state.currentIndex <> "/" <> show (length state.testCases :: Int)) ]
         ]
       ]
 
@@ -94,7 +93,7 @@ render state =
         relevantTestCases = A.slice start end (A.fromFoldable state.testCases)
         n = min maxRows (length state.testCases)
         start = max 0 (end - n)
-        end = max n (Z.currentIndex state.testCases)
+        end = max n state.currentIndex
 
     renderRow :: Int -> TestCase -> ComponentHTML Action s m
     renderRow testIndex testCase =
@@ -120,7 +119,11 @@ render state =
           where
             n = M.size testCase.data.expected
 
-
+    buttons :: ComponentHTML Action s m
+    buttons = HH.span_ $
+      [ renderRunAllTestsButton
+      , renderRunCurrentTestButton
+      ]
 
     renderRunAllTestsButton :: ComponentHTML Action s m
     renderRunAllTestsButton =
@@ -129,10 +132,10 @@ render state =
         [ HH.text "Run tests" ]
 
     
-    renderRunCurrentTestButton :: Int -> ComponentHTML Action s m
-    renderRunCurrentTestButton testIndex =
+    renderRunCurrentTestButton :: ComponentHTML Action s m
+    renderRunCurrentTestButton =
       HH.button
-        [ HE.onClick (\_ -> RunSingleTest)]
-        [ HH.text ("Run test " <> show testIndex) ]
+        [ HE.onClick (\_ -> RunCurrentTest)]
+        [ HH.text ("Run test " <> show (state.currentIndex + 1)) ]
 
         

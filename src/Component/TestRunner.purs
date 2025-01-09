@@ -12,6 +12,7 @@ import Control.Monad.State.Class (gets, modify_)
 import Data.Array as A
 import Data.FunctorWithIndex (mapWithIndex)
 import Data.Lens (use, (%=), (.=))
+import Data.Lens.Index (ix)
 import Data.LimitQueue (LimitQueue)
 import Data.LimitQueue as LQ
 import Data.Map (Map)
@@ -63,8 +64,9 @@ component = H.mkComponent { eval, initialState, render }
     handleQuery :: forall a. Query a -> HalogenM State Action () Output m (Maybe a)
     handleQuery = case _ of
       TestCaseOutcome outcome next -> do
-        _testCases <<< _head %=  (_ { outcome = Just outcome })
-        use (_testCases <<< _head) >>= logShow
+        currentIndex <- gets (_.currentIndex)
+        _testCases <<< ix currentIndex %=  (_ { outcome = Just outcome })
+        --use (_testCases <<< ix currentIndex) >>= logShow
 
         when (not outcome.passed) do
           _runNextTestOnPassed .= false
@@ -72,10 +74,13 @@ component = H.mkComponent { eval, initialState, render }
 
         when runNextTestOnPassed do
           liftAff (delay delayBetweenTests)
-          gets (_.testCases >>> Z.moveRight) >>= case _ of
+          modify_ (\s -> s { currentIndex = s.currentIndex + 1 })
+
+          gets currentTestCase >>= case _ of
             Just testCases' -> do
-              _testCases .= testCases'
+              --_testCases .= testCases'
               --handleAction RunAllTests
+              pure unit
             Nothing ->
               H.raise AllTestsPassed
 
