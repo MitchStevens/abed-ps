@@ -20,9 +20,10 @@ import Game.Level.Demonstration (videoDemonstration)
 import Game.Level.Problem (defaultProblem)
 import Game.Location (location)
 import Game.Message (Conversation, Message(..), button, guideMessage, noUser, sendMessage)
-import Game.Piece (idPiece, leftPiece, notPiece, orPiece)
+import Game.Piece (chickenPiece, cornerCutPiece, idPiece, leftPiece, notPiece, orPiece)
 import Halogen.HTML as HH
 import Halogen.HTML.Properties as HP
+import Test.Game.Level.Problem (problemDescription)
 
 tutorialSuite :: LevelSuite
 tutorialSuite = fromHomogeneous
@@ -31,85 +32,56 @@ tutorialSuite = fromHomogeneous
       { problem = defaultProblem
         { goal = idPiece
         , title = "From A to B"
-        , subtitle = Just "Propagate the signal inputed on the Left to the Right"
+        , subtitle = Just "As easy as... "
+        , description = "The input on the left needs to be connected to the output on the right. Use the 'demonstrate' button for a quick tutorial."
         , demonstration = Just $ videoDemonstration
-          { title: "some text goes here!!!"
+          { title: "Creating pieces"
           , videoUrl: "./images/demonstrations/new_path.mp4"
-          , description: "some  more text can go here"
+          , description: "To create a Piece, click and drag from the left to the right"
           }
         , testCases = binaryTestInputs [ Direction.Left ]
         , availablePieces = S.fromFoldable [ ]
         }
-      --, marginalia = [ marginalia (tt) (description "wow this is great marginalia!!" ff) ]
-      --, conversation = do
-      --   -- guideMessage "hey. guide here"
-      --   -- guideMessage "you look a little green? have you played this game before?"
-      --    playedBefore <- sendMessage $ button "yes" "Y" true <|> (noUser (HH.text "/") *> button "no" "N" false)
-      --    listener <- ask 
-      --    let say str = HS.notify listener {user: Just "guide", html: [ HH.text str ] }
-      --    --liftAff (movePieceFromToOverlay (location 0 0) (location  0 1))
-      --    --liftAff addPieceOverlay
-      --    --liftAff (movePieceFromToOverlay (location 0 0) (location 0 1))
-      --    --liftAff $ addPieceOverlay
-      --    --liftAff $ movePieceFromToOverlay (location 0 0) (location 0 1)
-      --    --liftAff $ runTestsOverlay
-      --    --liftAff $ backToLevelSelectOverlay
-      --    pure unit
-
-
-
-      --    --liftEffect $ runGuide firstLevelGuide say
-      --    --liftAff $ runGuide guideSays firstLevelGuide
-      --    --if not playedBefore
-      --    --  then do
-      --    --    guideMessage "ok, lets get going"
-      --    --    liftAff (fromEffectFnAff addPieceGuide)
-      --    --    guideMessage "yep thats how you do it"
-      --    --    liftAff (fromEffectFnAff movePieceGuide)
-      --    --    guideMessage "looks good...ish"
-      --    --    guideMessage "but there's still that hole in the center???"
-      --    --    liftAff (fromEffectFnAff runTestsGuide)
-      --    --    guideMessage "alrighty, first level complete!"
-      --    --    guideMessage "hit 'Back to Level Select' if you enjoyed it"
-      --    --    guideMessage "otherwise hit Ctrl+W to do something else. we're not starved for distraction in the internet age"
-      --    --  else do
-      --    --    guideMessage "ok all g"
-      --    --    guideMessage "ill leave you to it :)"
       }
   , "Negation":
     defaultLevel
       { problem = defaultProblem
         { goal = notPiece
         , title = "Negation"
-        , description = "Negate the signal inputed on the Left and output it on the Right"
+        , subtitle = Just "Not bad"
+        , description = "Negate the signal inputed on the Left and output it on the Right. You can add a piece to the board from the \'Available Pieces\' menu by clicking an icon or dragging an icon an open location."
         , testCases = binaryTestInputs [Direction.Left]
-        , availablePieces = S.fromFoldable [ idPiece, notPiece ]
+        , availablePieces = S.fromFoldable [ notPiece ]
         }
-      --, conversation = do
-      --    sendMessage $ Message
-      --      { user: Just "mitch"
-      --      , html: [ HH.text "hello world" ]
-      --      , action: pure unit
-      --      }
-      --    n <- sendMessage $ button "" "click me" 47
-      --    log ("got: " <> show n)
       }
   , "Two enter, one leaves": defaultLevel
     { problem = defaultProblem
       { goal = orPiece
       , title = "Two enter, one leaves"
-      , description = ""
+      , subtitle = Just "The gladiator (2000)"
+      , description = "An or piece takes two inputs!"
       , testCases = binaryTestInputs [ Direction.Left, Direction.Up ]
-      , availablePieces = S.fromFoldable [ idPiece, orPiece ]
+      , availablePieces = S.fromFoldable [ orPiece ]
       }
     }
   , "Take a Left": defaultLevel
     { problem = defaultProblem
       { goal = leftPiece
       , title = "Take a Left"
+      , subtitle = Just "Taking L(efts)s  "
       , description = ""
       , testCases = binaryTestInputs [Direction.Left]
-      , availablePieces = S.fromFoldable [ idPiece, orPiece ]
+      , availablePieces = S.fromFoldable [ orPiece ]
+      }
+    }
+  , "The Chicken": defaultLevel
+    { problem = defaultProblem
+      { goal = chickenPiece
+      , title = "The Chicken"
+      , subtitle = Just "Huh McFly!"
+      , description = ""
+      , testCases = binaryTestInputs [Direction.Left, Direction.Right]
+      , availablePieces = S.fromFoldable [ ]
       }
     }
   }
