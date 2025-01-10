@@ -14,7 +14,7 @@ import Game.Signal (Signal, equivalent)
 
 type TestCase = 
   { data :: TestCaseData
-  , outcome :: Maybe TestCaseOutcome
+  , status :: TestCaseStatus
   }
 
 type TestCaseData =
@@ -22,13 +22,31 @@ type TestCaseData =
   , expected :: Map CardinalDirection Signal
   }
 
-type TestCaseOutcome =
-  { received :: Map CardinalDirection Signal
-  , passed :: Boolean
-  }
+data TestCaseStatus
+  = NotStarted
+  | InProgress
+  | Completed TestCaseOutcome
+derive instance Eq TestCaseStatus
+instance Show TestCaseStatus where
+  show = case _ of
+    NotStarted -> "NotStarted"
+    InProgress -> "InProgress"
+    Completed outcome -> show outcome
+
+
+data TestCaseOutcome
+  = Passed
+  | Failed { received :: Map CardinalDirection Signal }
+derive instance Eq TestCaseOutcome
+instance Show TestCaseOutcome where
+  show = case _ of
+    Passed -> "Passed"
+    Failed _ -> "Failed"
 
 testCaseOutcome :: TestCaseData -> Map CardinalDirection Signal -> TestCaseOutcome
-testCaseOutcome { inputs, expected } received = { received, passed: expected == received }
+testCaseOutcome { inputs, expected } received =
+  if expected == received then Passed else Failed { received }
+
   --flip all allDirections \dir -> case M.lookup dir expected, M.lookup dir received of
   --  Just s1, Just s2 -> true
   --  Nothing, Nothing -> true

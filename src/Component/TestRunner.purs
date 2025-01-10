@@ -8,10 +8,10 @@ import Component.TestRunner.Types
 import Prelude
 
 import AppM (AppM)
-import Control.Monad.State.Class (gets, modify_)
+import Control.Monad.State.Class (get, gets, modify_)
 import Data.Array as A
 import Data.FunctorWithIndex (mapWithIndex)
-import Data.Lens (use, (%=), (.=))
+import Data.Lens (_Just, use, (%=), (.=))
 import Data.Lens.Index (ix)
 import Data.LimitQueue (LimitQueue)
 import Data.LimitQueue as LQ
@@ -31,6 +31,7 @@ import Game.Direction (CardinalDirection)
 import Game.Level.Completion (TestCaseOutcome)
 import Game.Port (Port(..), isInput, isOutput, portCapacity)
 import Game.Signal (Base, Signal, SignalRepresentation(..), printSignal)
+import Game.TestCase as TestCase
 import Halogen (ComponentHTML, HalogenM, defaultEval, lift, liftAff, mkEval)
 import Halogen as H
 import Halogen.HTML (HTML)
@@ -50,38 +51,38 @@ component = H.mkComponent { eval, initialState, render }
     handleAction = case _ of
       Receive input -> do
         modify_ (_ { base = input.base })
-      --RunCurrentTest -> do
-      --  _runNextTestOnPassed .= false
-      --  testCase <- gets (_.testCases >>> Z.head)
-      --  H.raise (TestCaseData testCase.data)
-      --RunAllTests ->  do
-      --  testCase <- gets (_.testCases >>> Z.head)
-      --  H.raise (TestCaseData testCase.data)
-      --  log "testrunner: run curent test"
-      _ -> pure unit
+
+      RunAllTests -> do
+        whenM (gets (_.testSuiteFailed)) do
+          modify_ resetTestRunner
+        handleAction RunCurrentTest
+
+      RunCurrentTest -> do
+        gets currentTestCase >>= case _ of
+          Nothing -> H.raise AllTestsPassed
+          Just testCase -> do
+            _currentTestCase <<< _Just %= (_ { status = TestCase.InProgress})
+            H.raise (TestCaseData testCase.data)
       
 
     handleQuery :: forall a. Query a -> HalogenM State Action () Output m (Maybe a)
     handleQuery = case _ of
       TestCaseOutcome outcome next -> do
-        currentIndex <- gets (_.currentIndex)
-        _testCases <<< ix currentIndex %=  (_ { outcome = Just outcome })
-        --use (_testCases <<< ix currentIndex) >>= logShow
+        liftAff (delay delayBetweenTests)
+        _currentTestCase <<< _Just %= (_ { status = TestCase.Completed outcome })
+        --use _currentTestCase >>= logShow
 
-        when (not outcome.passed) do
-          _runNextTestOnPassed .= false
-        runNextTestOnPassed <- use _runNextTestOnPassed
-
-        when runNextTestOnPassed do
-          liftAff (delay delayBetweenTests)
-          modify_ (\s -> s { currentIndex = s.currentIndex + 1 })
-
-          gets currentTestCase >>= case _ of
-            Just testCases' -> do
-              --_testCases .= testCases'
-              --handleAction RunAllTests
-              pure unit
-            Nothing ->
-              H.raise AllTestsPassed
-
+        case outcome of
+          TestCase.Passed -> do
+            testSuiteFailed <- gets (_.testSuiteFailed)
+            when (not testSuiteFailed) do
+              modify_ (\s -> s { currentIndex = s.currentIndex + 1 })
+              gets currentTestCase >>= case _ of
+                Just testCases' -> do
+                  handleAction RunCurrentTest
+                Nothing ->
+                  H.raise AllTestsPassed
+          TestCase.Failed _ -> do
+            modify_ (_ { testSuiteFailed = true } )
+        
         pure (Just next)
