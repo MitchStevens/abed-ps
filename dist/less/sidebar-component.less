@@ -1,4 +1,8 @@
 #sidebar-component {
+    @red: #812d2db2;
+    @green: #58b92f81;
+    @grey: #8c7777;
+
     display: flex;
     flex-direction: column;
     grid-gap: 7px;
@@ -7,6 +11,11 @@
     margin-right:   20px;
     margin-top:     20px;
     margin-bottom:  20px;
+
+    .subtitle {
+        font-weight: 100;
+    }
+
 
     & > * {
         display: inline-flex;
@@ -33,8 +42,12 @@
     }
 
     & .completion-status {
+        padding-top: 50px;
         height: 100px;
         flex-grow: 1;
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-start;
 
         & > * {
             width: 100%;
@@ -42,7 +55,13 @@
     }
 
     & .test-runner {
-        @red: #812d2db2;
+
+        & .buttons {
+            display: flex;
+            flex-direction: row;
+            gap: 10px;
+            padding-top: 10px;
+        }
 
         & table {
             @border: @red 2px solid;
@@ -58,7 +77,18 @@
             & tfoot {
                 border-top: @border;
             }
-            
+           
+            & tr {
+                opacity: 0.9;
+                &[data-test-case-status='failed'] {
+                    background-color: @red;
+
+                }
+
+                &[data-test-case-status='passed'] {
+                    background-color: @green;
+                }
+            }
 
             & colgroup {
                 & col.test-case-index {
@@ -75,48 +105,45 @@
                 }
 
                 & col.test-case-status {
-                    width: 50px;
+                    width: 70px;
                 }
             }
         }
     }
-}
 
 
-.board-port-diagram {
-    @red: #f85b5b;
-    @green: #8af85b;
-    @grey: #8c7777;
+    .board-port-diagram {
 
-    width: 100px;
-    stroke: black;
-    fill: black;
-    flex: none;
+        width: 100px;
+        stroke: black;
+        fill: black;
+        flex: none;
 
 
 
 
-    & g[data-port-mismatch='port-expected'] {
-        stroke: @grey;
-        fill: @grey;
-        marker { fill: @grey; }
-    }
-
-    & g[data-port-mismatch='no-port-expected'], g[data-port-mismatch='incorrect-port-type'] {
-        stroke: @red;
-        fill: @red;
-        marker { fill: @red; }
-    }
-
-    & g[data-port-mismatch='incorrect-capacity'] {
-        & text {
-            stroke: @red;
+        & g[data-port-mismatch='port-expected'] {
+            stroke: @grey;
+            fill: @grey;
+            marker { fill: @grey; }
         }
-    }
 
-    & g[data-port-mismatch='no-mismatch'] {
-        stroke: @green;
-        fill: @green;
-        marker { fill: @green; }
+        & g[data-port-mismatch='no-port-expected'], g[data-port-mismatch='incorrect-port-type'] {
+            stroke: @red;
+            fill: @red;
+            marker { fill: @red; }
+        }
+
+        & g[data-port-mismatch='incorrect-capacity'] {
+            & text {
+                stroke: @red;
+            }
+        }
+
+        & g[data-port-mismatch='no-mismatch'] {
+            stroke: @green;
+            fill: @green;
+            marker { fill: @green; }
+        }
     }
 }

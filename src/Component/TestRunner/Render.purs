@@ -3,6 +3,7 @@ module Component.TestRunner.Render where
 import Component.TestRunner.Types
 import Prelude
 
+import Component.DataAttribute as DA
 import Data.Array (replicate, (..))
 import Data.Array as A
 import Data.Foldable (length)
@@ -13,6 +14,7 @@ import Data.Monoid (guard)
 import Data.Set as S
 import Data.String as String
 import Data.Tuple (Tuple(..))
+import Data.Zipper (currentIndex)
 import Data.Zipper as Z
 import Game.Capacity (Capacity(..))
 import Game.Direction (CardinalDirection)
@@ -20,6 +22,7 @@ import Game.Piece (getInputDirs, getOutputDirs, getPorts)
 import Game.Port (isInput, isOutput, portCapacity)
 import Game.Signal (SignalRepresentation(..), printSignal)
 import Game.TestCase (TestCase)
+import Game.TestCase as TestCase
 import Halogen (ClassName(..), ComponentHTML)
 import Halogen.HTML as HH
 import Halogen.HTML.Elements.Keyed as HK
@@ -55,19 +58,29 @@ render state =
 
     headers = HH.thead_ 
       [ HH.tr_
-        [ HH.th_ []
+        [ HH.th 
+          [ HP.class_ (ClassName "col-index") ]
+          []
         , HH.th
-          [ HP.colSpan numInputs ]
+          [ HP.colSpan numInputs
+          , HP.class_ (ClassName "col-input")
+          ]
           [ HH.text "In" ]
         , HH.th
-          [ HP.colSpan numOutputs ]
+          [ HP.colSpan numOutputs
+          , HP.class_ (ClassName "col-expected")
+          ]
           [ HH.text "Ex." ]
         , HH.th
-          [ HP.colSpan numOutputs ]
+          [ HP.colSpan numOutputs
+          , HP.class_ (ClassName "col-expected")
+          ]
           [ HH.text "Out" ]
         , HH.th
           [ HP.colSpan 1
-          , HP.rowSpan 2  ]
+          , HP.rowSpan 2 
+          , HP.class_ (ClassName "col-status")
+          ]
           [ HH.text "Status" ]
         ]
       , HH.tr_ subheaders
@@ -80,12 +93,15 @@ render state =
       [ HH.tr_ 
         [ HH.td
           [ HP.colSpan (1 + numInputs + 2 * numOutputs) ]
-          [ HH.text "Tests completed:" ]
-        , HH.td_ [ HH.text (show state.currentIndex <> "/" <> show (length state.testCases :: Int)) ]
+          [ HH.text "Tests Complete:" ]
+        , HH.td_ [ HH.text (show testsPassed <> "/" <> show (A.length state.testCases)) ]
         ]
       ]
+      where
+        testsPassed = A.length (A.takeWhile (\testCase -> testCase.status == TestCase.Completed TestCase.Passed) state.testCases)
 
     body = HH.tbody_ renderRows
+
 
     renderRows :: Array (ComponentHTML Action s m)
     renderRows = flip mapWithIndex relevantTestCases \i testCase -> renderRow (start+i) testCase
@@ -97,11 +113,14 @@ render state =
 
     renderRow :: Int -> TestCase -> ComponentHTML Action s m
     renderRow testIndex testCase =
-      HH.tr [ HP.class_ (ClassName "test-case") ] $ join
-        [ [ HH.td_ [ HH.text (show testIndex) ] ]
+      HH.tr
+        [ HP.class_ (ClassName "test-case") 
+        , DA.attr DA.testCaseStatus testCase.status ] $ join
+        [ [ HH.td_ [ HH.text (show (testIndex + 1)) ] ]
         , renderInputs
         , renderExpected
         , renderReceived
+        , [ renderStatus ]
         ]
       where
         ports = getPorts state.model
@@ -113,29 +132,47 @@ render state =
 
         renderInputs   = renderSignals testCase.data.inputs
         renderExpected = renderSignals testCase.data.expected
-        renderReceived = case testCase.outcome of
-          Just { received } -> renderSignals received
-          Nothing -> replicate n (HH.text "")
+        renderReceived = case testCase.status of
+          TestCase.NotStarted -> replicate n (HH.td_ [ HH.text ""])
+          TestCase.InProgress -> replicate n (HH.td_ [ HH.text "-"])
+          TestCase.Completed TestCase.Passed -> renderSignals testCase.data.expected
+          TestCase.Completed (TestCase.Failed { received }) -> renderSignals received
           where
             n = M.size testCase.data.expected
+        
+        renderStatus = HH.td_ <<< pure $ case testCase.status of
+          TestCase.NotStarted -> HH.text ""
+          TestCase.InProgress -> HH.text "Running"
+          TestCase.Completed TestCase.Passed -> HH.text "Passed"
+          TestCase.Completed (TestCase.Failed _) -> HH.text "Failed"
 
-    buttons :: ComponentHTML Action s m
-    buttons = HH.span_ $
-      [ renderRunAllTestsButton
-      , renderRunCurrentTestButton
-      ]
+    buttons = HH.span [ HP.class_ (ClassName "buttons")]
+      [ renderRunAllTestsButton, renderRunCurrentTestButton, renderRerunAllTests ]
 
     renderRunAllTestsButton :: ComponentHTML Action s m
     renderRunAllTestsButton =
-      HH.button
-        [ HE.onClick (\_ -> RunAllTests) ]
-        [ HH.text "Run tests" ]
-
+      if state.currentIndex == 0 && not state.testSuiteFailed
+        then
+          HH.button
+            [ HE.onClick (\_ -> RunAllTests) ]
+            [ HH.text "Run tests" ]
+        else HH.text ""
     
     renderRunCurrentTestButton :: ComponentHTML Action s m
     renderRunCurrentTestButton =
-      HH.button
-        [ HE.onClick (\_ -> RunCurrentTest)]
-        [ HH.text ("Run test " <> show (state.currentIndex + 1)) ]
+      if state.testSuiteFailed
+        then
+          HH.button
+            [ HE.onClick (\_ -> RunCurrentTest)]
+            [ HH.text ("Rerun test " <> show (state.currentIndex + 1)) ]
+        else HH.text ""
 
-        
+    renderRerunAllTests :: ComponentHTML Action s m
+    renderRerunAllTests = 
+      if state.testSuiteFailed
+        then
+          HH.button
+            [ HE.onClick (\_ -> RunAllTests)]
+            [ HH.text "Retry tests" ]
+        else HH.text ""
+

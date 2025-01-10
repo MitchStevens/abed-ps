@@ -25,6 +25,8 @@ import Game.Port (Port(..), PortType, createPort)
 import Game.Port as Port
 import Game.Rotation (Rotation(..))
 import Game.Signal (Signal(..))
+import Game.TestCase (TestCaseStatus)
+import Game.TestCase as TestCase
 import Halogen.HTML (AttrName(..), IProp)
 import Halogen.HTML as HP
 import Parsing (Parser, fail, runParser)
@@ -162,6 +164,17 @@ completionStatus = dataAttribute (AttrName "data-completion-status") attrPrint a
       --TestCaseOutcome _ -> "testCaseOutcome"
       Completed -> "completed"
     attrParse = fail "no parser for completion status!"
+
+testCaseStatus :: DataAttribute TestCaseStatus
+testCaseStatus = dataAttribute (AttrName "data-test-case-status") attrPrint attrParse
+  where
+    attrPrint = case _ of
+      TestCase.NotStarted -> "not-started"
+      TestCase.InProgress -> "in-progress"
+      TestCase.Completed (TestCase.Passed) -> "passed"
+      TestCase.Completed (TestCase.Failed _) -> "failed"
+    attrParse =  fail "no parser for test case status"
+
 
 portType :: DataAttribute PortType
 portType = dataAttribute (AttrName "data-port-type") attrPrint attrParse

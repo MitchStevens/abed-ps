@@ -8,8 +8,8 @@ import Component.DataAttribute as DA
 import Component.Piece as Piece
 import Component.Rendering.BoardPortDiagram (renderBoardPortDiagram)
 import Component.Rendering.Piece (renderPiece)
-import Component.Sidebar.Segment (segment, segmentWithTitle)
 import Component.Sidebar.BoardSizeSlider as BoardSizeSlider
+import Component.Sidebar.Segment (segment, segmentWithTitle)
 import Component.TestRunner as TestRunner
 import Data.Array as A
 import Data.Array.NonEmpty.Internal (NonEmptyArray(..))
@@ -43,29 +43,29 @@ render state =
   HH.div 
     [ HP.id "sidebar-component" ]
     [ renderTitle
+    , renderSubtitle
     , renderDescription state.problem.description
-    , renderCompletionInfo
-    --, renderAvailablePieces
-    --, renderBoardSize
+    --, renderCompletionInfo
+    , renderCompletionStatus
     , renderRunDemonstration
-    , H.slot BoardSizeSlider.slot unit BoardSizeSlider.component { boardSize: state.boardSize } BoardSizeSliderOutput
+    , H.slot BoardSizeSlider.slot unit BoardSizeSlider.component { boardSize: state.boardSize } BoardSizeSliderAction
     , renderUndoRedo
     , renderClear
     , renderSignalRepresentation
     , renderGiveUp
     ]
   where
-    renderTitle = HH.h2_ [ HH.text state.problem.title ]
+    renderTitle = HH.h1 [ HP.class_ (ClassName "title") ]  [ HH.text state.problem.title ]
 
-    renderCompletionInfo = HH.div
-      [ HP.classes [ ClassName "completion-status"]
-      , DA.attr DA.completionStatus state.completionStatus
-      ]
-      [ renderCompletionStatus
-      --, renderBoardPortDiagram state.problem.goal state.boardPorts
-      ]
+    renderSubtitle = case state.problem.subtitle of
+      Just subtitle ->
+        HH.h3
+          [ HP.class_ (ClassName "subtitle") ]
+          [ HH.text subtitle ]
+      Nothing -> HH.text ""
 
-    renderDescription = HH.h3 [ HP.class_ (ClassName "description") ] <<< A.fromFoldable <<< map asHTML <<< reduceStrings <<< map filterPieceNames <<< L.fromFoldable <<< split (Pattern " ")
+
+    renderDescription = HH.span [ HP.class_ (ClassName "description") ] <<< A.fromFoldable <<< map asHTML <<< reduceStrings <<< map filterPieceNames <<< L.fromFoldable <<< split (Pattern " ")
       where
         filterPieceNames :: String -> Either String String 
         filterPieceNames = eitherBool \s -> not (M.member (PieceId s) pieceVault)
@@ -81,37 +81,39 @@ render state =
         asHTML (Left pieceName) = HH.span [ HP.class_ (ClassName "piece-name") ] [ HH.text pieceName ]
         asHTML (Right text) = HH.text text
 
-    renderCompletionStatus = HH.div_
+    renderCompletionStatus = HH.div
+      [ HP.class_ ( ClassName "completion-status" ) ] $
         case state.completionStatus of
           NotStarted -> []
           FailedRestriction restriction -> 
-            [ HH.text $ "This level has a special restriction: "
+            [ HH.h2_ [ HH.text "Restriction!" ]
+            , HH.text $ "This level has a special restriction: "
             , HH.b_ [ HH.text restriction.name ]
             , HH.br_
             , HH.text restriction.description
             ]
           NotEvaluable boardError -> 
-            [ HH.text ("not evaluable due to: " <> show boardError) ]
+            [ HH.h2_ [ HH.text "Not Evaluable!" ]
+            , HH.text ("not evaluable due to: " <> show boardError) ]
           PortMismatch mismatch ->
-            [ HH.div_
-              [ HH.b_ [ HH.text "Port mismatch: " ]
-              , case mismatch of
-                  PortExpected { direction, expected } -> HH.text $ "You need " <> describePort expected <> " in the " <> show direction <> " direction"
-                  NoPortExpected { direction, received } -> HH.text $ "Remohttps://hackage.haskell.org/package/megaparsec-9.7.0/docs/Text-Megaparsec.html#t:MonadParsecve the port in the " <> show direction <> "direction"
-                  IncorrectPortType { direction, capacity, received, expected } -> HH.text $ "Port in the " <> show direction <> " direction should be an " <> show expected 
-                  IncorrectCapacity { direction, portType, received, expected } -> HH.text $ "Port in the " <> show direction <> " direction should have capacity " <> show (toInt expected)
-              ]
+            [ HH.h2_ [ HH.text "Port mismatch" ]
+            , case mismatch of
+                PortExpected { direction, expected } -> HH.text $ "You need " <> describePort expected <> " in the " <> show direction <> " direction"
+                NoPortExpected { direction, received } -> HH.text $ "Remove the port in the " <> show direction <> "direction"
+                IncorrectPortType { direction, capacity, received, expected } -> HH.text $ "Port in the " <> show direction <> " direction should be an " <> show expected 
+                IncorrectCapacity { direction, portType, received, expected } -> HH.text $ "Port in the " <> show direction <> " direction should have capacity " <> show (toInt expected)
             ]
           ReadyForTesting ->
-            [ HH.h3_ [ HH.text "Ready for testing:" ]
-            , HH.slot_ TestRunner.slot unit TestRunner.component { base: state.base, inputs: NonEmptyArray state.problem.testCases, model: state.problem.goal }
+            [ HH.h2_ [ HH.text "Testing" ]
+            , HH.slot TestRunner.slot unit TestRunner.component { base: state.base, inputs: NonEmptyArray state.problem.testCases, model: state.problem.goal } TestRunnerAction
 
 --             [ HH.h3_ [ HH.text "Ready for testing" ]
 --             , HH.slot TestRunner.slot unit TestRunner.component { base: state.base, inputs: NonEmptyArray state.problem.testCases, model: state.problem.goal } TestRunnerOutput
 -- >>>>>>> 23f884ca6d049f83b197a624058326ab47ad69b3
             ]
           Completed ->
-            [ HH.text "Level Complete!"
+            [ HH.h2_ [ HH.text "Level Complete!" ]
+            , HH.slot TestRunner.slot unit TestRunner.component { base: state.base, inputs: NonEmptyArray state.problem.testCases, model: state.problem.goal } TestRunnerAction
             , HH.button
                 [ HP.class_ (ClassName "run-tests-again")
                 , HE.onClick (ButtonClicked RunTests) ]

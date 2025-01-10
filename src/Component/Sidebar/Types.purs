@@ -14,7 +14,7 @@ import Game.Level.Problem (Problem)
 import Game.Piece (PieceId(..))
 import Game.Port (Port(..))
 import Game.Signal (Base, SignalRepresentation)
-import Game.TestCase (TestCase, TestCaseOutcome, TestCaseData)
+import Game.TestCase (TestCase, TestCaseData, TestCaseOutcome)
 import Halogen (Slot)
 import Type.Proxy (Proxy(..))
 import Web.Event.Internal.Types (Event)
@@ -39,6 +39,7 @@ type State =
 
 data Query a
   = AmendBoardSizeSlider Int a
+  | TestCaseResponse TestCaseOutcome a
 
 data Button
   = AddPiece PieceId
@@ -58,7 +59,8 @@ data Action
   = Initialise Input
   | PieceOnDrop PieceId DragEvent
   | ButtonClicked Button MouseEvent
-  | BoardSizeSliderOutput BoardSizeSlider.Output
+  | BoardSizeSliderAction BoardSizeSlider.Output
+  | TestRunnerAction TestRunner.Output
   {-
     the sidebar creates little icons using the same piece rendering as pieces. the type of HTML used in piece rendering is:
       `ComponentHTML Piece.Action s m`
@@ -75,6 +77,7 @@ data Output
   = PieceDropped PieceId
   | ButtonOutput Button
   | InputFieldOutput InputField
+  | TestRunnerOutput TestRunner.Output
 
 type Slots =
   ( testRunner :: Slot TestRunner.Query TestRunner.Output Unit

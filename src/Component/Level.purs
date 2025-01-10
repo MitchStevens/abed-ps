@@ -12,6 +12,7 @@ import Component.Marginalia.Types (Marginalia, marginalia)
 import Component.Marginalium as Marginalium
 import Component.Selector as Selector
 import Component.Sidebar as Sidebar
+import Component.TestRunner as TestRunner
 import Control.Alt ((<|>))
 import Control.Monad.Cont (ContT(..), callCC, lift, runContT)
 import Control.Monad.Except (ExceptT(..), runExceptT)
@@ -45,9 +46,11 @@ import Game.Board (Board(..), _size, firstEmptyLocation, getBoardPorts, standard
 import Game.Direction (CardinalDirection)
 import Game.Level (LevelId, Level)
 import Game.Level.Completion (CompletionStatus(..), RunningTestCase, isReadyForTesting, runSingleTest)
+import Game.Level.Completion as Completion
 import Game.Piece (Piece(..), pieceLookup)
 import Game.Port (Port(..))
 import Game.Signal (Base, Signal(..), SignalRepresentation)
+import Game.TestCase (testCaseOutcome)
 import GlobalState (GlobalState, newBoardEvent)
 import Halogen (ClassName(..), Component, HalogenM, HalogenQ, Slot, ComponentHTML, gets, modify_)
 import Halogen as H
@@ -198,33 +201,22 @@ component = H.mkComponent { eval , initialState , render }
           H.tell Board.slot unit Board.Undo
         Sidebar.Redo ->
           H.tell Board.slot unit Board.Redo
-        Sidebar.RunTests -> do
-          let minTotalTestDurationMs = 2000
-          problem <- gets (_.level.problem)
-          let numTests = A.length problem.testCases
-          let delayDuration =  Milliseconds (toNumber (minTotalTestDurationMs `div` numTests))
-
-          --testResult <- runExceptT $ forWithIndex problem.testCases \testIndex testCase  -> do
-          --  modify_ $ _ { completionStatus = RunningTestCase { testIndex, numTests } }
-          --  res <- ExceptT $ runSingleTest problem.goal testIndex testCase testEval
-          --  liftAff (delay delayDuration)
-          --  pure res
-
-          --pure unit
-          --case testResult of
-          --  Left failedTestCase -> do
-          --    modify_ $ _ { completionStatus = FailedTestCase failedTestCase }
-          --  Right _  -> do
-          --    levelId <-  gets (_.levelId)
-          --    liftEffect $ Progress.saveLevelProgress levelId Progress.Completed
-          --    modify_ $ _ { completionStatus = Completed }
-          pure unit
+        Sidebar.RunTests -> pure unit
         Sidebar.Clear ->
           H.tell Board.slot unit Board.Clear
         Sidebar.Base base -> do
           modify_ $ _ { base = base }
         Sidebar.RunDemonstration -> do
           handleAction TriggerDemonstration
+      Sidebar.TestRunnerOutput output -> case output of
+        TestRunner.TestCaseData testCaseData -> do
+          H.request Board.slot unit (Board.RunTestCase testCaseData) >>= traverse_ \outcome -> do
+            H.tell Sidebar.slot unit (Sidebar.TestCaseResponse outcome)
+          pure unit
+        TestRunner.AllTestsPassed -> 
+          modify_ (_ { completionStatus = Completion.Completed})
+
+
     SelectorOutput output -> evalSelector output
       
       

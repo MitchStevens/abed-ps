@@ -20,6 +20,7 @@ import Capability.Animate (headShake)
 import Capability.Navigate (Route(..), navigateTo)
 import Component.Sidebar.BoardSizeSlider as BoardSizeSlider
 import Component.Sidebar.Render (render)
+import Component.TestRunner as TestRunner
 import Control.Monad.State (modify_, put)
 import Data.Foldable (for_)
 import Data.Int as Int
@@ -73,13 +74,17 @@ component = mkComponent { eval , initialState , render }
           H.raise (PieceDropped piece)
         ButtonClicked button _ -> 
           H.raise (ButtonOutput button)
-        BoardSizeSliderOutput (BoardSizeSlider.BoardSizeChange { boardSize }) ->
+        BoardSizeSliderAction (BoardSizeSlider.BoardSizeChange { boardSize }) ->
           H.raise (InputFieldOutput (BoardSize boardSize))
+        TestRunnerAction output -> H.raise (TestRunnerOutput output)
         DoNothing -> pure unit
     , handleQuery: case _ of
         AmendBoardSizeSlider size next -> do
           modify_ (_ { boardSize = size })
           headShake (QuerySelector "#sidebar-component .board-size h3")
+          pure (Just next)
+        TestCaseResponse outcome next -> do
+          H.tell TestRunner.slot unit (TestRunner.TestCaseOutcome outcome)
           pure (Just next)
     , initialize: Nothing
     , receive: Just <<< Initialise
