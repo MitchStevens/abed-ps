@@ -2,11 +2,11 @@ module Game.Board.Types where
 
 import Prelude
 
-import Control.Monad.Except (ExceptT, runExceptT)
-import Control.Monad.State (StateT, runStateT)
+import Control.Monad.Except (ExceptT(..), runExceptT)
+import Control.Monad.State (StateT(..), runStateT)
 import Data.Array ((..))
 import Data.Array as A
-import Data.Either (Either)
+import Data.Either (Either(..), either)
 import Data.Foldable (foldMap, intercalate, maximumBy, surround)
 import Data.Function (on)
 import Data.Group (ginverse)
@@ -188,3 +188,14 @@ evalBoardM boardM b = unwrap $ evalBoardT boardM b
 execBoardM :: forall a. BoardM a -> Board -> Either BoardError Board
 execBoardM boardM b = unwrap $ execBoardT boardM b
 
+-- don't modify state if error occurs
+--transaction :: forall m a. Monad m => BoardT m a -> BoardT m Unit
+--transaction ma = StateT \board -> do
+--  execBoardT ma board >>= case _ of
+--    Left boardError -> ExceptT (pure (Right (Tuple unit board)))
+--    
+--    -- ExceptT BoardError m (Tuple Unit board)
+--    Right board' ->  ExceptT (pure (Right (Tuple unit board')))
+--  -- m (Either BoardError Board)
+--
+--  -- need: ExceptT BoardError m Unit

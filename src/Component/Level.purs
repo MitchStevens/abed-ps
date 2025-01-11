@@ -121,7 +121,8 @@ component = H.mkComponent { eval , initialState , render }
     , HH.slot Selector.slot unit Selector.component { availablePieces: level.problem.availablePieces } SelectorOutput
     --, HH.div [ HP.id "marginalia" ] ((M.toUnfoldable marginalia :: Array _) <#> \(Tuple uuid m) -> HH.slot _marginalia uuid Marginalium.component { uuid, marginalia: m } MarginaliumOutput)
     --, HH.slot_ _gameEventLogger unit GameEventLogger.component unit
-    , maybe (HH.text "") (HH.slot_ Demonstration.slot unit Demonstration.component) level.problem.demonstration -- level.problem.demonstration
+    , fromMaybe (HH.text "") $
+        HH.slot_ Demonstration.slot unit Demonstration.component <$> level.problem.demonstration
     ]
     where sidebarInput = { problem: level.problem, completionStatus, boardSize, boardPorts, base }
 
@@ -183,8 +184,6 @@ component = H.mkComponent { eval , initialState , render }
             size <- gets (_.boardSize) 
             H.tell Sidebar.slot unit (Sidebar.AmendBoardSizeSlider size)
           Nothing -> pure unit -- do something here?
-      Sidebar.InputFieldOutput _ -> pure unit
-
       Sidebar.ButtonOutput button -> case button of
         Sidebar.AddPiece pieceId -> do
           H.request Board.slot unit Board.GetBoard >>= traverse_ \board -> do
@@ -192,11 +191,6 @@ component = H.mkComponent { eval , initialState , render }
               H.request Board.slot unit (Board.AddPiece loc (pieceLookup pieceId))
         Sidebar.BackToLevelSelect  ->
           liftEffect $ navigateTo LevelSelect
-        --Sidebar.IncrementBoardSize ->
-        --  H.tell _board unit Board.IncrementBoardSize
-        --Sidebar.DecrementBoardSize ->
-        --  void $ H.request _board unit Board.DecrementBoardSize
-
         Sidebar.Undo ->
           H.tell Board.slot unit Board.Undo
         Sidebar.Redo ->
@@ -217,7 +211,16 @@ component = H.mkComponent { eval , initialState , render }
           modify_ (_ { completionStatus = Completion.Completed})
 
 
-    SelectorOutput output -> evalSelector output
+    SelectorOutput output -> case output of
+      Selector.AddPiece pieceId -> 
+        H.request Board.slot unit Board.GetBoard >>= traverse_ \board -> do
+          for_ (firstEmptyLocation board) \loc ->
+            H.request Board.slot unit (Board.AddPiece loc (pieceLookup pieceId))
+      Selector.PieceDropped pieceId -> do
+        maybeLocation <- H.request Board.slot unit (Board.GetMouseOverLocation)
+        for_ maybeLocation \loc -> 
+          H.request Board.slot unit (Board.AddPiece loc (pieceLookup pieceId))
+      Selector.DoNothing -> pure unit
       
       
     MarginaliumOutput marginaliaOutput -> case marginaliaOutput of
@@ -227,21 +230,6 @@ component = H.mkComponent { eval , initialState , render }
       Marginalium.RemoveThis uuid -> do
         modify_ \state -> state { marginalia = M.delete uuid state.marginalia }
 
-  evalSelector :: Selector.Output -> HalogenM State Action Slots o AppM Unit
-  evalSelector = case _ of
-    Selector.AddPiece pieceId -> 
-      H.request Board.slot unit Board.GetBoard >>= traverse_ \board -> do
-        for_ (firstEmptyLocation board) \loc ->
-          H.request Board.slot unit (Board.AddPiece loc (pieceLookup pieceId))
-    Selector.PieceDropped pieceId -> do
-      maybeLocation <- H.request Board.slot unit (Board.GetMouseOverLocation)
-      for_ maybeLocation \loc -> 
-        H.request Board.slot unit (Board.AddPiece loc (pieceLookup pieceId))
-    Selector.DoNothing -> pure unit
-
-
-  testEval :: Map CardinalDirection Signal -> HalogenM State Action Slots o AppM (Map CardinalDirection Signal)
-  testEval inputs = fromMaybe M.empty <$> H.request Board.slot unit (Board.SetInputs inputs)
 
 delay :: forall m a. MonadAff m => Milliseconds -> a -> m (Emitter a)
 delay duration val = do

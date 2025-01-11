@@ -42,9 +42,11 @@ render :: forall m. MonadAff m => State -> ComponentHTML Action Slots m
 render state = 
   HH.div 
     [ HP.id "sidebar-component" ]
-    [ renderTitle
-    , renderSubtitle
-    , renderDescription state.problem.description
+    [ HH.div_ 
+      [ renderTitle
+      , renderSubtitle
+      , renderDescription state.problem.description
+      ]
     --, renderCompletionInfo
     , renderCompletionStatus
     , renderRunDemonstration

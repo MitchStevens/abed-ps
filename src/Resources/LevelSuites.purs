@@ -26,8 +26,8 @@ allLevelSuites :: Object LevelSuite
 allLevelSuites = fromHomogeneous
   { "Tutorial": tutorialSuite
   , "Intermediate": intermediateSuite
-  , "Two Bit": twoBitSuite
-  , "Shifting": shiftingSuite
+--  , "Two Bit": twoBitSuite
+--  , "Shifting": shiftingSuite
   }
 
 getAllLevelProgress :: forall m. MonadEffect m => m (Map LevelId LevelProgress)
