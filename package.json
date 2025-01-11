@@ -3,8 +3,8 @@
   "private": true,
   "scripts": {
     "postinstall": "spago install",
-    "compile-css": "lessc dist/less/default.less dist/default.css",
-    "compile-css-watch": "find dist/less | entr -s 'npm run compile-css'",
+    "compile-css": "lessc less/default.less dist/static/default.css",
+    "compile-css-watch": "find less | entr -s 'npm run compile-css'",
     "build": "spago bundle",
     "build-watch": "npm run compile-css-watch & fd . -e purs -e js -e less | entr -s 'npm run build'",
     "build-prod": "npm run compile-css & purs-backend-es build && purs-backend-es bundle-app --no-build",

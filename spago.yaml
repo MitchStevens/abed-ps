@@ -66,7 +66,7 @@ package:
     # Entrypoint for the bundle
     module: Main
     # The path of the bundle file
-    outfile: "dist/abed.js"
+    outfile: "dist/static/abed.js"
     # Possible values are 'node' or 'browser'
     platform: browser
     # Possible values are 'app' or 'module'
