@@ -11,7 +11,7 @@ module Component.Board.Types
   , _wireLocations
   , boardPortInfo
   , initialState
-  --, liftBoardM
+  , pieceInput
   , slot
   )
   where
@@ -24,6 +24,7 @@ import Component.Piece as Piece
 import Control.Monad.State (class MonadState, evalState, gets, runState)
 import Data.Either (Either)
 import Data.Foldable (for_)
+import Data.Lens.At (at)
 import Data.Lens.Record (prop)
 import Data.Map (Map)
 import Data.Map as M
@@ -33,11 +34,11 @@ import Data.TraversableWithIndex (forWithIndex)
 import Data.Tuple (Tuple(..))
 import Data.Zipper (Zipper)
 import Data.Zipper as Z
-import Game.Board (Board(..), BoardError, BoardM, RelativeEdge, PieceInfo, getBoardPortEdge, runBoardM, standardBoard)
+import Game.Board (Board(..), BoardError, BoardM, PieceInfo, RelativeEdge, Path, _pieces, evalBoardM, getBoardPortEdge, runBoardM, standardBoard, toLocalInputs)
 import Game.Direction (CardinalDirection)
 import Game.GameEvent (BoardEvent)
 import Game.Location (Location(..))
-import Game.Piece (Piece(..))
+import Game.Piece (Piece(..), defaultPortInfo)
 import Game.Port (Port(..))
 import Game.PortInfo (PortInfo)
 import Game.Signal (Signal)
@@ -65,10 +66,16 @@ type State =
   , isMouseOverLocation :: Maybe Location
   }
 
+pieceInput :: State -> Location -> Maybe Piece.Input
+pieceInput state location = do
+  { piece, rotation } <- state ^. _board <<< _pieces <<< at location
+  let portStates = M.union (toLocalInputs location state.lastEvalWithPortInfo) (defaultPortInfo piece) 
+  pure { piece, location, rotation, portStates}
+
 data Query a
   = GetBoard (Board -> a)
   | AddPiece Location Piece (Either BoardError Unit -> a)
-  | AddPath CardinalDirection (Array Location) CardinalDirection (Either BoardError Boolean -> a)
+  | AddPath CardinalDirection (Array Location) CardinalDirection (Either BoardError Path -> a)
   | RemovePiece Location  (Either BoardError PieceInfo -> a)
   | GetMouseOverLocation (Location -> a)
   | SetInputs (Map CardinalDirection Signal) (Map CardinalDirection Signal -> a)
@@ -91,7 +98,7 @@ data Action
 
   | SetBoard Board
   | EvaluateBoard
-  | UpdatePieceComponents
+  -- | UpdatePieceComponents
 
   | GlobalOnKeyDown KeyboardEvent
   | BoardOnDragExit DragEvent

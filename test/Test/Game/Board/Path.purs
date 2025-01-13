@@ -9,7 +9,7 @@ import Control.Extend (duplicate, extend)
 import Control.Monad.Error.Class (class MonadError, throwError)
 import Control.Monad.Except (ExceptT)
 import Control.Monad.State (class MonadState, get, lift, put)
-import Data.Either (either)
+import Data.Either (either, isRight)
 import Data.Foldable (traverse_)
 import Data.Identity (Identity)
 import Data.Lens (use)
@@ -36,7 +36,7 @@ import Test.Game.Board (testBoard, toAff)
 import Test.Game.Board.Operation (exceptToAff)
 import Test.Game.Board.PathSegment (leftToRight)
 import Test.Spec (Spec, SpecT, before, beforeAll, beforeAll_, before_, describe, describeOnly, focus, hoistSpec, it, itOnly)
-import Test.Spec.Assertions (shouldContain, shouldEqual, shouldReturn)
+import Test.Spec.Assertions (expectError, shouldContain, shouldEqual, shouldReturn, shouldSatisfy)
 
 pathTestBoard :: Board
 pathTestBoard = either (show >>> unsafeCrashWith) identity $ 
@@ -112,38 +112,37 @@ tests =
       before_ (put emptyBoard) do
         describe "Paths on empty board" do
           it "should fail if no locations are provided" do
-            pathAdded <- exceptToAff do
-              addPath Direction.Left [] Direction.Right
-            pathAdded `shouldEqual` false
+            expectError $
+              exceptToAff do
+                addPath Direction.Left [] Direction.Right
           
           it "should create a single path" do
-            pathAdded <- exceptToAff do
-              addPath Direction.Left [ l00 ] Direction.Right
-            pathAdded `shouldEqual` true
+            pathAdded <- exceptToAff $ addPath Direction.Left [ l00 ] Direction.Right
+            pathAdded `shouldEqual`
+              { initial: Direction.Left, start: l00, segments: [], terminal: Direction.Right }
             use (_pieces) `shouldReturn` M.singleton l00 { piece: idPiece, rotation: rotation 0 }
 
           it "should create a single path from right to left" do
-            pathAdded <- exceptToAff do
-              addPath Direction.Right [ l00 ] Direction.Left
-            pathAdded `shouldEqual` pathAdded
+            pathAdded <- exceptToAff $ addPath Direction.Right [ l00 ] Direction.Left
+            pathAdded `shouldEqual`
+              { initial: Direction.Right, start: l00, segments: [], terminal: Direction.Left }
             use (_pieces) `shouldReturn` M.singleton l00 { piece: idPiece, rotation: rotation 2 }
 
           it "should create corner paths" do
-            pathAdded <- exceptToAff do
-              addPath Direction.Up [ l00 ] Direction.Right
-            pathAdded `shouldEqual` true
+            pathAdded <- exceptToAff $ addPath Direction.Up [ l00 ] Direction.Right
+            pathAdded `shouldEqual`
+              { initial: Direction.Up, start: l00, segments: [], terminal: Direction.Right }
             use _pieces `shouldReturn` M.singleton l00 { piece: leftPiece, rotation: rotation 1 }
 
         it "should create right corner paths" do
-          pathAdded <- exceptToAff do
-            addPath Direction.Down [ l00 ] Direction.Right 
-          pathAdded `shouldEqual`  true
+          pathAdded <- exceptToAff $ addPath Direction.Down [ l00 ] Direction.Right 
+          pathAdded `shouldEqual`  
+            { initial: Direction.Down, start: l00, segments: [], terminal: Direction.Right }
           use _pieces `shouldReturn` M.singleton l00 { piece: rightPiece, rotation: rotation 3 }
 
         it "should create larger paths" do
           pathAdded <- exceptToAff do
             addPath Direction.Left [ l00, l10, l20 ] Direction.Right
-          pathAdded `shouldEqual`  true
           use _pieces `shouldReturn` M.fromFoldable
             [ Tuple l00 { piece: idPiece, rotation: rotation 0 }
             , Tuple l10 { piece: idPiece, rotation: rotation 0 }
@@ -153,7 +152,6 @@ tests =
         it "should create paths through the center of the board" do
           pathAdded <- exceptToAff do
             addPath Direction.Left [l01, l11, l10] Direction.Up
-          pathAdded `shouldEqual` true
           use _pieces `shouldReturn` M.fromFoldable
             [ Tuple l01 { piece: idPiece, rotation: rotation 0 }
             , Tuple l11 { piece: leftPiece, rotation: rotation 0 }
@@ -163,7 +161,6 @@ tests =
         it "should create complex paths" do
           pathAdded <- exceptToAff do
             addPath Direction.Up [ l10, l11, l01 ] Direction.Left
-          pathAdded `shouldEqual` true
           use _pieces `shouldReturn` M.fromFoldable
             [ Tuple l10 { piece: idPiece, rotation: rotation 1 }
             , Tuple l11  { piece: rightPiece, rotation: rotation 1 }
@@ -173,7 +170,6 @@ tests =
         it "should create length 4 paths" do
           pathAdded <- exceptToAff do
             addPath Direction.Left [ l01, l11, l10, l20 ] Direction.Right
-          pathAdded `shouldEqual` true
           use _pieces `shouldReturn` M.fromFoldable
             [ Tuple l01 { piece: idPiece, rotation: rotation 0 }
             , Tuple l11  { piece: leftPiece, rotation: rotation 0 }
@@ -182,75 +178,67 @@ tests =
             ]
 
         it "should fail on when initial dir == terminal " do
-          pathAdded <- exceptToAff do
-            addPath Direction.Right [ l00 ] Direction.Right
-          pathAdded `shouldEqual` false
+          expectError $ exceptToAff $ addPath Direction.Right [ l00 ] Direction.Right
 
         it "should fail when path has same location twice" do
-          pathAdded <- exceptToAff do
-            addPath Direction.Left [ l00, l00 ] Direction.Right
-          pathAdded `shouldEqual` false
+          expectError $ exceptToAff $ addPath Direction.Left [ l00, l00 ] Direction.Right
 
         it "should fail on loops" do
-          pathAdded <- exceptToAff do
-            addPath Direction.Left [ l00, l10, l00 ] Direction.Right
-          pathAdded `shouldEqual` false
-
-        it "should fail when obstructed by other pieces" do
-          pathAdded <- exceptToAff do
-            _ <- addPath Direction.Left [ l00 ] Direction.Right
-            addPath Direction.Left [ l00 ] Direction.Right
-          pathAdded `shouldEqual` false
+          expectError $ exceptToAff $ addPath Direction.Left [ l00, l10, l00 ] Direction.Right
 
         it "should create a cross over with no rotation" do
-          pathAdded <- exceptToAff do
-            _ <- addPath Direction.Up [ l10, l11, l12 ] Direction.Down
-            addPath Direction.Left [ l01, l11, l21 ] Direction.Right
-          pathAdded `shouldEqual` true
+          void $ exceptToAff $ addPath Direction.Up [ l10, l11, l12 ] Direction.Down
+          void $ exceptToAff $ addPath Direction.Left [ l01, l11, l21 ] Direction.Right
           use (_pieces <<< at l11) `shouldReturn` Just { piece: crossPiece, rotation: rotation 0}
 
         it "should create a cross over with rotation 1" do
-          pathAdded <- exceptToAff do
-            _ <- addPath Direction.Right [ l21, l11, l01 ] Direction.Left
-            addPath Direction.Up [ l10, l11, l12 ] Direction.Down
-          pathAdded `shouldEqual` true
+          void $ exceptToAff $ addPath Direction.Right [ l21, l11, l01 ] Direction.Left
+          void $ exceptToAff $ addPath Direction.Up [ l10, l11, l12 ] Direction.Down
           b <- get
           use (_pieces <<< at l11) `shouldReturn` Just { piece: crossPiece, rotation: rotation 1 }
           use (_pieces <<< at l10) `shouldReturn` Just { piece: idPiece, rotation: rotation 1 }
 
         it "should create a cross over when paths are flipped" do
-          pathAdded <- exceptToAff do
-            _ <- addPath Direction.Right [ l21, l11, l01 ] Direction.Left
-            addPath Direction.Down [ l12, l11, l10 ] Direction.Up
-          pathAdded `shouldEqual` true
+          void $ exceptToAff $ addPath Direction.Right [ l21, l11, l01 ] Direction.Left
+          void $ exceptToAff $ addPath Direction.Down [ l12, l11, l10 ] Direction.Up
           use (_pieces <<< at l11) `shouldReturn` Just { piece: crossPiece, rotation: rotation 0 }
 
         it "should create a cross over with rotation 3" do
-          pathAdded <- exceptToAff do
-            _ <- addPath Direction.Down [ l12, l11, l10 ] Direction.Up
-            addPath Direction.Left [ l01, l11, l21 ] Direction.Right
-          pathAdded `shouldEqual` true
+          void $ exceptToAff $ addPath Direction.Down [ l12, l11, l10 ] Direction.Up
+          void $ exceptToAff $ addPath Direction.Left [ l01, l11, l21 ] Direction.Right
           use (_pieces <<< at l11) `shouldReturn` Just { piece: crossPiece, rotation: rotation 1 }
         
         it "should update ports around" do
-          _ <- exceptToAff (addPath Direction.Left [ l10 ] Direction.Right)
+          void $ exceptToAff $ addPath Direction.Left [ l10 ] Direction.Right
           use (_pieces <<< at l10) `shouldReturn` Just { piece: idPiece, rotation: rotation 0}
 
-          _ <- exceptToAff (addPath Direction.Up [ l11 ] Direction.Right)
+          void $ exceptToAff $ addPath Direction.Up [ l11 ] Direction.Right
           use (_pieces <<< at l10) `shouldReturn` Just { piece: intersectionRightPiece, rotation: rotation 0}
-
-          pure unit
 
 
       describe "Weird edge cases" do
         it "cruz" do
-          pathAdded <- exceptToAff do
-            _ <- addPath Direction.Left [ l00, l10, l11, l12 ] Direction.Down
-            addPath Direction.Left [ l01, l11, l21 ] Direction.Right
-          pathAdded `shouldEqual` true
+          exceptToAff do
+            void $ addPath Direction.Left [ l00, l10, l11, l12 ] Direction.Down
+            void $ addPath Direction.Left [ l01, l11, l21 ] Direction.Right
           use (_pieces <<< at l11) `shouldReturn` Just { piece: crossPiece, rotation: rotation 0 }
           use (_pieces <<< at l10) >>= traverse_ \info ->
             getOutputDirs info.piece `shouldContain` Direction.Down
+        
+        it "crossOver" do
+          exceptToAff do
+            setBoardSize 5
+            addPiece (location 2 2) xorPiece
+            addPiece (location 4 2) xorPiece
+            addPiece (location 2 4) xorPiece
+            rotatePieceBy (location 2 4) (rotation 1)
+            void $ addPath Direction.Left [ location 0 2, location 1 2 ] Direction.Right
+            void $ addPath Direction.Left [ location 3 2 ] Direction.Right
+            void $ addPath Direction.Up [ location 2 0, location 2 1 ] Direction.Down
+            void $ addPath Direction.Up [ location 3 3, location 3 4 ] Direction.Left
+            void $ addPath Direction.Left [ location 3 1, location 4 1 ] Direction.Down
+            void $ addPath Direction.Up [ location 1 3, location 2 3 ] Direction.Down
+          pure unit
 
           --`shouldReturn` Just { piece: rightPiece, rotation: rotation 0 }
 

@@ -35,6 +35,7 @@ import Game.Location (Location(..), location, taxicabDistance)
 import Game.Piece (Piece(..))
 import Game.Port (Port(..), isInput)
 import Game.Rotation (Rotation(..))
+import Partial.Unsafe (unsafeCrashWith)
 import Type.Proxy (Proxy(..))
 
 newtype Board = Board
@@ -188,14 +189,16 @@ evalBoardM boardM b = unwrap $ evalBoardT boardM b
 execBoardM :: forall a. BoardM a -> Board -> Either BoardError Board
 execBoardM boardM b = unwrap $ execBoardT boardM b
 
--- don't modify state if error occurs
---transaction :: forall m a. Monad m => BoardT m a -> BoardT m Unit
---transaction ma = StateT \board -> do
---  execBoardT ma board >>= case _ of
---    Left boardError -> ExceptT (pure (Right (Tuple unit board)))
---    
---    -- ExceptT BoardError m (Tuple Unit board)
---    Right board' ->  ExceptT (pure (Right (Tuple unit board')))
---  -- m (Either BoardError Board)
---
---  -- need: ExceptT BoardError m Unit
+ --don't modify state if error occurs
+transaction :: forall m a. Monad m => BoardT m a -> BoardT m (Either BoardError a)
+transaction ma = StateT \board -> ExceptT do
+  runBoardT ma board <#> case _ of
+    Left boardError -> pure (Tuple (Left boardError) board)
+    Right (Tuple a board') -> pure (Tuple (Right a) board')
+
+{-
+  s -> m (a, s)
+  s -> m (Either BoardError a)
+
+  s -> ExceptT BoardError n (Either BoardError a, s)
+-}

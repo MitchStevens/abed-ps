@@ -3,6 +3,7 @@ module Game.Piece.Types
   , Piece(..)
   , PieceId(..)
   , Simplification(..)
+  , defaultPortInfo
   , eval
   , getInputDirs
   , getOutputDirs
@@ -35,7 +36,8 @@ import Game.Direction (CardinalDirection)
 import Game.Piece.Complexity (Complexity(..))
 import Game.Piece.Complexity as Complexity
 import Game.Port (Port(..), PortType, isInput, isOutput, portCapacity)
-import Game.Signal (Signal(..))
+import Game.PortInfo (PortInfo)
+import Game.Signal (Signal(..), mkSignal)
 import Prim.Row (class Union)
 import Record.Unsafe.Union (unsafeUnion)
 
@@ -222,6 +224,10 @@ updatePort dir port (Piece p) = p.updatePort dir port
 
 isSimplifiable :: Piece -> Maybe Simplification
 isSimplifiable (Piece p) = p.isSimplifiable
+
+defaultPortInfo :: Piece -> Map CardinalDirection PortInfo
+defaultPortInfo piece = flip mapWithIndex (getPorts piece) \dir port ->
+  { connected: false, port, signal: mkSignal 0}
 
 getPort :: Piece -> CardinalDirection -> Maybe Port
 getPort (Piece p) dir = M.lookup dir p.ports

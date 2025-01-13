@@ -3827,9 +3827,6 @@
   font-size: 90px ;
   font-family: 'Courier New', Courier, monospace;
 }
-.piece-component .location-text {
-  display: none;
-}
 #chat-component {
   font-family: 'Courier New', Courier, monospace;
   vertical-align: top;

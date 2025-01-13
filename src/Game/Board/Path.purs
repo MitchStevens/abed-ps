@@ -46,7 +46,7 @@ import Game.Board.PathSegment (PathSegment(..), PathSegmentError, combineSegment
 import Game.Board.PieceInfo (PieceInfo)
 import Game.Board.Query (adjacentRelativeEdge, toRelativeEdge)
 import Game.Board.RelativeEdge (absolute, relative)
-import Game.Board.Types (Board(..), BoardError, _pieces)
+import Game.Board.Types (Board(..), BoardError(..), _pieces)
 import Game.Direction (CardinalDirection, oppositeDirection)
 import Game.Edge (Edge(..), edgeDirection, edgeLocation)
 import Game.Location (Location(..), directionTo, followDirection)
@@ -55,8 +55,7 @@ import Game.Port as PortType
 import Partial.Unsafe (unsafeCrashWith)
 
 data PathError
-  = ObstructedByAnotherPiece Location
-  | LocationsAreNotAdjacent Location Location
+  = LocationsAreNotAdjacent Location Location
   | PathIsEmpty
   | WireInputEqualsOutput CardinalDirection CardinalDirection
   | PathSegmentError PathSegmentError
@@ -66,16 +65,7 @@ derive instance Eq PathError
 instance Show PathError where
   show = genericShow
 
-{-
-  A Path consists of:
-    - an initial `Direction`
-    - an initial `Location`
-    - a list of next `Directions`
-    - a terminal `Direction`
 
-
-
--}
 type Path =
   { initial :: CardinalDirection
   , start :: Location
@@ -111,15 +101,12 @@ partitionPath { initial, start, segments, terminal } =
 addPath :: forall m
   .  MonadState Board m
   => MonadError BoardError m
-  => CardinalDirection -> Array Location -> CardinalDirection -> m Boolean
-addPath initialDir locations terminalDir =
-  case toPath initialDir locations terminalDir of
-    Left _ -> pure false
-    Right path -> do
-      board <- get
-      b <- catchError (addPathToBoard path) (\_ -> put board *> pure false)
-      updateEndPoints path
-      pure b
+  => CardinalDirection -> Array Location -> CardinalDirection -> m Path
+addPath initialDir locations terminalDir = do
+  path <- liftBoardError (toPath initialDir locations terminalDir)
+  addPathToBoard path
+  updateEndPoints path
+  pure path
 
 updateEndPoints :: forall m
   .  MonadState Board m
@@ -135,17 +122,14 @@ updateEndPoints path = do
 addPathToBoard :: forall m
   .  MonadState Board m 
   => MonadError BoardError m
-  => Path -> m Boolean 
+  => Path -> m Unit 
 addPathToBoard path = do
-  case partitionPath path of
-    Left _ -> pure false
-    Right pathSegments -> do
-      res <- and <$> forWithIndex pathSegments \loc segment -> do
-        extant <- use (_pieces <<< at loc)
-        case combineSegmentWithExtant segment extant of
-          Left _ -> pure false
-          Right { piece, rotation } -> do
-            catchError (void $ removePieceNoUpdate loc) (\_ -> pure unit)
-            addPieceNoUpdate loc piece rotation
-            pure true
-      pure res
+  pathSegments <- liftBoardError (partitionPath path)
+  forWithIndex_ pathSegments \loc segment -> do
+    extant <- use (_pieces <<< at loc)
+    { piece, rotation } <- liftBoardError (lmap PathSegmentError (combineSegmentWithExtant segment extant))
+    catchError (void $ removePieceNoUpdate loc) (\_ -> pure unit)
+    addPieceNoUpdate loc piece rotation
+  
+liftBoardError :: forall m a. MonadError BoardError m => Either PathError a -> m a
+liftBoardError = liftEither <<< lmap (Other <<< show)

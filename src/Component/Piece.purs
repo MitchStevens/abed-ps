@@ -14,6 +14,7 @@ import Control.Monad.State.Trans (gets, modify_)
 import Data.Array as A
 import Data.Enum (enumFromTo, fromEnum)
 import Data.Foldable (for_, traverse_)
+import Data.FunctorWithIndex (mapWithIndex)
 import Data.Group (ginverse)
 import Data.Int (round, toNumber)
 import Data.Lens.At (at)
@@ -24,13 +25,15 @@ import Data.Map as M
 import Data.Maybe (Maybe(..), fromMaybe, isJust, isNothing, maybe)
 import Data.Number (acos, atan2, pi, sqrt)
 import Data.Tuple (Tuple(..))
+import Debug (trace)
 import Effect (Effect)
 import Effect.Class (class MonadEffect, liftEffect)
 import Effect.Class.Console (log, logShow)
 import Game.Board (relative)
 import Game.Piece (name)
+import Game.PortInfo (clampPortInfo)
 import Game.Rotation (rotation, toRadians)
-import Halogen (AttrName(..), ClassName(..), Component, HalogenM, HalogenQ, RefLabel(..), getHTMLElementRef, getRef, gets, mkComponent, mkEval, raise)
+import Halogen (AttrName(..), ClassName(..), Component, HalogenM, HalogenQ, RefLabel(..), defaultEval, getHTMLElementRef, getRef, gets, mkComponent, mkEval, raise)
 import Halogen as H
 import Halogen.HTML (HTML, PlainHTML, fromPlainHTML)
 import Halogen.HTML as HH
@@ -55,14 +58,14 @@ import Web.UIEvent.MouseEvent as MouseEvent
 component :: forall m. MonadEffect m => Component Query Input Output m
 component = mkComponent { eval , initialState , render }
   where
-  render = HH.lazy $ \state ->
+  render = HH.memoized eq $ \state -> 
     HH.div
       [ HP.classes [ ClassName "piece-component" ]
       , DA.attr DA.isDragging state.isDragging
       , DA.attr DA.rotation state.rotation
       , DA.attr DA.pieceId (name state.piece)
       , HP.draggable (isNothing state.isRotating)
-      , HP.ref (RefLabel "piece")
+      , HP.ref refPiece
       , HP.contentEditable true
 
       , HE.onDragEnd (OnDrop state.location)
@@ -74,6 +77,8 @@ component = mkComponent { eval , initialState , render }
       , HE.onAuxClick OnAuxClick
       ]
       [ renderPiece state ]
+  
+  refPiece = RefLabel "piece"
 
   getPosition :: MouseEvent -> Tuple Number Number 
   getPosition e = Tuple (toNumber (clientX e)) (toNumber (clientY e))
@@ -86,11 +91,16 @@ component = mkComponent { eval , initialState , render }
     pure $ Tuple cx cy
 
   eval :: forall slots. HalogenQ Query Action Input ~> HalogenM State Action slots Output m
-  eval = mkEval
-    { finalize: Nothing
-    , handleAction: case _ of
-      -- not used, might use later
-        Initialise { piece, location } -> pure unit
+  eval = mkEval $ defaultEval
+    { finalize = Nothing
+    , handleAction = case _ of
+        Receive { piece, location, rotation, portStates } -> do
+          modify_ $ _ 
+            { piece = piece
+            , location = location
+            , rotation = rotation
+            , portStates = map clampPortInfo portStates }
+
         OnDrop loc event -> do
           modify_ (_ { isDragging = false })
           raise (Dropped loc)
@@ -98,7 +108,7 @@ component = mkComponent { eval , initialState , render }
           modify_ (_ { isDragging = true })
           pure unit
         OnMouseDown me ->
-          getHTMLElementRef (RefLabel "piece") >>= traverse_ \he -> do
+          getHTMLElementRef refPiece >>= traverse_ \he -> do
             r <- liftEffect $ mul 0.5 <$> clientWidth (toElement he)
             c <- liftEffect $ elementCenterClient (toElement he)
             let Tuple x y = sub (getPosition me) c
@@ -160,19 +170,18 @@ component = mkComponent { eval , initialState , render }
             pure { relativeEdge, info }
         PortOnMouseLeave -> do
           raise (NewMultimeterFocus Nothing)
-
-    , handleQuery: case _ of
-        SetPortStates portStates next -> do
-          modify_ $ _ { portStates = portStates }
-          pure (Just next)
-        SetPiece piece next -> do
-          modify_ (_ {piece = piece})
-          pure (Just next)
-        SetRotation rot next -> do
-          modify_ (_ { rotation = rot })
-          pure (Just next)
-    , initialize: Nothing
-    , receive: \_ -> Nothing --Just <<< Initialise -- :: input -> Maybe action
+    --, handleQuery: case _ of
+    --    SetPortStates portStates next -> do
+    --      modify_ $ _ { portStates = portStates }
+    --      pure (Just next)
+    --    SetPiece piece next -> do
+    --      modify_ (_ {piece = piece})
+    --      pure (Just next)
+    --    SetRotation rot next -> do
+    --      modify_ (_ { rotation = rot })
+    --      pure (Just next)
+    , initialize = Nothing
+    , receive = Just <<< Receive --Just <<< Initialise -- :: input -> Maybe action
     }
 
 angleBetween :: Tuple Number Number -> Tuple Number Number -> Number

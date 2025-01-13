@@ -6,7 +6,7 @@ module Component.Board.Render
 import Prelude
 
 import AppM (AppM)
-import Component.Board.Types (Action(..), Slots, State, boardPortInfo, slot)
+import Component.Board.Types (Action(..), Slots, State, boardPortInfo, pieceInput, slot)
 import Component.DataAttribute as DA
 import Component.GameEventLogger as GameEventLogger
 import Component.Multimeter as Multimeter
@@ -19,8 +19,9 @@ import Data.Array as A
 import Data.Either (hush)
 import Data.Foldable (foldMap, intercalate)
 import Data.FunctorWithIndex (mapWithIndex)
-import Data.Lens ((^.))
-import Data.Maybe (maybe)
+import Data.Lens ((^.), (^?))
+import Data.Lens.At (at)
+import Data.Maybe (fromMaybe, maybe)
 import Data.Tuple (Tuple(..))
 import Data.Zipper as Z
 import Game.Board (_size, evalBoardM, getPieceInfo)
@@ -52,15 +53,12 @@ render state =
     join
       [ pieces
       , boardPorts
-      , [ multimeter ]
+      --, [ multimeter ]
       ]
   where
     gridTemplate = "25fr repeat(" <> show n <> ", 100fr) 25fr"
     board = Z.head state.boardHistory
     n = board ^. _size
-
-
-    
 
     pieces :: Array (ComponentHTML Action Slots AppM)
     pieces = do
@@ -86,13 +84,13 @@ render state =
         , HE.onDragLeave LocationOnDragLeave
         , HE.onDrop (LocationOnDrop loc)
         ]
-
-        [ maybe emptyPieceHTML pieceHTML maybePiece loc ]
+        [ fromMaybe (emptyPieceHTML loc) do
+            input <- pieceInput state loc
+            pure $ HH.slot Piece.slot loc Piece.component input PieceOutput
+        
+        ]
       where
         loc = location i j
-        eitherPieceInfo = evalBoardM (getPieceInfo loc) board
-        maybePiece = (_.piece) <$> hush eitherPieceInfo
-        Rotation rot = foldMap (_.rotation) eitherPieceInfo
     
     --boardPorts :: forall p. Array (HTML p Action)
     boardPorts = A.fromFoldable $
@@ -135,12 +133,12 @@ render state =
     gridArea (Tuple i j) = 
       "grid-area: " <> show (j+2) <> " / " <> show (i+2)
 
-    pieceHTML piece location =
-        HH.slot Piece.slot location Piece.component { piece, location } PieceOutput
+    --pieceHTML piece location =
+    --    HH.slot Piece.slot location Piece.component { piece, location } PieceOutput
     
     emptyPieceHTML (Location {x, y}) =
       HH.div 
         [ HP.class_ (ClassName "location-text") ]
         [ HH.text (show (x+1) <> "," <> show (y+1)) ]
 
-    multimeter = HH.slot Multimeter.slot unit Multimeter.component {} MultimeterOutput
+    --multimeter = HH.slot Multimeter.slot unit Multimeter.component {} MultimeterOutput

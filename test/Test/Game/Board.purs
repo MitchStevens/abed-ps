@@ -37,13 +37,15 @@ import Test.Spec (Spec, SpecT, before, describe, hoistSpec, it, itOnly)
 import Test.Spec.Assertions (fail, shouldContain, shouldEqual, shouldReturn)
 
 testBoard :: Board
-testBoard = either (show >>> unsafeCrashWith) identity $ 
-  flip execBoardM standardBoard do
-    addPiece (location 0 1) notPiece
-    addPiece (location 2 1) notPiece
-    addPiece (location 1 0) notPiece
-    rotatePieceBy (location 1 0) (rotation 1)
-    addPiece (location 1 1) andPiece
+testBoard = Board
+  { size: 3
+  , pieces: M.fromFoldable
+    [ Tuple (location 0 1) { piece: notPiece, rotation: rotation 0 }
+    , Tuple (location 2 1) { piece: notPiece, rotation: rotation 0 }
+    , Tuple (location 1 0) { piece: notPiece, rotation: rotation 1 }
+    , Tuple (location 1 1) { piece: andPiece, rotation: rotation 0 }
+    ]
+  }
 
 testBoardCrossOver :: Board
 testBoardCrossOver = either (show >>> unsafeCrashWith) identity $
@@ -53,12 +55,12 @@ testBoardCrossOver = either (show >>> unsafeCrashWith) identity $
     addPiece (location 4 2) xorPiece
     addPiece (location 2 4) xorPiece
     rotatePieceBy (location 2 4) (rotation 1)
-    _ <- addPath Direction.Left [ location 0 2, location 1 2 ] Direction.Right
-    _ <- addPath Direction.Left [ location 3 2, location 4 2 ] Direction.Right
-    _ <- addPath Direction.Up [ location 2 0, location 2 1 ] Direction.Down
-    _ <- addPath Direction.Up [ location 3 3, location 3 4 ] Direction.Left
-    _ <- addPath Direction.Left [ location 3 1, location 4 1 ] Direction.Down
-    _ <- addPath Direction.Up [ location 1 3, location 2 3 ] Direction.Down
+    void $ addPath Direction.Left [ location 0 2, location 1 2 ] Direction.Right
+    void $ addPath Direction.Left [ location 3 2 ] Direction.Right
+    void $ addPath Direction.Up [ location 2 0, location 2 1 ] Direction.Down
+    void $ addPath Direction.Up [ location 3 3, location 3 4 ] Direction.Left
+    void $ addPath Direction.Left [ location 3 1, location 4 1 ] Direction.Down
+    void $ addPath Direction.Up [ location 1 3, location 2 3 ] Direction.Down
     pure unit
 
 

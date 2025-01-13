@@ -34,27 +34,29 @@ import Web.UIEvent.MouseEvent (MouseEvent)
 type Input =
   { piece :: Piece
   , location :: Location
+  , rotation :: Rotation
+  , portStates :: Map CardinalDirection PortInfo
   }
 
 type State = 
   { piece :: Piece
   , location :: Location
   , rotation  :: Rotation
+  , portStates :: Map CardinalDirection PortInfo
   , isRotating :: Maybe
     { initialClickPosition :: Tuple Number Number
     , currentRotation :: Number 
     }
   , isDragging :: Boolean
-  , portStates :: Map CardinalDirection PortInfo
   }
 
 data Query a
-  = SetPortStates (Map CardinalDirection PortInfo) a
-  | SetPiece Piece a 
-  | SetRotation Rotation a
+  -- = SetPortStates (Map CardinalDirection PortInfo) a
+  -- | SetPiece Piece a 
+  -- | SetRotation Rotation a
 
 data Action
-  = Initialise Input
+  = Receive Input
   | OnDrop Location DragEvent
   | OnDrag DragEvent
   | OnMouseDown MouseEvent
@@ -75,13 +77,13 @@ data Output
 slot = Proxy :: Proxy "piece"
 
 initialState :: Input -> State
-initialState { piece: Piece p, location } = 
-  { piece: Piece p
+initialState { piece, rotation, location, portStates } = 
+  { piece
   , location
-  , rotation: rotation 0
+  , rotation
+  , portStates
   , isRotating: Nothing
   , isDragging: false
-  , portStates: map (\port -> { port, signal: zero, connected: false }) $ p.ports
   }
 
 _portStates :: Lens' State (Map CardinalDirection PortInfo)

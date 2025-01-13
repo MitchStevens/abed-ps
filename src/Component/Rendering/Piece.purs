@@ -38,19 +38,8 @@ renderPiece state =
     pieceRotation =   maybe (toDegrees state.rotation) (_.currentRotation >>> mul (180.0 / pi)) state.isRotating
 
     attributes = [ SA.transform [Rotate pieceRotation 50.0 50.0] ]
-      --if (isJust state.isRotating)
-      --  then [ SA.transform [Rotate pieceRotation 50.0 50.0] ]
-      --  else []
 
     animations = []
-    --animations = do
-    --  guard (isNothing state.isRotating)
-    --  pure $ SE.animateMotion
-    --    [ SA.attributeName "transform"
-    --    , SA.to ("rotate(" <> show pieceRotation <> ",50.0,50.0)")
-    --    , SA.dur (defaultDuration { milliseconds = Just 500.0 })
-    --    , SA.repeatCount "1"
-    --    ]
 
     render
       | isWirePiece state.piece = renderWire state.portStates
@@ -83,7 +72,7 @@ renderDefaultPiece state = SE.g [] (allPorts <> [ center ])
       ]
 
     renderPieceCenter (PieceId id) = SE.image
-      [ SA.href ("./images/" <> id <> ".png") 
+      [ SA.href ("./static/images/" <> id <> ".png") 
       , SA.width 40.0
       , SA.height 40.0 
       ]

@@ -5,7 +5,7 @@ import Prelude
 import Data.Array (range)
 import Data.Int.Bits (shl, (.&.))
 import Game.Port (Port(..), portCapacity)
-import Game.Signal (Signal(..))
+import Game.Signal (Signal(..), canonical)
 
 -- used later for board evaluation
 type PortInfo = 
@@ -14,5 +14,5 @@ type PortInfo =
   , signal :: Signal
   }
 
---getClampedSignal :: PortInfo -> Signal
---getClampedSignal {port, connected, signal} = clampSignal (portCapacity port) signal
+clampPortInfo :: PortInfo -> PortInfo
+clampPortInfo portInfo = portInfo { signal = canonical (portCapacity portInfo.port) portInfo.signal}

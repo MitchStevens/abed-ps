@@ -37,6 +37,7 @@ import Data.Int (toNumber)
 import Data.Lens.At (at)
 import Data.Lens.Index (ix)
 import Data.Lens.Record (prop)
+import Data.Lens.Zoom (zoom)
 import Data.List (List(..))
 import Data.List as L
 import Data.List.NonEmpty as NE
@@ -57,7 +58,7 @@ import Effect (Effect)
 import Effect.Aff.Class (class MonadAff)
 import Effect.Class (class MonadEffect, liftEffect)
 import Effect.Class.Console (log, logShow)
-import Game.Board (Board(..), BoardError, BoardM, _pieces, _size, addPath, addPiece, buildEvaluableBoard, capacityRipple, decreaseSize, evalBoardM, evalWithPortInfo, execBoardM, getBoardPortEdge, getPieceInfo, increaseSize, pieceDropped, removePiece, rotatePieceBy, runBoardM, runEvaluableM, setBoardSize, toLocalInputs)
+import Game.Board (Board(..), BoardError, BoardM, _pieces, _size, addPath, addPiece, buildEvaluableBoard, capacityRipple, decreaseSize, evalBoardM, evalWithPortInfo, execBoardM, getBoardPortEdge, getPieceInfo, increaseSize, pieceDropped, removePiece, rotatePieceBy, runBoardM, runEvaluableM, setBoardSize, toLocalInputs, transaction)
 import Game.Direction (CardinalDirection, allDirections)
 import Game.Direction as Direction
 import Game.GameEvent (BoardEvent(..))
@@ -80,6 +81,7 @@ import Halogen.Store.Monad (class MonadStore, updateStore)
 import Halogen.Svg.Attributes (Transform(..))
 import Halogen.Svg.Attributes as SA
 import Halogen.Svg.Elements as SE
+import Partial.Unsafe (unsafeCrashWith)
 import Type.Proxy (Proxy(..))
 import Web.DOM.Document (toEventTarget)
 import Web.DOM.Element (DOMRect, fromEventTarget, getBoundingClientRect, setAttribute)
@@ -101,7 +103,7 @@ component :: Component Query Input Output AppM
 component = mkComponent { eval , initialState , render }
   where
 
-  eval :: forall a. HalogenQ Query Action Input a -> HalogenM State Action Slots Output AppM a
+  eval :: HalogenQ Query Action Input ~> HalogenM State Action Slots Output AppM
   eval = mkEval
     { finalize: Nothing
     , handleAction
@@ -114,14 +116,12 @@ component = mkComponent { eval , initialState , render }
       handleQuery = case _ of
         GetBoard f -> do
           Just <<< f <$> use _board
-
+        
         AddPiece loc piece f -> do
           result <- liftBoardM (addPiece loc piece)
           case result of
-            Left boardError -> 
-              Animate.headShake (DA.selector DA.location loc)
-            Right _ ->
-              H.raise (BoardEvent (AddPieceEvent loc piece))
+            Left _ -> Animate.headShake (DA.selector DA.location loc)
+            Right _ -> H.raise (BoardEvent (AddPieceEvent loc piece))
           pure (Just (f result))
 
         AddPath initial locations terminal f -> do
@@ -142,13 +142,11 @@ component = mkComponent { eval , initialState , render }
 
         SetGoalPorts boardPorts next -> do
           lift $ debug (tag "boardPorts" (show boardPorts)) "Set goal ports on board"
-
           modify_ $ _ { boardPorts = boardPorts }
           forWithIndex_ boardPorts \dir port -> do
             when (isInput port) do
               _inputs <<< at dir .= Just ff
-          handleAction EvaluateBoard
-
+          handleAction EvaluateBoard 
           pure (Just next)
 
         SetInputs inputs f -> do
@@ -156,13 +154,6 @@ component = mkComponent { eval , initialState , render }
           handleAction EvaluateBoard
           Just <$> f <$> gets (_.outputs)
 
-        --IncrementBoardSize next -> do
-        --  result <- liftBoardM increaseSize
-        --  pure (Just next)
-
-        --DecrementBoardSize f -> do
-        --  result <- liftBoardM decreaseSize 
-        --  pure (Just (f result))
 
         SetBoardSize n f -> do
           result <- liftBoardM (setBoardSize n)
@@ -190,11 +181,11 @@ component = mkComponent { eval , initialState , render }
           pure (Just next)
         
         RunTestCase { inputs, expected } f -> do
-          handleQuery $ SetInputs inputs \received -> 
-             f (testCaseOutcome { inputs, expected } received)
+          handleQuery $ SetInputs inputs \received -> do
+            f (testCaseOutcome { inputs, expected } received)
 
 
-      --handleAction :: Action -> HalogenM State Action Slots Output _ Unit
+      handleAction :: Action -> HalogenM State Action Slots Output AppM Unit
       handleAction = case _ of
         Initialise -> do
           emitter <- liftEffect $ globalKeyDownEventEmitter
@@ -220,13 +211,12 @@ component = mkComponent { eval , initialState , render }
               lift $ warn M.empty (show result)
               Animate.headShake (DA.selector DA.location src)
 
-        -- set values of the  
-        PieceOutput (Piece.NewMultimeterFocus focus) ->
-          tell Multimeter.slot unit (Multimeter.NewFocus focus)
-
         PieceOutput (Piece.RemoveThis loc) -> do
           _ <- liftBoardM (removePiece loc)
           pure unit
+        
+        PieceOutput (Piece.NewMultimeterFocus focus) -> do
+          tell Multimeter.slot unit (Multimeter.NewFocus focus)
 
         -- todo: fix this
         MultimeterOutput (Multimeter.SetCapacity relativeEdge capacity) -> do
@@ -304,22 +294,22 @@ component = mkComponent { eval , initialState , render }
               -- evaluate the evaulable
               let Tuple outputs signals = runEvaluableM evaluable (evalWithPortInfo inputs)
               lift $ debug (tag "inputs" (show inputs) `union` tag "outputs" (show outputs)) "Evaluating board"
-              lift $ debug (foldrWithIndex (\relEdge info -> M.insert (show relEdge) (StringTag (show info))) M.empty signals) "Signals from board eval"
+              lift $ debug (foldrWithIndex (\relEdge info -> M.insert (show relEdge) (StringTag (show info))) M.empty signals) "Signals from tryboard eval"
 
               modify_ $ _ { lastEvalWithPortInfo = signals }
               handleAction (SetOutputs outputs)
 
-              handleAction UpdatePieceComponents
+              --handleAction UpdatePieceComponents
 
-        UpdatePieceComponents -> do
-          lift $ debug M.empty "Updating piece components"
-          signals <- gets (_.lastEvalWithPortInfo)
-          use (_board <<< _pieces) >>= traverseWithIndex_ \loc info -> do
-            let portStates = toLocalInputs loc signals
-            --lift $ debug (tag "port states" (show portStates)) ("update piece at :" <> show loc )
-            tell Piece.slot loc (Piece.SetPortStates portStates)
-            tell Piece.slot loc (Piece.SetPiece info.piece)
-            tell Piece.slot loc (Piece.SetRotation info.rotation)
+        --UpdatePieceComponents -> do
+        --  lift $ debug M.empty "Updating piece components"
+        --  signals <- gets (_.lastEvalWithPortInfo)
+        --  use (_board <<< _pieces) >>= traverseWithIndex_ \loc info -> do
+        --    let portStates = toLocalInputs loc signals
+        --    --lift $ debug (tag "port states" (show portStates)) ("update piece at :" <> show loc )
+        --    tell Piece.slot loc (Piece.SetPortStates portStates)
+        --    tell Piece.slot loc (Piece.SetPiece info.piece)
+        --    tell Piece.slot loc (Piece.SetRotation info.rotation)
 
         -- can these events be simplified? do we need all of them?
         LocationOnDragEnter loc dragEvent -> do
@@ -363,10 +353,11 @@ component = mkComponent { eval , initialState , render }
         board <- use _board
         case runBoardM boardM board of
           Left boardError ->
-            pure (throwError boardError)
+            pure (Left boardError)
           Right (Tuple a board') -> do
             handleAction (SetBoard board')
             pure (Right a)
+      
 
 boundingBoxFromMouseEvent :: MouseEvent -> Effect (Maybe DOMRect)
 boundingBoxFromMouseEvent me =

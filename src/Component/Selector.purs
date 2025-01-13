@@ -7,11 +7,13 @@ import Component.DataAttribute as DA
 import Component.Piece as Piece
 import Component.Rendering.Piece (renderPiece)
 import Data.Array as A
+import Data.Map as M
 import Data.Maybe (Maybe(..))
 import Data.Set (Set)
 import Data.Set as S
 import Game.Location (location)
-import Game.Piece (Piece(..), PieceId(..), name)
+import Game.Piece (Piece(..), PieceId(..), defaultPortInfo, name)
+import Game.Rotation (rotation)
 import Halogen (ClassName(..), Component, ComponentHTML, HalogenM, HalogenQ, mkComponent, mkEval)
 import Halogen as H
 import Halogen.HTML as HH
@@ -77,11 +79,13 @@ render { availablePieces } =
         , HE.onDragEnd (\_ -> PieceDropped pieceId)
         , HE.onClick (\_ -> AddPiece pieceId)
         ]
-        [ mapActionOverHTML (\_ -> DoNothing) (renderPiece (Piece.initialState { piece, location: location 0 0 }))
+        [ mapActionOverHTML (\_ -> DoNothing) (renderPiece pieceState)
         , HH.text (show pieceId) 
         ]
       where
         pieceId = name piece
+        pieceState = Piece.initialState 
+          { piece, location: location 0 0, rotation: rotation 0, portStates: defaultPortInfo piece}
 
 slot :: Proxy "selector"
 slot = Proxy
