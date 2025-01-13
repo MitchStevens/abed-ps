@@ -14,19 +14,22 @@ module Game.Piece.Types
   , name
   , shouldRipple
   , updateCapacity
-  , updatePort
+  , glob
+  , unglob
   )
   where
 
 import Prelude
 
+import Control.Lazy (defer)
 import Data.Array (fold)
 import Data.Foldable (and)
 import Data.FunctorWithIndex (mapWithIndex)
 import Data.Generic.Rep (class Generic)
+import Data.Lazy (Lazy, force)
 import Data.Map (Map)
 import Data.Map as M
-import Data.Maybe (Maybe(..), maybe)
+import Data.Maybe (Maybe(..), fromMaybe, maybe)
 import Data.Newtype (class Newtype)
 import Data.Set (Set)
 import Data.Show.Generic (genericShow)
@@ -118,22 +121,19 @@ newtype Piece = Piece
   , shouldRipple :: Boolean
   , updateCapacity :: CardinalDirection -> Capacity -> Maybe Piece
   , ports :: Map CardinalDirection Port
+
   {-
-    The `updatePort` function asks: if there was suddenly a `port` in the direction `dir`, how should the piece react?. In general we don't want the piece to do anything, but if the piece is a wire piece, it's desirable to add/remove output ports if a change in the matching port is detected.
+  rules forglobbing :
+    unglob p <= p <= glob d t p
+    glob d1 t1 <<< glob d2 t2 = glob d2 t2 <<< glob d1 t1
+    unglob <<< unglob = unglob
 
-    HISTORY:
-    We also need a way to tell if a piece changed after a port was updated. Originally `updatePort` had the type signature:
+    and maybe
+    unglob <<< glob d t = unglob
 
-    ```updatePort :: CardinalDirection -> Maybe Port -> Piece```
-    
-    Unfortunately, from this type signature there was no was to tell whether the piece was actually modified when a port was updated.
-    To rememdy, `updatePort` was modified to return a maybe type if it was modified:
-
-    ```updatePort :: CardinalDirection -> Maybe Port -> Maybe Piece```
-
-    The function will now output `Just Piece` if the `Piece` was modified and `Nothing` if it's not modified. Also note that the `Maybe Port` parameter was changed to `Maybe PortType`, this was to ensure that `updatePort` cannot possibly change capacity (because the piece doesn't know what the adjacent port capacity is)
   -}
-  , updatePort :: CardinalDirection -> Maybe PortType -> Maybe Piece
+  , glob :: CardinalDirection -> Maybe PortType -> Maybe Piece
+  , unglob :: Maybe Piece
   {-
     To effeciently compile a board, we need to know whether a piece can be simplified. Since our `eval` function is non-symbolic, we need to encode this information into the piece type. 
 
@@ -218,9 +218,11 @@ updateCapacity dir capacity (Piece p) = p.updateCapacity dir capacity
 getPorts :: Piece -> Map CardinalDirection Port
 getPorts (Piece p) = p.ports
 
--- why is ther `Piece` param last instead of first??
-updatePort :: CardinalDirection -> Maybe PortType -> Piece -> Maybe Piece
-updatePort dir port (Piece p) = p.updatePort dir port
+glob :: CardinalDirection -> Maybe PortType -> Piece -> Piece
+glob dir port (Piece p) = fromMaybe (Piece p) (p.glob dir port)
+
+unglob :: Piece -> Piece
+unglob (Piece p) = fromMaybe (Piece p) p.unglob
 
 isSimplifiable :: Piece -> Maybe Simplification
 isSimplifiable (Piece p) = p.isSimplifiable

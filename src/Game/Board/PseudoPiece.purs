@@ -39,7 +39,6 @@ psuedoPiece port = mkPiece
   , updateCapacity: \_ _ -> Nothing
 
   , ports: M.singleton Direction.Right (matchingPort port)
-  , updatePort: \_ _ -> Nothing
   }
 
 isPseudoPiece :: Piece -> Boolean

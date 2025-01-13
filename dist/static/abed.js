@@ -1151,14 +1151,14 @@
     return function(dictShowRecordFields) {
       var showRecordFields1 = showRecordFields(dictShowRecordFields);
       return function(dictShow) {
-        var show114 = show(dictShow);
+        var show113 = show(dictShow);
         return {
           showRecordFields: function(v2) {
             return function(record2) {
               var tail3 = showRecordFields1($$Proxy.value)(record2);
               var key2 = reflectSymbol2($$Proxy.value);
               var focus3 = unsafeGet(key2)(record2);
-              return " " + (key2 + (": " + (show114(focus3) + ("," + tail3))));
+              return " " + (key2 + (": " + (show113(focus3) + ("," + tail3))));
             };
           }
         };
@@ -1168,13 +1168,13 @@
   var showRecordFieldsConsNil = function(dictIsSymbol) {
     var reflectSymbol2 = reflectSymbol(dictIsSymbol);
     return function(dictShow) {
-      var show114 = show(dictShow);
+      var show113 = show(dictShow);
       return {
         showRecordFields: function(v2) {
           return function(record2) {
             var key2 = reflectSymbol2($$Proxy.value);
             var focus3 = unsafeGet(key2)(record2);
-            return " " + (key2 + (": " + (show114(focus3) + " ")));
+            return " " + (key2 + (": " + (show113(focus3) + " ")));
           };
         }
       };
@@ -1459,17 +1459,17 @@
     return Right3;
   }();
   var showEither = function(dictShow) {
-    var show44 = show(dictShow);
+    var show43 = show(dictShow);
     return function(dictShow1) {
-      var show114 = show(dictShow1);
+      var show113 = show(dictShow1);
       return {
         show: function(v2) {
           if (v2 instanceof Left) {
-            return "(Left " + (show44(v2.value0) + ")");
+            return "(Left " + (show43(v2.value0) + ")");
           }
           ;
           if (v2 instanceof Right) {
-            return "(Right " + (show114(v2.value0) + ")");
+            return "(Right " + (show113(v2.value0) + ")");
           }
           ;
           throw new Error("Failed pattern match at Data.Either (line 173, column 1 - line 175, column 46): " + [v2.constructor.name]);
@@ -1963,6 +1963,44 @@
   });
   var applyST = /* @__PURE__ */ $lazy_applyST(47);
 
+  // output/Control.Lazy/index.js
+  var $runtime_lazy3 = function(name16, moduleName, init4) {
+    var state3 = 0;
+    var val;
+    return function(lineNumber) {
+      if (state3 === 2)
+        return val;
+      if (state3 === 1)
+        throw new ReferenceError(name16 + " was needed before it finished initializing (module " + moduleName + ", line " + lineNumber + ")", moduleName, lineNumber);
+      state3 = 1;
+      val = init4();
+      state3 = 2;
+      return val;
+    };
+  };
+  var lazyFn = {
+    defer: function(f) {
+      return function(x2) {
+        return f(unit)(x2);
+      };
+    }
+  };
+  var defer = function(dict) {
+    return dict.defer;
+  };
+  var fix = function(dictLazy) {
+    var defer1 = defer(dictLazy);
+    return function(f) {
+      var $lazy_go = $runtime_lazy3("go", "Control.Lazy", function() {
+        return defer1(function(v2) {
+          return f($lazy_go(25));
+        });
+      });
+      var go2 = $lazy_go(25);
+      return go2;
+    };
+  };
+
   // output/Data.HeytingAlgebra/foreign.js
   var boolConj = function(b1) {
     return function(b2) {
@@ -2075,12 +2113,12 @@
     return v2.value1;
   };
   var showTuple = function(dictShow) {
-    var show44 = show(dictShow);
+    var show43 = show(dictShow);
     return function(dictShow1) {
-      var show114 = show(dictShow1);
+      var show113 = show(dictShow1);
       return {
         show: function(v2) {
-          return "(Tuple " + (show44(v2.value0) + (" " + (show114(v2.value1) + ")")));
+          return "(Tuple " + (show43(v2.value0) + (" " + (show113(v2.value1) + ")")));
         }
       };
     };
@@ -4909,7 +4947,7 @@
   };
 
   // output/Data.Map.Internal/index.js
-  var $runtime_lazy3 = function(name16, moduleName, init4) {
+  var $runtime_lazy4 = function(name16, moduleName, init4) {
     var state3 = 0;
     var val;
     return function(lineNumber) {
@@ -5197,7 +5235,7 @@
       throw new Error("Failed pattern match at Data.Map.Internal (line 717, column 40 - line 738, column 34): " + [l2.constructor.name]);
     };
   }();
-  var $lazy_unsafeSplit = /* @__PURE__ */ $runtime_lazy3("unsafeSplit", "Data.Map.Internal", function() {
+  var $lazy_unsafeSplit = /* @__PURE__ */ $runtime_lazy4("unsafeSplit", "Data.Map.Internal", function() {
     return function(comp, k, m2) {
       if (m2 instanceof Leaf) {
         return new Split(Nothing.value, Leaf.value, Leaf.value);
@@ -5226,7 +5264,7 @@
     };
   });
   var unsafeSplit = /* @__PURE__ */ $lazy_unsafeSplit(786);
-  var $lazy_unsafeSplitLast = /* @__PURE__ */ $runtime_lazy3("unsafeSplitLast", "Data.Map.Internal", function() {
+  var $lazy_unsafeSplitLast = /* @__PURE__ */ $runtime_lazy4("unsafeSplitLast", "Data.Map.Internal", function() {
     return function(k, v2, l2, r) {
       if (r instanceof Leaf) {
         return new SplitLast(k, v2, l2);
@@ -5253,7 +5291,7 @@
     ;
     throw new Error("Failed pattern match at Data.Map.Internal (line 764, column 25 - line 768, column 38): " + [v2.constructor.name, v1.constructor.name]);
   };
-  var $lazy_unsafeUnionWith = /* @__PURE__ */ $runtime_lazy3("unsafeUnionWith", "Data.Map.Internal", function() {
+  var $lazy_unsafeUnionWith = /* @__PURE__ */ $runtime_lazy4("unsafeUnionWith", "Data.Map.Internal", function() {
     return function(comp, app, l2, r) {
       if (l2 instanceof Leaf) {
         return r;
@@ -5638,10 +5676,10 @@
   var showMap = function(dictShow) {
     var showTuple2 = showTuple(dictShow);
     return function(dictShow1) {
-      var show114 = show(showArray(showTuple2(dictShow1)));
+      var show113 = show(showArray(showTuple2(dictShow1)));
       return {
         show: function(as3) {
-          return "(fromFoldable " + (show114(toUnfoldable1(as3)) + ")");
+          return "(fromFoldable " + (show113(toUnfoldable1(as3)) + ")");
         }
       };
     };
@@ -5752,7 +5790,7 @@
   var foldableMap = {
     foldr: function(f) {
       return function(z2) {
-        var $lazy_go = $runtime_lazy3("go", "Data.Map.Internal", function() {
+        var $lazy_go = $runtime_lazy4("go", "Data.Map.Internal", function() {
           return function(m$prime, z$prime) {
             if (m$prime instanceof Leaf) {
               return z$prime;
@@ -5773,7 +5811,7 @@
     },
     foldl: function(f) {
       return function(z2) {
-        var $lazy_go = $runtime_lazy3("go", "Data.Map.Internal", function() {
+        var $lazy_go = $runtime_lazy4("go", "Data.Map.Internal", function() {
           return function(z$prime, m$prime) {
             if (m$prime instanceof Leaf) {
               return z$prime;
@@ -5814,7 +5852,7 @@
   var foldableWithIndexMap = {
     foldrWithIndex: function(f) {
       return function(z2) {
-        var $lazy_go = $runtime_lazy3("go", "Data.Map.Internal", function() {
+        var $lazy_go = $runtime_lazy4("go", "Data.Map.Internal", function() {
           return function(m$prime, z$prime) {
             if (m$prime instanceof Leaf) {
               return z$prime;
@@ -5835,7 +5873,7 @@
     },
     foldlWithIndex: function(f) {
       return function(z2) {
-        var $lazy_go = $runtime_lazy3("go", "Data.Map.Internal", function() {
+        var $lazy_go = $runtime_lazy4("go", "Data.Map.Internal", function() {
           return function(z$prime, m$prime) {
             if (m$prime instanceof Leaf) {
               return z$prime;
@@ -6384,7 +6422,7 @@
         }
       };
     }();
-    function Supervisor(util2) {
+    function Supervisor(util) {
       var fibers = {};
       var fiberId = 0;
       var count = 0;
@@ -6418,9 +6456,9 @@
                 return function() {
                   delete kills[fid];
                   killCount--;
-                  if (util2.isLeft(result) && util2.fromLeft(result)) {
+                  if (util.isLeft(result) && util.fromLeft(result)) {
                     setTimeout(function() {
-                      throw util2.fromLeft(result);
+                      throw util.fromLeft(result);
                     }, 0);
                   }
                   if (killCount === 0) {
@@ -6458,7 +6496,7 @@
     var PENDING = 4;
     var RETURN = 5;
     var COMPLETED = 6;
-    function Fiber(util2, supervisor, aff) {
+    function Fiber(util, supervisor, aff) {
       var runTick = 0;
       var status = SUSPENDED;
       var step5 = aff;
@@ -6490,12 +6528,12 @@
                 }
               } catch (e) {
                 status = RETURN;
-                fail3 = util2.left(e);
+                fail3 = util.left(e);
                 step5 = null;
               }
               break;
             case STEP_RESULT:
-              if (util2.isLeft(step5)) {
+              if (util.isLeft(step5)) {
                 status = RETURN;
                 fail3 = step5;
                 step5 = null;
@@ -6503,7 +6541,7 @@
                 status = RETURN;
               } else {
                 status = STEP_BIND;
-                step5 = util2.fromRight(step5);
+                step5 = util.fromRight(step5);
               }
               break;
             case CONTINUE:
@@ -6519,7 +6557,7 @@
                 case PURE:
                   if (bhead === null) {
                     status = RETURN;
-                    step5 = util2.right(step5._1);
+                    step5 = util.right(step5._1);
                   } else {
                     status = STEP_BIND;
                     step5 = step5._1;
@@ -6527,11 +6565,11 @@
                   break;
                 case SYNC:
                   status = STEP_RESULT;
-                  step5 = runSync(util2.left, util2.right, step5._1);
+                  step5 = runSync(util.left, util.right, step5._1);
                   break;
                 case ASYNC:
                   status = PENDING;
-                  step5 = runAsync(util2.left, step5._1, function(result2) {
+                  step5 = runAsync(util.left, step5._1, function(result2) {
                     return function() {
                       if (runTick !== localRunTick) {
                         return;
@@ -6550,7 +6588,7 @@
                   return;
                 case THROW:
                   status = RETURN;
-                  fail3 = util2.left(step5._1);
+                  fail3 = util.left(step5._1);
                   step5 = null;
                   break;
                 case CATCH:
@@ -6578,18 +6616,18 @@
                   break;
                 case FORK:
                   status = STEP_RESULT;
-                  tmp = Fiber(util2, supervisor, step5._2);
+                  tmp = Fiber(util, supervisor, step5._2);
                   if (supervisor) {
                     supervisor.register(tmp);
                   }
                   if (step5._1) {
                     tmp.run();
                   }
-                  step5 = util2.right(tmp);
+                  step5 = util.right(tmp);
                   break;
                 case SEQ:
                   status = CONTINUE;
-                  step5 = sequential3(util2, supervisor, step5._1);
+                  step5 = sequential3(util, supervisor, step5._1);
                   break;
               }
               break;
@@ -6609,7 +6647,7 @@
                       status = RETURN;
                     } else if (fail3) {
                       status = CONTINUE;
-                      step5 = attempt._2(util2.fromLeft(fail3));
+                      step5 = attempt._2(util.fromLeft(fail3));
                       fail3 = null;
                     }
                     break;
@@ -6620,13 +6658,13 @@
                       bhead = attempt._1;
                       btail = attempt._2;
                       status = STEP_BIND;
-                      step5 = util2.fromRight(step5);
+                      step5 = util.fromRight(step5);
                     }
                     break;
                   case BRACKET:
                     bracketCount--;
                     if (fail3 === null) {
-                      result = util2.fromRight(step5);
+                      result = util.fromRight(step5);
                       attempts = new Aff2(CONS, new Aff2(RELEASE, attempt._2, result), attempts, tmp);
                       if (interrupt === tmp || bracketCount > 0) {
                         status = CONTINUE;
@@ -6638,11 +6676,11 @@
                     attempts = new Aff2(CONS, new Aff2(FINALIZED, step5, fail3), attempts, interrupt);
                     status = CONTINUE;
                     if (interrupt && interrupt !== tmp && bracketCount === 0) {
-                      step5 = attempt._1.killed(util2.fromLeft(interrupt))(attempt._2);
+                      step5 = attempt._1.killed(util.fromLeft(interrupt))(attempt._2);
                     } else if (fail3) {
-                      step5 = attempt._1.failed(util2.fromLeft(fail3))(attempt._2);
+                      step5 = attempt._1.failed(util.fromLeft(fail3))(attempt._2);
                     } else {
-                      step5 = attempt._1.completed(util2.fromRight(step5))(attempt._2);
+                      step5 = attempt._1.completed(util.fromRight(step5))(attempt._2);
                     }
                     fail3 = null;
                     bracketCount++;
@@ -6672,12 +6710,12 @@
               joins = null;
               if (interrupt && fail3) {
                 setTimeout(function() {
-                  throw util2.fromLeft(fail3);
+                  throw util.fromLeft(fail3);
                 }, 0);
-              } else if (util2.isLeft(step5) && rethrow) {
+              } else if (util.isLeft(step5) && rethrow) {
                 setTimeout(function() {
                   if (rethrow) {
-                    throw util2.fromLeft(step5);
+                    throw util.fromLeft(step5);
                   }
                 }, 0);
               }
@@ -6711,26 +6749,26 @@
       function kill3(error5, cb) {
         return function() {
           if (status === COMPLETED) {
-            cb(util2.right(void 0))();
+            cb(util.right(void 0))();
             return function() {
             };
           }
           var canceler = onComplete({
             rethrow: false,
             handler: function() {
-              return cb(util2.right(void 0));
+              return cb(util.right(void 0));
             }
           })();
           switch (status) {
             case SUSPENDED:
-              interrupt = util2.left(error5);
+              interrupt = util.left(error5);
               status = COMPLETED;
               step5 = interrupt;
               run5(runTick);
               break;
             case PENDING:
               if (interrupt === null) {
-                interrupt = util2.left(error5);
+                interrupt = util.left(error5);
               }
               if (bracketCount === 0) {
                 if (status === PENDING) {
@@ -6744,7 +6782,7 @@
               break;
             default:
               if (interrupt === null) {
-                interrupt = util2.left(error5);
+                interrupt = util.left(error5);
               }
               if (bracketCount === 0) {
                 status = RETURN;
@@ -6787,7 +6825,7 @@
         }
       };
     }
-    function runPar(util2, supervisor, par, cb) {
+    function runPar(util, supervisor, par, cb) {
       var fiberId = 0;
       var fibers = {};
       var killId = 0;
@@ -6843,7 +6881,7 @@
             }
           }
         if (count === 0) {
-          cb2(util2.right(void 0))();
+          cb2(util.right(void 0))();
         } else {
           kid = 0;
           tmp = count;
@@ -6855,7 +6893,7 @@
       }
       function join7(result, head6, tail3) {
         var fail3, step5, lhs, rhs, tmp, kid;
-        if (util2.isLeft(result)) {
+        if (util.isLeft(result)) {
           fail3 = result;
           step5 = null;
         } else {
@@ -6881,7 +6919,7 @@
             switch (head6.tag) {
               case MAP:
                 if (fail3 === null) {
-                  head6._3 = util2.right(head6._1(util2.fromRight(step5)));
+                  head6._3 = util.right(head6._1(util.fromRight(step5)));
                   step5 = head6._3;
                 } else {
                   head6._3 = fail3;
@@ -6913,17 +6951,17 @@
                 } else if (lhs === EMPTY || rhs === EMPTY) {
                   return;
                 } else {
-                  step5 = util2.right(util2.fromRight(lhs)(util2.fromRight(rhs)));
+                  step5 = util.right(util.fromRight(lhs)(util.fromRight(rhs)));
                   head6._3 = step5;
                 }
                 break;
               case ALT:
                 lhs = head6._1._3;
                 rhs = head6._2._3;
-                if (lhs === EMPTY && util2.isLeft(rhs) || rhs === EMPTY && util2.isLeft(lhs)) {
+                if (lhs === EMPTY && util.isLeft(rhs) || rhs === EMPTY && util.isLeft(lhs)) {
                   return;
                 }
-                if (lhs !== EMPTY && util2.isLeft(lhs) && rhs !== EMPTY && util2.isLeft(rhs)) {
+                if (lhs !== EMPTY && util.isLeft(lhs) && rhs !== EMPTY && util.isLeft(rhs)) {
                   fail3 = step5 === lhs ? rhs : lhs;
                   step5 = null;
                   head6._3 = fail3;
@@ -7006,7 +7044,7 @@
                     status = RETURN;
                     tmp = step5;
                     step5 = new Aff2(FORKED, fid, new Aff2(CONS, head6, tail3), EMPTY);
-                    tmp = Fiber(util2, supervisor, tmp);
+                    tmp = Fiber(util, supervisor, tmp);
                     tmp.onComplete({
                       rethrow: false,
                       handler: resolve(step5)
@@ -7044,7 +7082,7 @@
         }
       }
       function cancel2(error5, cb2) {
-        interrupt = util2.left(error5);
+        interrupt = util.left(error5);
         var innerKills;
         for (var kid in kills) {
           if (kills.hasOwnProperty(kid)) {
@@ -7080,10 +7118,10 @@
         });
       };
     }
-    function sequential3(util2, supervisor, par) {
+    function sequential3(util, supervisor, par) {
       return new Aff2(ASYNC, function(cb) {
         return function() {
-          return runPar(util2, supervisor, par, cb);
+          return runPar(util, supervisor, par, cb);
         };
       });
     }
@@ -7153,9 +7191,9 @@
       };
     };
   }
-  function _makeFiber(util2, aff) {
+  function _makeFiber(util, aff) {
     return function() {
-      return Aff.Fiber(util2, null, aff);
+      return Aff.Fiber(util, null, aff);
     };
   }
   var _delay = function() {
@@ -7261,7 +7299,7 @@
   };
 
   // output/Effect.Aff/index.js
-  var $runtime_lazy4 = function(name16, moduleName, init4) {
+  var $runtime_lazy5 = function(name16, moduleName, init4) {
     var state3 = 0;
     var val;
     return function(lineNumber) {
@@ -7380,7 +7418,7 @@
       return $lazy_applyAff(0);
     }
   };
-  var $lazy_applyAff = /* @__PURE__ */ $runtime_lazy4("applyAff", "Effect.Aff", function() {
+  var $lazy_applyAff = /* @__PURE__ */ $runtime_lazy5("applyAff", "Effect.Aff", function() {
     return {
       apply: ap(monadAff),
       Functor0: function() {
@@ -7672,10 +7710,10 @@
     }
   };
   var genericShowArgsArgument = function(dictShow) {
-    var show44 = show(dictShow);
+    var show43 = show(dictShow);
     return {
       genericShowArgs: function(v2) {
-        return [show44(v2)];
+        return [show43(v2)];
       }
     };
   };
@@ -8830,10 +8868,10 @@
     return singleton6(a3)(unit);
   };
   var showSet = function(dictShow) {
-    var show44 = show(showArray(dictShow));
+    var show43 = show(showArray(dictShow));
     return {
       show: function(s2) {
-        return "(fromFoldable " + (show44(toUnfoldable12(s2)) + ")");
+        return "(fromFoldable " + (show43(toUnfoldable12(s2)) + ")");
       }
     };
   };
@@ -9826,7 +9864,7 @@
   };
 
   // output/Data.String.CodePoints/index.js
-  var $runtime_lazy5 = function(name16, moduleName, init4) {
+  var $runtime_lazy6 = function(name16, moduleName, init4) {
     var state3 = 0;
     var val;
     return function(lineNumber) {
@@ -10046,7 +10084,7 @@
       }
     };
   }();
-  var $lazy_enumCodePoint = /* @__PURE__ */ $runtime_lazy5("enumCodePoint", "Data.String.CodePoints", function() {
+  var $lazy_enumCodePoint = /* @__PURE__ */ $runtime_lazy6("enumCodePoint", "Data.String.CodePoints", function() {
     return {
       succ: defaultSucc(toEnum(boundedEnumCodePoint))(fromEnum(boundedEnumCodePoint)),
       pred: defaultPred(toEnum(boundedEnumCodePoint))(fromEnum(boundedEnumCodePoint)),
@@ -10346,6 +10384,7 @@
   var eq32 = /* @__PURE__ */ eq(/* @__PURE__ */ eqMap2(eqPort));
   var fold3 = /* @__PURE__ */ fold2(monoidOrdering);
   var compare14 = /* @__PURE__ */ compare(/* @__PURE__ */ ordMap(ordCardinalDirection)(ordPort));
+  var fix2 = /* @__PURE__ */ fix(lazyFn);
   var lookup3 = /* @__PURE__ */ lookup2(ordCardinalDirection);
   var filter4 = /* @__PURE__ */ filter2(ordCardinalDirection);
   var mapWithIndex2 = /* @__PURE__ */ mapWithIndex(functorWithIndexMap);
@@ -10409,13 +10448,6 @@
       return eqPiece;
     }
   };
-  var updatePort = function(dir2) {
-    return function(port2) {
-      return function(v2) {
-        return v2.updatePort(dir2)(port2);
-      };
-    };
-  };
   var updateCapacity = function(dir2) {
     return function(capacity) {
       return function(v2) {
@@ -10432,27 +10464,40 @@
   var mkPiece = function() {
     return function() {
       return function(piece) {
-        var defaultPiece = {
-          complexity: space(0),
-          shouldRipple: false,
-          updateCapacity: function(v2) {
-            return function(v1) {
-              return Nothing.value;
+        var go2 = function(lazyP) {
+          return function(v2) {
+            var defaultPiece = {
+              complexity: space(0),
+              shouldRipple: false,
+              updateCapacity: function(v1) {
+                return function(v22) {
+                  return Nothing.value;
+                };
+              },
+              glob: function(v1) {
+                return function(v22) {
+                  return lazyP(unit);
+                };
+              },
+              unglob: lazyP(unit),
+              isSimplifiable: Nothing.value
             };
-          },
-          updatePort: function(v2) {
-            return function(v1) {
-              return Nothing.value;
-            };
-          },
-          isSimplifiable: Nothing.value
+            return unsafeUnion(piece)(defaultPiece);
+          };
         };
-        return unsafeUnion(piece)(defaultPiece);
+        return fix2(go2)(unit);
       };
     };
   };
   var isSimplifiable = function(v2) {
     return v2.isSimplifiable;
+  };
+  var glob = function(dir2) {
+    return function(port2) {
+      return function(v2) {
+        return v2.glob(dir2)(port2);
+      };
+    };
   };
   var getPorts = function(v2) {
     return v2.ports;
@@ -11491,7 +11536,7 @@
   var fromEventTarget = /* @__PURE__ */ unsafeReadProtoTagged("Element");
 
   // output/Halogen.VDom.DOM/index.js
-  var $runtime_lazy6 = function(name16, moduleName, init4) {
+  var $runtime_lazy7 = function(name16, moduleName, init4) {
     var state3 = 0;
     var val;
     return function(lineNumber) {
@@ -11508,7 +11553,7 @@
   var haltWidget = function(v2) {
     return halt(v2.widget);
   };
-  var $lazy_patchWidget = /* @__PURE__ */ $runtime_lazy6("patchWidget", "Halogen.VDom.DOM", function() {
+  var $lazy_patchWidget = /* @__PURE__ */ $runtime_lazy7("patchWidget", "Halogen.VDom.DOM", function() {
     return function(state3, vdom) {
       if (vdom instanceof Grafted) {
         return $lazy_patchWidget(291)(state3, runGraft(vdom.value0));
@@ -11534,7 +11579,7 @@
     var parent2 = parentNode(v2.node);
     return removeChild(v2.node, parent2);
   };
-  var $lazy_patchText = /* @__PURE__ */ $runtime_lazy6("patchText", "Halogen.VDom.DOM", function() {
+  var $lazy_patchText = /* @__PURE__ */ $runtime_lazy7("patchText", "Halogen.VDom.DOM", function() {
     return function(state3, vdom) {
       if (vdom instanceof Grafted) {
         return $lazy_patchText(82)(state3, runGraft(vdom.value0));
@@ -11592,7 +11637,7 @@
     ;
     return false;
   };
-  var $lazy_patchElem = /* @__PURE__ */ $runtime_lazy6("patchElem", "Halogen.VDom.DOM", function() {
+  var $lazy_patchElem = /* @__PURE__ */ $runtime_lazy7("patchElem", "Halogen.VDom.DOM", function() {
     return function(state3, vdom) {
       if (vdom instanceof Grafted) {
         return $lazy_patchElem(135)(state3, runGraft(vdom.value0));
@@ -11645,7 +11690,7 @@
     };
   });
   var patchElem = /* @__PURE__ */ $lazy_patchElem(130);
-  var $lazy_patchKeyed = /* @__PURE__ */ $runtime_lazy6("patchKeyed", "Halogen.VDom.DOM", function() {
+  var $lazy_patchKeyed = /* @__PURE__ */ $runtime_lazy7("patchKeyed", "Halogen.VDom.DOM", function() {
     return function(state3, vdom) {
       if (vdom instanceof Grafted) {
         return $lazy_patchKeyed(222)(state3, runGraft(vdom.value0));
@@ -11760,7 +11805,7 @@
     return mkStep(new Step2(node, state3, patchElem, haltElem));
   };
   var buildVDom = function(spec) {
-    var $lazy_build = $runtime_lazy6("build", "Halogen.VDom.DOM", function() {
+    var $lazy_build = $runtime_lazy7("build", "Halogen.VDom.DOM", function() {
       return function(v2) {
         if (v2 instanceof Text) {
           return buildText(spec, $lazy_build(59), v2.value0);
@@ -11955,7 +12000,7 @@
   }
 
   // output/Halogen.VDom.DOM.Prop/index.js
-  var $runtime_lazy7 = function(name16, moduleName, init4) {
+  var $runtime_lazy8 = function(name16, moduleName, init4) {
     var state3 = 0;
     var val;
     return function(lineNumber) {
@@ -12229,7 +12274,7 @@
           throw new Error("Failed pattern match at Halogen.VDom.DOM.Prop (line 113, column 5 - line 135, column 15): " + [v22.constructor.name]);
         };
       };
-      var $lazy_patchProp = $runtime_lazy7("patchProp", "Halogen.VDom.DOM.Prop", function() {
+      var $lazy_patchProp = $runtime_lazy8("patchProp", "Halogen.VDom.DOM.Prop", function() {
         return function(state3, ps2) {
           var events = newMutMap();
           var onThis = removeProp(state3.events);
@@ -12761,7 +12806,7 @@
   };
 
   // output/Control.Monad.Free/index.js
-  var $runtime_lazy8 = function(name16, moduleName, init4) {
+  var $runtime_lazy9 = function(name16, moduleName, init4) {
     var state3 = 0;
     var val;
     return function(lineNumber) {
@@ -12897,7 +12942,7 @@
       return $lazy_freeApply(0);
     }
   };
-  var $lazy_freeApply = /* @__PURE__ */ $runtime_lazy8("freeApply", "Control.Monad.Free", function() {
+  var $lazy_freeApply = /* @__PURE__ */ $runtime_lazy9("freeApply", "Control.Monad.Free", function() {
     return {
       apply: ap(freeMonad),
       Functor0: function() {
@@ -13386,7 +13431,7 @@
   }();
 
   // output/Halogen.VDom.Thunk/index.js
-  var $runtime_lazy9 = function(name16, moduleName, init4) {
+  var $runtime_lazy10 = function(name16, moduleName, init4) {
     var state3 = 0;
     var val;
     return function(lineNumber) {
@@ -13452,7 +13497,7 @@
     var haltThunk = function(state3) {
       return halt(state3.vdom);
     };
-    var $lazy_patchThunk = $runtime_lazy9("patchThunk", "Halogen.VDom.Thunk", function() {
+    var $lazy_patchThunk = $runtime_lazy10("patchThunk", "Halogen.VDom.Thunk", function() {
       return function(state3, t2) {
         var $48 = unsafeEqThunk(state3.thunk, t2);
         if ($48) {
@@ -13713,8 +13758,8 @@
         var query22 = query1(dictOrd);
         return function(slot15) {
           return function(label5) {
-            return function(req2) {
-              return $$void6(query22(slot15)(label5)(req2(unit)));
+            return function(req) {
+              return $$void6(query22(slot15)(label5)(req(unit)));
             };
           };
         };
@@ -13728,8 +13773,8 @@
         var query22 = query1(dictOrd);
         return function(slot15) {
           return function(label5) {
-            return function(req2) {
-              return query22(slot15)(label5)(req2(identity15));
+            return function(req) {
+              return query22(slot15)(label5)(req(identity15));
             };
           };
         };
@@ -15076,7 +15121,7 @@
   };
 
   // output/Routing.Duplex.Parser/index.js
-  var $runtime_lazy10 = function(name16, moduleName, init4) {
+  var $runtime_lazy11 = function(name16, moduleName, init4) {
     var state3 = 0;
     var val;
     return function(lineNumber) {
@@ -15369,7 +15414,7 @@
       return new Fail(EndOfPath.value);
     };
   };
-  var $lazy_runRouteParser = /* @__PURE__ */ $runtime_lazy10("runRouteParser", "Routing.Duplex.Parser", function() {
+  var $lazy_runRouteParser = /* @__PURE__ */ $runtime_lazy11("runRouteParser", "Routing.Duplex.Parser", function() {
     var goAlt = function(v2) {
       return function(v1) {
         return function(v22) {
@@ -17375,18 +17420,11 @@
   };
 
   // output/Game.Edge/index.js
-  var show11 = /* @__PURE__ */ show(showLocation);
-  var show13 = /* @__PURE__ */ show(showCardinalDirection);
   var eq5 = /* @__PURE__ */ eq(eqCardinalDirection);
   var eq16 = /* @__PURE__ */ eq(eqLocation);
   var append13 = /* @__PURE__ */ append(semigroupOrdering);
   var compare7 = /* @__PURE__ */ compare(ordLocation);
   var compare15 = /* @__PURE__ */ compare(ordCardinalDirection);
-  var showEdge = {
-    show: function(v2) {
-      return "Edge " + (show11(v2.loc) + (" " + show13(v2.dir)));
-    }
-  };
   var eqEdge = {
     eq: function(x2) {
       return function(y2) {
@@ -17417,13 +17455,13 @@
   };
 
   // output/Game.Board.RelativeEdge/index.js
-  var show14 = /* @__PURE__ */ show(showLocation);
-  var show15 = /* @__PURE__ */ show(showCardinalDirection);
+  var show11 = /* @__PURE__ */ show(showLocation);
+  var show13 = /* @__PURE__ */ show(showCardinalDirection);
   var eq6 = /* @__PURE__ */ eq(eqEdge);
   var compare8 = /* @__PURE__ */ compare(ordEdge);
   var showRelativeEdge = {
     show: function(v2) {
-      return "(RelEdge " + (show14(v2.loc) + (" " + (show15(v2.dir) + ")")));
+      return "(RelEdge " + (show11(v2.loc) + (" " + (show13(v2.dir) + ")")));
     }
   };
   var eqRelativeEdge = {
@@ -17476,8 +17514,8 @@
   };
 
   // output/Game.Board.Types/index.js
-  var show16 = /* @__PURE__ */ show(showLocation);
-  var show17 = /* @__PURE__ */ show(showInt);
+  var show14 = /* @__PURE__ */ show(showLocation);
+  var show15 = /* @__PURE__ */ show(showInt);
   var submap2 = /* @__PURE__ */ submap(ordRelativeEdge);
   var unwrap10 = /* @__PURE__ */ unwrap();
   var _Newtype3 = /* @__PURE__ */ _Newtype()();
@@ -17564,23 +17602,23 @@
   var showBoardError = {
     show: function(v2) {
       if (v2 instanceof LocationOccupied) {
-        return "Location Occupied: " + show16(v2.value0);
+        return "Location Occupied: " + show14(v2.value0);
       }
       ;
       if (v2 instanceof LocationNotOccupied) {
-        return "Location Not Occupied: " + show16(v2.value0);
+        return "Location Not Occupied: " + show14(v2.value0);
       }
       ;
       if (v2 instanceof InvalidLocation) {
-        return "Location " + (show16(v2.value0) + " is outside range of the board");
+        return "Location " + (show14(v2.value0) + " is outside range of the board");
       }
       ;
       if (v2 instanceof InvalidBoardInitialisation) {
-        return "Invalid Board Initialisation: " + (show17(v2.value0) + " is not a valid board size");
+        return "Invalid Board Initialisation: " + (show15(v2.value0) + " is not a valid board size");
       }
       ;
       if (v2 instanceof BadBoardSize) {
-        return "Boards of size " + (show17(v2.value0) + " are not valid");
+        return "Boards of size " + (show15(v2.value0) + " are not valid");
       }
       ;
       if (v2 instanceof Cyclic) {
@@ -18510,12 +18548,7 @@
           return Nothing.value;
         };
       },
-      ports: singleton6(Right2.value)(matchingPort(port2)),
-      updatePort: function(v2) {
-        return function(v1) {
-          return Nothing.value;
-        };
-      }
+      ports: singleton6(Right2.value)(matchingPort(port2))
     });
   };
   var isPseudoPiece = function(v2) {
@@ -18593,19 +18626,19 @@
       return function(dir2) {
         return function(signal) {
           return $$void12(runMaybeT(bind118(asks2(function() {
-            var $290 = lookup11(dir2);
-            return function($291) {
-              return $290(function(v2) {
+            var $288 = lookup11(dir2);
+            return function($289) {
+              return $288(function(v2) {
                 return v2.psuedoPieceLocations;
-              }(unwrap11($291)));
+              }(unwrap11($289)));
             };
           }()))(function(loc) {
             return bind118(asks2(function() {
-              var $292 = lookup12(loc);
-              return function($293) {
-                return $292(function(v2) {
+              var $290 = lookup12(loc);
+              return function($291) {
+                return $290(function(v2) {
                   return v2.pieces;
-                }(unwrap11($293)));
+                }(unwrap11($291)));
               };
             }()))(function(v2) {
               return when12(isPseudoInput(v2))(bind118(pure41(getPsuedoPiecePort(v2)))(function(port2) {
@@ -18640,10 +18673,10 @@
     return function(dictMonadState) {
       var setOuterPort2 = setOuterPort1(dictMonadState);
       return function(inputs) {
-        return bind118(asks2(function($294) {
+        return bind118(asks2(function($292) {
           return function(v2) {
             return v2.psuedoPieceLocations;
-          }(unwrap11($294));
+          }(unwrap11($292));
         }))(function(psuedoPieceLocations) {
           return forWithIndex_3(psuedoPieceLocations)(function(dir2) {
             return function(loc) {
@@ -18662,15 +18695,15 @@
     var bind118 = bind(Monad0.Bind1());
     var asks2 = asks(MonadAsk0);
     var pure41 = pure(Monad0.Applicative0());
-    return bind118(asks2(function($295) {
+    return bind118(asks2(function($293) {
       return function(v2) {
         return v2.pieces;
-      }(unwrap11($295));
+      }(unwrap11($293));
     }))(function(pieces) {
-      return bind118(asks2(function($296) {
+      return bind118(asks2(function($294) {
         return function(v2) {
           return v2.psuedoPieceLocations;
-        }(unwrap11($296));
+        }(unwrap11($294));
       }))(function(psuedoPieceLocations) {
         return pure41(mapMaybe4(function(loc) {
           return map39(matchingPort)(bind15(lookup12(loc)(pieces))(function(v2) {
@@ -18693,11 +18726,11 @@
       var gets7 = gets(dictMonadState);
       return function(dir2) {
         return bind118(asks2(function() {
-          var $299 = lookup11(dir2);
-          return function($300) {
-            return $299(function(v2) {
+          var $297 = lookup11(dir2);
+          return function($298) {
+            return $297(function(v2) {
               return v2.psuedoPieceLocations;
-            }(unwrap11($300)));
+            }(unwrap11($298)));
           };
         }()))(function(maybeLoc) {
           return $$for3(maybeLoc)(function(loc) {
@@ -18725,10 +18758,10 @@
       var assign4 = assign(dictMonadState);
       return function(inRelEdge) {
         return function(capacity) {
-          return bind118(asks2(function($301) {
+          return bind118(asks2(function($299) {
             return function(v2) {
               return v2.connections;
-            }(unwrap11($301));
+            }(unwrap11($299));
           }))(function(connections) {
             var v2 = lookup22(inRelEdge)(connections);
             if (v2 instanceof Just) {
@@ -18765,7 +18798,7 @@
               });
             }
             ;
-            throw new Error("Failed pattern match at Game.Board.EvaluableBoard (line 195, column 3 - line 206, column 18): " + [v2.constructor.name]);
+            throw new Error("Failed pattern match at Game.Board.EvaluableBoard (line 194, column 3 - line 205, column 18): " + [v2.constructor.name]);
           });
         };
       };
@@ -18807,10 +18840,10 @@
       var getInputOnEdge2 = getInputOnEdge1(dictMonadState);
       var assign4 = assign(dictMonadState);
       return function(loc) {
-        return bind118(asks2(function($302) {
+        return bind118(asks2(function($300) {
           return function(v2) {
             return v2.pieces;
-          }(unwrap11($302));
+          }(unwrap11($300));
         }))(function(pieces) {
           return for_7(lookup12(loc)(pieces))(function(v2) {
             var inputPorts = filter7(isInput)(v2.ports);
@@ -18855,10 +18888,10 @@
       var evalWithPortInfoAt2 = evalWithPortInfoAt1(dictMonadState);
       var extractOutputs2 = extractOutputs1(dictMonadState);
       return function(inputs) {
-        return bind118(asks2(function($303) {
+        return bind118(asks2(function($301) {
           return function(v2) {
             return v2.evalOrder;
-          }(unwrap11($303));
+          }(unwrap11($301));
         }))(function(evalOrder) {
           return discard111(injectInputs2(inputs))(function() {
             return discard111(traverse_16(evalWithPortInfoAt2)(evalOrder))(function() {
@@ -18883,12 +18916,7 @@
           return Nothing.value;
         };
       },
-      ports: getPorts1(v2),
-      updatePort: function(v1) {
-        return function(v22) {
-          return Nothing.value;
-        };
-      }
+      ports: getPorts1(v2)
     });
   };
   var buildEvaluableBoard = function(dictMonadError) {
@@ -18916,9 +18944,9 @@
           return bind118(getBoardEdgePseudoLocation2(dir2))(function(loc) {
             var rotation3 = clockwiseRotation(Left2.value)(dir2);
             return assign4(function() {
-              var $304 = at1(loc)(strongFn);
-              return function($305) {
-                return _pieces4($304($305));
+              var $302 = at1(loc)(strongFn);
+              return function($303) {
+                return _pieces4($302($303));
               };
             }())(new Just({
               piece: psuedoPiece(port2),
@@ -19229,7 +19257,7 @@
   };
 
   // output/Parsing/index.js
-  var $runtime_lazy11 = function(name16, moduleName, init4) {
+  var $runtime_lazy12 = function(name16, moduleName, init4) {
     var state3 = 0;
     var val;
     return function(lineNumber) {
@@ -19351,7 +19379,7 @@
     tailRecM: function(next2) {
       return function(initArg) {
         return function(state1, more, lift1, $$throw2, done) {
-          var $lazy_loop = $runtime_lazy11("loop", "Parsing", function() {
+          var $lazy_loop = $runtime_lazy12("loop", "Parsing", function() {
             return function(state22, arg, gas) {
               var v2 = next2(arg);
               return v2(state22, more, lift1, $$throw2, function(state3, step5) {
@@ -19511,7 +19539,7 @@
   var mod5 = /* @__PURE__ */ mod(euclideanRingInt);
   var fromJust6 = /* @__PURE__ */ fromJust();
   var toEnum3 = /* @__PURE__ */ toEnum(boundedEnumChar);
-  var show18 = /* @__PURE__ */ show(showString);
+  var show16 = /* @__PURE__ */ show(showString);
   var show23 = /* @__PURE__ */ show(showChar);
   var updatePosSingle = function(v2) {
     return function(cp) {
@@ -19675,7 +19703,7 @@
         });
       }
       ;
-      return new Left("Expected " + show18(str));
+      return new Left("Expected " + show16(str));
     });
   };
   var $$char = function(c2) {
@@ -19710,7 +19738,7 @@
   var voidLeft4 = /* @__PURE__ */ voidLeft(functorParserT);
   var bind22 = /* @__PURE__ */ bind(bindParserT);
   var pure15 = /* @__PURE__ */ pure(applicativeParserT);
-  var show19 = /* @__PURE__ */ show(showInt);
+  var show17 = /* @__PURE__ */ show(showInt);
   var applyFirst3 = /* @__PURE__ */ applyFirst(applyParserT);
   var wrapAttribute = function() {
     return function(attrName) {
@@ -19759,12 +19787,12 @@
     }())(many12(digit)))(function(digitStr) {
       return maybe(fail2(digitStr))(pure15)(fromString(digitStr));
     });
-    return dataAttribute("int")(show19)(attrParse);
+    return dataAttribute("int")(show17)(attrParse);
   }();
   var rotation2 = /* @__PURE__ */ wrapAttribute()("data-rotation")($$int2);
   var location3 = /* @__PURE__ */ function() {
     var attrPrint = function(v2) {
-      return "(" + (show19(v2.x) + ("," + (show19(v2.y) + ")")));
+      return "(" + (show17(v2.x) + ("," + (show17(v2.y) + ")")));
     };
     var attrParse = bind22(applyFirst3(applySecond(applyParserT)($$char("("))($$int2.attrParse))($$char(",")))(function(x2) {
       return bind22(applyFirst3($$int2.attrParse)($$char(")")))(function(y2) {
@@ -20053,8 +20081,8 @@
   var fromPlainHTML = unsafeCoerce;
 
   // output/Halogen.Svg.Attributes.Color/index.js
-  var show20 = /* @__PURE__ */ show(showInt);
-  var show110 = /* @__PURE__ */ show(showNumber);
+  var show18 = /* @__PURE__ */ show(showInt);
+  var show19 = /* @__PURE__ */ show(showNumber);
   var RGB = /* @__PURE__ */ function() {
     function RGB2(value0, value1, value22) {
       this.value0 = value0;
@@ -20109,11 +20137,11 @@
   }();
   var printColor = function(v2) {
     if (v2 instanceof RGB) {
-      return "rgb(" + (show20(v2.value0) + ("," + (show20(v2.value1) + ("," + (show20(v2.value2) + ")")))));
+      return "rgb(" + (show18(v2.value0) + ("," + (show18(v2.value1) + ("," + (show18(v2.value2) + ")")))));
     }
     ;
     if (v2 instanceof RGBA) {
-      return "rgba(" + (show20(v2.value0) + ("," + (show20(v2.value1) + ("," + (show20(v2.value2) + ("," + (show110(v2.value3) + ")")))))));
+      return "rgba(" + (show18(v2.value0) + ("," + (show18(v2.value1) + ("," + (show18(v2.value2) + ("," + (show19(v2.value3) + ")")))))));
     }
     ;
     if (v2 instanceof Named) {
@@ -20128,7 +20156,7 @@
   };
 
   // output/Halogen.Svg.Attributes.Path/index.js
-  var show21 = /* @__PURE__ */ show(showNumber);
+  var show20 = /* @__PURE__ */ show(showNumber);
   var Rel = /* @__PURE__ */ function() {
     function Rel2() {
     }
@@ -20161,7 +20189,7 @@
     return function(ref3) {
       return function(a_2) {
         return function(b2) {
-          return renderCommand(ref3)(s_) + (show21(a_2) + (", " + show21(b2)));
+          return renderCommand(ref3)(s_) + (show20(a_2) + (", " + show20(b2)));
         };
       };
     };
@@ -20172,7 +20200,7 @@
         return function(b2) {
           return function(c_) {
             return function(d_) {
-              return renderCommand(ref3)(s_) + (show21(a_2) + (", " + (show21(b2) + (", " + (show21(c_) + (", " + show21(d_)))))));
+              return renderCommand(ref3)(s_) + (show20(a_2) + (", " + (show20(b2) + (", " + (show20(c_) + (", " + show20(d_)))))));
             };
           };
         };
@@ -20184,7 +20212,7 @@
   var l = /* @__PURE__ */ renderCommand2Args("l");
 
   // output/Halogen.Svg.Attributes.Transform/index.js
-  var show24 = /* @__PURE__ */ show(showNumber);
+  var show21 = /* @__PURE__ */ show(showNumber);
   var Matrix = /* @__PURE__ */ function() {
     function Matrix2(value0, value1, value22, value32, value42, value52) {
       this.value0 = value0;
@@ -20274,46 +20302,46 @@
   }();
   var printTransform = function(v2) {
     if (v2 instanceof Matrix) {
-      return "matrix(" + (show24(v2.value0) + ("," + (show24(v2.value1) + ("," + (show24(v2.value2) + ("," + (show24(v2.value3) + ("," + (show24(v2.value4) + ("," + (show24(v2.value5) + ")")))))))))));
+      return "matrix(" + (show21(v2.value0) + ("," + (show21(v2.value1) + ("," + (show21(v2.value2) + ("," + (show21(v2.value3) + ("," + (show21(v2.value4) + ("," + (show21(v2.value5) + ")")))))))))));
     }
     ;
     if (v2 instanceof Translate) {
-      return "translate(" + (show24(v2.value0) + ("," + (show24(v2.value1) + ")")));
+      return "translate(" + (show21(v2.value0) + ("," + (show21(v2.value1) + ")")));
     }
     ;
     if (v2 instanceof Scale) {
-      return "scale(" + (show24(v2.value0) + ("," + (show24(v2.value1) + ")")));
+      return "scale(" + (show21(v2.value0) + ("," + (show21(v2.value1) + ")")));
     }
     ;
     if (v2 instanceof Rotate) {
-      return "rotate(" + (show24(v2.value0) + ("," + (show24(v2.value1) + ("," + (show24(v2.value2) + ")")))));
+      return "rotate(" + (show21(v2.value0) + ("," + (show21(v2.value1) + ("," + (show21(v2.value2) + ")")))));
     }
     ;
     if (v2 instanceof SkewX) {
-      return "skewX(" + (show24(v2.value0) + ")");
+      return "skewX(" + (show21(v2.value0) + ")");
     }
     ;
     if (v2 instanceof SkewY) {
-      return "skewY(" + (show24(v2.value0) + ")");
+      return "skewY(" + (show21(v2.value0) + ")");
     }
     ;
     throw new Error("Failed pattern match at Halogen.Svg.Attributes.Transform (line 28, column 18 - line 34, column 39): " + [v2.constructor.name]);
   };
 
   // output/Halogen.Svg.Attributes/index.js
-  var show25 = /* @__PURE__ */ show(showNumber);
+  var show24 = /* @__PURE__ */ show(showNumber);
   var map43 = /* @__PURE__ */ map(functorArray);
   var width8 = /* @__PURE__ */ function() {
     var $36 = attr2("width");
     return function($37) {
-      return $36(show25($37));
+      return $36(show24($37));
     };
   }();
   var viewBox = function(x_) {
     return function(y_) {
       return function(w) {
         return function(h_) {
-          return attr2("viewBox")(joinWith(" ")(map43(show25)([x_, y_, w, h_])));
+          return attr2("viewBox")(joinWith(" ")(map43(show24)([x_, y_, w, h_])));
         };
       };
     };
@@ -20329,7 +20357,7 @@
   var stopOpacity = /* @__PURE__ */ function() {
     var $59 = attr2("stop-opacity");
     return function($60) {
-      return $59(show25($60));
+      return $59(show24($60));
     };
   }();
   var stopColor = /* @__PURE__ */ function() {
@@ -20344,7 +20372,7 @@
   var height8 = /* @__PURE__ */ function() {
     var $101 = attr2("height");
     return function($102) {
-      return $101(show25($102));
+      return $101(show24($102));
     };
   }();
   var gradientTransform = /* @__PURE__ */ function() {
@@ -20411,7 +20439,7 @@
   var eq10 = /* @__PURE__ */ eq(eqSignal);
   var zero5 = /* @__PURE__ */ zero(semiringSignal);
   var identity19 = /* @__PURE__ */ identity(categoryFn);
-  var show26 = /* @__PURE__ */ show(showInt);
+  var show25 = /* @__PURE__ */ show(showInt);
   var intercalate6 = /* @__PURE__ */ intercalate(foldableArray)(monoidString);
   var shadeColor = function(percentage) {
     var f = function(x2) {
@@ -20478,7 +20506,7 @@
       return "out";
     }();
     var color2 = portColor(v2.port)(v2.signal);
-    var capacityId = show26(toInt(portCapacity(v2.port))) + "bit";
+    var capacityId = show25(toInt(portCapacity(v2.port))) + "bit";
     var id4 = intercalate6("-")(["port-gradient", portId, signalId, capacityId]);
     var def = linearGradient([id3(id4), gradientTransform([new Rotate(90, 0, 0)])])(function() {
       var v1 = portType(v2.port);
@@ -20517,7 +20545,7 @@
   var discard7 = /* @__PURE__ */ discard(discardUnit)(/* @__PURE__ */ bindWriterT(semigroupArray)(bindIdentity));
   var map44 = /* @__PURE__ */ map(functorArray);
   var traverse_5 = /* @__PURE__ */ traverse_(applicativeWriterT3)(foldableArray);
-  var show27 = /* @__PURE__ */ show(/* @__PURE__ */ showMap(showCardinalDirection)(/* @__PURE__ */ showRecord()()(/* @__PURE__ */ showRecordFieldsCons({
+  var show26 = /* @__PURE__ */ show(/* @__PURE__ */ showMap(showCardinalDirection)(/* @__PURE__ */ showRecord()()(/* @__PURE__ */ showRecordFieldsCons({
     reflectSymbol: function() {
       return "connected";
     }
@@ -20661,7 +20689,7 @@
       });
     }));
     var info4 = fromMaybe$prime(function(v2) {
-      return unsafeCrashWith("assertion failed: wire path created with no inputs. ports: " + show27(ports));
+      return unsafeCrashWith("assertion failed: wire path created with no inputs. ports: " + show26(ports));
     })(find4(function(portInfo) {
       return isInput(portInfo.port);
     })(ports));
@@ -20675,7 +20703,7 @@
   };
   var renderWire = function(portStates) {
     var inputDirection = maybe$prime(function(v2) {
-      return unsafeCrashWith("assertion failed: wire path created with no inputs. ports: " + show27(portStates));
+      return unsafeCrashWith("assertion failed: wire path created with no inputs. ports: " + show26(portStates));
     })(function(v2) {
       return v2.index;
     })(findWithIndex2(function(v2) {
@@ -20751,7 +20779,7 @@
   // output/Game.Piece.WirePiece/index.js
   var ordSet2 = /* @__PURE__ */ ordSet(ordCardinalDirection);
   var append17 = /* @__PURE__ */ append(/* @__PURE__ */ semigroupSet(ordCardinalDirection));
-  var show28 = /* @__PURE__ */ show(/* @__PURE__ */ showSet(showCardinalDirection));
+  var show27 = /* @__PURE__ */ show(/* @__PURE__ */ showSet(showCardinalDirection));
   var mkPiece4 = /* @__PURE__ */ mkPiece()();
   var lookup13 = /* @__PURE__ */ lookup2(ordSet2);
   var zero6 = /* @__PURE__ */ zero(semiringSignal);
@@ -20768,6 +20796,7 @@
   var fromFoldable8 = /* @__PURE__ */ fromFoldable2(ordCardinalDirection);
   var fromFoldable13 = /* @__PURE__ */ fromFoldable8(foldableSet);
   var map45 = /* @__PURE__ */ map13(/* @__PURE__ */ ordTuple(ordCardinalDirection)(ordCardinalDirection));
+  var fix3 = /* @__PURE__ */ fix(lazyFn);
   var fromFoldable23 = /* @__PURE__ */ fromFoldable4(foldableArray)(ordCardinalDirection);
   var elem5 = /* @__PURE__ */ elem(foldableMap)(eqPieceId);
   var fromFoldable33 = /* @__PURE__ */ fromFoldable8(foldableArray);
@@ -20779,73 +20808,81 @@
   }();
   var mkWirePiece = function(wire) {
     var nameErr = function(v2) {
-      return unsafeCrashWith("Can't find wire piece with outputs: " + show28(wire.outputs));
+      return unsafeCrashWith("Can't find wire piece with outputs: " + show27(wire.outputs));
     };
-    return mkPiece4({
-      name: fromMaybe$prime(nameErr)(lookup13(wire.outputs)(wirePieceNames)),
-      "eval": function(inputs) {
-        var signal = fromMaybe(zero6)(lookup14(Left2.value)(inputs));
-        return voidLeft5(toMap(wire.outputs))(signal);
-      },
-      complexity: space(toNumber(length10(wire.outputs))),
-      shouldRipple: true,
-      updateCapacity: function(v2) {
-        return function(capacity) {
-          return new Just(mkWirePiece({
-            outputs: wire.outputs,
-            capacity
-          }));
-        };
-      },
-      ports: insert10(Left2.value)(inputPort(wire.capacity))(voidLeft5(toMap(wire.outputs))(outputPort(wire.capacity))),
-      updatePort: function(dir2) {
-        return function(portType2) {
-          if (dir2 instanceof Left2) {
-            return Nothing.value;
-          }
-          ;
-          if (portType2 instanceof Just && portType2.value0 instanceof Input) {
-            var newOutputs = insert12(dir2)(wire.outputs);
-            return discard8(guard5(notEq5(wire.outputs)(newOutputs)))(function() {
-              return pure16(mkWirePiece({
-                capacity: wire.capacity,
-                outputs: newOutputs
+    var go2 = function(lazyP) {
+      return function(v2) {
+        return mkPiece4({
+          name: fromMaybe$prime(nameErr)(lookup13(wire.outputs)(wirePieceNames)),
+          "eval": function(inputs) {
+            var signal = fromMaybe(zero6)(lookup14(Left2.value)(inputs));
+            return voidLeft5(toMap(wire.outputs))(signal);
+          },
+          complexity: space(toNumber(length10(wire.outputs))),
+          shouldRipple: true,
+          updateCapacity: function(v1) {
+            return function(capacity) {
+              return new Just(mkWirePiece({
+                outputs: wire.outputs,
+                capacity
               }));
-            });
-          }
-          ;
-          if (portType2 instanceof Just && portType2.value0 instanceof Output) {
-            return Nothing.value;
-          }
-          ;
-          if (portType2 instanceof Nothing) {
-            var newOutputs = $$delete7(dir2)(wire.outputs);
-            return discard8(guard5(notEq5(wire.outputs)(newOutputs)))(function() {
-              var $47 = isEmpty2(newOutputs);
-              if ($47) {
-                return pure16(mkWirePiece({
-                  capacity: wire.capacity,
-                  outputs: singleton8(Right2.value)
-                }));
-              }
-              ;
-              return pure16(mkWirePiece({
-                capacity: wire.capacity,
-                outputs: newOutputs
-              }));
-            });
-          }
-          ;
-          throw new Error("Failed pattern match at Game.Piece.WirePiece (line 69, column 34 - line 81, column 68): " + [dir2.constructor.name, portType2.constructor.name]);
-        };
-      },
-      isSimplifiable: function() {
-        var connections = fromFoldable13(map45(function(out) {
-          return new Tuple(out, Left2.value);
-        })(wire.outputs));
-        return new Just(new Connection(connections));
-      }()
-    });
+            };
+          },
+          ports: insert10(Left2.value)(inputPort(wire.capacity))(voidLeft5(toMap(wire.outputs))(outputPort(wire.capacity))),
+          glob: function(dir2) {
+            return function(portType2) {
+              return fromMaybe(lazyP(unit))(function() {
+                if (dir2 instanceof Left2) {
+                  return Nothing.value;
+                }
+                ;
+                if (portType2 instanceof Just && portType2.value0 instanceof Input) {
+                  var newOutputs = insert12(dir2)(wire.outputs);
+                  return discard8(guard5(notEq5(wire.outputs)(newOutputs)))(function() {
+                    return pure16(mkWirePiece({
+                      capacity: wire.capacity,
+                      outputs: newOutputs
+                    }));
+                  });
+                }
+                ;
+                if (portType2 instanceof Just && portType2.value0 instanceof Output) {
+                  return Nothing.value;
+                }
+                ;
+                if (portType2 instanceof Nothing) {
+                  var newOutputs = $$delete7(dir2)(wire.outputs);
+                  return discard8(guard5(notEq5(wire.outputs)(newOutputs)))(function() {
+                    var $49 = isEmpty2(newOutputs);
+                    if ($49) {
+                      return pure16(mkWirePiece({
+                        capacity: wire.capacity,
+                        outputs: singleton8(Right2.value)
+                      }));
+                    }
+                    ;
+                    return pure16(mkWirePiece({
+                      capacity: wire.capacity,
+                      outputs: newOutputs
+                    }));
+                  });
+                }
+                ;
+                throw new Error("Failed pattern match at Game.Piece.WirePiece (line 73, column 55 - line 85, column 72): " + [dir2.constructor.name, portType2.constructor.name]);
+              }());
+            };
+          },
+          unglob: lazyP(unit),
+          isSimplifiable: function() {
+            var connections = fromFoldable13(map45(function(out) {
+              return new Tuple(out, Left2.value);
+            })(wire.outputs));
+            return new Just(new Connection(connections));
+          }()
+        });
+      };
+    };
+    return fix3(go2)(unit);
   };
   var rightPiece = /* @__PURE__ */ function() {
     return mkWirePiece({
@@ -21328,7 +21365,7 @@
   };
 
   // output/Component.Board.Render/index.js
-  var show29 = /* @__PURE__ */ show(showInt);
+  var show28 = /* @__PURE__ */ show(showInt);
   var intercalate7 = /* @__PURE__ */ intercalate(foldableArray)(monoidString);
   var bind20 = /* @__PURE__ */ bind(bindMaybe);
   var pure19 = /* @__PURE__ */ pure(applicativeMaybe);
@@ -21349,10 +21386,10 @@
   var join4 = /* @__PURE__ */ join(bindArray);
   var render = function(state3) {
     var gridArea = function(v2) {
-      return "grid-area: " + (show29(v2.value1 + 2 | 0) + (" / " + show29(v2.value0 + 2 | 0)));
+      return "grid-area: " + (show28(v2.value1 + 2 | 0) + (" / " + show28(v2.value0 + 2 | 0)));
     };
     var emptyPieceHTML = function(v2) {
-      return div5([class_("location-text")])([text(show29(v2.x + 1 | 0) + ("," + show29(v2.y + 1 | 0)))]);
+      return div5([class_("location-text")])([text(show28(v2.x + 1 | 0) + ("," + show28(v2.y + 1 | 0)))]);
     };
     var renderPieceSlot = function(i2) {
       return function(j) {
@@ -21364,7 +21401,7 @@
     };
     var board = head3(state3.boardHistory);
     var n = viewOn(board)(_size3);
-    var gridTemplate = "25fr repeat(" + (show29(n) + ", 100fr) 25fr");
+    var gridTemplate = "25fr repeat(" + (show28(n) + ", 100fr) 25fr");
     var pieces = bind110(range2(0)(n - 1 | 0))(function(i2) {
       return bind110(range2(0)(n - 1 | 0))(function(j) {
         return pure110(renderPieceSlot(i2)(j));
@@ -21441,52 +21478,14 @@
     return $$Proxy.value;
   }();
 
-  // output/Debug/foreign.js
-  var req = typeof module === "undefined" ? void 0 : module.require;
-  var util = function() {
-    try {
-      return req === void 0 ? void 0 : req("util");
-    } catch (e) {
-      return void 0;
-    }
-  }();
-  function _trace(x2, k) {
-    if (util !== void 0) {
-      console.log(util.inspect(x2, { depth: null, colors: true }));
-    } else {
-      console.log(x2);
-    }
-    return k({});
-  }
-  var now2 = function() {
-    var perf;
-    if (typeof performance !== "undefined") {
-      perf = performance;
-    } else if (req) {
-      try {
-        perf = req("perf_hooks").performance;
-      } catch (e) {
-      }
-    }
-    return function() {
-      return (perf || Date).now();
-    };
-  }();
-
-  // output/Debug/index.js
-  var trace2 = function() {
-    return function(a3) {
-      return function(k) {
-        return _trace(a3, k);
-      };
-    };
-  };
-
   // output/Game.Board.Operation/index.js
+  var div9 = /* @__PURE__ */ div(euclideanRingInt);
+  var all4 = /* @__PURE__ */ all(foldableArray)(heytingAlgebraBoolean);
+  var between2 = /* @__PURE__ */ between(ordInt);
+  var find5 = /* @__PURE__ */ find(foldableSet);
+  var not3 = /* @__PURE__ */ not(heytingAlgebraBoolean);
   var _pieces5 = /* @__PURE__ */ _pieces(strongForget);
   var at5 = /* @__PURE__ */ at(/* @__PURE__ */ atMap(ordLocation));
-  var trace3 = /* @__PURE__ */ trace2();
-  var show30 = /* @__PURE__ */ show(showEdge);
   var _pieces13 = /* @__PURE__ */ _pieces(strongFn);
   var ix3 = /* @__PURE__ */ ix(/* @__PURE__ */ indexMap(ordLocation));
   var prop9 = /* @__PURE__ */ prop({
@@ -21495,75 +21494,18 @@
     }
   })()();
   var map47 = /* @__PURE__ */ map(functorMaybe);
-  var div9 = /* @__PURE__ */ div(euclideanRingInt);
-  var all4 = /* @__PURE__ */ all(foldableArray)(heytingAlgebraBoolean);
-  var between2 = /* @__PURE__ */ between(ordInt);
-  var find5 = /* @__PURE__ */ find(foldableSet);
-  var not3 = /* @__PURE__ */ not(heytingAlgebraBoolean);
   var discard10 = /* @__PURE__ */ discard(discardUnit);
   var _rotation3 = /* @__PURE__ */ _rotation(strongFn);
   var validBoardSize = function(dictMonadThrow) {
     var throwError5 = throwError(dictMonadThrow);
     var pure41 = pure(dictMonadThrow.Monad0().Applicative0());
     return function(n) {
-      var $207 = even(n) || (n < 3 || n > 9);
-      if ($207) {
+      var $202 = even(n) || (n < 3 || n > 9);
+      if ($202) {
         return throwError5(new BadBoardSize(n));
       }
       ;
       return pure41(n);
-    };
-  };
-  var updateRelEdge = function(dictMonadState) {
-    var Monad0 = dictMonadState.Monad0();
-    var bind40 = bind(Monad0.Bind1());
-    var use3 = use(dictMonadState);
-    var Applicative0 = Monad0.Applicative0();
-    var traverse_16 = traverse_(Applicative0)(foldableMaybe);
-    var for_7 = for_(Applicative0)(foldableMaybe);
-    var assign4 = assign(dictMonadState);
-    return function(v2) {
-      return function(portType2) {
-        return bind40(use3(function() {
-          var $232 = at5(v2.loc)(strongForget);
-          return function($233) {
-            return _pieces5($232($233));
-          };
-        }()))(traverse_16(function(info4) {
-          return for_7(updatePort(v2.dir)(portType2)(info4.piece))(function(piece) {
-            return trace3(show30({
-              dir: v2.dir,
-              loc: v2.loc
-            }))(function(v1) {
-              return assign4(function() {
-                var $234 = ix3(v2.loc)(strongFn)(choiceFn);
-                var $235 = prop9($$Proxy.value)(strongFn);
-                return function($236) {
-                  return _pieces13($234($235($236)));
-                };
-              }())(piece);
-            });
-          });
-        }));
-      };
-    };
-  };
-  var updatePortsAround = function(dictMonadState) {
-    var Monad0 = dictMonadState.Monad0();
-    var for_7 = for_(Monad0.Applicative0())(foldableArray);
-    var bind40 = bind(Monad0.Bind1());
-    var getPortOnEdge2 = getPortOnEdge(dictMonadState);
-    var adjacentRelativeEdge2 = adjacentRelativeEdge(dictMonadState);
-    var updateRelEdge1 = updateRelEdge(dictMonadState);
-    return function(loc) {
-      return for_7(allDirections)(function(dir2) {
-        var relEdge = relative(loc)(dir2);
-        return bind40(getPortOnEdge2(relEdge))(function(maybePort) {
-          return bind40(adjacentRelativeEdge2(relEdge))(function(relEdge$prime) {
-            return updateRelEdge1(relEdge$prime)(map47(portType)(maybePort));
-          });
-        });
-      });
     };
   };
   var setBoardSize = function(dictMonadState) {
@@ -21584,8 +21526,8 @@
             var shiftLocation = function(v1) {
               return location(v1.x - dSize | 0)(v1.y - dSize | 0);
             };
-            var firstPieceOusideSquare = find5(function($237) {
-              return !insideSquare(shiftLocation($237));
+            var firstPieceOusideSquare = find5(function($227) {
+              return !insideSquare(shiftLocation($227));
             })(keys2(v2.pieces));
             if (firstPieceOusideSquare instanceof Just) {
               return throwError5(new LocationOccupied(firstPieceOusideSquare.value0));
@@ -21598,10 +21540,53 @@
               });
             }
             ;
-            throw new Error("Failed pattern match at Game.Board.Operation (line 192, column 3 - line 196, column 52): " + [firstPieceOusideSquare.constructor.name]);
+            throw new Error("Failed pattern match at Game.Board.Operation (line 190, column 3 - line 194, column 52): " + [firstPieceOusideSquare.constructor.name]);
           });
         });
       };
+    };
+  };
+  var globRelEdge = function(dictMonadState) {
+    var Monad0 = dictMonadState.Monad0();
+    var bind40 = bind(Monad0.Bind1());
+    var use3 = use(dictMonadState);
+    var traverse_16 = traverse_(Monad0.Applicative0())(foldableMaybe);
+    var assign4 = assign(dictMonadState);
+    return function(v2) {
+      return function(portType2) {
+        return bind40(use3(function() {
+          var $228 = at5(v2.loc)(strongForget);
+          return function($229) {
+            return _pieces5($228($229));
+          };
+        }()))(traverse_16(function(info4) {
+          return assign4(function() {
+            var $230 = ix3(v2.loc)(strongFn)(choiceFn);
+            var $231 = prop9($$Proxy.value)(strongFn);
+            return function($232) {
+              return _pieces13($230($231($232)));
+            };
+          }())(glob(v2.dir)(portType2)(info4.piece));
+        }));
+      };
+    };
+  };
+  var globPortsAround = function(dictMonadState) {
+    var Monad0 = dictMonadState.Monad0();
+    var for_7 = for_(Monad0.Applicative0())(foldableArray);
+    var bind40 = bind(Monad0.Bind1());
+    var getPortOnEdge2 = getPortOnEdge(dictMonadState);
+    var adjacentRelativeEdge2 = adjacentRelativeEdge(dictMonadState);
+    var globRelEdge1 = globRelEdge(dictMonadState);
+    return function(loc) {
+      return for_7(allDirections)(function(dir2) {
+        var relEdge = relative(loc)(dir2);
+        return bind40(getPortOnEdge2(relEdge))(function(maybePort) {
+          return bind40(adjacentRelativeEdge2(relEdge))(function(relEdge$prime) {
+            return globRelEdge1(relEdge$prime)(map47(portType)(maybePort));
+          });
+        });
+      });
     };
   };
   var movePiece = function(dictMonadError) {
@@ -21617,36 +21602,36 @@
     return function(dictMonadState) {
       var use3 = use(dictMonadState);
       var assign4 = assign(dictMonadState);
-      var updatePortsAround1 = updatePortsAround(dictMonadState);
+      var globPortsAround1 = globPortsAround(dictMonadState);
       return function(src10) {
         return function(dst) {
           return bind40(use3(function() {
-            var $238 = at5(src10)(strongForget);
-            return function($239) {
-              return _pieces5($238($239));
+            var $233 = at5(src10)(strongForget);
+            return function($234) {
+              return _pieces5($233($234));
             };
           }()))(function(v2) {
             if (v2 instanceof Just) {
               return discard111(whenM3(map123(isJust)(use3(function() {
-                var $240 = at5(dst)(strongForget);
-                return function($241) {
-                  return _pieces5($240($241));
+                var $235 = at5(dst)(strongForget);
+                return function($236) {
+                  return _pieces5($235($236));
                 };
               }())))(throwError5(new LocationOccupied(dst))))(function() {
                 return discard111(assign4(function() {
-                  var $242 = at5(src10)(strongFn);
-                  return function($243) {
-                    return _pieces13($242($243));
+                  var $237 = at5(src10)(strongFn);
+                  return function($238) {
+                    return _pieces13($237($238));
                   };
                 }())(Nothing.value))(function() {
                   return discard111(assign4(function() {
-                    var $244 = at5(dst)(strongFn);
-                    return function($245) {
-                      return _pieces13($244($245));
+                    var $239 = at5(dst)(strongFn);
+                    return function($240) {
+                      return _pieces13($239($240));
                     };
                   }())(new Just(v2.value0)))(function() {
-                    return discard111(updatePortsAround1(src10))(function() {
-                      return discard111(updatePortsAround1(dst))(function() {
+                    return discard111(globPortsAround1(src10))(function() {
+                      return discard111(globPortsAround1(dst))(function() {
                         return pure41(v2.value0);
                       });
                     });
@@ -21659,7 +21644,7 @@
               return throwError5(new LocationNotOccupied(src10));
             }
             ;
-            throw new Error("Failed pattern match at Game.Board.Operation (line 123, column 32 - line 134, column 43): " + [v2.constructor.name]);
+            throw new Error("Failed pattern match at Game.Board.Operation (line 121, column 32 - line 132, column 43): " + [v2.constructor.name]);
           });
         };
       };
@@ -21675,9 +21660,9 @@
       var pure41 = pure(Monad0.Applicative0());
       return function(loc) {
         return bind40(use3(function() {
-          var $246 = at5(loc)(strongForget);
-          return function($247) {
-            return _pieces5($246($247));
+          var $241 = at5(loc)(strongForget);
+          return function($242) {
+            return _pieces5($241($242));
           };
         }()))(maybe(throwError5(new LocationNotOccupied(loc)))(pure41));
       };
@@ -21724,9 +21709,9 @@
       return function(loc) {
         return discard111(checkInsideBoard2(loc))(function() {
           return bind40(use3(function() {
-            var $248 = at5(loc)(strongForget);
-            return function($249) {
-              return _pieces5($248($249));
+            var $243 = at5(loc)(strongForget);
+            return function($244) {
+              return _pieces5($243($244));
             };
           }()))(function(maybePieceInfo) {
             if (maybePieceInfo instanceof Nothing) {
@@ -21735,16 +21720,16 @@
             ;
             if (maybePieceInfo instanceof Just) {
               return discard111(assign4(function() {
-                var $250 = at5(loc)(strongFn);
-                return function($251) {
-                  return _pieces13($250($251));
+                var $245 = at5(loc)(strongFn);
+                return function($246) {
+                  return _pieces13($245($246));
                 };
               }())(Nothing.value))(function() {
                 return pure41(maybePieceInfo.value0);
               });
             }
             ;
-            throw new Error("Failed pattern match at Game.Board.Operation (line 107, column 3 - line 111, column 21): " + [maybePieceInfo.constructor.name]);
+            throw new Error("Failed pattern match at Game.Board.Operation (line 105, column 3 - line 109, column 21): " + [maybePieceInfo.constructor.name]);
           });
         });
       };
@@ -21759,10 +21744,10 @@
     var pure41 = pure(Monad0.Applicative0());
     return function(dictMonadState) {
       var removePieceNoUpdate2 = removePieceNoUpdate1(dictMonadState);
-      var updatePortsAround1 = updatePortsAround(dictMonadState);
+      var globPortsAround1 = globPortsAround(dictMonadState);
       return function(loc) {
         return bind40(removePieceNoUpdate2(loc))(function(piece) {
-          return discard111(updatePortsAround1(loc))(function() {
+          return discard111(globPortsAround1(loc))(function() {
             return pure41(piece);
           });
         });
@@ -21783,7 +21768,7 @@
             return removePiece1(src10);
           }
           ;
-          throw new Error("Failed pattern match at Game.Board.Operation (line 140, column 3 - line 144, column 31): " + [maybeDst.constructor.name]);
+          throw new Error("Failed pattern match at Game.Board.Operation (line 138, column 3 - line 142, column 31): " + [maybeDst.constructor.name]);
         };
       };
     };
@@ -21797,18 +21782,18 @@
       var checkInsideBoard2 = checkInsideBoard1(dictMonadState);
       var getPiece1 = getPiece(dictMonadState)(dictMonadError);
       var appendModifying3 = appendModifying(dictMonadState)(semigroupRotation);
-      var updatePortsAround1 = updatePortsAround(dictMonadState);
+      var globPortsAround1 = globPortsAround(dictMonadState);
       return function(loc) {
         return function(rot) {
           return discard111(checkInsideBoard2(loc))(function() {
             return bind40(getPiece1(loc))(function() {
               return discard111(appendModifying3(function() {
-                var $252 = ix3(loc)(strongFn)(choiceFn);
-                return function($253) {
-                  return _pieces13($252(_rotation3($253)));
+                var $247 = ix3(loc)(strongFn)(choiceFn);
+                return function($248) {
+                  return _pieces13($247(_rotation3($248)));
                 };
               }())(rot))(function() {
-                return updatePortsAround1(loc);
+                return globPortsAround1(loc);
               });
             });
           });
@@ -21832,16 +21817,16 @@
           return function(rotation3) {
             return discard111(checkInsideBoard2(loc))(function() {
               return bind40(use3(function() {
-                var $254 = at5(loc)(strongForget);
-                return function($255) {
-                  return _pieces5($254($255));
+                var $249 = at5(loc)(strongForget);
+                return function($250) {
+                  return _pieces5($249($250));
                 };
               }()))(function(pieceInfo) {
                 if (pieceInfo instanceof Nothing) {
                   return assign4(function() {
-                    var $256 = at5(loc)(strongFn);
-                    return function($257) {
-                      return _pieces13($256($257));
+                    var $251 = at5(loc)(strongFn);
+                    return function($252) {
+                      return _pieces13($251($252));
                     };
                   }())(new Just({
                     piece,
@@ -21853,7 +21838,7 @@
                   return throwError5(new LocationOccupied(loc));
                 }
                 ;
-                throw new Error("Failed pattern match at Game.Board.Operation (line 94, column 3 - line 96, column 48): " + [pieceInfo.constructor.name]);
+                throw new Error("Failed pattern match at Game.Board.Operation (line 92, column 3 - line 94, column 48): " + [pieceInfo.constructor.name]);
               });
             });
           };
@@ -21866,11 +21851,11 @@
     var addPieceNoUpdate1 = addPieceNoUpdate(dictMonadError);
     return function(dictMonadState) {
       var addPieceNoUpdate2 = addPieceNoUpdate1(dictMonadState);
-      var updatePortsAround1 = updatePortsAround(dictMonadState);
+      var globPortsAround1 = globPortsAround(dictMonadState);
       return function(loc) {
         return function(piece) {
           return discard111(addPieceNoUpdate2(loc)(piece)(rotation(0)))(function() {
-            return updatePortsAround1(loc);
+            return globPortsAround1(loc);
           });
         };
       };
@@ -22222,15 +22207,15 @@
       }
     })))))
   };
-  var show31 = /* @__PURE__ */ show(showPathError);
+  var show29 = /* @__PURE__ */ show(showPathError);
   var updateEndPoints = function(dictMonadState) {
     var bind118 = bind(dictMonadState.Monad0().Bind1());
     var toRelativeEdge2 = toRelativeEdge(dictMonadState);
     var adjacentRelativeEdge2 = adjacentRelativeEdge(dictMonadState);
-    var updateRelEdge2 = updateRelEdge(dictMonadState);
+    var globRelEdge2 = globRelEdge(dictMonadState);
     return function(path3) {
       return bind118(bind118(toRelativeEdge2(absolute(path3.start)(path3.initial)))(adjacentRelativeEdge2))(function(headAdj) {
-        return updateRelEdge2(headAdj)(new Just(Input.value));
+        return globRelEdge2(headAdj)(new Just(Input.value));
       });
     };
   };
@@ -22278,7 +22263,7 @@
   var liftBoardError = function(dictMonadError) {
     var $160 = liftEither(dictMonadError.MonadThrow0());
     var $161 = lmap4(function($163) {
-      return Other.create(show31($163));
+      return Other.create(show29($163));
     });
     return function($162) {
       return $160($161($162));
@@ -22373,7 +22358,7 @@
   var toEvent2 = unsafeCoerce;
 
   // output/Web.UIEvent.MouseEvent.Extras/index.js
-  var show32 = /* @__PURE__ */ show(showInt);
+  var show30 = /* @__PURE__ */ show(showInt);
   var Primary = /* @__PURE__ */ function() {
     function Primary2() {
     }
@@ -22458,7 +22443,7 @@
       return Button5.value;
     }
     ;
-    return unsafeCrashWith("No such button " + show32(v2));
+    return unsafeCrashWith("No such button " + show30(v2));
   };
 
   // output/Component.Board/index.js
@@ -22485,7 +22470,7 @@
   var lift9 = /* @__PURE__ */ lift(monadTransHalogenM)(monadAppM);
   var debug3 = /* @__PURE__ */ debug(monadLoggerAppM);
   var showMap2 = /* @__PURE__ */ showMap(showCardinalDirection);
-  var show33 = /* @__PURE__ */ show(/* @__PURE__ */ showMap2(showPort));
+  var show31 = /* @__PURE__ */ show(/* @__PURE__ */ showMap2(showPort));
   var modify_4 = /* @__PURE__ */ modify_2(monadStateHalogenM);
   var forWithIndex_2 = /* @__PURE__ */ forWithIndex_(applicativeHalogenM)(foldableWithIndexMap);
   var assign3 = /* @__PURE__ */ assign(monadStateHalogenM);
@@ -22508,7 +22493,7 @@
   var mapFlipped4 = /* @__PURE__ */ mapFlipped(functorEffect);
   var traverse_7 = /* @__PURE__ */ traverse_(applicativeEffect)(foldableMaybe);
   var rotatePieceBy2 = /* @__PURE__ */ rotatePieceBy(monadErrorStateT2)(monadStateStateT3);
-  var show111 = /* @__PURE__ */ show(showLocation);
+  var show110 = /* @__PURE__ */ show(showLocation);
   var pieceDropped2 = /* @__PURE__ */ pieceDropped(monadStateStateT3)(monadErrorStateT2);
   var warn3 = /* @__PURE__ */ warn(monadLoggerAppM);
   var showRecord2 = /* @__PURE__ */ showRecord()();
@@ -22548,7 +22533,7 @@
   var _wireLocations2 = /* @__PURE__ */ _wireLocations(wanderFunction);
   var eq110 = /* @__PURE__ */ eq(eqMouseButton);
   var buildEvaluableBoard2 = /* @__PURE__ */ buildEvaluableBoard(monadErrorEither);
-  var show34 = /* @__PURE__ */ show(showBoardError);
+  var show32 = /* @__PURE__ */ show(showBoardError);
   var monadStateStateT1 = /* @__PURE__ */ monadStateStateT(monadIdentity);
   var evalWithPortInfo2 = /* @__PURE__ */ evalWithPortInfo(/* @__PURE__ */ monadReaderReaderT(/* @__PURE__ */ monadStateT(monadIdentity)))(/* @__PURE__ */ monadStateReaderT(monadStateStateT1));
   var union6 = /* @__PURE__ */ union2(ordString);
@@ -22676,7 +22661,7 @@
           ;
           if (v2 instanceof SetGoalPorts) {
             $tco_done = true;
-            return discard13(lift9(debug3(tag("boardPorts")(show33(v2.value0)))("Set goal ports on board")))(function() {
+            return discard13(lift9(debug3(tag("boardPorts")(show31(v2.value0)))("Set goal ports on board")))(function() {
               return discard13(modify_4(function(v1) {
                 var $213 = {};
                 for (var $214 in v1) {
@@ -22830,7 +22815,7 @@
         }
         ;
         if (v2 instanceof PieceOutput && v2.value0 instanceof Dropped) {
-          return discard13(lift9(debug3(empty2)("Piece dropped at " + show111(v2.value0.value0))))(function() {
+          return discard13(lift9(debug3(empty2)("Piece dropped at " + show110(v2.value0.value0))))(function() {
             return bind111(gets3(function(v12) {
               return v12.isMouseOverLocation;
             }))(function(maybeDst) {
@@ -23055,7 +23040,7 @@
             }))(function(inputs) {
               return bind111(map51(buildEvaluableBoard2(boardPorts))(use2(_board2)))(function(eitherEvaluable) {
                 if (eitherEvaluable instanceof Left) {
-                  return lift9(warn3(empty2)("Unable to build EvaluableBoard, BoardError: " + show34(eitherEvaluable.value0)));
+                  return lift9(warn3(empty2)("Unable to build EvaluableBoard, BoardError: " + show32(eitherEvaluable.value0)));
                 }
                 ;
                 if (eitherEvaluable instanceof Right) {
@@ -23380,7 +23365,7 @@
   };
 
   // output/Component.Selector/index.js
-  var show35 = /* @__PURE__ */ show(showPieceId);
+  var show33 = /* @__PURE__ */ show(showPieceId);
   var map53 = /* @__PURE__ */ map(functorArray);
   var fromFoldable15 = /* @__PURE__ */ fromFoldable3(foldableSet);
   var pure26 = /* @__PURE__ */ pure(applicativeHalogenM);
@@ -23429,7 +23414,7 @@
         return new AddPiece2(pieceId2);
       })])([mapActionOverHTML(function(v1) {
         return DoNothing.value;
-      })(renderPiece(pieceState)), text(show35(pieceId2))]);
+      })(renderPiece(pieceState)), text(show33(pieceId2))]);
     };
     var $12 = isEmpty2(v2.availablePieces);
     if ($12) {
@@ -23485,7 +23470,7 @@
   var bind27 = /* @__PURE__ */ bind(bindEffect);
   var pure27 = /* @__PURE__ */ pure(applicativeEffect);
   var bind112 = /* @__PURE__ */ bind(bindMaybe);
-  var show36 = /* @__PURE__ */ show(showInt);
+  var show34 = /* @__PURE__ */ show(showInt);
   var type_19 = /* @__PURE__ */ type_17(isPropInputType);
   var value13 = /* @__PURE__ */ value12(isPropString);
   var put3 = /* @__PURE__ */ put(monadStateHalogenM);
@@ -23564,8 +23549,8 @@
     var liftEffect11 = liftEffect(monadEffectHalogenM(dictMonadAff.MonadEffect0()));
     var headShake4 = headShake(monadAffHalogenM(dictMonadAff));
     var render6 = function(state3) {
-      var title4 = text("Board size: " + show36(state3.boardSize));
-      var html2 = span_([input([type_19(InputRange.value), list("values"), min5(3), max6(9), step3(new Step(2)), value13(show36(state3.boardSize)), onInput($$const(InputRangeChange.value)), onMouseUp($$const(InputRangeMouseUp.value))]), datalist([id2("values")])([option([value13("3")])([]), option([value13("5")])([]), option([value13("7")])([]), option([value13("9")])([])])]);
+      var title4 = text("Board size: " + show34(state3.boardSize));
+      var html2 = span_([input([type_19(InputRange.value), list("values"), min5(3), max6(9), step3(new Step(2)), value13(show34(state3.boardSize)), onInput($$const(InputRangeChange.value)), onMouseUp($$const(InputRangeMouseUp.value))]), datalist([id2("values")])([option([value13("3")])([]), option([value13("5")])([]), option([value13("7")])([]), option([value13("9")])([])])]);
       return segment("board-size")(title4)(html2);
     };
     var $$eval3 = function() {
@@ -23956,7 +23941,7 @@
   };
 
   // output/Component.TestRunner.Render/index.js
-  var show37 = /* @__PURE__ */ show(showInt);
+  var show35 = /* @__PURE__ */ show(showInt);
   var pure29 = /* @__PURE__ */ pure(applicativeArray);
   var lookup19 = /* @__PURE__ */ lookup2(ordCardinalDirection);
   var fromFoldable17 = /* @__PURE__ */ fromFoldable3(foldableMap);
@@ -23971,14 +23956,14 @@
   var mapFlipped5 = /* @__PURE__ */ mapFlipped(functorArray);
   var append111 = /* @__PURE__ */ append(semigroupArray);
   var map55 = /* @__PURE__ */ map(functorArray);
-  var show112 = /* @__PURE__ */ show(showCardinalDirection);
+  var show111 = /* @__PURE__ */ show(showCardinalDirection);
   var eq111 = /* @__PURE__ */ eq(eqTestCaseStatus);
   var render3 = function(state3) {
     var renderRunCurrentTestButton = function() {
       if (state3.testSuiteFailed) {
         return button2([onClick(function(v2) {
           return RunCurrentTest.value;
-        })])([text("Rerun test " + show37(state3.currentIndex + 1 | 0))]);
+        })])([text("Rerun test " + show35(state3.currentIndex + 1 | 0))]);
       }
       ;
       return text("");
@@ -24047,7 +24032,7 @@
           ;
           throw new Error("Failed pattern match at Component.TestRunner.Render (line 135, column 26 - line 139, column 86): " + [testCase.status.constructor.name]);
         }();
-        return tr([class_("test-case"), attr3(testCaseStatus)(testCase.status)])(join5([[td_([text(show37(testIndex + 1 | 0))])], renderInputs, renderExpected, renderReceived, [renderStatus]]));
+        return tr([class_("test-case"), attr3(testCaseStatus)(testCase.status)])(join5([[td_([text(show35(testIndex + 1 | 0))])], renderInputs, renderExpected, renderReceived, [renderStatus]]));
       };
     };
     var renderRows = function() {
@@ -24075,7 +24060,7 @@
     var inputDirs = fromFoldable24(getInputDirs(state3.model));
     var numInputs = length4(inputDirs);
     var headers = function() {
-      var subheaders = mapFlipped5(append111([""])(map55(show112)(append111(inputDirs)(append111(outputDirs)(outputDirs)))))(function(s2) {
+      var subheaders = mapFlipped5(append111([""])(map55(show111)(append111(inputDirs)(append111(outputDirs)(outputDirs)))))(function(s2) {
         return th_([text(take3(1)(s2))]);
       });
       return thead_([tr_([th([class_("col-index")])([]), th([colSpan2(numInputs), class_("col-input")])([text("In")]), th([colSpan2(numOutputs), class_("col-expected")])([text("Ex.")]), th([colSpan2(numOutputs), class_("col-expected")])([text("Out")]), th([colSpan2(1), rowSpan2(2), class_("col-status")])([text("Status")])]), tr_(subheaders)]);
@@ -24084,7 +24069,7 @@
       var testsPassed = length4(takeWhile2(function(testCase) {
         return eq111(testCase.status)(new Completed3(Passed.value));
       })(state3.testCases));
-      return tfoot_([tr_([td([colSpan2((1 + numInputs | 0) + (2 * numOutputs | 0) | 0)])([text("Tests Complete:")]), td_([text(show37(testsPassed) + ("/" + show37(length4(state3.testCases))))])])]);
+      return tfoot_([tr_([td([colSpan2((1 + numInputs | 0) + (2 * numOutputs | 0) | 0)])([text("Tests Complete:")]), td_([text(show35(testsPassed) + ("/" + show35(length4(state3.testCases))))])])]);
     }();
     var colgroup2 = colgroup_(join5([replicate(1)(col([class_("test-case-index")])), replicate(numInputs)(col([class_("test-case-input")])), replicate(numOutputs)(col([class_("test-case-expected")])), replicate(numOutputs)(col([class_("test-case-recieved")])), replicate(1)(col([class_("test-case-status")]))]));
     var buttons2 = span4([class_("buttons")])([renderRunAllTestsButton, renderRunCurrentTestButton, renderRerunAllTests]);
@@ -24443,14 +24428,14 @@
 
   // output/Game.Piece/index.js
   var append21 = /* @__PURE__ */ append(semigroupArray);
-  var show38 = /* @__PURE__ */ show(showPieceId);
+  var show36 = /* @__PURE__ */ show(showPieceId);
   var lookup23 = /* @__PURE__ */ lookup2(ordPieceId);
   var allPieces = /* @__PURE__ */ append21(allBasicPieces)(/* @__PURE__ */ append21(allWirePieces)(allFusePieces));
   var pieceVault = /* @__PURE__ */ fromFoldable2(ordPieceId)(foldableArray)(/* @__PURE__ */ map(functorArray)(function(v2) {
     return new Tuple(v2.name, v2);
   })(allPieces));
   var pieceLookup = function(pieceId2) {
-    var message2 = "piece lookup crash on " + (show38(pieceId2) + "... WITH NO SURVIVORS");
+    var message2 = "piece lookup crash on " + (show36(pieceId2) + "... WITH NO SURVIVORS");
     return fromMaybe$prime(function(v2) {
       return unsafeCrashWith(message2);
     })(lookup23(pieceId2)(pieceVault));
@@ -24462,11 +24447,11 @@
   var fromFoldable21 = /* @__PURE__ */ fromFoldable3(foldableList);
   var map57 = /* @__PURE__ */ map(functorList);
   var fromFoldable110 = /* @__PURE__ */ fromFoldable(foldableArray);
-  var show39 = /* @__PURE__ */ show(showInt);
+  var show37 = /* @__PURE__ */ show(showInt);
   var eq112 = /* @__PURE__ */ eq(eqPortType);
-  var show113 = /* @__PURE__ */ show(showBoardError);
+  var show112 = /* @__PURE__ */ show(showBoardError);
   var show211 = /* @__PURE__ */ show(showCardinalDirection);
-  var show310 = /* @__PURE__ */ show(showPortType);
+  var show38 = /* @__PURE__ */ show(showPortType);
   var slot12 = /* @__PURE__ */ slot3();
   var slot1 = /* @__PURE__ */ slot12({
     reflectSymbol: function() {
@@ -24573,7 +24558,7 @@
       var renderCompletionStatus = function() {
         var renderTestSuccess = function(i2) {
           return function(n) {
-            return span_([green2(show39(i2) + ("/" + show39(n))), text(" Sucessful")]);
+            return span_([green2(show37(i2) + ("/" + show37(n))), text(" Sucessful")]);
           };
         };
         var describePort = function(v2) {
@@ -24583,7 +24568,7 @@
               return "input";
             }
             ;
-            return "output" + (" of capacity " + show39(toInt(v2.capacity)));
+            return "output" + (" of capacity " + show37(toInt(v2.capacity)));
           }();
         };
         return div5([class_("completion-status")])(function() {
@@ -24596,7 +24581,7 @@
           }
           ;
           if (state3.completionStatus instanceof NotEvaluable) {
-            return [h2_([text("Not Evaluable!")]), text("not evaluable due to: " + show113(state3.completionStatus.value0))];
+            return [h2_([text("Not Evaluable!")]), text("not evaluable due to: " + show112(state3.completionStatus.value0))];
           }
           ;
           if (state3.completionStatus instanceof PortMismatch) {
@@ -24610,11 +24595,11 @@
               }
               ;
               if (state3.completionStatus.value0 instanceof IncorrectPortType) {
-                return text("Port in the " + (show211(state3.completionStatus.value0.value0.direction) + (" direction should be an " + show310(state3.completionStatus.value0.value0.expected))));
+                return text("Port in the " + (show211(state3.completionStatus.value0.value0.direction) + (" direction should be an " + show38(state3.completionStatus.value0.value0.expected))));
               }
               ;
               if (state3.completionStatus.value0 instanceof IncorrectCapacity) {
-                return text("Port in the " + (show211(state3.completionStatus.value0.value0.direction) + (" direction should have capacity " + show39(toInt(state3.completionStatus.value0.value0.expected)))));
+                return text("Port in the " + (show211(state3.completionStatus.value0.value0.direction) + (" direction should have capacity " + show37(toInt(state3.completionStatus.value0.value0.expected)))));
               }
               ;
               throw new Error("Failed pattern match at Component.Sidebar.Render (line 102, column 15 - line 106, column 187): " + [state3.completionStatus.value0.constructor.name]);
@@ -24858,7 +24843,7 @@
   var discard22 = /* @__PURE__ */ discard20(bindHalogenM);
   var lift10 = /* @__PURE__ */ lift(monadTransHalogenM)(monadAppM);
   var debug4 = /* @__PURE__ */ debug(monadLoggerAppM);
-  var show40 = /* @__PURE__ */ show(/* @__PURE__ */ showRecord()()(/* @__PURE__ */ showRecordFieldsCons({
+  var show39 = /* @__PURE__ */ show(/* @__PURE__ */ showRecord()()(/* @__PURE__ */ showRecordFieldsCons({
     reflectSymbol: function() {
       return "levelName";
     }
@@ -24996,7 +24981,7 @@
           return bind33(gets6(function(v1) {
             return v1.levelId;
           }))(function(levelId) {
-            return discard22(lift10(debug4(empty2)("Initialised level " + show40(levelId))))(function() {
+            return discard22(lift10(debug4(empty2)("Initialised level " + show39(levelId))))(function() {
               return discard22(bind33(gets6(function(v1) {
                 return v1.level.marginalia;
               }))(traverse_13(function(m2) {
@@ -25551,7 +25536,7 @@
   var bind113 = /* @__PURE__ */ bind(bindHalogenM);
   var getAllLevelProgress2 = /* @__PURE__ */ getAllLevelProgress(monadEffectEffect);
   var discard21 = /* @__PURE__ */ discard(discardUnit)(bindHalogenM);
-  var show41 = /* @__PURE__ */ show(/* @__PURE__ */ showMap(/* @__PURE__ */ showRecord()()(/* @__PURE__ */ showRecordFieldsCons(levelNameIsSymbol2)(/* @__PURE__ */ showRecordFieldsConsNil(suiteNameIsSymbol2)(showString))(showString)))(showLevelProgress));
+  var show40 = /* @__PURE__ */ show(/* @__PURE__ */ showMap(/* @__PURE__ */ showRecord()()(/* @__PURE__ */ showRecordFieldsCons(levelNameIsSymbol2)(/* @__PURE__ */ showRecordFieldsConsNil(suiteNameIsSymbol2)(showString))(showString)))(showLevelProgress));
   var modify_10 = /* @__PURE__ */ modify_2(monadStateHalogenM);
   var Initialise5 = /* @__PURE__ */ function() {
     function Initialise6() {
@@ -25632,7 +25617,7 @@
       handleAction: function(v1) {
         if (v1 instanceof Initialise5) {
           return bind113(liftEffect11(getAllLevelProgress2))(function(progress3) {
-            return discard21(log6(show41(progress3)))(function() {
+            return discard21(log6(show40(progress3)))(function() {
               return modify_10(function(v2) {
                 var $56 = {};
                 for (var $57 in v2) {
@@ -25707,7 +25692,7 @@
   var notEq9 = /* @__PURE__ */ notEq(eqRoute);
   var lift11 = /* @__PURE__ */ lift(monadTransHalogenM)(monadAppM);
   var debug5 = /* @__PURE__ */ debug(monadLoggerAppM);
-  var show43 = /* @__PURE__ */ show(showRoute);
+  var show41 = /* @__PURE__ */ show(showRoute);
   var modify_11 = /* @__PURE__ */ modify_2(monadStateHalogenM);
   var Navigate = /* @__PURE__ */ function() {
     function Navigate2(value0, value1) {
@@ -25768,7 +25753,7 @@
       },
       handleQuery: function(v2) {
         return bind114(get3)(function(v1) {
-          return discard23(when8(notEq9(v1.route)(v2.value0))(discard23(lift11(debug5(empty2)("Navigated to " + show43(v2.value0))))(function() {
+          return discard23(when8(notEq9(v1.route)(v2.value0))(discard23(lift11(debug5(empty2)("Navigated to " + show41(v2.value0))))(function() {
             return modify_11(function(v22) {
               var $50 = {};
               for (var $51 in v22) {
@@ -26560,7 +26545,7 @@
   }();
 
   // output/Halogen.VDom.Driver/index.js
-  var $runtime_lazy12 = function(name16, moduleName, init4) {
+  var $runtime_lazy13 = function(name16, moduleName, init4) {
     var state3 = 0;
     var val;
     return function(lineNumber) {
@@ -26623,7 +26608,7 @@
         };
         var buildWidget2 = function(spec) {
           var buildThunk2 = buildThunk(unwrap14)(spec);
-          var $lazy_patch = $runtime_lazy12("patch", "Halogen.VDom.Driver", function() {
+          var $lazy_patch = $runtime_lazy13("patch", "Halogen.VDom.Driver", function() {
             return function(st, slot15) {
               if (st instanceof Just) {
                 if (slot15 instanceof ComponentSlot) {
@@ -26642,7 +26627,7 @@
               return $lazy_render(104)(slot15);
             };
           });
-          var $lazy_render = $runtime_lazy12("render", "Halogen.VDom.Driver", function() {
+          var $lazy_render = $runtime_lazy13("render", "Halogen.VDom.Driver", function() {
             return function(slot15) {
               if (slot15 instanceof ComponentSlot) {
                 return $lazy_renderComponentSlot(86)(slot15.value0);
@@ -26656,7 +26641,7 @@
               throw new Error("Failed pattern match at Halogen.VDom.Driver (line 84, column 7 - line 89, column 75): " + [slot15.constructor.name]);
             };
           });
-          var $lazy_renderComponentSlot = $runtime_lazy12("renderComponentSlot", "Halogen.VDom.Driver", function() {
+          var $lazy_renderComponentSlot = $runtime_lazy13("renderComponentSlot", "Halogen.VDom.Driver", function() {
             return function(cs) {
               var renderChild = read2(renderChildRef)();
               var rsx = renderChild(cs)();

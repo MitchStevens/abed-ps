@@ -3,8 +3,11 @@ module Game.Piece.WirePiece where
 import Prelude
 
 import Control.Alternative (guard)
+import Control.Lazy (fix)
 import Data.Foldable (all, elem, length)
 import Data.Int (toNumber)
+import Data.Lazy (Lazy)
+import Data.Lazy as Lazy
 import Data.Map (Map)
 import Data.Map as M
 import Data.Maybe (Maybe(..), fromMaybe, fromMaybe', maybe)
@@ -16,7 +19,7 @@ import Game.Capacity (Capacity(..))
 import Game.Direction (CardinalDirection)
 import Game.Direction as Direction
 import Game.Piece.Complexity as Complexity
-import Game.Piece.Types (Piece(..), PieceId(..), Simplification(..), isSimplifiable, mkPiece, name)
+import Game.Piece.Types (Piece(..), PieceId(..), Simplification(..), isSimplifiable, mkPiece, name, unglob)
 import Game.Port (PortType(..), inputPort, outputPort)
 import Game.Signal (Signal(..))
 import Partial.Unsafe (unsafeCrashWith)
@@ -53,41 +56,52 @@ wirePieceNames =
     down  = S.singleton Direction.Down
 
 mkWirePiece :: WirePiece -> Piece
-mkWirePiece wire = mkPiece
-  { name: fromMaybe' nameErr (M.lookup wire.outputs wirePieceNames)
-  , eval: \inputs -> 
-      let signal = fromMaybe zero (M.lookup Direction.Left inputs)
-      in S.toMap wire.outputs $> signal
-  , complexity: Complexity.space (toNumber (length wire.outputs))
+mkWirePiece wire = Lazy.force (fix go)
+  where 
+    go :: Lazy Piece -> Lazy Piece
+    go lazyP = pure $ mkPiece
+      { name: fromMaybe' nameErr (M.lookup wire.outputs wirePieceNames)
+      , eval: \inputs -> 
+          let signal = fromMaybe zero (M.lookup Direction.Left inputs)
+          in S.toMap wire.outputs $> signal
+      , complexity: Complexity.space (toNumber (length wire.outputs))
 
-  , shouldRipple: true
-  , updateCapacity: \_ capacity -> Just (mkWirePiece (wire { capacity = capacity }))
+      , shouldRipple: true
+      , updateCapacity: \_ capacity -> Just (mkWirePiece (wire { capacity = capacity }))
 
-  , ports: M.insert Direction.Left (inputPort wire.capacity) 
-      (S.toMap wire.outputs $> outputPort wire.capacity)
+      , ports: M.insert Direction.Left (inputPort wire.capacity) 
+          (S.toMap wire.outputs $> outputPort wire.capacity)
 
-  , updatePort: \dir portType -> case dir, portType of
-      Direction.Left, _ -> Nothing
-      _, Just Input -> do
-          let newOutputs = S.insert dir wire.outputs 
-          guard (wire.outputs /= newOutputs)
-          pure $ mkWirePiece (wire { outputs = newOutputs })
-      _, Just Output -> Nothing
-      _, Nothing -> do
-          let newOutputs = S.delete dir wire.outputs 
-          guard (wire.outputs /= newOutputs)
-          if S.isEmpty newOutputs
-            then pure $ mkWirePiece (wire { outputs = S.singleton Direction.Right} )
-            else pure $ mkWirePiece (wire { outputs = newOutputs })
-  , isSimplifiable:
-      let connections = M.fromFoldable $ S.map (\out -> Tuple out Direction.Left) wire.outputs
-      in Just (Connection connections)
-  
-  }
-  where
+      , glob: \dir portType -> case dir, portType of
+          Direction.Left, _ -> Nothing
+          _, Just Input -> do
+              let newOutputs = S.insert dir wire.outputs 
+              guard (wire.outputs /= newOutputs)
+              pure $ mkWirePiece (wire { outputs = newOutputs })
+          _, Just Output -> lazyP
+          _, Nothing -> do
+              let newOutputs = S.delete dir wire.outputs 
+              guard (wire.outputs /= newOutputs)
+              if S.isEmpty newOutputs
+                then pure $ mkWirePiece (wire { outputs = S.singleton Direction.Right} )
+                else pure $ mkWirePiece (wire { outputs = newOutputs })
+      , unglob: Nothing
+      , isSimplifiable:
+          let connections = M.fromFoldable $ S.map (\out -> Tuple out Direction.Left) wire.outputs
+          in Just (Connection connections)
+      
+      }
+
     nameErr :: Unit -> PieceId
     nameErr _ =  unsafeCrashWith $
       "Can't find wire piece with outputs: " <> show wire.outputs
+
+
+{-
+  (Piece -> Piece) -> Piece
+
+-}
+
 
 isWirePiece :: Piece -> Boolean
 isWirePiece piece = name piece `elem` wirePieceNames

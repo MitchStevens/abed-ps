@@ -20,7 +20,7 @@ import Effect.Aff.Class (class MonadAff, liftAff)
 import Effect.Class (class MonadEffect)
 import Effect.Class.Console (log)
 import Effect.Exception (Error, error)
-import Game.Board (Board(..), _pieces, relativeEdgeLocation, standardBoard, topologicalSort, BoardError(..), addPiece, addPieceNoUpdate, decreaseSize, increaseSize, removePiece, rotatePieceBy, updatePortsAround, validBoardSize, buildConnectionMap)
+import Game.Board (Board(..), _pieces, relativeEdgeLocation, standardBoard, topologicalSort, BoardError(..), addPiece, addPieceNoUpdate, decreaseSize, increaseSize, removePiece, rotatePieceBy, validBoardSize, buildConnectionMap)
 import Game.Direction as Direction
 import Game.GameEvent (BoardEvent(..))
 import Game.Location (location)

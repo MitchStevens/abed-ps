@@ -33,7 +33,6 @@ mkSuccPiece capacity = mkPiece
       [ Tuple Direction.Left (inputPort capacity)
       , Tuple Direction.Right (outputPort capacity)
       ]
-  , updatePort: \_ _ -> Nothing
   }
 
 mkAdder :: Capacity -> Piece
@@ -59,7 +58,6 @@ mkAdder capacity = mkPiece
       , Tuple Direction.Right (outputPort capacity)
       , Tuple Direction.Down (outputPort OneBit)
       ]
-  , updatePort: \_ _ -> Nothing
   }
 
 mkMultiplier :: Capacity -> Piece
@@ -85,5 +83,4 @@ mkMultiplier capacity = mkPiece
       , Tuple Direction.Up (inputPort capacity)
       , Tuple Direction.Right (outputPort $ fromMaybe EightBit $ doubleCapacity capacity)
       ]
-  , updatePort: \_ _ -> Nothing
   }

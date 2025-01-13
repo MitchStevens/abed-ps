@@ -157,7 +157,6 @@ evaluableBoardPiece evaluable@(EvaluableBoard e) = mkPiece
   , updateCapacity: \_ _ -> Nothing
 
   , ports: getPorts evaluable
-  , updatePort: \_ _ -> Nothing
   }
 
 {-

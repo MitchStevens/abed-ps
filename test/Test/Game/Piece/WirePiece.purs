@@ -8,7 +8,7 @@ import Data.Set as S
 import Data.Tuple (Tuple(..))
 import Game.Capacity (Capacity(..))
 import Game.Direction as Direction
-import Game.Piece (Simplification(..), chickenPiece, crossPiece, getInputDirs, getOutputDirs, getPorts, idPiece, isSimplifiable, leftPiece, updatePort)
+import Game.Piece (Simplification(..), getInputDirs, getOutputDirs, getPorts, glob, idPiece, isSimplifiable, leftPiece)
 import Game.Port (inputPort, outputPort)
 import Game.Port as PortType
 import Test.Spec (Spec, describe, describeOnly, it)
@@ -19,7 +19,7 @@ spec =
   describe "Game.Piece.WirePiece" do
     describe "WirePiece" do
       it "leftPiece" do
-        getInputDirs leftPiece `shouldEqual` S.fromFoldable [Direction.Left]
+        getInputDirs  leftPiece `shouldEqual` S.fromFoldable [ Direction.Left ]
         getOutputDirs leftPiece `shouldEqual` S.fromFoldable [ Direction.Up ]
 
     describe "isSimplifiable" do
@@ -29,7 +29,7 @@ spec =
         isSimplifiable leftPiece
           `shouldEqual` Just (Connection $ M.singleton Direction.Up Direction.Left)
 
-    describe "updatePort" do
+    describe "glob" do
       it "should add an output when a port is found" do
         getPorts idPiece `shouldEqual`
           M.fromFoldable
@@ -37,9 +37,8 @@ spec =
             , Tuple Direction.Right (outputPort OneBit)
             ]
 
-        case updatePort Direction.Down (Just PortType.Input) idPiece of
-          Nothing -> fail "expected to be able to open"
-          Just piece -> getPorts piece `shouldEqual`
+        getPorts (glob Direction.Down (Just PortType.Input) idPiece)
+          `shouldEqual`
             M.fromFoldable
               [ Tuple Direction.Left (inputPort OneBit)
               , Tuple Direction.Down (outputPort OneBit)

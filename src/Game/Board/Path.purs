@@ -41,7 +41,7 @@ import Data.Zipper as Z
 import Debug (trace)
 import Debug as Debug
 import Effect.Aff (Aff, error)
-import Game.Board.Operation (addPieceNoUpdate, removePieceNoUpdate, updateRelEdge)
+import Game.Board.Operation (addPieceNoUpdate, globRelEdge, removePieceNoUpdate)
 import Game.Board.PathSegment (PathSegment(..), PathSegmentError, combineSegmentWithExtant, singlePath)
 import Game.Board.PieceInfo (PieceInfo)
 import Game.Board.Query (adjacentRelativeEdge, toRelativeEdge)
@@ -113,7 +113,7 @@ updateEndPoints :: forall m
   => Path -> m Unit
 updateEndPoints path = do
   headAdj <- toRelativeEdge (absolute path.start path.initial) >>= adjacentRelativeEdge
-  updateRelEdge headAdj (Just PortType.Input)
+  globRelEdge headAdj (Just PortType.Input)
   --do tail later
 
 {-
