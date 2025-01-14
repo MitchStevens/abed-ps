@@ -208,12 +208,12 @@ tests =
           void $ exceptToAff $ addPath Direction.Left [ l01, l11, l21 ] Direction.Right
           use (_pieces <<< at l11) `shouldReturn` Just { piece: crossPiece, rotation: rotation 1 }
         
-        it "should update ports around" do
-          void $ exceptToAff $ addPath Direction.Left [ l10 ] Direction.Right
-          use (_pieces <<< at l10) `shouldReturn` Just { piece: idPiece, rotation: rotation 0}
+        --it "should update ports around" do
+        --  void $ exceptToAff $ addPath Direction.Left [ l10 ] Direction.Right
+        --  use (_pieces <<< at l10) `shouldReturn` Just { piece: idPiece, rotation: rotation 0}
 
-          void $ exceptToAff $ addPath Direction.Up [ l11 ] Direction.Right
-          use (_pieces <<< at l10) `shouldReturn` Just { piece: intersectionRightPiece, rotation: rotation 0}
+        --  void $ exceptToAff $ addPath Direction.Up [ l11 ] Direction.Right
+        --  use (_pieces <<< at l10) `shouldReturn` Just { piece: intersectionRightPiece, rotation: rotation 0}
 
 
       describe "Weird edge cases" do

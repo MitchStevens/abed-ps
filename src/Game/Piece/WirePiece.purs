@@ -6,8 +6,6 @@ import Control.Alternative (guard)
 import Control.Lazy (fix)
 import Data.Foldable (all, elem, length)
 import Data.Int (toNumber)
-import Data.Lazy (Lazy)
-import Data.Lazy as Lazy
 import Data.Map (Map)
 import Data.Map as M
 import Data.Maybe (Maybe(..), fromMaybe, fromMaybe', maybe)
@@ -19,7 +17,7 @@ import Game.Capacity (Capacity(..))
 import Game.Direction (CardinalDirection)
 import Game.Direction as Direction
 import Game.Piece.Complexity as Complexity
-import Game.Piece.Types (Piece(..), PieceId(..), Simplification(..), isSimplifiable, mkPiece, name, unglob)
+import Game.Piece.Types (Piece(..), PieceId(..), Simplification(..), isSimplifiable, mkPieceNoGlob, name, shouldRipple, unglob)
 import Game.Port (PortType(..), inputPort, outputPort)
 import Game.Signal (Signal(..))
 import Partial.Unsafe (unsafeCrashWith)
@@ -55,11 +53,19 @@ wirePieceNames =
     right = S.singleton Direction.Right
     down  = S.singleton Direction.Down
 
+{-
+
+
+  mk :: Piece -> WirePiece -> Piece -> Piece
+  mk unglob wire this = ...
+-}
+
+
 mkWirePiece :: WirePiece -> Piece
-mkWirePiece wire = Lazy.force (fix go)
-  where 
-    go :: Lazy Piece -> Lazy Piece
-    go lazyP = pure $ mkPiece
+mkWirePiece wire = fix go unit
+  where
+    go :: (Unit -> Piece) -> Unit -> Piece
+    go this _ = Piece
       { name: fromMaybe' nameErr (M.lookup wire.outputs wirePieceNames)
       , eval: \inputs -> 
           let signal = fromMaybe zero (M.lookup Direction.Left inputs)
@@ -73,23 +79,24 @@ mkWirePiece wire = Lazy.force (fix go)
           (S.toMap wire.outputs $> outputPort wire.capacity)
 
       , glob: \dir portType -> case dir, portType of
-          Direction.Left, _ -> Nothing
+          Direction.Left, _ -> this
           _, Just Input -> do
               let newOutputs = S.insert dir wire.outputs 
-              guard (wire.outputs /= newOutputs)
-              pure $ mkWirePiece (wire { outputs = newOutputs })
-          _, Just Output -> lazyP
+              if wire.outputs /= newOutputs
+                then this
+                else \_ -> mkWirePiece (wire { outputs = newOutputs })
+          _, Just Output -> this
           _, Nothing -> do
               let newOutputs = S.delete dir wire.outputs 
-              guard (wire.outputs /= newOutputs)
-              if S.isEmpty newOutputs
-                then pure $ mkWirePiece (wire { outputs = S.singleton Direction.Right} )
-                else pure $ mkWirePiece (wire { outputs = newOutputs })
-      , unglob: Nothing
+              if wire.outputs /= newOutputs
+                then this
+                else if S.isEmpty newOutputs
+                  then \_ -> mkWirePiece (wire { outputs = S.singleton Direction.Right} )
+                  else \_ -> mkWirePiece (wire { outputs = newOutputs })
+      , unglob: this
       , isSimplifiable:
           let connections = M.fromFoldable $ S.map (\out -> Tuple out Direction.Left) wire.outputs
           in Just (Connection connections)
-      
       }
 
     nameErr :: Unit -> PieceId
@@ -152,7 +159,7 @@ type DualWirePiece =
   }
 
 dualWirePiece :: DualWirePiece -> Piece
-dualWirePiece dualWire = mkPiece
+dualWirePiece dualWire = mkPieceNoGlob
   { name: dualWire.name
   , eval: \m ->
       let a1 = fromMaybe zero (M.lookup Direction.Left m)
@@ -167,8 +174,9 @@ dualWirePiece dualWire = mkPiece
       , Tuple dualWire.output1 (outputPort dualWire.capacity)
       , Tuple dualWire.output2 (outputPort dualWire.capacity)
       ]
+  , complexity: Complexity.space 1.0
+  , shouldRipple: true
   , updateCapacity: \_ capacity -> Just $ dualWirePiece (dualWire { capacity = capacity})
-
   , isSimplifiable: Just $ Connection $ M.fromFoldable
       [ Tuple dualWire.output1 Direction.Left
       , Tuple dualWire.output2 dualWire.input2

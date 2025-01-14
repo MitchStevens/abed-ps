@@ -34,7 +34,7 @@ derive instance Eq Port
 derive instance Ord Port
 
 instance Show Port where
-  show (Port { portType, capacity }) = show portType <> " " <> show capacity
+  show (Port { portType, capacity }) = "(" <> show portType <> " " <> show capacity <> ")"
 
 createPort :: PortType -> Capacity -> Port
 createPort portType capacity = Port { portType, capacity }

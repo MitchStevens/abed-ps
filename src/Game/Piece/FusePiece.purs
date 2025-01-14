@@ -12,7 +12,7 @@ import Data.UInt (fromInt, shl, shr, (.&.), (.|.))
 import Game.Capacity (Capacity(..), doubleCapacity, halveCapacity, toInt)
 import Game.Direction as Direction
 import Game.Piece.Complexity as Complexity
-import Game.Piece.Types (Piece(..), PieceId(..), mkPiece)
+import Game.Piece.Types (Piece(..), PieceId(..), isSimplifiable, mkPieceNoGlob)
 import Game.Port (inputPort, outputPort)
 import Game.Signal (Signal(..), over2Signal, overSignal)
 
@@ -29,13 +29,21 @@ severPiece = mkSeverPiece { outputCapacity: OneBit }
 type FusePiece = { inputCapacity :: Capacity }
 
 mkFusePiece :: FusePiece -> Piece
-mkFusePiece { inputCapacity } = mkPiece
+mkFusePiece { inputCapacity } = mkPieceNoGlob
   { name: PieceId "fuse-piece"
   , eval: \inputs -> 
       let high = fold (M.lookup Direction.Up inputs)
           low  = fold (M.lookup Direction.Down inputs)
       in M.singleton Direction.Right (fuseSignals inputCapacity high low)
-
+  , ports: fromMaybe M.empty do
+      outputCapacity <- doubleCapacity inputCapacity
+      pure $ M.fromFoldable
+        [ Tuple Direction.Up    (inputPort inputCapacity)
+        , Tuple Direction.Down  (inputPort inputCapacity)
+        , Tuple Direction.Right (outputPort outputCapacity)
+        ]
+  , complexity: Complexity.space 1.0
+  , shouldRipple: true
   , updateCapacity: \dir capacity -> case dir of
       Direction.Left -> Nothing
       Direction.Right -> do
@@ -46,14 +54,7 @@ mkFusePiece { inputCapacity } = mkPiece
         guard (capacity /= inputCapacity)
         _ <- doubleCapacity capacity
         pure $ mkFusePiece { inputCapacity: capacity }
-  
-  , ports: fromMaybe M.empty do
-      outputCapacity <- doubleCapacity inputCapacity
-      pure $ M.fromFoldable
-        [ Tuple Direction.Up    (inputPort inputCapacity)
-        , Tuple Direction.Down  (inputPort inputCapacity)
-        , Tuple Direction.Right (outputPort outputCapacity)
-        ]
+  , isSimplifiable: Nothing
   }
   
 fuseSignals :: Capacity -> Signal -> Signal -> Signal
@@ -66,7 +67,7 @@ fuseSignals inputCapacity = over2Signal $ \high low ->
 type SeverPiece = { outputCapacity :: Capacity }
 
 mkSeverPiece :: SeverPiece -> Piece
-mkSeverPiece { outputCapacity } = mkPiece
+mkSeverPiece { outputCapacity } = mkPieceNoGlob
   { name: PieceId "sever-piece"
   , eval: \inputs ->
       let Tuple high low = foldMap (severSignal outputCapacity) (M.lookup Direction.Left inputs)
@@ -74,7 +75,15 @@ mkSeverPiece { outputCapacity } = mkPiece
         [ Tuple Direction.Up high
         , Tuple Direction.Down low
         ]
-
+  , ports: fromMaybe M.empty do
+      inputCapacity <- doubleCapacity outputCapacity
+      pure $ M.fromFoldable
+        [ Tuple Direction.Left  (inputPort  inputCapacity)
+        , Tuple Direction.Up    (outputPort outputCapacity)
+        , Tuple Direction.Down  (outputPort outputCapacity)
+        ]
+  , complexity: Complexity.space 1.0
+  , shouldRipple: true
   , updateCapacity: \dir capacity -> case dir of
       Direction.Right -> Nothing
       Direction.Left -> do
@@ -84,14 +93,7 @@ mkSeverPiece { outputCapacity } = mkPiece
       _ -> do
         guard (capacity /= outputCapacity)
         pure (mkSeverPiece {outputCapacity: capacity})
-  
-  , ports: fromMaybe M.empty do
-      inputCapacity <- doubleCapacity outputCapacity
-      pure $ M.fromFoldable
-        [ Tuple Direction.Left  (inputPort  inputCapacity)
-        , Tuple Direction.Up    (outputPort outputCapacity)
-        , Tuple Direction.Down  (outputPort outputCapacity)
-        ]
+  , isSimplifiable: Nothing
   }
 
 severSignal :: Capacity -> Signal -> Tuple Signal Signal

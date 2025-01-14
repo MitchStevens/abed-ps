@@ -11,7 +11,7 @@ import Data.Tuple (Tuple(..))
 import Game.Capacity (Capacity(..), doubleCapacity, halveCapacity)
 import Game.Direction as Direction
 import Game.Piece.Complexity as Complexity
-import Game.Piece.Types (Piece(..), PieceId(..), mkPiece, shouldRipple)
+import Game.Piece.Types (Piece(..), PieceId(..), mkPieceNoGlob, shouldRipple)
 import Game.Port (inputPort, outputPort)
 import Game.Signal (Signal(..), maxValue)
 
@@ -19,24 +19,23 @@ succPiece :: Piece
 succPiece = mkSuccPiece TwoBit
 
 mkSuccPiece :: Capacity -> Piece
-mkSuccPiece capacity = mkPiece
+mkSuccPiece capacity = mkPieceNoGlob
   { name: PieceId "succ"
   , eval: \m ->
       let s = fold (M.lookup Direction.Left m)
       in  M.singleton Direction.Right (if s == maxValue capacity then zero else s + one)
-  , complexity: Complexity.space 10.0
-
-  , shouldRipple: false
-  , updateCapacity: \_ capacity' -> Just (mkSuccPiece capacity')
-
   , ports: M.fromFoldable
       [ Tuple Direction.Left (inputPort capacity)
       , Tuple Direction.Right (outputPort capacity)
       ]
+  , complexity: Complexity.space 10.0
+  , shouldRipple: false
+  , updateCapacity: \_ capacity' -> Just (mkSuccPiece capacity')
+  , isSimplifiable: Nothing
   }
 
 mkAdder :: Capacity -> Piece
-mkAdder capacity = mkPiece
+mkAdder capacity = mkPieceNoGlob
   { name: PieceId "adder-piece"
   , eval: \m ->
       let a = fold (M.lookup Direction.Left m)
@@ -47,26 +46,31 @@ mkAdder capacity = mkPiece
             [ Tuple Direction.Right sum
             , Tuple Direction.Down carry
             ]
-  , complexity: Complexity.space 10.0
-
-  , shouldRipple: false
-  , updateCapacity: \_ capacity' -> Just (mkAdder capacity')
-
   , ports: M.fromFoldable
       [ Tuple Direction.Left (inputPort capacity)
       , Tuple Direction.Up (inputPort capacity)
       , Tuple Direction.Right (outputPort capacity)
       , Tuple Direction.Down (outputPort OneBit)
       ]
+  , complexity: Complexity.space 10.0
+
+  , shouldRipple: false
+  , updateCapacity: \_ capacity' -> Just (mkAdder capacity')
+  , isSimplifiable: Nothing
   }
 
 mkMultiplier :: Capacity -> Piece
-mkMultiplier capacity = mkPiece
+mkMultiplier capacity = mkPieceNoGlob
   { name: PieceId "multiplier-piece"
   , eval: \m ->
       let a = fold (M.lookup Direction.Left m)
           b = fold (M.lookup Direction.Up m)
       in  M.singleton Direction.Right (a * b)
+  , ports: M.fromFoldable
+      [ Tuple Direction.Left (inputPort capacity)
+      , Tuple Direction.Up (inputPort capacity)
+      , Tuple Direction.Right (outputPort $ fromMaybe EightBit $ doubleCapacity capacity)
+      ]
   , complexity: Complexity.space 10.0
 
   , shouldRipple: false
@@ -78,9 +82,5 @@ mkMultiplier capacity = mkPiece
       Direction.Down -> Nothing
       _ -> Just (mkMultiplier capacity')
 
-  , ports: M.fromFoldable
-      [ Tuple Direction.Left (inputPort capacity)
-      , Tuple Direction.Up (inputPort capacity)
-      , Tuple Direction.Right (outputPort $ fromMaybe EightBit $ doubleCapacity capacity)
-      ]
+  , isSimplifiable: Nothing
   }

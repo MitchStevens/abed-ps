@@ -1,5 +1,5 @@
 module Game.Piece.Types
-  ( MkPiece
+  ( MkPieceNoGlob
   , Piece(..)
   , PieceId(..)
   , Simplification(..)
@@ -9,24 +9,23 @@ module Game.Piece.Types
   , getOutputDirs
   , getPort
   , getPorts
+  , glob
   , isSimplifiable
-  , mkPiece
+  , mkPieceNoGlob
   , name
   , shouldRipple
-  , updateCapacity
-  , glob
   , unglob
+  , updateCapacity
   )
   where
 
 import Prelude
 
-import Control.Lazy (defer)
+import Control.Lazy (fix)
 import Data.Array (fold)
 import Data.Foldable (and)
 import Data.FunctorWithIndex (mapWithIndex)
 import Data.Generic.Rep (class Generic)
-import Data.Lazy (Lazy, force)
 import Data.Map (Map)
 import Data.Map as M
 import Data.Maybe (Maybe(..), fromMaybe, maybe)
@@ -132,8 +131,8 @@ newtype Piece = Piece
     unglob <<< glob d t = unglob
 
   -}
-  , glob :: CardinalDirection -> Maybe PortType -> Maybe Piece
-  , unglob :: Maybe Piece
+  , glob :: CardinalDirection -> Maybe PortType -> Unit -> Piece
+  , unglob :: Unit -> Piece
   {-
     To effeciently compile a board, we need to know whether a piece can be simplified. Since our `eval` function is non-symbolic, we need to encode this information into the piece type. 
 
@@ -164,44 +163,32 @@ instance Show Piece where
   show (Piece p) = "(Piece " <> show p.name <> ")"
 derive instance Newtype Piece _
 
---class LiftEval a b where
---  liftEval :: (a -> b) -> Record (Directional Signal) -> Record (Directional Signal)
-
-
-type MkPiece r =
-  ( name :: PieceId
+type MkPieceNoGlob =
+  { name :: PieceId
   , eval :: Map CardinalDirection Signal -> Map CardinalDirection Signal
   , ports :: Map CardinalDirection Port
-  | r )
-mkPiece :: forall r1 r2 r3
-  .  Union (MkPiece r1) r2 r3 => Newtype Piece (Record r3) => Record (MkPiece r1) -> Piece
-mkPiece piece = Piece (unsafeUnion piece defaultPiece)
+  , complexity :: Complexity
+  , shouldRipple :: Boolean
+  , updateCapacity :: CardinalDirection -> Capacity -> Maybe Piece
+  , isSimplifiable :: Maybe Simplification
+  }
+
+mkPieceNoGlob :: MkPieceNoGlob -> Piece
+mkPieceNoGlob piece = fix go unit
   where
-    defaultPiece =
-      { complexity: Complexity.space 0.0
-      , shouldRipple: false
-      , updateCapacity: \_ _ -> Nothing
-      , updatePort: \_ _ -> Nothing
-      , isSimplifiable: Nothing
+    go :: (Unit -> Piece) -> Unit -> Piece
+    go this _ = Piece
+      { name: piece.name
+      , eval: piece.eval
+      , ports: piece.ports
+      , complexity: piece.complexity
+      , shouldRipple: piece.shouldRipple
+      , updateCapacity: piece.updateCapacity
+      , glob: \_ _ -> this
+      , unglob: this
+      , isSimplifiable: piece.isSimplifiable
       }
 
-
---type DirectionalSignals = { u :: Signal, d :: Signal, l :: Signal, r :: Signal }
---type MkPiece2 r =
---  ( name :: PieceId
---  , eval :: Directional Signals -> Directional Signals
---  , ports :: Map CardinalDirection Port
---  | r )
---mkPiece2 :: forall r1 r2 r3. Union (MkPiece2 r1) r2 r3 => Newtype Piece (Record r3) => Record (MkPiece2 r1) -> Piece
---mkPiece2 piece = Piece (unsafeUnion piece defaultPiece)
---  where
---    defaultPiece =
---      { complexity: Complexity.space 0.0
---      , shouldRipple: false
---      , updateCapacity: \_ _ -> Nothing
---      , updatePort: \_ _ -> Nothing
---      , isSimplifiable: Nothing
---      }
 
 name :: Piece -> PieceId
 name (Piece p) = p.name
@@ -219,16 +206,16 @@ getPorts :: Piece -> Map CardinalDirection Port
 getPorts (Piece p) = p.ports
 
 glob :: CardinalDirection -> Maybe PortType -> Piece -> Piece
-glob dir port (Piece p) = fromMaybe (Piece p) (p.glob dir port)
+glob dir port (Piece p) = p.glob dir port unit
 
 unglob :: Piece -> Piece
-unglob (Piece p) = fromMaybe (Piece p) p.unglob
+unglob (Piece p) = p.unglob unit
 
 isSimplifiable :: Piece -> Maybe Simplification
 isSimplifiable (Piece p) = p.isSimplifiable
 
 defaultPortInfo :: Piece -> Map CardinalDirection PortInfo
-defaultPortInfo piece = flip mapWithIndex (getPorts piece) \dir port ->
+defaultPortInfo piece = getPorts piece <#> \port ->
   { connected: false, port, signal: mkSignal 0}
 
 getPort :: Piece -> CardinalDirection -> Maybe Port
