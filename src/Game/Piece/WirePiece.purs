@@ -13,6 +13,7 @@ import Data.Newtype (class Newtype, unwrap)
 import Data.Set (Set)
 import Data.Set as S
 import Data.Tuple (Tuple(..))
+import Debug (trace)
 import Game.Capacity (Capacity(..))
 import Game.Direction (CardinalDirection)
 import Game.Direction as Direction
@@ -82,13 +83,13 @@ mkWirePiece wire = fix go unit
           Direction.Left, _ -> this
           _, Just Input -> do
               let newOutputs = S.insert dir wire.outputs 
-              if wire.outputs /= newOutputs
+              if wire.outputs == newOutputs
                 then this
                 else \_ -> mkWirePiece (wire { outputs = newOutputs })
           _, Just Output -> this
           _, Nothing -> do
               let newOutputs = S.delete dir wire.outputs 
-              if wire.outputs /= newOutputs
+              if wire.outputs == newOutputs
                 then this
                 else if S.isEmpty newOutputs
                   then \_ -> mkWirePiece (wire { outputs = S.singleton Direction.Right} )

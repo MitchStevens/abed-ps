@@ -192,7 +192,7 @@
     return dict.pure;
   };
   var unless = function(dictApplicative) {
-    var pure116 = pure(dictApplicative);
+    var pure115 = pure(dictApplicative);
     return function(v2) {
       return function(v1) {
         if (!v2) {
@@ -200,7 +200,7 @@
         }
         ;
         if (v2) {
-          return pure116(unit);
+          return pure115(unit);
         }
         ;
         throw new Error("Failed pattern match at Control.Applicative (line 68, column 1 - line 68, column 65): " + [v2.constructor.name, v1.constructor.name]);
@@ -208,7 +208,7 @@
     };
   };
   var when = function(dictApplicative) {
-    var pure116 = pure(dictApplicative);
+    var pure115 = pure(dictApplicative);
     return function(v2) {
       return function(v1) {
         if (v2) {
@@ -216,7 +216,7 @@
         }
         ;
         if (!v2) {
-          return pure116(unit);
+          return pure115(unit);
         }
         ;
         throw new Error("Failed pattern match at Control.Applicative (line 63, column 1 - line 63, column 63): " + [v2.constructor.name, v1.constructor.name]);
@@ -225,10 +225,10 @@
   };
   var liftA1 = function(dictApplicative) {
     var apply8 = apply(dictApplicative.Apply0());
-    var pure116 = pure(dictApplicative);
+    var pure115 = pure(dictApplicative);
     return function(f) {
       return function(a3) {
-        return apply8(pure116(f))(a3);
+        return apply8(pure115(f))(a3);
       };
     };
   };
@@ -524,11 +524,11 @@
 
   // output/Data.Ord/foreign.js
   var unsafeCompareImpl = function(lt) {
-    return function(eq24) {
+    return function(eq25) {
       return function(gt) {
         return function(x2) {
           return function(y2) {
-            return x2 < y2 ? lt : x2 === y2 ? eq24 : gt;
+            return x2 < y2 ? lt : x2 === y2 ? eq25 : gt;
           };
         };
       };
@@ -1345,7 +1345,7 @@
     };
   };
   var eqMaybe = function(dictEq) {
-    var eq24 = eq(dictEq);
+    var eq25 = eq(dictEq);
     return {
       eq: function(x2) {
         return function(y2) {
@@ -1354,7 +1354,7 @@
           }
           ;
           if (x2 instanceof Just && y2 instanceof Just) {
-            return eq24(x2.value0)(y2.value0);
+            return eq25(x2.value0)(y2.value0);
           }
           ;
           return false;
@@ -2202,13 +2202,13 @@
     return v2.value0;
   };
   var eqTuple = function(dictEq) {
-    var eq24 = eq(dictEq);
+    var eq25 = eq(dictEq);
     return function(dictEq1) {
       var eq113 = eq(dictEq1);
       return {
         eq: function(x2) {
           return function(y2) {
-            return eq24(x2.value0)(y2.value0) && eq113(x2.value1)(y2.value1);
+            return eq25(x2.value0)(y2.value0) && eq113(x2.value1)(y2.value1);
           };
         }
       };
@@ -2888,10 +2888,10 @@
   var lookup = function(dictFoldable) {
     var foldMap22 = foldMap(dictFoldable)(monoidFirst);
     return function(dictEq) {
-      var eq24 = eq(dictEq);
+      var eq25 = eq(dictEq);
       return function(a3) {
         var $460 = foldMap22(function(v2) {
-          var $444 = eq24(a3)(v2.value0);
+          var $444 = eq25(a3)(v2.value0);
           if ($444) {
             return new Just(v2.value1);
           }
@@ -4450,7 +4450,7 @@
   };
   var eq1List = {
     eq1: function(dictEq) {
-      var eq24 = eq(dictEq);
+      var eq25 = eq(dictEq);
       return function(xs) {
         return function(ys) {
           var go2 = function($copy_v) {
@@ -4474,7 +4474,7 @@
                   if (v2 instanceof Cons && v1 instanceof Cons) {
                     $tco_var_v = v2.value1;
                     $tco_var_v1 = v1.value1;
-                    $copy_v2 = v22 && eq24(v1.value0)(v2.value0);
+                    $copy_v2 = v22 && eq25(v1.value0)(v2.value0);
                     return;
                   }
                   ;
@@ -5549,7 +5549,7 @@
   var eqMapIter = function(dictEq) {
     var eq113 = eq(dictEq);
     return function(dictEq1) {
-      var eq24 = eq(dictEq1);
+      var eq25 = eq(dictEq1);
       return {
         eq: function() {
           var go2 = function($copy_a) {
@@ -5561,7 +5561,7 @@
                 var v2 = stepAsc(a3);
                 if (v2 instanceof IterNext) {
                   var v22 = stepAsc(b2);
-                  if (v22 instanceof IterNext && (eq113(v2.value0)(v22.value0) && eq24(v2.value1)(v22.value1))) {
+                  if (v22 instanceof IterNext && (eq113(v2.value0)(v22.value0) && eq25(v2.value1)(v22.value1))) {
                     $tco_var_a = v2.value2;
                     $copy_b = v22.value2;
                     return;
@@ -8711,10 +8711,10 @@
   };
   var filter3 = /* @__PURE__ */ runFn2(filterImpl);
   var elemIndex = function(dictEq) {
-    var eq24 = eq(dictEq);
+    var eq25 = eq(dictEq);
     return function(x2) {
       return findIndex2(function(v2) {
-        return eq24(v2)(x2);
+        return eq25(v2)(x2);
       });
     };
   };
@@ -8922,11 +8922,11 @@
   };
   var foldl12 = /* @__PURE__ */ foldl(foldableSet);
   var eqSet = function(dictEq) {
-    var eq24 = eq(eqMap(dictEq)(eqUnit));
+    var eq25 = eq(eqMap(dictEq)(eqUnit));
     return {
       eq: function(v2) {
         return function(v1) {
-          return eq24(v2)(v1);
+          return eq25(v2)(v1);
         };
       }
     };
@@ -8978,17 +8978,6 @@
       return fromMap($38($39));
     };
   }();
-
-  // output/Game.Piece.Complexity/index.js
-  var mempty2 = /* @__PURE__ */ mempty(/* @__PURE__ */ monoidAdditive(semiringNumber));
-  var space = function($6) {
-    return function(v2) {
-      return {
-        space: v2,
-        time: mempty2
-      };
-    }(Additive($6));
-  };
 
   // output/Data.Lens.Internal.Forget/index.js
   var Forget = function(x2) {
@@ -9258,11 +9247,11 @@
     };
   };
   var only = function(dictEq) {
-    var eq24 = eq(dictEq);
+    var eq25 = eq(dictEq);
     return function(x2) {
       return function(dictChoice) {
         return nearly(x2)(function(v2) {
-          return eq24(v2)(x2);
+          return eq25(v2)(x2);
         })(dictChoice);
       };
     };
@@ -9291,25 +9280,6 @@
       };
     };
   };
-
-  // output/Record.Unsafe.Union/foreign.js
-  function unsafeUnionFn(r1, r2) {
-    var copy2 = {};
-    for (var k1 in r2) {
-      if ({}.hasOwnProperty.call(r2, k1)) {
-        copy2[k1] = r2[k1];
-      }
-    }
-    for (var k2 in r1) {
-      if ({}.hasOwnProperty.call(r1, k2)) {
-        copy2[k2] = r1[k2];
-      }
-    }
-    return copy2;
-  }
-
-  // output/Record.Unsafe.Union/index.js
-  var unsafeUnion = /* @__PURE__ */ runFn2(unsafeUnionFn);
 
   // output/Record/index.js
   var set = function(dictIsSymbol) {
@@ -9618,7 +9588,7 @@
   var show1 = /* @__PURE__ */ show(showPortType);
   var showPort = {
     show: function(v2) {
-      return show1(v2.portType) + (" " + show5(v2.capacity));
+      return "(" + (show1(v2.portType) + (" " + (show5(v2.capacity) + ")")));
     }
   };
   var eqPortType = {
@@ -10384,6 +10354,7 @@
   var eq32 = /* @__PURE__ */ eq(/* @__PURE__ */ eqMap2(eqPort));
   var fold3 = /* @__PURE__ */ fold2(monoidOrdering);
   var compare14 = /* @__PURE__ */ compare(/* @__PURE__ */ ordMap(ordCardinalDirection)(ordPort));
+  var fix2 = /* @__PURE__ */ fix(lazyFn);
   var lookup3 = /* @__PURE__ */ lookup2(ordCardinalDirection);
   var filter4 = /* @__PURE__ */ filter2(ordCardinalDirection);
   var mapFlipped2 = /* @__PURE__ */ mapFlipped(functorMap);
@@ -10460,27 +10431,27 @@
   var name2 = function(v2) {
     return v2.name;
   };
-  var mkPiece = function() {
-    return function() {
-      return function(piece) {
-        var defaultPiece = {
-          complexity: space(0),
-          shouldRipple: false,
-          updateCapacity: function(v2) {
-            return function(v1) {
-              return Nothing.value;
+  var mkPieceNoGlob = function(piece) {
+    var go2 = function($$this) {
+      return function(v2) {
+        return {
+          name: piece.name,
+          "eval": piece["eval"],
+          ports: piece.ports,
+          complexity: piece.complexity,
+          shouldRipple: piece.shouldRipple,
+          updateCapacity: piece.updateCapacity,
+          glob: function(v1) {
+            return function(v22) {
+              return $$this;
             };
           },
-          updatePort: function(v2) {
-            return function(v1) {
-              return Nothing.value;
-            };
-          },
-          isSimplifiable: Nothing.value
+          unglob: $$this,
+          isSimplifiable: piece.isSimplifiable
         };
-        return unsafeUnion(piece)(defaultPiece);
       };
     };
+    return fix2(go2)(unit);
   };
   var isSimplifiable = function(v2) {
     return v2.isSimplifiable;
@@ -12971,13 +12942,13 @@
   var foldFree = function(dictMonadRec) {
     var Monad0 = dictMonadRec.Monad0();
     var map123 = map(Monad0.Bind1().Apply0().Functor0());
-    var pure116 = pure(Monad0.Applicative0());
+    var pure115 = pure(Monad0.Applicative0());
     var tailRecM5 = tailRecM(dictMonadRec);
     return function(k) {
       var go2 = function(f) {
         var v2 = toView(f);
         if (v2 instanceof Return) {
-          return map123(Done.create)(pure116(v2.value0));
+          return map123(Done.create)(pure115(v2.value0));
         }
         ;
         if (v2 instanceof Bind) {
@@ -13239,9 +13210,9 @@
           return function(p2) {
             return function(q3) {
               return liftF(new ChildQuery2(mkChildQueryBox(new ChildQuery(function(dictApplicative) {
-                var pure116 = pure(dictApplicative);
+                var pure115 = pure(dictApplicative);
                 return function(k) {
-                  var $177 = maybe(pure116(Nothing.value))(k);
+                  var $177 = maybe(pure115(Nothing.value))(k);
                   var $178 = lookup27(label5)(p2);
                   return function($179) {
                     return $177($178($179));
@@ -14650,10 +14621,10 @@
   var map112 = /* @__PURE__ */ map(functorArray);
   var toUnfoldable6 = /* @__PURE__ */ toUnfoldable2(unfoldableArray);
   var showBasic = function(dictApplicative) {
-    var pure116 = pure(dictApplicative);
+    var pure115 = pure(dictApplicative);
     return function(value14) {
       return function(label5) {
-        return pure116(singleton7(label5 + value14));
+        return pure115(singleton7(label5 + value14));
       };
     };
   };
@@ -14762,10 +14733,10 @@
   var showSubTags = function(dictMonadEffect) {
     var Monad0 = dictMonadEffect.Monad0();
     var map214 = map(Monad0.Bind1().Apply0().Functor0());
-    var pure116 = pure(Monad0.Applicative0());
+    var pure115 = pure(Monad0.Applicative0());
     return function(value14) {
       return function(label5) {
-        return map214(cons2(label5))(fromMaybe(pure116([]))(tagLines(dictMonadEffect)(value14)));
+        return map214(cons2(label5))(fromMaybe(pure115([]))(tagLines(dictMonadEffect)(value14)));
       };
     };
   };
@@ -14782,13 +14753,13 @@
   };
   var showTags = function(dictMonadEffect) {
     var Monad0 = dictMonadEffect.Monad0();
-    var pure116 = pure(Monad0.Applicative0());
+    var pure115 = pure(Monad0.Applicative0());
     var mapFlipped1 = mapFlipped(Monad0.Bind1().Apply0().Functor0());
     var $95 = tagLines(dictMonadEffect);
     return function($96) {
       return function(v2) {
         if (v2 instanceof Nothing) {
-          return pure116("");
+          return pure115("");
         }
         ;
         if (v2 instanceof Just) {
@@ -15757,7 +15728,7 @@
   var identity16 = /* @__PURE__ */ identity(categoryFn);
   var apply3 = /* @__PURE__ */ apply(applyRouteParser);
   var map30 = /* @__PURE__ */ map(functorRouteParser);
-  var mempty3 = /* @__PURE__ */ mempty(monoidRoutePRinter);
+  var mempty2 = /* @__PURE__ */ mempty(monoidRoutePRinter);
   var apply1 = /* @__PURE__ */ apply(applyFn);
   var map114 = /* @__PURE__ */ map(functorFn);
   var RouteDuplex = /* @__PURE__ */ function() {
@@ -15916,7 +15887,7 @@
   };
   var applicativeRouteDuplex = {
     pure: /* @__PURE__ */ function() {
-      var $143 = RouteDuplex.create($$const(mempty3));
+      var $143 = RouteDuplex.create($$const(mempty2));
       return function($144) {
         return $143(pure8($144));
       };
@@ -18508,15 +18479,25 @@
     };
   };
 
+  // output/Game.Piece.Complexity/index.js
+  var mempty3 = /* @__PURE__ */ mempty(/* @__PURE__ */ monoidAdditive(semiringNumber));
+  var space = function($6) {
+    return function(v2) {
+      return {
+        space: v2,
+        time: mempty3
+      };
+    }(Additive($6));
+  };
+
   // output/Game.Board.PseudoPiece/index.js
-  var mkPiece2 = /* @__PURE__ */ mkPiece()();
   var elem3 = /* @__PURE__ */ elem2(eqPieceId);
   var eq8 = /* @__PURE__ */ eq(eqPieceId);
   var discard4 = /* @__PURE__ */ discard(discardUnit)(bindMaybe);
   var guard4 = /* @__PURE__ */ guard(alternativeMaybe);
   var lookup10 = /* @__PURE__ */ lookup2(ordCardinalDirection);
   var psuedoPiece = function(port2) {
-    return mkPiece2({
+    return mkPieceNoGlob({
       name: function() {
         var v2 = portType(port2);
         if (v2 instanceof Input) {
@@ -18532,6 +18513,7 @@
       "eval": function(v2) {
         return empty2;
       },
+      ports: singleton6(Right2.value)(matchingPort(port2)),
       complexity: space(0),
       shouldRipple: false,
       updateCapacity: function(v2) {
@@ -18539,7 +18521,7 @@
           return Nothing.value;
         };
       },
-      ports: singleton6(Right2.value)(matchingPort(port2))
+      isSimplifiable: Nothing.value
     });
   };
   var isPseudoPiece = function(v2) {
@@ -18576,7 +18558,6 @@
   var filter7 = /* @__PURE__ */ filter2(ordCardinalDirection);
   var fromFoldable6 = /* @__PURE__ */ fromFoldable2(ordCardinalDirection)(foldableMap);
   var fold5 = /* @__PURE__ */ fold(foldableMaybe)(monoidSignal);
-  var mkPiece3 = /* @__PURE__ */ mkPiece()();
   var monadStateStateT2 = /* @__PURE__ */ monadStateStateT(monadIdentity);
   var _pieces4 = /* @__PURE__ */ _pieces(strongFn);
   var at1 = /* @__PURE__ */ at(/* @__PURE__ */ atMap(ordLocation));
@@ -18617,19 +18598,19 @@
       return function(dir2) {
         return function(signal) {
           return $$void12(runMaybeT(bind118(asks2(function() {
-            var $288 = lookup11(dir2);
-            return function($289) {
-              return $288(function(v2) {
+            var $286 = lookup11(dir2);
+            return function($287) {
+              return $286(function(v2) {
                 return v2.psuedoPieceLocations;
-              }(unwrap11($289)));
+              }(unwrap11($287)));
             };
           }()))(function(loc) {
             return bind118(asks2(function() {
-              var $290 = lookup12(loc);
-              return function($291) {
-                return $290(function(v2) {
+              var $288 = lookup12(loc);
+              return function($289) {
+                return $288(function(v2) {
                   return v2.pieces;
-                }(unwrap11($291)));
+                }(unwrap11($289)));
               };
             }()))(function(v2) {
               return when12(isPseudoInput(v2))(bind118(pure41(getPsuedoPiecePort(v2)))(function(port2) {
@@ -18664,10 +18645,10 @@
     return function(dictMonadState) {
       var setOuterPort2 = setOuterPort1(dictMonadState);
       return function(inputs) {
-        return bind118(asks2(function($292) {
+        return bind118(asks2(function($290) {
           return function(v2) {
             return v2.psuedoPieceLocations;
-          }(unwrap11($292));
+          }(unwrap11($290));
         }))(function(psuedoPieceLocations) {
           return forWithIndex_3(psuedoPieceLocations)(function(dir2) {
             return function(loc) {
@@ -18686,15 +18667,15 @@
     var bind118 = bind(Monad0.Bind1());
     var asks2 = asks(MonadAsk0);
     var pure41 = pure(Monad0.Applicative0());
-    return bind118(asks2(function($293) {
+    return bind118(asks2(function($291) {
       return function(v2) {
         return v2.pieces;
-      }(unwrap11($293));
+      }(unwrap11($291));
     }))(function(pieces) {
-      return bind118(asks2(function($294) {
+      return bind118(asks2(function($292) {
         return function(v2) {
           return v2.psuedoPieceLocations;
-        }(unwrap11($294));
+        }(unwrap11($292));
       }))(function(psuedoPieceLocations) {
         return pure41(mapMaybe4(function(loc) {
           return map39(matchingPort)(bind15(lookup12(loc)(pieces))(function(v2) {
@@ -18717,11 +18698,11 @@
       var gets7 = gets(dictMonadState);
       return function(dir2) {
         return bind118(asks2(function() {
-          var $297 = lookup11(dir2);
-          return function($298) {
-            return $297(function(v2) {
+          var $295 = lookup11(dir2);
+          return function($296) {
+            return $295(function(v2) {
               return v2.psuedoPieceLocations;
-            }(unwrap11($298)));
+            }(unwrap11($296)));
           };
         }()))(function(maybeLoc) {
           return $$for3(maybeLoc)(function(loc) {
@@ -18749,10 +18730,10 @@
       var assign4 = assign(dictMonadState);
       return function(inRelEdge) {
         return function(capacity) {
-          return bind118(asks2(function($299) {
+          return bind118(asks2(function($297) {
             return function(v2) {
               return v2.connections;
-            }(unwrap11($299));
+            }(unwrap11($297));
           }))(function(connections) {
             var v2 = lookup22(inRelEdge)(connections);
             if (v2 instanceof Just) {
@@ -18789,7 +18770,7 @@
               });
             }
             ;
-            throw new Error("Failed pattern match at Game.Board.EvaluableBoard (line 194, column 3 - line 205, column 18): " + [v2.constructor.name]);
+            throw new Error("Failed pattern match at Game.Board.EvaluableBoard (line 193, column 3 - line 204, column 18): " + [v2.constructor.name]);
           });
         };
       };
@@ -18831,10 +18812,10 @@
       var getInputOnEdge2 = getInputOnEdge1(dictMonadState);
       var assign4 = assign(dictMonadState);
       return function(loc) {
-        return bind118(asks2(function($300) {
+        return bind118(asks2(function($298) {
           return function(v2) {
             return v2.pieces;
-          }(unwrap11($300));
+          }(unwrap11($298));
         }))(function(pieces) {
           return for_7(lookup12(loc)(pieces))(function(v2) {
             var inputPorts = filter7(isInput)(v2.ports);
@@ -18879,10 +18860,10 @@
       var evalWithPortInfoAt2 = evalWithPortInfoAt1(dictMonadState);
       var extractOutputs2 = extractOutputs1(dictMonadState);
       return function(inputs) {
-        return bind118(asks2(function($301) {
+        return bind118(asks2(function($299) {
           return function(v2) {
             return v2.evalOrder;
-          }(unwrap11($301));
+          }(unwrap11($299));
         }))(function(evalOrder) {
           return discard111(injectInputs2(inputs))(function() {
             return discard111(traverse_16(evalWithPortInfoAt2)(evalOrder))(function() {
@@ -18895,11 +18876,12 @@
   };
   var evalWithPortInfo1 = /* @__PURE__ */ evalWithPortInfo(/* @__PURE__ */ monadReaderReaderT(/* @__PURE__ */ monadStateT(monadIdentity)))(/* @__PURE__ */ monadStateReaderT(monadStateStateT2));
   var evaluableBoardPiece = function(v2) {
-    return mkPiece3({
+    return mkPieceNoGlob({
       name: "evaluable",
-      "eval": function(inputs) {
-        return evalState(runReaderT(evalWithPortInfo1(inputs))(v2))(empty2);
+      "eval": function(m2) {
+        return evalState(runReaderT(evalWithPortInfo1(m2))(v2))(empty2);
       },
+      ports: getPorts1(v2),
       complexity: space(0),
       shouldRipple: false,
       updateCapacity: function(v1) {
@@ -18907,7 +18889,7 @@
           return Nothing.value;
         };
       },
-      ports: getPorts1(v2)
+      isSimplifiable: Nothing.value
     });
   };
   var buildEvaluableBoard = function(dictMonadError) {
@@ -18935,9 +18917,9 @@
           return bind118(getBoardEdgePseudoLocation2(dir2))(function(loc) {
             var rotation3 = clockwiseRotation(Left2.value)(dir2);
             return assign4(function() {
-              var $302 = at1(loc)(strongFn);
-              return function($303) {
-                return _pieces4($302($303));
+              var $300 = at1(loc)(strongFn);
+              return function($301) {
+                return _pieces4($300($301));
               };
             }())(new Just({
               piece: psuedoPiece(port2),
@@ -20778,16 +20760,14 @@
   var length10 = /* @__PURE__ */ length(foldableSet)(semiringInt);
   var insert10 = /* @__PURE__ */ insert(ordCardinalDirection);
   var insert12 = /* @__PURE__ */ insert2(ordCardinalDirection);
-  var notEq5 = /* @__PURE__ */ notEq(/* @__PURE__ */ eqSet(eqCardinalDirection));
-  var pure16 = /* @__PURE__ */ pure(applicativeFn);
+  var eq18 = /* @__PURE__ */ eq(/* @__PURE__ */ eqSet(eqCardinalDirection));
   var $$delete7 = /* @__PURE__ */ $$delete3(ordCardinalDirection);
   var fromFoldable8 = /* @__PURE__ */ fromFoldable2(ordCardinalDirection);
   var fromFoldable13 = /* @__PURE__ */ fromFoldable8(foldableSet);
   var map45 = /* @__PURE__ */ map13(/* @__PURE__ */ ordTuple(ordCardinalDirection)(ordCardinalDirection));
-  var fix2 = /* @__PURE__ */ fix(lazyFn);
+  var fix3 = /* @__PURE__ */ fix(lazyFn);
   var fromFoldable23 = /* @__PURE__ */ fromFoldable4(foldableArray)(ordCardinalDirection);
   var elem5 = /* @__PURE__ */ elem(foldableMap)(eqPieceId);
-  var mkPiece4 = /* @__PURE__ */ mkPiece()();
   var fromFoldable33 = /* @__PURE__ */ fromFoldable8(foldableArray);
   var wirePieceNames = /* @__PURE__ */ function() {
     var up = singleton8(Up.value);
@@ -20826,15 +20806,17 @@
               ;
               if (portType2 instanceof Just && portType2.value0 instanceof Input) {
                 var newOutputs = insert12(dir2)(wire.outputs);
-                var $44 = notEq5(wire.outputs)(newOutputs);
+                var $44 = eq18(wire.outputs)(newOutputs);
                 if ($44) {
                   return $$this;
                 }
                 ;
-                return pure16(mkWirePiece({
-                  capacity: wire.capacity,
-                  outputs: newOutputs
-                }));
+                return function(v1) {
+                  return mkWirePiece({
+                    capacity: wire.capacity,
+                    outputs: newOutputs
+                  });
+                };
               }
               ;
               if (portType2 instanceof Just && portType2.value0 instanceof Output) {
@@ -20843,26 +20825,30 @@
               ;
               if (portType2 instanceof Nothing) {
                 var newOutputs = $$delete7(dir2)(wire.outputs);
-                var $47 = notEq5(wire.outputs)(newOutputs);
+                var $47 = eq18(wire.outputs)(newOutputs);
                 if ($47) {
                   return $$this;
                 }
                 ;
                 var $48 = isEmpty2(newOutputs);
                 if ($48) {
-                  return pure16(mkWirePiece({
-                    capacity: wire.capacity,
-                    outputs: singleton8(Right2.value)
-                  }));
+                  return function(v1) {
+                    return mkWirePiece({
+                      capacity: wire.capacity,
+                      outputs: singleton8(Right2.value)
+                    });
+                  };
                 }
                 ;
-                return pure16(mkWirePiece({
-                  capacity: wire.capacity,
-                  outputs: newOutputs
-                }));
+                return function(v1) {
+                  return mkWirePiece({
+                    capacity: wire.capacity,
+                    outputs: newOutputs
+                  });
+                };
               }
               ;
-              throw new Error("Failed pattern match at Game.Piece.WirePiece (line 81, column 32 - line 95, column 74): " + [dir2.constructor.name, portType2.constructor.name]);
+              throw new Error("Failed pattern match at Game.Piece.WirePiece (line 82, column 32 - line 96, column 73): " + [dir2.constructor.name, portType2.constructor.name]);
             };
           },
           unglob: $$this,
@@ -20875,7 +20861,7 @@
         };
       };
     };
-    return fix2(go2)(unit);
+    return fix3(go2)(unit);
   };
   var rightPiece = /* @__PURE__ */ function() {
     return mkWirePiece({
@@ -20905,7 +20891,7 @@
     });
   }();
   var dualWirePiece = function(dualWire) {
-    return mkPiece4({
+    return mkPieceNoGlob({
       name: dualWire.name,
       "eval": function(m2) {
         var a22 = fromMaybe(zero6)(lookup14(dualWire.input2)(m2));
@@ -20913,6 +20899,8 @@
         return fromFoldable33([new Tuple(dualWire.output1, a1), new Tuple(dualWire.output2, a22)]);
       },
       ports: fromFoldable33([new Tuple(Left2.value, inputPort(dualWire.capacity)), new Tuple(dualWire.input2, inputPort(dualWire.capacity)), new Tuple(dualWire.output1, outputPort(dualWire.capacity)), new Tuple(dualWire.output2, outputPort(dualWire.capacity))]),
+      complexity: space(1),
+      shouldRipple: true,
       updateCapacity: function(v2) {
         return function(capacity) {
           return new Just(dualWirePiece({
@@ -20967,12 +20955,12 @@
 
   // output/Component.Rendering.Piece/index.js
   var bind18 = /* @__PURE__ */ bind(bindArray);
-  var pure17 = /* @__PURE__ */ pure(applicativeArray);
+  var pure16 = /* @__PURE__ */ pure(applicativeArray);
   var mul2 = /* @__PURE__ */ mul(semiringNumber);
   var fromFoldable9 = /* @__PURE__ */ fromFoldable3(foldableMaybe);
   var lookup15 = /* @__PURE__ */ lookup2(ordCardinalDirection);
   var append18 = /* @__PURE__ */ append(semigroupArray);
-  var eq18 = /* @__PURE__ */ eq(eqPieceId);
+  var eq19 = /* @__PURE__ */ eq(eqPieceId);
   var renderDefaultPiece = function(state3) {
     var renderPieceCenter = function(v2) {
       return image([href5("./static/images/" + (v2 + ".png")), width8(40), height8(40)]);
@@ -20980,9 +20968,9 @@
     var center = g([transform([new Translate(30, 30)])])([svg([width8(50), height8(50)])([renderPieceCenter(name2(state3.piece))])]);
     var allPorts = bind18(allDirections)(function(dir2) {
       var v2 = clockwiseRotation(Up.value)(dir2);
-      return pure17(g([transform([new Rotate(toNumber(v2) * 90, 50, 50), new Translate(25, 0)])])(bind18(fromFoldable9(lookup15(dir2)(state3.portStates)))(function(portInfo) {
+      return pure16(g([transform([new Rotate(toNumber(v2) * 90, 50, 50), new Translate(25, 0)])])(bind18(fromFoldable9(lookup15(dir2)(state3.portStates)))(function(portInfo) {
         var path3 = portPath(portInfo);
-        return pure17(renderPathWithEvents(path3)(new PortOnMouseEnter(dir2))(PortOnMouseLeave.value));
+        return pure16(renderPathWithEvents(path3)(new PortOnMouseEnter(dir2))(PortOnMouseLeave.value));
       })));
     });
     return g([])(append18(allPorts)([center]));
@@ -20993,15 +20981,15 @@
         return renderWire(state3.portStates);
       }
       ;
-      if (eq18(name2(state3.piece))(name2(crossPiece))) {
+      if (eq19(name2(state3.piece))(name2(crossPiece))) {
         return renderCrossOver(state3.portStates);
       }
       ;
-      if (eq18(name2(state3.piece))(name2(cornerCutPiece))) {
+      if (eq19(name2(state3.piece))(name2(cornerCutPiece))) {
         return renderCornerCut(state3.portStates);
       }
       ;
-      if (eq18(name2(state3.piece))(name2(chickenPiece))) {
+      if (eq19(name2(state3.piece))(name2(chickenPiece))) {
         return renderChicken(state3.portStates);
       }
       ;
@@ -21040,7 +21028,7 @@
   var mul3 = /* @__PURE__ */ mul(semiringNumber);
   var eqRec3 = /* @__PURE__ */ eqRec();
   var eqRowCons2 = /* @__PURE__ */ eqRowCons(eqRowNil)();
-  var eq19 = /* @__PURE__ */ eq(/* @__PURE__ */ eqRec3(/* @__PURE__ */ eqRowCons(/* @__PURE__ */ eqRowCons(/* @__PURE__ */ eqRowCons(/* @__PURE__ */ eqRowCons(/* @__PURE__ */ eqRowCons(/* @__PURE__ */ eqRowCons2({
+  var eq20 = /* @__PURE__ */ eq(/* @__PURE__ */ eqRec3(/* @__PURE__ */ eqRowCons(/* @__PURE__ */ eqRowCons(/* @__PURE__ */ eqRowCons(/* @__PURE__ */ eqRowCons(/* @__PURE__ */ eqRowCons(/* @__PURE__ */ eqRowCons2({
     reflectSymbol: function() {
       return "rotation";
     }
@@ -21088,7 +21076,7 @@
   var modify_3 = /* @__PURE__ */ modify_2(monadStateHalogenM);
   var map46 = /* @__PURE__ */ map(functorMap);
   var discard8 = /* @__PURE__ */ discard(discardUnit)(bindHalogenM);
-  var pure18 = /* @__PURE__ */ pure(applicativeHalogenM);
+  var pure17 = /* @__PURE__ */ pure(applicativeHalogenM);
   var bind19 = /* @__PURE__ */ bind(bindHalogenM);
   var traverse_6 = /* @__PURE__ */ traverse_(applicativeHalogenM)(foldableMaybe);
   var map118 = /* @__PURE__ */ map(functorEffect);
@@ -21117,7 +21105,7 @@
   };
   var component4 = function(dictMonadEffect) {
     var liftEffect11 = liftEffect(monadEffectHalogenM(dictMonadEffect));
-    var render6 = memoized(eq19)(function(state3) {
+    var render6 = memoized(eq20)(function(state3) {
       return div5([classes(["piece-component"]), attr3(isDragging)(state3.isDragging), attr3(rotation2)(state3.rotation), attr3(pieceId)(name2(state3.piece)), draggable2(isNothing(state3.isRotating)), ref2("piece"), contentEditable2(true), onDragEnd(OnDrop.create(state3.location)), onDrag(OnDrag.create), onMouseDown(OnMouseDown.create), onMouseMove(OnMouseMove.create), onMouseUp(OnMouseUp.create), onKeyDown(OnKeyDown.create), onAuxClick(OnAuxClick.create)])([renderPiece(state3)]);
     });
     var getPosition = function(e) {
@@ -21183,7 +21171,7 @@
             $145.isDragging = true;
             return $145;
           }))(function() {
-            return pure18(unit);
+            return pure17(unit);
           });
         }
         ;
@@ -21361,7 +21349,7 @@
   var show28 = /* @__PURE__ */ show(showInt);
   var intercalate7 = /* @__PURE__ */ intercalate(foldableArray)(monoidString);
   var bind20 = /* @__PURE__ */ bind(bindMaybe);
-  var pure19 = /* @__PURE__ */ pure(applicativeMaybe);
+  var pure18 = /* @__PURE__ */ pure(applicativeMaybe);
   var slot4 = /* @__PURE__ */ slot3()({
     reflectSymbol: function() {
       return "piece";
@@ -21370,7 +21358,7 @@
   var component5 = /* @__PURE__ */ component4(monadEffectAppM);
   var _size3 = /* @__PURE__ */ _size(strongForget);
   var bind110 = /* @__PURE__ */ bind(bindArray);
-  var pure110 = /* @__PURE__ */ pure(applicativeArray);
+  var pure19 = /* @__PURE__ */ pure(applicativeArray);
   var elem6 = /* @__PURE__ */ elem2(eqCardinalDirection);
   var div8 = /* @__PURE__ */ div(euclideanRingInt);
   var fromFoldable10 = /* @__PURE__ */ fromFoldable3(foldableMap);
@@ -21388,7 +21376,7 @@
       return function(j) {
         var loc = location(i2)(j);
         return div5([attr3(location3)(location(i2)(j)), class_("piece"), style(intercalate7("; ")([gridArea(new Tuple(i2, j))])), onMouseDown(LocationOnMouseDown.create(loc)), onMouseOver(LocationOnMouseOver.create(loc)), onMouseUp(LocationOnMouseUp.create(loc)), onDragEnter(LocationOnDragEnter.create(loc)), onDragOver(LocationOnDragOver.create(loc)), onDragLeave(LocationOnDragLeave.create), onDrop(LocationOnDrop.create(loc))])([fromMaybe(emptyPieceHTML(loc))(bind20(pieceInput(state3)(loc))(function(input3) {
-          return pure19(slot4(slot2)(loc)(component5)(input3)(PieceOutput.create));
+          return pure18(slot4(slot2)(loc)(component5)(input3)(PieceOutput.create));
         }))]);
       };
     };
@@ -21397,7 +21385,7 @@
     var gridTemplate = "25fr repeat(" + (show28(n) + ", 100fr) 25fr");
     var pieces = bind110(range2(0)(n - 1 | 0))(function(i2) {
       return bind110(range2(0)(n - 1 | 0))(function(j) {
-        return pure110(renderPieceSlot(i2)(j));
+        return pure19(renderPieceSlot(i2)(j));
       });
     });
     var renderBoardPort = function(dir2) {
@@ -22275,7 +22263,7 @@
       var catchError2 = catchError(dictMonadError);
       var $$void12 = $$void(Bind1.Apply0().Functor0());
       var removePieceNoUpdate2 = removePieceNoUpdate(dictMonadError)(dictMonadState);
-      var pure116 = pure(Applicative0);
+      var pure115 = pure(Applicative0);
       var addPieceNoUpdate2 = addPieceNoUpdate(dictMonadError)(dictMonadState);
       return function(path3) {
         return bind118(liftBoardError1(partitionPath(path3)))(function(pathSegments) {
@@ -22289,7 +22277,7 @@
               }()))(function(extant) {
                 return bind118(liftBoardError1(lmap4(PathSegmentError.create)(combineSegmentWithExtant(segment2)(extant))))(function(v2) {
                   return discard111(catchError2($$void12(removePieceNoUpdate2(loc)))(function(v1) {
-                    return pure116(unit);
+                    return pure115(unit);
                   }))(function() {
                     return addPieceNoUpdate2(loc)(v2.piece)(v2.rotation);
                   });
@@ -22311,14 +22299,14 @@
       var liftBoardError1 = liftBoardError(dictMonadError);
       var discard111 = discard11(Bind1);
       var addPathToBoard2 = addPathToBoard1(dictMonadError);
-      var pure116 = pure(Monad0.Applicative0());
+      var pure115 = pure(Monad0.Applicative0());
       return function(initialDir) {
         return function(locations) {
           return function(terminalDir) {
             return bind118(liftBoardError1(toPath(initialDir)(locations)(terminalDir)))(function(path3) {
               return discard111(addPathToBoard2(path3))(function() {
                 return discard111(updateEndPoints1(path3))(function() {
-                  return pure116(path3);
+                  return pure115(path3);
                 });
               });
             });
@@ -22506,10 +22494,10 @@
   })(ordUnit);
   var capacityRipple2 = /* @__PURE__ */ capacityRipple(monadStateStateT3);
   var lookup17 = /* @__PURE__ */ lookup2(ordRelativeEdge);
-  var pure111 = /* @__PURE__ */ pure(applicativeMaybe);
+  var pure110 = /* @__PURE__ */ pure(applicativeMaybe);
   var modifying2 = /* @__PURE__ */ modifying(monadStateHalogenM);
   var ix4 = /* @__PURE__ */ ix(/* @__PURE__ */ indexMap(ordCardinalDirection));
-  var eq20 = /* @__PURE__ */ eq(eqSignal);
+  var eq21 = /* @__PURE__ */ eq(eqSignal);
   var tt2 = /* @__PURE__ */ tt(heytingAlgebraSignal);
   var lookup18 = /* @__PURE__ */ lookup2(ordCardinalDirection);
   var traverse_12 = /* @__PURE__ */ traverse_(applicativeHalogenM)(foldableMaybe);
@@ -22521,7 +22509,7 @@
   var bind42 = /* @__PURE__ */ bind(/* @__PURE__ */ bindMaybeT(monadHalogenM));
   var liftEffect1 = /* @__PURE__ */ liftEffect(/* @__PURE__ */ monadEffectMaybe(monadEffectHalogenM2));
   var modify_1 = /* @__PURE__ */ modify_2(/* @__PURE__ */ monadStateMaybeT(monadStateHalogenM));
-  var notEq6 = /* @__PURE__ */ notEq(/* @__PURE__ */ eqMaybe(eqLocation));
+  var notEq5 = /* @__PURE__ */ notEq(/* @__PURE__ */ eqMaybe(eqLocation));
   var appendModifying2 = /* @__PURE__ */ appendModifying(monadStateHalogenM)(semigroupArray);
   var _wireLocations2 = /* @__PURE__ */ _wireLocations(wanderFunction);
   var eq110 = /* @__PURE__ */ eq(eqMouseButton);
@@ -22837,7 +22825,7 @@
               return v12.lastEvalWithPortInfo;
             }))(function(signals) {
               var focus3 = bind25(lookup17(v2.value0.value0)(signals))(function(info4) {
-                return pure111({
+                return pure110({
                   info: info4,
                   relativeEdge: v2.value0.value0
                 });
@@ -22854,7 +22842,7 @@
               return _inputs2($315($316));
             };
           }())(function(signal) {
-            var $248 = eq20(signal)(ff2);
+            var $248 = eq21(signal)(ff2);
             if ($248) {
               return tt2;
             }
@@ -22880,7 +22868,7 @@
                 return _inputs2($319($320));
               };
             }())(function(signal) {
-              var $250 = eq20(signal)(maxValue(portCapacity(port2)));
+              var $250 = eq21(signal)(maxValue(portCapacity(port2)));
               if ($250) {
                 return ff2;
               }
@@ -22907,7 +22895,7 @@
                 return _inputs2($323($324));
               };
             }())(function(n) {
-              var $252 = eq20(n)(zero7);
+              var $252 = eq21(n)(zero7);
               if ($252) {
                 return maxValue(portCapacity(port2));
               }
@@ -22986,7 +22974,7 @@
           return bind111(gets3(function(v12) {
             return v12.isCreatingWire;
           }))(traverse_12(function(creatingWire) {
-            return when5(notEq6(last2(creatingWire.locations))(new Just(v2.value0)))(appendModifying2(_wireLocations2)([v2.value0]));
+            return when5(notEq5(last2(creatingWire.locations))(new Just(v2.value0)))(appendModifying2(_wireLocations2)([v2.value0]));
           }));
         }
         ;
@@ -23472,7 +23460,7 @@
   var when6 = /* @__PURE__ */ when(applicativeHalogenM);
   var discard14 = /* @__PURE__ */ discard(discardUnit)(bindHalogenM);
   var modify_6 = /* @__PURE__ */ modify_2(monadStateHalogenM);
-  var pure112 = /* @__PURE__ */ pure(applicativeHalogenM);
+  var pure111 = /* @__PURE__ */ pure(applicativeHalogenM);
   var AmendBoardSizeSlider = /* @__PURE__ */ function() {
     function AmendBoardSizeSlider3(value0, value1) {
       this.value0 = value0;
@@ -23591,7 +23579,7 @@
             return $32;
           }))(function() {
             return discard14(handleAction(InputRangeMouseUp.value))(function() {
-              return pure112(new Just(v2.value1));
+              return pure111(new Just(v2.value1));
             });
           });
         },
@@ -24218,7 +24206,6 @@
   };
 
   // output/Game.Piece.BasicPiece/index.js
-  var mkPiece5 = /* @__PURE__ */ mkPiece()();
   var map56 = /* @__PURE__ */ map(functorMap);
   var discard16 = /* @__PURE__ */ discard(discardUnit)(bindMaybe);
   var guard5 = /* @__PURE__ */ guard(alternativeMaybe);
@@ -24231,12 +24218,13 @@
   var disj2 = /* @__PURE__ */ disj(heytingAlgebraSignal);
   var conj2 = /* @__PURE__ */ conj(heytingAlgebraSignal);
   var basicPiece = function(basic) {
-    return mkPiece5({
+    return mkPieceNoGlob({
       name: basic.name,
       "eval": basic["eval"],
       ports: map56(function(portType2) {
         return createPort(portType2)(basic.capacity);
       })(basic.ports),
+      complexity: space(1),
       shouldRipple: true,
       updateCapacity: function(dir2) {
         return function(capacity) {
@@ -24249,7 +24237,8 @@
             }));
           });
         };
-      }
+      },
+      isSimplifiable: Nothing.value
     });
   };
   var notPiece = /* @__PURE__ */ function() {
@@ -24304,15 +24293,14 @@
   // output/Game.Piece.FusePiece/index.js
   var sub3 = /* @__PURE__ */ sub(uintRing);
   var one3 = /* @__PURE__ */ one(uintSemiring);
-  var mkPiece6 = /* @__PURE__ */ mkPiece()();
   var foldMap4 = /* @__PURE__ */ foldMap(foldableMaybe)(/* @__PURE__ */ monoidTuple(monoidSignal)(monoidSignal));
   var lookup21 = /* @__PURE__ */ lookup2(ordCardinalDirection);
   var fromFoldable20 = /* @__PURE__ */ fromFoldable2(ordCardinalDirection)(foldableArray);
   var bind31 = /* @__PURE__ */ bind(bindMaybe);
+  var pure32 = /* @__PURE__ */ pure(applicativeMaybe);
   var discard17 = /* @__PURE__ */ discard(discardUnit)(bindMaybe);
   var guard6 = /* @__PURE__ */ guard(alternativeMaybe);
-  var notEq7 = /* @__PURE__ */ notEq(eqCapacity);
-  var pure32 = /* @__PURE__ */ pure(applicativeMaybe);
+  var notEq6 = /* @__PURE__ */ notEq(eqCapacity);
   var fold8 = /* @__PURE__ */ fold(foldableMaybe)(monoidSignal);
   var severSignal = function(outputCapacity) {
     return function(signal) {
@@ -24327,12 +24315,17 @@
     };
   };
   var mkSeverPiece = function(v2) {
-    return mkPiece6({
+    return mkPieceNoGlob({
       name: "sever-piece",
       "eval": function(inputs) {
         var v1 = foldMap4(severSignal(v2.outputCapacity))(lookup21(Left2.value)(inputs));
         return fromFoldable20([new Tuple(Up.value, v1.value0), new Tuple(Down.value, v1.value1)]);
       },
+      ports: fromMaybe(empty2)(bind31(doubleCapacity(v2.outputCapacity))(function(inputCapacity) {
+        return pure32(fromFoldable20([new Tuple(Left2.value, inputPort(inputCapacity)), new Tuple(Up.value, outputPort(v2.outputCapacity)), new Tuple(Down.value, outputPort(v2.outputCapacity))]));
+      })),
+      complexity: space(1),
+      shouldRipple: true,
       updateCapacity: function(dir2) {
         return function(capacity) {
           if (dir2 instanceof Right2) {
@@ -24341,7 +24334,7 @@
           ;
           if (dir2 instanceof Left2) {
             return bind31(halveCapacity(capacity))(function(outputCapacity$prime) {
-              return discard17(guard6(notEq7(v2.outputCapacity)(outputCapacity$prime)))(function() {
+              return discard17(guard6(notEq6(v2.outputCapacity)(outputCapacity$prime)))(function() {
                 return pure32(mkSeverPiece({
                   outputCapacity: outputCapacity$prime
                 }));
@@ -24349,16 +24342,14 @@
             });
           }
           ;
-          return discard17(guard6(notEq7(capacity)(v2.outputCapacity)))(function() {
+          return discard17(guard6(notEq6(capacity)(v2.outputCapacity)))(function() {
             return pure32(mkSeverPiece({
               outputCapacity: capacity
             }));
           });
         };
       },
-      ports: fromMaybe(empty2)(bind31(doubleCapacity(v2.outputCapacity))(function(inputCapacity) {
-        return pure32(fromFoldable20([new Tuple(Left2.value, inputPort(inputCapacity)), new Tuple(Up.value, outputPort(v2.outputCapacity)), new Tuple(Down.value, outputPort(v2.outputCapacity))]));
-      }))
+      isSimplifiable: Nothing.value
     });
   };
   var severPiece = /* @__PURE__ */ function() {
@@ -24375,13 +24366,18 @@
     });
   };
   var mkFusePiece = function(v2) {
-    return mkPiece6({
+    return mkPieceNoGlob({
       name: "fuse-piece",
       "eval": function(inputs) {
         var low2 = fold8(lookup21(Down.value)(inputs));
         var high2 = fold8(lookup21(Up.value)(inputs));
         return singleton6(Right2.value)(fuseSignals(v2.inputCapacity)(high2)(low2));
       },
+      ports: fromMaybe(empty2)(bind31(doubleCapacity(v2.inputCapacity))(function(outputCapacity) {
+        return pure32(fromFoldable20([new Tuple(Up.value, inputPort(v2.inputCapacity)), new Tuple(Down.value, inputPort(v2.inputCapacity)), new Tuple(Right2.value, outputPort(outputCapacity))]));
+      })),
+      complexity: space(1),
+      shouldRipple: true,
       updateCapacity: function(dir2) {
         return function(capacity) {
           if (dir2 instanceof Left2) {
@@ -24390,7 +24386,7 @@
           ;
           if (dir2 instanceof Right2) {
             return bind31(halveCapacity(capacity))(function(inputCapacity$prime) {
-              return discard17(guard6(notEq7(inputCapacity$prime)(v2.inputCapacity)))(function() {
+              return discard17(guard6(notEq6(inputCapacity$prime)(v2.inputCapacity)))(function() {
                 return pure32(mkFusePiece({
                   inputCapacity: inputCapacity$prime
                 }));
@@ -24398,7 +24394,7 @@
             });
           }
           ;
-          return discard17(guard6(notEq7(capacity)(v2.inputCapacity)))(function() {
+          return discard17(guard6(notEq6(capacity)(v2.inputCapacity)))(function() {
             return bind31(doubleCapacity(capacity))(function() {
               return pure32(mkFusePiece({
                 inputCapacity: capacity
@@ -24407,9 +24403,7 @@
           });
         };
       },
-      ports: fromMaybe(empty2)(bind31(doubleCapacity(v2.inputCapacity))(function(outputCapacity) {
-        return pure32(fromFoldable20([new Tuple(Up.value, inputPort(v2.inputCapacity)), new Tuple(Down.value, inputPort(v2.inputCapacity)), new Tuple(Right2.value, outputPort(outputCapacity))]));
-      }))
+      isSimplifiable: Nothing.value
     });
   };
   var fusePiece = /* @__PURE__ */ function() {
@@ -24435,7 +24429,7 @@
   };
 
   // output/Component.Sidebar.Render/index.js
-  var eq21 = /* @__PURE__ */ eq(eqBase);
+  var eq24 = /* @__PURE__ */ eq(eqBase);
   var member6 = /* @__PURE__ */ member(ordPieceId);
   var fromFoldable21 = /* @__PURE__ */ fromFoldable3(foldableList);
   var map57 = /* @__PURE__ */ map(functorList);
@@ -24481,7 +24475,7 @@
         var signalRepresentationOption = function(base2) {
           return function(text7) {
             return span4([onClick(ButtonClicked.create(new Base(base2)))])(function() {
-              var $28 = eq21(state3.base)(base2);
+              var $28 = eq24(state3.base)(base2);
               if ($28) {
                 return [b_([text(text7)])];
               }
@@ -24781,7 +24775,7 @@
     return new UUIDv4(render5(is), is);
   };
   var make$prime = function(dictApplicative) {
-    var pure116 = pure(dictApplicative);
+    var pure115 = pure(dictApplicative);
     var map123 = map(dictApplicative.Apply0().Functor0());
     var sequence12 = sequence4(dictApplicative);
     return function(rand) {
@@ -24791,7 +24785,7 @@
       var x4 = append112(x3)(x2);
       var x8 = append112(x4)(x4);
       var x12 = append112(x8)(x4);
-      var uuid = append112(x8)(append112(x4)(append112([pure116(4)])(append112(x3)(append112(y2)(append112(x3)(x12))))));
+      var uuid = append112(x8)(append112(x4)(append112([pure115(4)])(append112(x3)(append112(y2)(append112(x3)(x12))))));
       return map123(unsafeFromInts)(sequence12(uuid));
     };
   };
@@ -24925,14 +24919,14 @@
     var bind118 = bind(Monad0.Bind1());
     var liftEffect22 = liftEffect(MonadEffect0);
     var liftAff2 = liftAff(dictMonadAff);
-    var pure116 = pure(Monad0.Applicative0());
+    var pure115 = pure(Monad0.Applicative0());
     return function(duration2) {
       return function(val) {
         return bind118(liftEffect22(create))(function(v2) {
           return bind118(liftAff2(forkAff(discard1(delay(duration2))(function() {
             return liftEffect5(notify(v2.listener)(val));
           }))))(function() {
-            return pure116(v2.emitter);
+            return pure115(v2.emitter);
           });
         });
       };
@@ -25315,7 +25309,7 @@
   // output/Resources.LevelSuites.IntermediateSuite/index.js
   var fromFoldable26 = /* @__PURE__ */ fromFoldable4(foldableArray)(ordPiece);
   var all5 = /* @__PURE__ */ all(foldableMap)(heytingAlgebraBoolean);
-  var notEq8 = /* @__PURE__ */ notEq(eqPiece);
+  var notEq7 = /* @__PURE__ */ notEq(eqPiece);
   var intermediateSuite = /* @__PURE__ */ function() {
     return fromHomogeneous()({
       "Criss cross": {
@@ -25335,7 +25329,7 @@
             description: "You can't use the CrossOver piece in this level",
             restriction: function(v2) {
               return flip(all5)(v2.pieces)(function(info4) {
-                return notEq8(info4.piece)(crossPiece);
+                return notEq7(info4.piece)(crossPiece);
               });
             }
           }]
@@ -25677,12 +25671,12 @@
       return "level";
     }
   })(ordUnit);
-  var pure113 = /* @__PURE__ */ pure(applicativeHalogenM);
+  var pure112 = /* @__PURE__ */ pure(applicativeHalogenM);
   var bind114 = /* @__PURE__ */ bind(bindHalogenM);
   var get3 = /* @__PURE__ */ get(monadStateHalogenM);
   var discard21 = /* @__PURE__ */ discard(discardUnit)(bindHalogenM);
   var when8 = /* @__PURE__ */ when(applicativeHalogenM);
-  var notEq9 = /* @__PURE__ */ notEq(eqRoute);
+  var notEq8 = /* @__PURE__ */ notEq(eqRoute);
   var lift11 = /* @__PURE__ */ lift(monadTransHalogenM)(monadAppM);
   var debug5 = /* @__PURE__ */ debug(monadLoggerAppM);
   var show41 = /* @__PURE__ */ show(showRoute);
@@ -25742,11 +25736,11 @@
     var $$eval3 = mkEval({
       finalize: Nothing.value,
       handleAction: function(v2) {
-        return pure113(unit);
+        return pure112(unit);
       },
       handleQuery: function(v2) {
         return bind114(get3)(function(v1) {
-          return discard21(when8(notEq9(v1.route)(v2.value0))(discard21(lift11(debug5(empty2)("Navigated to " + show41(v2.value0))))(function() {
+          return discard21(when8(notEq8(v1.route)(v2.value0))(discard21(lift11(debug5(empty2)("Navigated to " + show41(v2.value0))))(function() {
             return modify_11(function(v22) {
               var $50 = {};
               for (var $51 in v22) {
@@ -25760,7 +25754,7 @@
               return $50;
             });
           })))(function() {
-            return pure113(new Just(v2.value1));
+            return pure112(new Just(v2.value1));
           });
         });
       },
@@ -25783,7 +25777,7 @@
   var composeKleisliFlipped2 = /* @__PURE__ */ composeKleisliFlipped(bindEffect);
   var pure37 = /* @__PURE__ */ pure(applicativeAff);
   var bindFlipped1 = /* @__PURE__ */ bindFlipped(bindMaybe);
-  var pure114 = /* @__PURE__ */ pure(applicativeEffect);
+  var pure113 = /* @__PURE__ */ pure(applicativeEffect);
   var map60 = /* @__PURE__ */ map(functorEffect);
   var selectElement = function(query3) {
     return bind37(liftEffect6(bindFlipped9(composeKleisliFlipped2(function() {
@@ -25795,7 +25789,7 @@
       return pure37(bindFlipped1(fromElement)(mel));
     });
   };
-  var runHalogenAff = /* @__PURE__ */ runAff_(/* @__PURE__ */ either(throwException)(/* @__PURE__ */ $$const(/* @__PURE__ */ pure114(unit))));
+  var runHalogenAff = /* @__PURE__ */ runAff_(/* @__PURE__ */ either(throwException)(/* @__PURE__ */ $$const(/* @__PURE__ */ pure113(unit))));
   var awaitLoad = /* @__PURE__ */ makeAff(function(callback) {
     return function __do5() {
       var rs = bindFlipped9(readyState)(bindFlipped9(document2)(windowImpl))();
@@ -26177,7 +26171,7 @@
   var liftEffect8 = /* @__PURE__ */ liftEffect(monadEffectAff);
   var pure39 = /* @__PURE__ */ pure(applicativeEffect);
   var map62 = /* @__PURE__ */ map(functorEffect);
-  var pure115 = /* @__PURE__ */ pure(applicativeAff);
+  var pure114 = /* @__PURE__ */ pure(applicativeAff);
   var when9 = /* @__PURE__ */ when(applicativeEffect);
   var renderStateX2 = /* @__PURE__ */ renderStateX(functorEffect);
   var $$void9 = /* @__PURE__ */ $$void(functorAff);
@@ -26282,7 +26276,7 @@
                         unDriverStateX(function(st) {
                           return function __do6() {
                             flip(write2)(st.handlerRef)(function() {
-                              var $65 = maybe(pure115(unit))(handler3);
+                              var $65 = maybe(pure114(unit))(handler3);
                               return function($66) {
                                 return $65(slot15.output($66));
                               };
@@ -26295,7 +26289,7 @@
                       ;
                       if (childrenIn instanceof Nothing) {
                         return runComponent(lchs)(function() {
-                          var $67 = maybe(pure115(unit))(handler3);
+                          var $67 = maybe(pure114(unit))(handler3);
                           return function($68) {
                             return $67(slot15.output($68));
                           };
@@ -26426,7 +26420,7 @@
             return function(q3) {
               return bind116(liftEffect8(read2(disposed)))(function(v2) {
                 if (v2) {
-                  return pure115(Nothing.value);
+                  return pure114(Nothing.value);
                 }
                 ;
                 return evalQ(render6)(ref3)(q3);
@@ -26721,7 +26715,7 @@
   var $$void11 = /* @__PURE__ */ $$void(functorEffect);
   var matchesWith2 = /* @__PURE__ */ matchesWith(foldableEither);
   var when11 = /* @__PURE__ */ when(applicativeEffect);
-  var notEq10 = /* @__PURE__ */ notEq(/* @__PURE__ */ eqMaybe(eqRoute));
+  var notEq9 = /* @__PURE__ */ notEq(/* @__PURE__ */ eqMaybe(eqRoute));
   var discard26 = /* @__PURE__ */ discard(discardUnit)(bindAff);
   var bindFlipped13 = /* @__PURE__ */ bindFlipped(bindAff);
   var liftEffect10 = /* @__PURE__ */ liftEffect(monadEffectAff);
@@ -26729,7 +26723,7 @@
   var initialiseRouting = function(onNewRoute) {
     return $$void11(matchesWith2(parse2(routeCodec))(function(old) {
       return function($$new2) {
-        return when11(notEq10(old)(new Just($$new2)))(onNewRoute($$new2));
+        return when11(notEq9(old)(new Just($$new2)))(onNewRoute($$new2));
       };
     }));
   };
