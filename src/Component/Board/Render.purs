@@ -31,7 +31,7 @@ import Game.Location (Location(..), location)
 import Game.PortInfo (PortInfo)
 import Game.Rotation (Rotation(..), toDegrees)
 import Halogen.Component (ComponentSlot(..))
-import Halogen.HTML (ClassName(..), HTML, ComponentHTML, slot_)
+import Halogen.HTML (ClassName(..), ComponentHTML, HTML, slot_)
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
@@ -43,7 +43,7 @@ import Web.HTML.Event.DragEvent as DragEvent
 render :: State -> ComponentHTML Action Slots AppM
 render state =
   HH.div
-    [ HP.id "board-component"
+    [ HP.class_ (ClassName "board-component")
     , HE.onDragExit (BoardOnDragExit)
     , HP.style $ intercalate "; "
       [ "grid-template-columns: " <> gridTemplate
