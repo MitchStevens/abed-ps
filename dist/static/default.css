@@ -11,13 +11,13 @@
   font-family: tienne;
   src: url(./fonts/Tienne-Regular.ttf);
 }
-#board-component {
+.board-component {
   aspect-ratio: 1 / 1;
   border-spacing: 0px;
   display: grid;
   overflow: auto;
 }
-#board-component .piece {
+.board-component .piece {
   display: block;
   box-sizing: border-box;
   height: 100%;
@@ -27,43 +27,43 @@
   border: lightgray 2px solid;
   overflow: hidden;
 }
-#board-component .piece .location-text {
+.board-component .piece .location-text {
   padding-left: 10px;
   padding-top: 2px;
   display: none;
 }
-#board-component .board-port {
+.board-component .board-port {
   box-sizing: border-box;
   display: grid;
   justify-items: center;
   align-items: center;
   overflow: hidden;
 }
-#board-component .board-port[data-direction='up'] svg {
+.board-component .board-port[data-direction='up'] svg {
   width: 50%;
 }
-#board-component .board-port[data-direction='down'] svg {
+.board-component .board-port[data-direction='down'] svg {
   width: 50%;
 }
-#board-component #multimeter {
+.board-component #multimeter {
   position: absolute;
   width: 300px;
   pointer-events: none;
 }
-#board-component #multimeter text {
+.board-component #multimeter text {
   white-space: pre;
   font-family: monogram, monospace;
   font-size: 40px;
   -webkit-font-smoothing: antialiased;
   letter-spacing: 1px;
 }
-#board-component #multimeter #screen-border {
+.board-component #multimeter #screen-border {
   fill: black;
 }
-#board-component #multimeter.display {
+.board-component #multimeter.display {
   display: block;
 }
-#board-component #multimeter.hide {
+.board-component #multimeter.hide {
   display: none;
 }
 /*!
@@ -4036,6 +4036,10 @@
 #demonstration-component .parchment {
   z-index: 1;
   grid-area: 1 / 1;
+}
+#instructions-component .board-diagram {
+  display: block;
+  width: 300px;
 }
 .parchment {
   display: flex;
