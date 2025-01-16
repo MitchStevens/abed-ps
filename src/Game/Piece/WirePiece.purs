@@ -13,6 +13,7 @@ import Data.Newtype (class Newtype, unwrap)
 import Data.Set (Set)
 import Data.Set as S
 import Data.Tuple (Tuple(..))
+import Debug (trace)
 import Game.Capacity (Capacity(..))
 import Game.Direction (CardinalDirection)
 import Game.Direction as Direction

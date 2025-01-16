@@ -135,6 +135,11 @@ component = mkComponent { eval , initialState , render }
           for_ result \info ->
             H.raise (BoardEvent (RemovePieceEvent loc info))
           pure (Just (f result))
+        
+        RotatePieceBy loc rot f -> do
+          result <- liftBoardM (rotatePieceBy loc rot)
+          pure (Just (f result))
+
 
         GetMouseOverLocation f -> do
           maybeDst <- gets (_.isMouseOverLocation)

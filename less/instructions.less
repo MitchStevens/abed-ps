@@ -1,10 +1,25 @@
 #instructions-component {
 
   & .board-diagram {
-    display: block;
+    display: grid;
     width: 300px; 
+    border: black 2px solid;
 
-    & board-component {
+    & .board-component {
+      grid-area: 1 / 1;
+
+    }
+
+    & .board-diagram-pieces {
+      grid-area: 1 / 2;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      row-gap: 20px;
+    }
+
+    & .board-diagram-description {
+      grid-area: 2 / 1 / 2 / 2;
     }
   }
 }
