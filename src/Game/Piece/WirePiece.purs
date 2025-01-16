@@ -6,6 +6,8 @@ import Control.Alternative (guard)
 import Control.Lazy (fix)
 import Data.Foldable (all, elem, length)
 import Data.Int (toNumber)
+import Data.Lazy (Lazy, defer)
+import Data.Lazy as Lazy
 import Data.Map (Map)
 import Data.Map as M
 import Data.Maybe (Maybe(..), fromMaybe, fromMaybe', maybe)
@@ -63,10 +65,10 @@ wirePieceNames =
 
 
 mkWirePiece :: WirePiece -> Piece
-mkWirePiece wire = fix go unit
+mkWirePiece wire = Lazy.force (fix (map fix (fix f wire)))
   where
-    go :: (Unit -> Piece) -> Unit -> Piece
-    go this _ = Piece
+    f :: ((WirePiece -> Lazy Piece -> Lazy Piece -> Lazy Piece) -> WirePiece -> Lazy Piece -> Lazy Piece -> Lazy Piece) -> WirePiece -> Lazy Piece -> Lazy Piece -> Lazy Piece
+    f mk wire unglob this = defer $ \_ -> Piece
       { name: fromMaybe' nameErr (M.lookup wire.outputs wirePieceNames)
       , eval: \inputs -> 
           let signal = fromMaybe zero (M.lookup Direction.Left inputs)

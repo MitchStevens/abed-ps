@@ -15,15 +15,6 @@ import Test.QuickCheck (assertEquals)
 import Test.Spec (Spec, describe, it)
 import Test.Spec.QuickCheck (quickCheck)
 
-pieceLessEq :: Piece -> Piece -> Map CardinalDirection Signal -> Boolean
-pieceLessEq p1 p2 inputs = flip allWithIndex out1 \dir signal ->
-  Just signal == M.lookup dir out2
-  where
-    inputs' = truncateInputs p1 inputs
-    out1 = eval p1 inputs'
-    out2 = eval p2 inputs'
-
-
 spec :: Spec Unit
 spec =
   describe "Game.Piece.Globbing" do
