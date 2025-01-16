@@ -36,7 +36,7 @@ tutorialSuite = fromHomogeneous
         , description = "The input on the left needs to be connected to the output on the right. Use the 'demonstrate' button for a quick tutorial."
         , demonstration = Just $ videoDemonstration
           { title: "Creating pieces"
-          , videoUrl: "./images/demonstrations/new_path.mp4"
+          , videoUrl: "./static/images/demonstrations/new_path.mp4"
           , description: "To create a Piece, click and drag from the left to the right"
           }
         , testCases = binaryTestInputs [ Direction.Left ]

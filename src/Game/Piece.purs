@@ -8,6 +8,7 @@ module Game.Piece
   , module Game.Piece.Types
   , module Game.Piece.UnaryOperationPiece
   , module Game.Piece.WirePiece
+  , allPieces
   ) where
 
 import Game.Piece.ArithmeticPiece

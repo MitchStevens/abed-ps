@@ -9,9 +9,13 @@ module Game.Direction
 
 import Prelude
 
+import Control.Monad.Gen (oneOf)
+import Data.Array.NonEmpty (cons')
 import Data.Enum (class BoundedEnum, class Enum, Cardinality(..), enumFromTo, fromEnum, toEnum)
 import Data.Maybe (Maybe(..), fromMaybe)
 import Game.Rotation (Rotation(..), rotation)
+import Test.QuickCheck (class Arbitrary, arbitrary)
+import Test.QuickCheck.Gen (elements)
 
 data CardinalDirection = Up | Right | Down | Left 
 derive instance Eq CardinalDirection
@@ -53,6 +57,9 @@ instance BoundedEnum CardinalDirection where
     2 -> Just Down
     3 -> Just Left
     _ -> Nothing
+
+instance Arbitrary CardinalDirection where
+  arbitrary = elements (cons' Up [Right, Down, Left])
 
 allDirections :: Array CardinalDirection
 allDirections = enumFromTo Up Left

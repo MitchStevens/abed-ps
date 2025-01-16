@@ -14,6 +14,7 @@ module Game.Piece.Types
   , mkPieceNoGlob
   , name
   , shouldRipple
+  , truncateInputs
   , unglob
   , updateCapacity
   )
@@ -21,6 +22,7 @@ module Game.Piece.Types
 
 import Prelude
 
+import Control.Alternative (guard)
 import Control.Lazy (fix)
 import Data.Array (fold)
 import Data.Foldable (and)
@@ -205,9 +207,22 @@ updateCapacity dir capacity (Piece p) = p.updateCapacity dir capacity
 getPorts :: Piece -> Map CardinalDirection Port
 getPorts (Piece p) = p.ports
 
+{-
+
+  glob d1 Nothing >>> glob d2 Nothing == glob d2 Nothing >>> glob d1 Nothing
+
+  glob d Nothing p <= p
+  p <= glob d (Just t) p
+-}
 glob :: CardinalDirection -> Maybe PortType -> Piece -> Piece
 glob dir port (Piece p) = p.glob dir port unit
 
+
+{-
+  unglob >>> unglob = unglob
+  unglob p <= p
+  unglob p <= glob d t 
+-}
 unglob :: Piece -> Piece
 unglob (Piece p) = p.unglob unit
 
@@ -226,3 +241,9 @@ getInputDirs (Piece p) = M.keys $ M.filter isInput p.ports
 
 getOutputDirs :: Piece -> Set CardinalDirection
 getOutputDirs (Piece p) = M.keys $ M.filter isOutput p.ports
+
+truncateInputs :: Piece -> Map CardinalDirection Signal -> Map CardinalDirection Signal
+truncateInputs (Piece p) inputs =
+  flip M.mapMaybeWithKey p.ports \dir port -> do
+    guard (isInput port)
+    M.lookup dir inputs

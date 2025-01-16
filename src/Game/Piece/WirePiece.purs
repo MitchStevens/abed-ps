@@ -82,13 +82,13 @@ mkWirePiece wire = fix go unit
           Direction.Left, _ -> this
           _, Just Input -> do
               let newOutputs = S.insert dir wire.outputs 
-              if wire.outputs /= newOutputs
+              if wire.outputs == newOutputs
                 then this
                 else \_ -> mkWirePiece (wire { outputs = newOutputs })
           _, Just Output -> this
           _, Nothing -> do
               let newOutputs = S.delete dir wire.outputs 
-              if wire.outputs /= newOutputs
+              if wire.outputs == newOutputs
                 then this
                 else if S.isEmpty newOutputs
                   then \_ -> mkWirePiece (wire { outputs = S.singleton Direction.Right} )

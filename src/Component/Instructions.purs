@@ -29,10 +29,11 @@ component = H.mkComponent { eval , initialState , render }
       HH.div
         [ HP.id "instructions-component" ]
         [ HH.h1_ [ HH.text "How to play"]
-        , HH.h2_ [ HH.text "Pieces" ]
-        , HH.h2_ [ HH.text "Board" ]
-        , HH.h2_ [ HH.text "Specification" ]
-        , HH.slot_ Globbing.slot unit Globbing.component unit
+        , HH.h2_ [ HH.text "Coming soon..." ]
+        --, HH.h2_ [ HH.text "Pieces" ]
+        --, HH.h2_ [ HH.text "Board" ]
+        --, HH.h2_ [ HH.text "Specification" ]
+        --, HH.slot_ Globbing.slot unit Globbing.component unit
         ]
   
   eval :: forall slots. HalogenQ q Action i ~> HalogenM State Action slots o AppM

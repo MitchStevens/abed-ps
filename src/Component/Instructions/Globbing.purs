@@ -20,6 +20,7 @@ type Slots =
 
 slot = Proxy :: Proxy "instructionsGlobbing"
 
+{-
 component :: forall q i. Component q i Void AppM
 component = H.mkComponent { eval: H.mkEval H.defaultEval, render, initialState: identity}
   where
@@ -44,10 +45,16 @@ component = H.mkComponent { eval: H.mkEval H.defaultEval, render, initialState: 
 
         ]
 
-    firstDiagram 
+    firstDiagram = HH.slot_ BoardDiagram.slot unit BoardDiagram.component input
       where
-        input = { size: 2, pieces }
+        input =
+          { board: Board { size: 2, pieces }
+          , actions: M.fromFoldable []
+          , description: "first diagram"
+          , initialise: []
+          }
         pieces = 
           [ Tuple (location 0 0) { piece: idPiece, rotation: rotation 0 }
           , Tuple (location 1 1) { piece: idPiece, rotation: rotation 1 } 
           ]
+          -}

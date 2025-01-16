@@ -26,8 +26,6 @@ data Action = CloseButton
 
 type Output = Void
 
-
-
 component :: forall m. MonadAff m => Component Query Input Output m
 component = mkComponent { initialState, eval, render }
   where

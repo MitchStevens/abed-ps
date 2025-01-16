@@ -8,9 +8,10 @@ import Control.Monad.Free (liftF)
 import Data.Array as A
 import Data.FunctorWithIndex (mapWithIndex)
 import Data.Map (Map)
-import Data.Traversable (for, for_)
+import Data.Maybe (Maybe(..))
+import Data.Traversable (for, for_, traverse_)
 import Game.Board (Board(..))
-import Halogen (ClassName(..), Component, ComponentHTML, HalogenM(..), Slot, Tell)
+import Halogen (ClassName(..), Component, ComponentHTML, HalogenM(..), Slot, Tell, gets)
 import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
@@ -20,7 +21,7 @@ import Type.Proxy (Proxy(..))
 
 type Input = 
   { board :: Board
-  , initialize :: Array (Tell Board.Query)
+  , initialise :: Array (Tell Board.Query)
   , actions :: Map String (Array (Tell Board.Query))
   , description :: String
   }
@@ -28,7 +29,7 @@ type Input =
 type State = Input
 
 data Action
-  = Initialise Input
+  = Initialise
   | ButtonClicked (Array (Tell Board.Query))
 
 data Query a 
@@ -46,9 +47,11 @@ component = H.mkComponent { eval, render, initialState: identity}
     eval = H.mkEval (
       H.defaultEval
         { handleAction = case _ of
+          Initialise -> do
+            gets (_.initialise) >>= traverse_ (H.tell Board.slot unit)
           ButtonClicked boardTells -> 
             for_ boardTells (H.tell Board.slot unit)
-        , initialize
+        , initialize = Just Initialise
         }
     )
     
