@@ -28,6 +28,8 @@ import Data.Array (fold)
 import Data.Foldable (and)
 import Data.FunctorWithIndex (mapWithIndex)
 import Data.Generic.Rep (class Generic)
+import Data.Lazy (Lazy)
+import Data.Lazy as Lazy
 import Data.Map (Map)
 import Data.Map as M
 import Data.Maybe (Maybe(..), fromMaybe, maybe)
@@ -128,13 +130,12 @@ newtype Piece = Piece
     unglob p <= p <= glob d t p
     glob d1 t1 <<< glob d2 t2 = glob d2 t2 <<< glob d1 t1
     unglob <<< unglob = unglob
-
-    and maybe
     unglob <<< glob d t = unglob
 
+
   -}
-  , glob :: CardinalDirection -> Maybe PortType -> Unit -> Piece
-  , unglob :: Unit -> Piece
+  , glob :: CardinalDirection -> Maybe PortType -> Maybe Piece
+  , unglob :: Lazy Piece
   {-
     To effeciently compile a board, we need to know whether a piece can be simplified. Since our `eval` function is non-symbolic, we need to encode this information into the piece type. 
 
@@ -176,17 +177,17 @@ type MkPieceNoGlob =
   }
 
 mkPieceNoGlob :: MkPieceNoGlob -> Piece
-mkPieceNoGlob piece = fix go unit
+mkPieceNoGlob piece = Lazy.force (fix go)
   where
-    go :: (Unit -> Piece) -> Unit -> Piece
-    go this _ = Piece
+    go :: Lazy Piece -> Lazy Piece
+    go this = Lazy.defer \_ -> Piece
       { name: piece.name
       , eval: piece.eval
       , ports: piece.ports
       , complexity: piece.complexity
       , shouldRipple: piece.shouldRipple
       , updateCapacity: piece.updateCapacity
-      , glob: \_ _ -> this
+      , glob: \_ _ -> Nothing
       , unglob: this
       , isSimplifiable: piece.isSimplifiable
       }
@@ -215,7 +216,7 @@ getPorts (Piece p) = p.ports
   p <= glob d (Just t) p
 -}
 glob :: CardinalDirection -> Maybe PortType -> Piece -> Piece
-glob dir port (Piece p) = p.glob dir port unit
+glob dir port (Piece p) = fromMaybe (Piece p) (p.glob dir port)
 
 
 {-
@@ -224,7 +225,7 @@ glob dir port (Piece p) = p.glob dir port unit
   unglob p <= glob d t 
 -}
 unglob :: Piece -> Piece
-unglob (Piece p) = p.unglob unit
+unglob (Piece p) = Lazy.force p.unglob
 
 isSimplifiable :: Piece -> Maybe Simplification
 isSimplifiable (Piece p) = p.isSimplifiable
