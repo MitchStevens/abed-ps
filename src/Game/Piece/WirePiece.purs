@@ -8,6 +8,8 @@ import Data.Foldable (all, elem, length)
 import Data.Int (toNumber)
 import Data.Lazy (Lazy)
 import Data.Lazy as Lazy
+import Data.Lazy (Lazy, defer)
+import Data.Lazy as Lazy
 import Data.Map (Map)
 import Data.Map as M
 import Data.Maybe (Maybe(..), fromMaybe, fromMaybe', maybe)
@@ -20,7 +22,7 @@ import Game.Capacity (Capacity(..))
 import Game.Direction (CardinalDirection)
 import Game.Direction as Direction
 import Game.Piece.Complexity as Complexity
-import Game.Piece.Types (Piece(..), PieceId(..), Simplification(..), isSimplifiable, mkPieceNoGlob, name, shouldRipple, unglob)
+import Game.Piece.Types (Piece(..), PieceId(..), Simplification(..), getPorts, isSimplifiable, mkPieceNoGlob, name, shouldRipple, unglob)
 import Game.Port (PortType(..), inputPort, outputPort)
 import Game.Signal (Signal(..))
 import Partial.Unsafe (unsafeCrashWith)
@@ -94,6 +96,7 @@ mkWirePiece = Lazy.force <<< fix  <<< go
           _, Nothing -> do
               let newOutputs = S.delete dir outputs 
               guard (outputs /= newOutputs)
+              --guard (getPorts (Lazy.force unglob) )
               if S.isEmpty newOutputs
                 then Just $ Lazy.force $ go (wire { outputs = S.singleton Direction.Right} ) unglob
                 else Just $ Lazy.force $ go (wire { outputs = newOutputs }) unglob

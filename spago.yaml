@@ -34,11 +34,11 @@ package:
     - parallel
     - parsing
     - partial
+    - printf
     - prelude
     - profunctor
     - profunctor-lenses
     - record
-    # - refs
     - routing
     - routing-duplex
     - strings
@@ -51,15 +51,12 @@ package:
     - tuples
     - unfoldable
     - unsafe-coerce
-    - variant
     - web-dom
     - web-events
     - web-html
     - web-storage
     - web-uievents
   name: abed
-  run:
-    main: CSS.GenerateStylesheets
 
   bundle:
     minify: false

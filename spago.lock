@@ -40,6 +40,7 @@ workspace:
           - parsing
           - partial
           - prelude
+          - printf
           - profunctor
           - profunctor-lenses
           - record
@@ -54,7 +55,6 @@ workspace:
           - unfoldable
           - unsafe-coerce
           - uuidv4
-          - variant
           - web-dom
           - web-events
           - web-html
@@ -126,6 +126,7 @@ workspace:
           - parsing
           - partial
           - prelude
+          - printf
           - profunctor
           - profunctor-lenses
           - quickcheck
@@ -152,7 +153,6 @@ workspace:
           - unsafe-reference
           - uuidv4
           - validation
-          - variant
           - web-clipboard
           - web-dom
           - web-events
@@ -1717,6 +1717,12 @@ packages:
     version: 6.0.1
     integrity: sha256-o8p6SLYmVPqzXZhQFd2hGAWEwBoXl1swxLG/scpJ0V0=
     dependencies: []
+  printf:
+    type: registry
+    version: 0.1.0
+    integrity: sha256-b430BE3iIas8+qzQ1MWZ0L4SIz67VJibeb1S1A2NDw8=
+    dependencies:
+      - prelude
   profunctor:
     type: registry
     version: 6.0.1
@@ -2115,19 +2121,6 @@ packages:
       - foldable-traversable
       - newtype
       - prelude
-  variant:
-    type: registry
-    version: 8.0.0
-    integrity: sha256-SR//zQDg2dnbB8ZHslcxieUkCeNlbMToapvmh9onTtw=
-    dependencies:
-      - enums
-      - lists
-      - maybe
-      - partial
-      - prelude
-      - record
-      - tuples
-      - unsafe-coerce
   web-clipboard:
     type: registry
     version: 6.0.0
