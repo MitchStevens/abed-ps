@@ -7,8 +7,8 @@ import Control.Lazy (fix)
 import Data.Foldable (all, elem, length)
 import Data.Int (toNumber)
 import Data.Lazy (Lazy)
-import Data.Lazy as Lazy
 import Data.Lazy (Lazy, defer)
+import Data.Lazy as Lazy
 import Data.Lazy as Lazy
 import Data.Map (Map)
 import Data.Map as M
@@ -95,11 +95,12 @@ mkWirePiece = Lazy.force <<< fix  <<< go
           _, Just Output -> Nothing
           _, Nothing -> do
               let newOutputs = S.delete dir outputs 
-              guard (outputs /= newOutputs)
-              --guard (getPorts (Lazy.force unglob) )
-              if S.isEmpty newOutputs
-                then Just $ Lazy.force $ go (wire { outputs = S.singleton Direction.Right} ) unglob
-                else Just $ Lazy.force $ go (wire { outputs = newOutputs }) unglob
+              guard (outputs /= newOutputs && newOutputs /= S.empty)
+
+              let globbed = Lazy.force $ go (wire { outputs = newOutputs }) unglob
+              guard (getPorts (Lazy.force unglob) `M.isSubmap` getPorts globbed)
+              pure globbed
+              
       , unglob
       , isSimplifiable:
           let connections = M.fromFoldable $ S.map (\out -> Tuple out Direction.Left) outputs

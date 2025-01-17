@@ -3,6 +3,7 @@ module Game.Port where
 import Prelude
 
 import Data.Array (range)
+import Data.Array.NonEmpty (cons')
 import Data.Int.Bits (shl, (.&.))
 import Data.Lens (Lens', has, is, only, view, (%~))
 import Data.Lens.Iso.Newtype (_Newtype)
@@ -11,11 +12,15 @@ import Data.Maybe (Maybe(..))
 import Data.Newtype (class Newtype)
 import Game.Capacity (Capacity)
 import Game.Signal (Signal(..))
+import Test.QuickCheck (class Arbitrary, arbitrary)
+import Test.QuickCheck.Gen (elements)
 import Type.Proxy (Proxy(..))
 
 data PortType = Input | Output
 derive instance Eq PortType
 derive instance Ord PortType
+instance Arbitrary PortType where 
+  arbitrary = elements (cons' Input [Output])
 
 instance Show PortType where
   show = case _ of

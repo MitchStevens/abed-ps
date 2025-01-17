@@ -26,4 +26,20 @@ spec =
       it "glob d Nothing p <= p" do
         for_ allPieces \p ->
             quickCheck $ \d -> glob d Nothing p `lessThanOrEqTo` p
+      it "p <= glob d (Just t) p" do
+        for_ allPieces \p ->
+            quickCheck $ \d t -> p `lessThanOrEqTo` glob d (Just t) p
+      it "unglob p <= p" do
+        for_ allPieces \p ->
+            quickCheck $ \d t -> unglob p `lessThanOrEqTo` glob d (Just t) p
+
+        
+
+      it "glob with no porttype is commutative" do
+        for_ allPieces \p ->
+          quickCheck $ \d1 d2 -> glob d1 Nothing (glob d2 Nothing p) `equivalentTo` glob d2 Nothing (glob d1 Nothing p)
+      
+      it "unglob is smallest piece" do
+        for_ allPieces \p ->
+          quickCheck $ \d t -> unglob p `lessThanOrEqTo` glob d t p
 
