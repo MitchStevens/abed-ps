@@ -14,7 +14,8 @@ import Data.Show.Generic (genericShow)
 import Game.Board (Board(..), BoardError, EvaluableBoard(..), evaluableBoardPiece, toEvaluableBoard)
 import Game.Capacity (Capacity)
 import Game.Direction (CardinalDirection, allDirections)
-import Game.Level.Problem (Problem)
+import Game.Level (Level)
+import Game.Level.LevelValidator (FailedValidation)
 import Game.Piece (Piece(..), eval, getPort)
 import Game.Port (Port(..), PortType, portCapacity)
 import Game.Signal (Signal(..))
@@ -22,7 +23,7 @@ import Game.Signal (Signal(..))
 data CompletionStatus
   = NotStarted
   | PortMismatch PortMismatch
-  | FailedRestriction FailedRestriction
+  | FailedValidation FailedValidation
   | NotEvaluable BoardError
   | ReadyForTesting
   | Completed
@@ -62,24 +63,20 @@ type TestCaseOutcome =
   , received :: Map CardinalDirection Signal
   }
 
-type FailedRestriction =
-  { name :: String
-  , description :: String
-  }
 
 -- todo: pass in evaluable so we don't have to convert to evaluable twice?
-isReadyForTesting :: Problem -> Board -> CompletionStatus
-isReadyForTesting problem board = fromLeft ReadyForTesting do
+isReadyForTesting :: Level -> Board -> CompletionStatus
+isReadyForTesting level board = fromLeft ReadyForTesting do
   evaluable <- checkEvaluable board
-  lmap PortMismatch $ checkPortMismatch problem (evaluableBoardPiece evaluable)
-  lmap FailedRestriction $ checkOtherRestrictions problem board
+  lmap PortMismatch $ checkPortMismatch level (evaluableBoardPiece evaluable)
+  lmap FailedValidation $ level.validate board
 
 checkEvaluable :: Board -> Either CompletionStatus EvaluableBoard
 checkEvaluable board = lmap NotEvaluable (toEvaluableBoard board)
 
-checkPortMismatch :: Problem -> Piece -> Either PortMismatch Unit
-checkPortMismatch problem evaluable = for_ allDirections \dir -> do
-  let expected = getPort problem.goal dir
+checkPortMismatch :: Level -> Piece -> Either PortMismatch Unit
+checkPortMismatch level evaluable = for_ allDirections \dir -> do
+  let expected = getPort level.goal dir
   let received = getPort evaluable dir
   maybe (Right unit) Left (isPortMismatch dir expected received)
 
@@ -95,11 +92,6 @@ isPortMismatch direction maybeExpected maybeRecieved = case maybeExpected, maybe
       then Just $ IncorrectCapacity { direction, portType: received.portType, expected: expected.capacity, received: received.capacity }
     else
       Nothing
-
-checkOtherRestrictions :: Problem -> Board -> Either FailedRestriction Unit
-checkOtherRestrictions problem board = for_ problem.otherRestrictions \r ->
-  unless (r.restriction board) do
-    throwError { name: r.name, description: r.description }
 
 runSingleTest :: forall m. Monad m
   => Piece -> Int -> Map CardinalDirection Signal -> (Map CardinalDirection Signal -> m (Map CardinalDirection Signal)) -> m TestCaseOutcome

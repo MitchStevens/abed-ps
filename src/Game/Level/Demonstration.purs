@@ -9,7 +9,8 @@ import Halogen.HTML.Properties as HP
 
 type Demonstration = 
   { title :: String
-  , html :: PlainHTML
+  , html :: Array PlainHTML
+  , description :: String
   }
 
 type VideoDemonstration =
@@ -19,20 +20,18 @@ type VideoDemonstration =
   }
 
 videoDemonstration :: VideoDemonstration -> Demonstration
-videoDemonstration { title, videoUrl, description } = { title, html }
+videoDemonstration { title, videoUrl, description } = { title,  html, description }
   where
-    html =
-      HH.div_
-        [ HH.video
-          [ HP.controls false
-          , HP.autoplay true 
-          , HP.muted true
-          , HP.loop true
-          ]
-          [ HH.source
-            [ HP.src videoUrl
-            , HP.type_ (MediaType "video/mp4")
-            ] 
-          ]
-        , HH.text description
+    html = 
+      [ HH.video
+        [ HP.controls false
+        , HP.autoplay true 
+        , HP.muted true
+        , HP.loop true
         ]
+        [ HH.source
+          [ HP.src videoUrl
+          , HP.type_ (MediaType "video/mp4")
+          ] 
+        ]
+      ]

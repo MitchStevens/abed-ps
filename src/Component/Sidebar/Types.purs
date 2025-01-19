@@ -9,8 +9,8 @@ import Data.Lens.Record (prop)
 import Data.Map (Map)
 import Data.Maybe (Maybe)
 import Game.Direction (CardinalDirection)
+import Game.Level (Level)
 import Game.Level.Completion (CompletionStatus)
-import Game.Level.Problem (Problem)
 import Game.Piece (PieceId(..))
 import Game.Port (Port(..))
 import Game.Signal (Base, SignalRepresentation)
@@ -22,19 +22,17 @@ import Web.HTML.Event.DragEvent (DragEvent)
 import Web.UIEvent.MouseEvent (MouseEvent)
 
 type Input = 
-  { problem :: Problem
+  { level :: Level
   , completionStatus :: CompletionStatus
   , boardSize :: Int
   , boardPorts :: Map CardinalDirection Port
-  , base :: Base
   }
 
 type State =
-  { problem :: Problem
+  { level :: Level
   , completionStatus :: CompletionStatus
   , boardSize :: Int
   , boardPorts :: Map CardinalDirection Port
-  , base :: Base
   }
 
 data Query a
@@ -56,7 +54,7 @@ data InputField
   = BoardSize Int -- needs to be maybe
 
 data Action
-  = Initialise Input
+  = Receive Input
   | PieceOnDrop PieceId DragEvent
   | ButtonClicked Button MouseEvent
   | BoardSizeSliderAction BoardSizeSlider.Output

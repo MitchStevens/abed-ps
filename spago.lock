@@ -46,6 +46,7 @@ workspace:
           - record
           - routing
           - routing-duplex
+          - safe-coerce
           - strings
           - tailrec
           - these

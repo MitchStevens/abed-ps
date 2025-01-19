@@ -52,14 +52,7 @@ equivalentTo p1 p2 = do
   inputs <- genSignals
   pure $ eval p1 inputs `assertEquals` eval p2 inputs
 
-lessThanOrEqTo :: Piece -> Piece -> Gen Result
-lessThanOrEqTo p1 p2 = do
-  inputs <- truncateInputs p1 <$> genSignals
-  let outs1 = eval p1 inputs
-  let outs2 = eval p2 inputs
-  let le = flip allWithIndex outs1 \dir signal ->
-         Just signal == M.lookup dir outs2
-
-  if le
-    then pure $ Success
-    else pure $ Failed $ show { p1, p2, inputs, outs1, outs2 }
+lessThanOrEqPorts :: Piece -> Piece -> Boolean
+lessThanOrEqPorts (Piece p1) (Piece p2) = 
+  flip allWithIndex p1.ports \dir port ->
+    Just port == M.lookup dir p2.ports

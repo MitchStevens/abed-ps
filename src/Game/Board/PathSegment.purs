@@ -22,7 +22,6 @@ import Game.Direction as Direction
 import Game.Location (Location(..), directionTo)
 import Game.Piece (Piece(..), Simplification(..), chickenPiece, cornerCutPiece, crossPiece, isSimplifiable, mkWirePiece, reverseChickenPiece)
 import Game.Rotation (Rotation(..), mod2, rotation)
-import Halogen.Svg.Attributes (m)
 import Partial.Unsafe (unsafeCrashWith)
 
 {-

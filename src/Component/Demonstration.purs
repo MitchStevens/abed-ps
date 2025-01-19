@@ -51,12 +51,13 @@ component = mkComponent { initialState, eval, render }
         then
           HH.div
             [ HP.id "demonstration-component" ]
-            [ HH.div_
-              [ HH.h2_ [ HH.text state.demonstration.title ]
-              , fromPlainHTML state.demonstration.html 
-              , HH.button
+            [ HH.div_ $ join
+              [ [ HH.h2_ [ HH.text state.demonstration.title ] ]
+              , map fromPlainHTML state.demonstration.html 
+              , [ HH.button
                 [ HE.onClick (\_ -> CloseButton) ]
                 [ HH.text "Close demonstration" ]
+                ]
               ]
             , HH.div [ HP.class_ (ClassName "parchment")] []
             ]

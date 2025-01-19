@@ -151,19 +151,19 @@ isConnected = boolean { attrName = AttrName "data-is-connected" }
 isDragging :: DataAttribute Boolean
 isDragging = boolean { attrName = AttrName "data-is-dragging" } 
 
-completionStatus :: DataAttribute CompletionStatus
-completionStatus = dataAttribute (AttrName "data-completion-status") attrPrint attrParse
-  where
-    attrPrint = case _ of
-      NotStarted -> "not-started"
-      PortMismatch _ -> "port-mismatch"
-      FailedRestriction _ -> "failed-restriction"
-      NotEvaluable _ -> "not-evaluable"
-      ReadyForTesting -> "ready-for-testing"
-      --RunningTestCase _ -> "running-test"
-      --TestCaseOutcome _ -> "testCaseOutcome"
-      Completed -> "completed"
-    attrParse = fail "no parser for completion status!"
+--completionStatus :: DataAttribute CompletionStatus
+--completionStatus = dataAttribute (AttrName "data-completion-status") attrPrint attrParse
+--  where
+--    attrPrint = case _ of
+--      NotStarted -> "not-started"
+--      PortMismatch _ -> "port-mismatch"
+--      FailedRestriction _ -> "failed-restriction"
+--      NotEvaluable _ -> "not-evaluable"
+--      ReadyForTesting -> "ready-for-testing"
+--      --RunningTestCase _ -> "running-test"
+--      --TestCaseOutcome _ -> "testCaseOutcome"
+--      Completed -> "completed"
+--    attrParse = fail "no parser for completion status!"
 
 testCaseStatus :: DataAttribute TestCaseStatus
 testCaseStatus = dataAttribute (AttrName "data-test-case-status") attrPrint attrParse

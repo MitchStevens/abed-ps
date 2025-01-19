@@ -31,6 +31,7 @@ import Control.Monad.Except (ExceptT, runExcept)
 import Control.Monad.Maybe.Trans (MaybeT(..), runMaybeT)
 import Control.Monad.Reader (class MonadReader, ReaderT, asks, runReaderT)
 import Control.Monad.State (class MonadState, State, StateT, evalState, evalStateT, execState, get, gets, modify, modify_, runState)
+import Control.Monad.Writer (execWriterT, tell)
 import Data.Either (Either, note)
 import Data.FoldableWithIndex (forWithIndex_)
 import Data.FunctorWithIndex (mapWithIndex)
@@ -49,60 +50,105 @@ import Data.Traversable (for, for_, traverse, traverse_)
 import Data.TraversableWithIndex (forWithIndex)
 import Data.Tuple (Tuple(..), snd)
 import Debug (debugger, trace)
+import Game.Board.Edge (class Edge, adjacentEdge, getPortOnEdge)
 import Game.Board.PseudoPiece (getPsuedoPiecePort, isPseudoInput, isPseudoPiece, psuedoPiece)
-import Game.Board.Query (adjacentRelativeEdge, buildConnectionMap, getBoardEdgePseudoLocation, getBoardPorts, getPortOnEdge, toRelativeEdge)
-import Game.Board.RelativeEdge (RelativeEdge, absolute, relative, relativeEdgeLocation)
+import Game.Board.Query (Relative)
 import Game.Board.Types (Board(..), BoardError(..), _pieces)
 import Game.Capacity (Capacity)
 import Game.Direction (CardinalDirection, allDirections, clockwiseRotation, oppositeDirection)
 import Game.Direction as Direction
 import Game.Location (Location(..), followDirection)
-import Game.Piece (Piece(..), PieceId(..), mkPieceNoGlob)
+import Game.Piece (Piece(..), PieceId(..), getPort, mkPieceNoGlob)
 import Game.Piece as Complexity
-import Game.Port (Port(..), inputPort, isInput, isOutput, matchingPort, outputPort, portCapacity)
+import Game.Port (Port(..), inputPort, isInput, isOutput, matchingPort, outputPort, portCapacity, portType)
 import Game.PortInfo (PortInfo)
 import Game.Signal (Signal(..))
 import Halogen.Svg.Attributes (m)
+import Safe.Coerce (coerce)
+
+newtype InputEdge  = InputEdge RelativeEdge
+derive instance Eq InputEdge
+
+newtype OutputEdge = OutputEdge RelativeEdge
+derive instance Eq OutputEdge
+
+instance Edge InputEdge OutputEdge where
+  toAbsoluteEdge (InputEdge relEdge) = toAbsoluteEdge relEdge
+  fromAbsoluteEdge absEdge = runMaybeT do
+    (relEdge :: RelativeEdge) <- MaybeT $ fromAbsoluteEdge absEdge
+    port <- MaybeT $ getPortOnEdge relEdge
+    guard (isInput port)
+    pure (InputEdge relEdge)
+  getPortOnEdge (InputEdge relEdge) = runMaybeT do
+    port <- getPortOnEge relEdge
+    guard (isInput port)
+    pure port
+  adjacentEdge (InputEdge relEdge) = runMaybeT do
+    port <- MaybeT $ getPortOnEdge relEdge
+    adjEdge <- MaybeT $ adjacentEdge relEdge
+    adjPort <- MaybeT $ getPortOnEdge adjEdge
+    guard (isInput port && isOutput adjPort)
+    pure (OutputEdge adjEdge)
+
+instance Edge OutputEdge InputEdge where
+  toAbsoluteEdge (OutputEdge relEdge) = toAbsoluteEdge relEdge
+  fromAbsoluteEdge absEdge = runMaybeT do
+    (relEdge :: RelativeEdge) <- MaybeT $ fromAbsoluteEdge absEdge
+    port <- MaybeT $ getPortOnEdge relEdge
+    guard (isOutput port)
+    pure (OutputEdge relEdge)
+  getPortOnEdge (OutputEdge relEdge) = runMaybeT do
+    port <- getPortOnEge relEdge
+    guard (isOutput port)
+    pure port
+  adjacentEdge (OutputEdge relEdge) = runMaybeT do
+    port <- MaybeT $ getPortOnEdge relEdge
+    adjEdge <- MaybeT $ adjacentEdge relEdge
+    adjPort <- MaybeT $ getPortOnEdge adjEdge
+    guard (isOutput port && isInput adjPort)
+    pure (OutputEdge adjEdge)
+
 
 newtype EvaluableBoard = EvaluableBoard
   { pieces :: Map Location Piece
   -- maps input relEdges to output relEdges
-  , connections :: Map RelativeEdge RelativeEdge
+
+  , inputEdges  :: Map InputEdge OutputEdge
+  , outputEdges :: Map OutputEdge InputEdge
+  -- edge info
+  , edgeInfo :: Map RelativeEdge Capacity
   -- topologically sorted list of locations
-  , evalOrder :: List Location
+  , evalOrder :: List (Either InputEdge Location)
   --, innerPorts :: Map CardinalDirection Port
-  , psuedoPieceLocations :: Map CardinalDirection Location
+  , psuedoPieceLocations :: Map CardinalDirection RelativeEdge
   }
 derive instance Newtype EvaluableBoard _
 derive instance Eq EvaluableBoard
-instance Show EvaluableBoard where
-  show (EvaluableBoard evaluable) = show evaluable
+--instance Show EvaluableBoard where
+--  show (EvaluableBoard evaluable) = show evaluable
 
-type EvaluableM a = ReaderT EvaluableBoard (State (Map RelativeEdge PortInfo)) a
+type EvaluableM a = ReaderT EvaluableBoard (State (Map RelativeEdge Signal)) a
 
-runEvaluableM  :: forall a. EvaluableBoard -> EvaluableM a -> Tuple a (Map RelativeEdge PortInfo)
+runEvaluableM  :: forall a. EvaluableBoard -> EvaluableM a -> Tuple a (Map RelativeEdge Signal)
 runEvaluableM evaluable evalM = runState (runReaderT evalM evaluable) M.empty
 
-getOuterPort :: forall m. MonadReader EvaluableBoard m => MonadState (Map RelativeEdge PortInfo) m =>
+getOuterPort :: forall m. MonadReader EvaluableBoard m => MonadState (Map RelativeEdge Signal) m =>
   CardinalDirection -> m (Maybe Signal)
 getOuterPort dir = do
-  maybeLoc <- asks (unwrap >>> (_.psuedoPieceLocations) >>> M.lookup dir)
-  for maybeLoc \loc ->
-    maybe zero (_.signal) <$> gets (M.lookup (relative loc Direction.Right))
+  maybeRelativeEdge <- asks (unwrap >>> _.psuedoPieceLocations >>> M.lookup dir)
+  for maybeRelativeEdge \relEdge ->
+    fromMaybe zero <$> gets (M.lookup relEdge)
+
 
 {-
   Note: you can only set an outer port if the pseudopiece is an input psuedopiece
 -}
-setOuterPort :: forall m. MonadReader EvaluableBoard m => MonadState (Map RelativeEdge PortInfo) m =>
+setOuterPort :: forall m. MonadReader EvaluableBoard m => MonadState (Map RelativeEdge Signal) m =>
   CardinalDirection -> Signal -> m Unit
-setOuterPort dir signal = void $ runMaybeT do
-  loc <- MaybeT $ asks (unwrap >>> _.psuedoPieceLocations >>> M.lookup dir)
-  piece@(Piece p) <- MaybeT $ asks (unwrap >>> _.pieces >>> M.lookup loc)
-  when (isPseudoInput piece) do
-    port <- MaybeT $ pure (getPsuedoPiecePort piece)
-    let relEdge = relative loc Direction.Right
-    let portInfo = { connected: false, port, signal }
-    modify_ (M.insert relEdge portInfo)
+setOuterPort dir signal = do
+  maybeRelativeEdge <- asks (unwrap >>> _.psuedoPieceLocations >>> M.lookup dir)
+  for_ maybeRelativeEdge \relEdge ->
+    modify_ (M.insert relEdge signal)
 
 
 toEvaluableBoard :: Board -> Either BoardError EvaluableBoard
@@ -122,21 +168,28 @@ buildEvaluableBoard psuedoPiecePorts = evalStateT do
     let rotation = clockwiseRotation Direction.Left dir
     _pieces <<< at loc .= Just { piece: psuedoPiece port, rotation }
     --addPieceNoUpdate loc (psuedoPiece (matchingPort port)) rot
-  pieces <- map (_.piece) <$> use _pieces
-  connections <- buildConnectionMap
 
-  -- psuedoPieceLocations :: Map CardinalDirection Location
-  psuedoPieceLocations <- forWithIndex psuedoPiecePorts \dir _ -> getBoardEdgePseudoLocation dir
+
+  -- connections
+  { inputs, outputs} <- buildConnections
+  let inputEdges  = M.fromFoldable inputs
+  let outputEdges = M.fromFoldable outputs
+
+
+  pieces <- map (_.piece) <$> use _pieces
+
+  -- psuedoPieceLocations :: Map CardinalDirection RelativeEdge
+  psuedoPieceLocations <- forWithIndex psuedoPiecePorts \dir _ -> getBoardPortEdge dir
 
   -- toposort the pieces (need connection map)
   let locations = L.fromFoldable <<< M.keys $ pieces
   evalOrder <- maybe (throwError Cyclic) pure (topologicalSort locations connections)
 
-  pure $ EvaluableBoard { pieces, connections, evalOrder, psuedoPieceLocations }
+  pure $ EvaluableBoard { pieces, inputEdges, outputEdges, evalOrder, psuedoPieceLocations }
 
 -- very simple but maybe not effceient, this is fine for small n
 -- https://gist.github.com/rinse/8c4266ba7cef050a109f42b082782b59
-topologicalSort :: List Location -> Map RelativeEdge RelativeEdge -> Maybe (List Location)
+topologicalSort :: List Location -> Map RelativeEdge RelativeEdge -> Maybe (List (Either InputEdge Location))
 topologicalSort Nil _ = Just Nil
 topologicalSort nodes edges = do
   let doesntAcceptOutput loc = M.isEmpty $ M.submap (Just (relative loc Direction.Up)) (Just (relative loc Direction.Left)) edges
@@ -184,7 +237,7 @@ injectInputs inputs = do
 {-
   -- if the edge is set already, return the input edge signal
   -- if the adjacent edge has a signal, copy the signal from the output to the input, return the signal
-  -- else, return signal 0
+  -- else, return signal outputEdges0
 -}
 getInputOnEdge :: forall m. MonadReader EvaluableBoard m => MonadState (Map RelativeEdge PortInfo) m
   => RelativeEdge -> Capacity -> m Signal
@@ -261,3 +314,36 @@ getPort dir = do
       <#> matchingPort
     
 
+
+
+type Connections =
+  { inputs :: List (Tuple InputEdge OutputEdge)
+  , outputs :: List (Tuple OutputEdge InputEdge)
+  }
+
+{-
+  Create a bidirectional mapping from inputs to ouptuts ports
+-}
+buildConnections :: forall m. MonadState Board m => m Connections
+buildConnections = do
+  pieceInfos <- use _pieces
+  execWriterT $ forWithIndex_ pieceInfos buildConnectionsAt
+  where
+    buildConnectionsAt :: forall m. MonadState Board m
+      => Location -> PieceInfo -> WriterT Connections m Unit
+    buildConnectionsAt loc { piece, rotation } = 
+      for_ allDirections \dir -> runMaybeT $ do
+        let relEdge = relative loc dir
+        adjacentEdge relEdge >>= for_ \adjRelEdge -> 
+          case getPort piece dir of
+            Just Port.Input -> do
+              writeConnection (InputEdge relEdge) (OutputEdge adjRelEdge)
+            Just Port.Output -> do
+              writeConnetion (InputEdge adjRelEdge) (OutputEdge relEdge)
+            Nothing -> pure unit
+
+    writeConnection :: InputEdge -> OutputEdge -> WriterT Connections m Unit
+    writeConnection inputEdge outputEdge = tell 
+      { inputs:  L.singleton (Tuple inputEdge outputEdge)
+      , outputs: L.singleton (Tuple outputEdge inputEdge)
+      }

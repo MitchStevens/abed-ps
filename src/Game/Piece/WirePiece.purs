@@ -4,27 +4,22 @@ import Prelude
 
 import Control.Alternative (guard)
 import Control.Lazy (fix)
-import Data.Foldable (all, elem, length)
+import Data.Foldable (elem, length)
 import Data.Int (toNumber)
 import Data.Lazy (Lazy)
-import Data.Lazy (Lazy, defer)
-import Data.Lazy as Lazy
 import Data.Lazy as Lazy
 import Data.Map (Map)
 import Data.Map as M
-import Data.Maybe (Maybe(..), fromMaybe, fromMaybe', maybe)
-import Data.Newtype (class Newtype, unwrap)
+import Data.Maybe (Maybe(..), fromMaybe, fromMaybe')
 import Data.Set (Set)
 import Data.Set as S
 import Data.Tuple (Tuple(..))
-import Debug (trace)
 import Game.Capacity (Capacity(..))
 import Game.Direction (CardinalDirection)
 import Game.Direction as Direction
 import Game.Piece.Complexity as Complexity
-import Game.Piece.Types (Piece(..), PieceId(..), Simplification(..), getPorts, isSimplifiable, mkPieceNoGlob, name, shouldRipple, unglob)
+import Game.Piece.Types (Piece(..), PieceId(..), Simplification(..), getPorts, mkPieceNoGlob, name)
 import Game.Port (PortType(..), inputPort, outputPort)
-import Game.Signal (Signal(..))
 import Partial.Unsafe (unsafeCrashWith)
 
 
@@ -46,7 +41,7 @@ wirePieceNames :: Map (Set CardinalDirection) PieceId
 wirePieceNames =
   M.fromFoldable
     [ Tuple (up)                  (PieceId "left-piece") 
-    , Tuple (right)               (PieceId "id-piece") 
+    , Tuple (right)               (PieceId "straight-piece") 
     , Tuple (down)                (PieceId "right-piece") 
     , Tuple (up <> right)         (PieceId "intersection-left-piece") 
     , Tuple (up <> down)          (PieceId "intersection-junction-piece") 
@@ -57,13 +52,6 @@ wirePieceNames =
     up    = S.singleton Direction.Up
     right = S.singleton Direction.Right
     down  = S.singleton Direction.Down
-
-{-
-
-
-  mk :: Piece -> WirePiece -> Piece -> Piece
-  mk unglob wire this = ...
--}
 
 
 mkWirePiece :: WirePiece -> Piece

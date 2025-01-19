@@ -7,9 +7,6 @@ import Capability.Animate (headShake)
 import Capability.Navigate (Route(..), navigateTo)
 import Component.Board as Board
 import Component.Demonstration as Demonstration
-import Component.GameEventLogger as GameEventLogger
-import Component.Marginalia.Types (Marginalia, marginalia)
-import Component.Marginalium as Marginalium
 import Component.Selector as Selector
 import Component.Sidebar as Sidebar
 import Component.TestRunner as TestRunner
@@ -72,11 +69,9 @@ type Input =
 type State =
   { levelId :: LevelId
   , level :: Level 
-  , marginalia :: Map UUIDv4 Marginalia
   , completionStatus :: CompletionStatus
   , boardSize :: Int
   , boardPorts :: Map CardinalDirection Port
-  , base :: Base
   }
 
 --data Query a
@@ -87,21 +82,19 @@ data Action
   | BoardOutput       Board.Output
   | SidebarOutput     Sidebar.Output
   | SelectorOutput    Selector.Action
-  | MarginaliumOutput Marginalium.Output
 
 
 type Slots =
   ( board           :: Slot Board.Query         Board.Output Unit
   , sidebar         :: Slot Sidebar.Query       Sidebar.Output Unit
   , selector        :: Slot Selector.Query      Selector.Output Unit
-  , marginalia      :: Slot Marginalium.Query   Marginalium.Output UUIDv4
+  --, marginalia      :: Slot Marginalium.Query   Marginalium.Output UUIDv4
   , demonstration   :: Slot Demonstration.Query Demonstration.Output Unit
---  , marginalium :: Slot Marginalium.Query Marginalium.Output UUIDv4
-  , gameEventLogger :: forall q. Slot q Void Unit
+  --, gameEventLogger :: forall q. Slot q Void Unit
   )
 
 component :: forall q o. Component q Input o AppM
-component = H.mkComponent { eval , initialState , render }
+component = H.mkComponent { eval, initialState, render }
   where
   initialState { levelId, level } = 
     { levelId
@@ -109,22 +102,20 @@ component = H.mkComponent { eval , initialState , render }
     , completionStatus: NotStarted
     , boardSize: 3
     , boardPorts: evalState getBoardPorts standardBoard
-    , marginalia: M.empty
-    , base: level.options.base
     }
 
   --render :: State -> HalogenM State Action Slots o m Unit
-  render { level, levelId, marginalia, completionStatus, boardSize, boardPorts, base } = HH.div
+  render { level, levelId, completionStatus, boardSize, boardPorts } = HH.div
     [ HP.id "puzzle-component"]
     [ HH.slot Board.slot unit Board.component { board: standardBoard } BoardOutput
     , HH.slot Sidebar.slot unit Sidebar.component sidebarInput SidebarOutput
-    , HH.slot Selector.slot unit Selector.component { availablePieces: level.problem.availablePieces } SelectorOutput
+    , HH.slot Selector.slot unit Selector.component { availablePieces: level.availablePieces } SelectorOutput
     --, HH.div [ HP.id "marginalia" ] ((M.toUnfoldable marginalia :: Array _) <#> \(Tuple uuid m) -> HH.slot _marginalia uuid Marginalium.component { uuid, marginalia: m } MarginaliumOutput)
     --, HH.slot_ _gameEventLogger unit GameEventLogger.component unit
     , fromMaybe (HH.text "") $
-        HH.slot_ Demonstration.slot unit Demonstration.component <$> level.problem.demonstration
+        HH.slot_ Demonstration.slot unit Demonstration.component <$> level.demonstration
     ]
-    where sidebarInput = { problem: level.problem, completionStatus, boardSize, boardPorts, base }
+    where sidebarInput = { level, completionStatus, boardSize, boardPorts }
 
   eval :: HalogenQ q Action Input ~> HalogenM State Action Slots o AppM
   eval = H.mkEval
@@ -143,10 +134,10 @@ component = H.mkComponent { eval , initialState , render }
       lift $ debug M.empty ("Initialised level " <> show levelId)
 
       --init marginalia
-      gets (_.level.marginalia) >>= traverse_ \m -> do
-        lift $ info M.empty "initialising marginalia"
-        uuid <- UUID.make
-        modify_ (\state -> state { marginalia = M.insert uuid m state.marginalia})
+      --gets (_.level.marginalia) >>= traverse_ \m -> do
+      --  lift $ info M.empty "initialising marginalia"
+      --  uuid <- UUID.make
+      --  modify_ (\state -> state { marginalia = M.insert uuid m state.marginalia})
       
       -- init demonstration
       _ <- delay (Milliseconds 1000.0) TriggerDemonstration >>= H.subscribe
@@ -157,16 +148,18 @@ component = H.mkComponent { eval , initialState , render }
       H.tell Demonstration.slot unit (Demonstration.OpenDemonstration)
 
       -- make the board component display goal ports
-      Piece piece <- H.gets (_.level.problem.goal)
+      Piece piece <- H.gets (_.level.goal)
       H.tell Board.slot unit (Board.SetGoalPorts piece.ports)
 
     BoardOutput boardOutput -> case boardOutput of
       Board.NewBoardState board -> do
         -- the side bar updates the puzzle completion status, if the board is ready to be
         -- shown, trigger to test is on the sidebar
-        problem <- H.gets (_.level.problem)
+        level <- H.gets (_.level)
+        let completionStatus = isReadyForTesting level board
+
         modify_ $ _
-          { completionStatus = isReadyForTesting problem board
+          { completionStatus = isReadyForTesting level board
           , boardSize = board ^. _size
           , boardPorts = evalState getBoardPorts board }
       Board.BoardEvent boardEvent -> do
@@ -199,7 +192,7 @@ component = H.mkComponent { eval , initialState , render }
         Sidebar.Clear ->
           H.tell Board.slot unit Board.Clear
         Sidebar.Base base -> do
-          modify_ $ _ { base = base }
+          modify_ $ _ { level { options {base = base} } }
         Sidebar.RunDemonstration -> do
           handleAction TriggerDemonstration
       Sidebar.TestRunnerOutput output -> case output of
@@ -222,14 +215,6 @@ component = H.mkComponent { eval , initialState , render }
           H.request Board.slot unit (Board.AddPiece loc (pieceLookup pieceId))
       Selector.DoNothing -> pure unit
       
-      
-    MarginaliumOutput marginaliaOutput -> case marginaliaOutput of
-      Marginalium.TriggerNext marginalia -> do
-        uuid <- UUID.make
-        modify_ (\state -> state { marginalia = M.insert uuid marginalia state.marginalia})
-      Marginalium.RemoveThis uuid -> do
-        modify_ \state -> state { marginalia = M.delete uuid state.marginalia }
-
 
 delay :: forall m a. MonadAff m => Milliseconds -> a -> m (Emitter a)
 delay duration val = do

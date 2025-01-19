@@ -18,7 +18,7 @@ import Data.Filterable (eitherBool)
 import Data.List (List(..), (:))
 import Data.List as L
 import Data.Map as M
-import Data.Maybe (Maybe(..))
+import Data.Maybe (Maybe(..), isJust)
 import Data.String (Pattern(..), split)
 import Data.Tuple (Tuple(..), fst, snd)
 import Effect.Aff.Class (class MonadAff)
@@ -35,7 +35,6 @@ import Halogen.HTML (HTML)
 import Halogen.HTML as H
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
-import Halogen.HTML.Extras (mapActionOverHTML)
 import Halogen.HTML.Properties as HP
 
 render :: forall m. MonadAff m => State -> ComponentHTML Action Slots m
@@ -45,21 +44,22 @@ render state =
     [ HH.div_ 
       [ renderTitle
       , renderSubtitle
-      , renderDescription state.problem.description
+      , renderDescription state.level.description
       ]
-    --, renderCompletionInfo
     , renderCompletionStatus
     , renderRunDemonstration
-    , H.slot BoardSizeSlider.slot unit BoardSizeSlider.component { boardSize: state.boardSize } BoardSizeSliderAction
+    , if state.level.options.enableBoardSizeChange
+        then H.slot BoardSizeSlider.slot unit BoardSizeSlider.component { boardSize: state.boardSize } BoardSizeSliderAction
+        else HH.text ""
     , renderUndoRedo
     , renderClear
     , renderSignalRepresentation
     , renderGiveUp
     ]
   where
-    renderTitle = HH.h1 [ HP.class_ (ClassName "title") ]  [ HH.text state.problem.title ]
+    renderTitle = HH.h1 [ HP.class_ (ClassName "title") ]  [ HH.text state.level.title ]
 
-    renderSubtitle = case state.problem.subtitle of
+    renderSubtitle = case state.level.subtitle of
       Just subtitle ->
         HH.h3
           [ HP.class_ (ClassName "subtitle") ]
@@ -87,12 +87,9 @@ render state =
       [ HP.class_ ( ClassName "completion-status" ) ] $
         case state.completionStatus of
           NotStarted -> []
-          FailedRestriction restriction -> 
+          FailedValidation { description, locations } -> 
             [ HH.h2_ [ HH.text "Restriction!" ]
-            , HH.text $ "This level has a special restriction: "
-            , HH.b_ [ HH.text restriction.name ]
-            , HH.br_
-            , HH.text restriction.description
+            , HH.h3_ [ HH.text description ]
             ]
           NotEvaluable boardError -> 
             [ HH.h2_ [ HH.text "Not Evaluable!" ]
@@ -107,15 +104,11 @@ render state =
             ]
           ReadyForTesting ->
             [ HH.h2_ [ HH.text "Testing" ]
-            , HH.slot TestRunner.slot unit TestRunner.component { base: state.base, inputs: NonEmptyArray state.problem.testCases, model: state.problem.goal } TestRunnerAction
-
---             [ HH.h3_ [ HH.text "Ready for testing" ]
---             , HH.slot TestRunner.slot unit TestRunner.component { base: state.base, inputs: NonEmptyArray state.problem.testCases, model: state.problem.goal } TestRunnerOutput
--- >>>>>>> 23f884ca6d049f83b197a624058326ab47ad69b3
+            , HH.slot TestRunner.slot unit TestRunner.component { base: state.level.options.base, inputs: NonEmptyArray state.level.testCases, model: state.level.goal } TestRunnerAction
             ]
           Completed ->
             [ HH.h2_ [ HH.text "Level Complete!" ]
-            , HH.slot TestRunner.slot unit TestRunner.component { base: state.base, inputs: NonEmptyArray state.problem.testCases, model: state.problem.goal } TestRunnerAction
+            , HH.slot TestRunner.slot unit TestRunner.component { base: state.level.options.base, inputs: NonEmptyArray state.level.testCases, model: state.level.goal } TestRunnerAction
             , HH.button
                 [ HP.class_ (ClassName "run-tests-again")
                 , HE.onClick (ButtonClicked RunTests) ]
@@ -133,29 +126,10 @@ render state =
             renderTestSuccess :: forall p i. Int -> Int -> HTML p i
             renderTestSuccess i n = HH.span_ [ green (show i <> "/" <> show n), HH.text " Sucessful" ]
 
-    --renderBoardSize =
-    --  HH.div
-    --    [ HP.class_ (ClassName "board-size") ]
-    --    [ HH.h3_ [ HH.text ("Board size: " <> show state.boardSize) ]
-    --    , HH.input
-    --      [ HP.type_ HP.InputRange
-    --      , HP.list "values"
-    --      , HP.min 3.0
-    --      , HP.max 9.0
-    --      , HP.step (HP.Step 2.0)
-    --      , HP.value (show state.boardSize)
-    --      , HE.onInput (InputFieldChanged (SetBoardSize Nothing))
-    --      ]
-    --    , HH.datalist
-    --      [ HP.id "values" ]
-    --      [ HH.option [ HP.value "3" ] []
-    --      , HH.option [ HP.value "5" ] []
-    --      , HH.option [ HP.value "7" ] []
-    --      , HH.option [ HP.value "9" ] []
-    --      ]
-    --    ]
-
-    renderRunDemonstration = segment (ClassName "demonstrate") title html
+    renderRunDemonstration = 
+      if isJust state.level.demonstration 
+        then segment (ClassName "demonstrate") title html
+        else HH.text ""
       where
         title = 
           HH.span
@@ -217,7 +191,7 @@ render state =
         signalRepresentationOption base text =
           HH.span
             [ HE.onClick (ButtonClicked (Base base)) ]
-            (if state.base == base
+            (if state.level.options.base == base
               then [ HH.b_ [ HH.text text ] ]
               else [ HH.text text ])
 

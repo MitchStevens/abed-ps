@@ -1,5 +1,4 @@
-module Game.Board.Path
-  where
+module Game.Board.Path where
 
 import Prelude
 
@@ -45,10 +44,8 @@ import Game.Board.Operation (addPieceNoUpdate, globRelEdge, removePieceNoUpdate)
 import Game.Board.PathSegment (PathSegment(..), PathSegmentError, combineSegmentWithExtant, singlePath)
 import Game.Board.PieceInfo (PieceInfo)
 import Game.Board.Query (adjacentRelativeEdge, toRelativeEdge)
-import Game.Board.RelativeEdge (absolute, relative)
 import Game.Board.Types (Board(..), BoardError(..), _pieces)
 import Game.Direction (CardinalDirection, oppositeDirection)
-import Game.Edge (Edge(..), edgeDirection, edgeLocation)
 import Game.Location (Location(..), directionTo, followDirection)
 import Game.Piece (Piece(..), chickenPiece, cornerCutPiece, crossPiece, idPiece, leftPiece, rightPiece)
 import Game.Port as PortType

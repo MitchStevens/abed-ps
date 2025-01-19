@@ -8,22 +8,20 @@ import Data.Set as S
 import Foreign.Object (fromHomogeneous)
 import Game.Capacity (Capacity(..))
 import Game.Direction as Direction
-import Game.Level (LevelSuite, binaryTestInputs, defaultLevel)
-import Game.Level.Problem (defaultProblem)
+import Game.Level (LevelSuite, binaryTestInputs, defaultLevel, toLevelSuite)
 import Game.Piece (fusePiece, idPiece, leftPiece, mkShiftLeftBy, rightPiece, severPiece)
 import Game.Signal (Signal(..), mkSignal)
 
 shiftingSuite :: LevelSuite
-shiftingSuite = fromHomogeneous
-  { "4 bit left shift":
-    defaultLevel
-      { problem = defaultProblem
-        { goal = mkShiftLeftBy 1 FourBit
-        , title = "4 bit left shift"
-        , description = "For each of the 4 bits in the input, shift them up towards the left by one place\n bluefdsajafdskl"
-        , testCases = M.singleton Direction.Left <$> (map mkSignal [ 0, 1, 2, 3, 8, 9, 15] )
-        , availablePieces = S.fromFoldable [ severPiece, fusePiece, idPiece, leftPiece, rightPiece ]
-        }
+shiftingSuite = toLevelSuite
+  []
+  where
+    leftShiftLevel = defaultLevel
+      { goal = mkShiftLeftBy 1 FourBit
+      , title = "4 bit left shift"
+      , description = "For each of the 4 bits in the input, shift them up towards the left by one place\n bluefdsajafdskl"
+      , testCases = M.singleton Direction.Left <$> (map mkSignal [ 0, 1, 2, 3, 8, 9, 15] )
+      , availablePieces = S.fromFoldable [ severPiece, fusePiece, idPiece, leftPiece, rightPiece ]
       }
     --, "Exclusive Or": defaultLevel
     --  { problem =
@@ -36,4 +34,3 @@ shiftingSuite = fromHomogeneous
     --    , otherRestrictions: []
     --    }
     --  }
-    }

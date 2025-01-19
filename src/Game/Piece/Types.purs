@@ -26,6 +26,7 @@ import Control.Alternative (guard)
 import Control.Lazy (fix)
 import Data.Array (fold)
 import Data.Foldable (and)
+import Data.FoldableWithIndex (foldMapWithIndex)
 import Data.FunctorWithIndex (mapWithIndex)
 import Data.Generic.Rep (class Generic)
 import Data.Lazy (Lazy)
@@ -46,6 +47,8 @@ import Game.PortInfo (PortInfo)
 import Game.Signal (Signal(..), mkSignal)
 import Prim.Row (class Union)
 import Record.Unsafe.Union (unsafeUnion)
+import Text.Printf (printf)
+import Type.Proxy (Proxy(..))
 
 newtype PieceId = PieceId String
 derive instance Newtype PieceId _
@@ -130,8 +133,9 @@ newtype Piece = Piece
     unglob p <= p <= glob d t p
     glob d1 t1 <<< glob d2 t2 = glob d2 t2 <<< glob d1 t1
     unglob <<< unglob = unglob
-    unglob <<< glob d t = unglob
 
+    and maybe
+    unglob <<< glob d t = unglob
 
   -}
   , glob :: CardinalDirection -> Maybe PortType -> Maybe Piece
@@ -163,7 +167,10 @@ instance Ord Piece where
     , compare p1.ports p2.ports
     ]
 instance Show Piece where
-  show (Piece p) = "(Piece " <> show p.name <> ")"
+  show piece = printf (Proxy :: Proxy "(Piece %s with ports %s)") (show (name piece)) showPorts
+    where
+      showPorts = foldMapWithIndex (\dir port -> printf (Proxy :: Proxy "%s => %s, ") (show dir) (show port)) (getPorts piece)
+  
 derive instance Newtype Piece _
 
 type MkPieceNoGlob =
@@ -248,3 +255,9 @@ truncateInputs (Piece p) inputs =
   flip M.mapMaybeWithKey p.ports \dir port -> do
     guard (isInput port)
     M.lookup dir inputs
+
+--truncateInputs :: Piece -> Map CardinalDirection Signal -> Map CardinalDirection Signal
+--truncateInputs (Piece p) inputs =
+--  flip M.mapMaybeWithKey p.ports \dir port -> do
+--    guard (isInput port)
+--    M.lookup dir inputs

@@ -8,12 +8,14 @@ import Data.Maybe (Maybe(..))
 import Data.Tuple (Tuple(..))
 import Game.Capacity (Capacity(..))
 import Game.Direction as Direction
-import Game.Piece (andPiece, getPorts, notPiece, orPiece, xorPiece)
+import Game.Piece (Piece(..), andPiece, getPorts, notPiece, orPiece, xorPiece)
 import Game.Piece as Port
 import Game.Port (inputPort, outputPort)
 import Game.Signal (Signal(..))
+import Random.LCG (mkSeed)
 import Test.Game.Piece (testEval)
-import Test.Spec (Spec, describe, it)
+import Test.QuickCheck.Gen (GenState)
+import Test.Spec (Spec, describe, it, itOnly)
 import Test.Spec.Assertions (shouldEqual, shouldNotEqual)
 
 spec :: Spec Unit
@@ -43,6 +45,10 @@ spec = do
           , Tuple Direction.Up inPort
           , Tuple Direction.Right outPort
           ]
+      it "globbing" do
+        let Piece p = orPiece
+        p.glob Direction.Up Nothing `shouldEqual` Nothing
+
     describe "andPiece" do
       it "eval" do
         testEval andPiece (f ff ff) (M.singleton Direction.Right zero)
@@ -54,6 +60,10 @@ spec = do
           , Tuple Direction.Up inPort
           , Tuple Direction.Right outPort
           ]
+      --it "globbing" do
+      --  let genState = GenState { newSeed: mkSeed 24288152, size: 10 }
+        
+
     describe "xorPiece" do
       it "eval" do
         testEval xorPiece (f ff ff) (M.singleton Direction.Right zero)
@@ -66,3 +76,11 @@ spec = do
           , Tuple Direction.Up inPort
           , Tuple Direction.Right outPort
           ]
+
+
+--, inputs: (fromFoldable [(Tuple Up 8e),(Tuple Left 72)])
+--, outs1: (fromFoldable [(Tuple Right 02)])
+--, outs2: (fromFoldable [(Tuple Right 00)])
+--, p1: (Piece and-piece with ports Up => (Input Capacity 1), Right => (Output Capacity 1), Left => (Input Capacity 1), )
+--, p2: (Piece and-piece with ports Up => (Input Capacity 1), Right => (Output Capacity 1), Down => (Input Capacity 1), Left => (Input Capacity 1), )
+--

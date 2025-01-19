@@ -7,3 +7,5 @@
     - creating multipaths
     - remove pieces
     - rotating pieces
+    - undo
+    - globbing pieces

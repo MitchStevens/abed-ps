@@ -50,6 +50,7 @@ package:
     - transformers
     - tuples
     - unfoldable
+    - safe-coerce
     - unsafe-coerce
     - web-dom
     - web-events
@@ -60,13 +61,9 @@ package:
 
   bundle:
     minify: false
-    # Entrypoint for the bundle
     module: Main
-    # The path of the bundle file
     outfile: "dist/static/abed.js"
-    # Possible values are 'node' or 'browser'
     platform: browser
-    # Possible values are 'app' or 'module'
     type: "app"
 
   test:
@@ -77,36 +74,13 @@ package:
       - "spec-discovery"
       - "spec-quickcheck"
       - "quickcheck"
-    censor_test_warnings: all
 
 workspace:
-  package_set:
+  packageSet:
     registry: 62.2.5
-    #registry: 60.2.1
-    #url: https://raw.githubusercontent.com/purescript/package-sets/psc-0.15.9-20230629/packages.json
-  extra_packages:
-    #spec-discovery: 8.2.0
+  extraPackages:
     halogen-svg-elems:
       dependencies:
         - halogen
       git: https://github.com/MitchStevens/purescript-halogen-svg-elems.git
       ref: df7b35f
-    #rough-notation:
-    #  git: https://github.com/MitchStevens/purescript-rough-notation.git
-    #  ref: fde3337
-    #tecton:
-    #  dependencies:
-    #    - "colors"
-    #    - "either"
-    #    - "foldable-traversable"
-    #    - "integers"
-    #    - "lists"
-    #    - "numbers"
-    #    - "prelude"
-    #    - "record"
-    #    - "strings"
-    #    - "transformers"
-    #    - "tuples"
-    #    - "web-html"
-    #  git: https://github.com/MitchStevens/purescript-tecton.git
-    #  ref: 111d91e6c6f99bdcd486344ea13ba17b8743636a

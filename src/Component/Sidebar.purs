@@ -17,18 +17,21 @@ import Prelude
 
 import AppM (AppM)
 import Capability.Animate (headShake)
+import Capability.Animate as Animate
 import Capability.Navigate (Route(..), navigateTo)
+import Component.DataAttribute as DA
 import Component.Sidebar.BoardSizeSlider as BoardSizeSlider
 import Component.Sidebar.Render (render)
 import Component.TestRunner as TestRunner
 import Control.Monad.State (modify_, put)
-import Data.Foldable (for_)
+import Data.Foldable (for_, traverse_)
 import Data.Int as Int
 import Data.Maybe (Maybe(..))
 import Data.Traversable (traverse)
 import Effect (Effect)
 import Effect.Aff.Class (class MonadAff)
 import Effect.Class.Console (log)
+import Game.Level.Completion (CompletionStatus(..))
 import Halogen (Component, HalogenM, HalogenQ, liftEffect, mkComponent, mkEval)
 import Halogen as H
 import Web.DOM.ParentNode (QuerySelector(..))
@@ -39,37 +42,21 @@ import Web.HTML.HTMLInputElement as HTMLInputElement
 component :: Component Query Input Output AppM
 component = mkComponent { eval , initialState , render }
   where
-    {-
-    eval :: HalogenQ Query Action Input ~> HalogenM State Action Slots Output AppM
-    eval = mkEval
-      { finalize: Nothing
-      , handleAction: case _ of
-          Initialise input -> put (initialState input)
-          PieceOnDrop piece _ -> do
-            H.raise (PieceDropped piece)
-          ButtonClicked button _ -> do
-            when (button == RunTests) do
-              _completionStatus .= ReadyForTesting
-            H.raise (ButtonOutput button)
-          TestRunnerOutput testRunnerOutput -> case testRunnerOutput of
-            TestRunner.TestCaseData testCaseData ->
-              H.raise (RunTestCase testCaseData)
-            TestRunner.AllTestsPassed -> do
-              modify_ $ _ { completionStatus = Completed }
-          DoNothing -> pure unit
-      , handleQuery: case _ of
-          TestCaseOutcome testCaseOutcome next -> do
-            H.tell TestRunner.slot unit (TestRunner.TestCaseOutcome testCaseOutcome)
-            pure (Just next)
-            -}
 
   eval :: HalogenQ Query Action Input ~> HalogenM State Action Slots Output AppM
   eval = mkEval
     { finalize: Nothing
     , handleAction: case _ of
-        Initialise input -> do
+        Receive input -> do
           put (initialState input)
           H.tell BoardSizeSlider.slot unit (BoardSizeSlider.AmendBoardSizeSlider input.boardSize)
+
+          case input.completionStatus of
+            FailedValidation { description, locations } ->
+              for_ locations \loc -> do
+                Animate.headShake (DA.selector DA.location loc) 
+            _ -> pure unit
+
         PieceOnDrop piece _ -> do
           H.raise (PieceDropped piece)
         ButtonClicked button _ -> 
@@ -87,7 +74,7 @@ component = mkComponent { eval , initialState , render }
           H.tell TestRunner.slot unit (TestRunner.TestCaseOutcome outcome)
           pure (Just next)
     , initialize: Nothing
-    , receive: Just <<< Initialise
+    , receive: Just <<< Receive
     }
 
 getValueFromEvent :: Event -> Effect (Maybe Number)

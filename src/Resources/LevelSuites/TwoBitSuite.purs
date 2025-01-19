@@ -1,23 +1,23 @@
 module Resources.LevelSuites.TwoBitSuite where
 
-import Prelude
 
-import Component.DataAttribute (selector)
-import Component.DataAttribute as DataAttr
 import Data.Map as M
 import Data.Set as S
-import Foreign.Object (fromHomogeneous)
 import Game.Capacity (Capacity(..))
 import Game.Direction as Direction
-import Game.Level (LevelSuite, defaultLevel)
-import Game.Level.Problem (defaultProblem)
-import Game.Piece (fusePiece, idPiece, mkWirePiece, notPiece, severPiece, succPiece, twoBitCrossOver, xorPiece)
-import Game.Signal (Signal, mkSignal)
+import Game.Level (LevelSuite, defaultLevel, toLevelSuite)
+import Game.Piece (fusePiece, idPiece, mkWirePiece, notPiece, severPiece, succPiece, twoBitCrossOverPiece, xorPiece)
+import Game.Signal (mkSignal)
 
 twoBitSuite :: LevelSuite
-twoBitSuite = fromHomogeneous
-  { "From 2A to 2B": defaultLevel
-    { problem = defaultProblem
+twoBitSuite = toLevelSuite
+  [ twoBitIdentityLevel
+  , fusePieceLevel
+  , twoBitCrossOverLevel
+  , succLevel
+  ]
+  where
+    twoBitIdentityLevel = defaultLevel
       { goal = mkWirePiece { capacity: TwoBit, outputs: S.singleton Direction.Right }
       , title = "From 2A to 2B"
       , description = "This looks familiar, but the input and output ports have a capacity of 2 bits! Build a path between the left and the right, then use the '2' key to increase the capacity of the path. The capacity of each port is colour coded, only ports with the same capacity can connect!"
@@ -29,9 +29,8 @@ twoBitSuite = fromHomogeneous
         , M.singleton Direction.Left (mkSignal 3)
         ]
       }
-    }
-  , "Lovers Lake": defaultLevel
-    { problem = defaultProblem
+
+    fusePieceLevel = defaultLevel
       { goal = fusePiece
       , title = "Lovers Lake"
       , description = "Use a fuse-piece to combine the inputs from the top and left, output the result to the right"
@@ -43,10 +42,9 @@ twoBitSuite = fromHomogeneous
         , M.singleton Direction.Left (mkSignal 3)
         ]
       }
-    }
-  , "Two bit criss cross": defaultLevel
-    { problem = defaultProblem
-      { goal = twoBitCrossOver
+
+    twoBitCrossOverLevel = defaultLevel
+      { goal = twoBitCrossOverPiece
       , title = "Two bit criss cross"
       , description = "Sever the input on the left with a sever-piece, cross over the signals, fuse them back together"
       , availablePieces = S.fromFoldable [severPiece, fusePiece, idPiece]
@@ -57,9 +55,8 @@ twoBitSuite = fromHomogeneous
         , M.singleton Direction.Left (mkSignal 3)
         ]
       }
-    }
-  , "Increment": defaultLevel
-    { problem = defaultProblem
+
+    succLevel = defaultLevel
       { goal = succPiece
       , title = "Increment"
       , description = "Add one to the two bit input signal. if the input is 3 (which has no successor), output signal 0"
@@ -71,5 +68,3 @@ twoBitSuite = fromHomogeneous
         , M.singleton Direction.Left (mkSignal 3)
         ]
       }
-    }
-  }
