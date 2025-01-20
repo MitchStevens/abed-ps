@@ -4,10 +4,11 @@ import Data.Lens
 import Prelude
 
 import Control.Alternative (guard)
+import Control.Monad.Maybe.Trans (runMaybeT)
 import Control.Monad.State (class MonadState, gets)
 import Control.Monad.Writer (WriterT, execWriterT, tell)
 import Data.Array as A
-import Data.Filterable (filter)
+import Data.Filterable (compact, filter)
 import Data.Group (ginverse)
 import Data.Lens (use, view, (.=))
 import Data.Lens.At (at)
@@ -20,16 +21,16 @@ import Data.Maybe (Maybe(..))
 import Data.Set (Set)
 import Data.Set as S
 import Data.Traversable (for, for_, traverse_)
+import Data.TraversableWithIndex (forWithIndex, traverseWithIndex)
 import Data.Tuple (Tuple(..))
 import Data.Witherable (wither)
 import Debug (trace)
+import Game.Board.Edge (RelativeEdge(..), absolute, adjacent, connected, edgeDirection, edgeLocation, getPortOnEdge, relative)
 import Game.Board.PieceInfo (_rotation)
-import Game.Board.RelativeEdge (AbsoluteEdge, RelativeEdge(..), absolute, relative, relativeEdgeDirection, relativeEdgeLocation)
 import Game.Board.Types (Board(..), _pieces, _size)
 import Game.Capacity (Capacity)
 import Game.Direction (CardinalDirection, allDirections, oppositeDirection, rotateDirection)
 import Game.Direction as Direction
-import Game.Edge (Edge(..), matchEdge)
 import Game.Location (Location(..), location)
 import Game.Piece (getPort, shouldRipple, updateCapacity)
 import Game.Port (Port(..), portMatches, portType)
@@ -58,78 +59,15 @@ import Game.Rotation (Rotation(..))
   Before the inputs are provided to the piece for eval, we need to translate between `AbsoluteEdge` and `RelativeEdge`. We do this with `toAbsoluteEdge` and `toRelativeEdge`
 
 -}
-toAbsoluteEdge :: forall m. MonadState Board m => RelativeEdge -> m AbsoluteEdge
-toAbsoluteEdge (Relative (Edge { loc, dir })) = do
-  rot <- gets (view (_pieces <<< ix loc <<< _rotation)) -- rotation is a monoid
-  pure $ absolute loc (rotateDirection dir rot)
-
--- if location is not accupied, reledge == absEdge
-toRelativeEdge :: forall m. MonadState Board m => AbsoluteEdge -> m RelativeEdge
-toRelativeEdge (Edge { loc, dir }) = do
-  rot <- gets (view $ _pieces <<< ix loc <<< _rotation)
-  pure $ relative loc (rotateDirection dir (ginverse rot))
-
-{-
-  All `RelativeEdge`s have an adjacent `RelativeEdge`.
--}
-adjacentRelativeEdge :: forall m. MonadState Board m => RelativeEdge -> m RelativeEdge
-adjacentRelativeEdge relEdge = do
-  absEdge <- toAbsoluteEdge relEdge
-  toRelativeEdge (matchEdge absEdge)
-{-
-  A `RelativeEdge` has a matching relative edge the 'RelativeEdge` if:
-    - the relEdge has a port
-    - the adjacent relEdge has a port
-    - the two ports match (eg. input port & output port)
--}
-connectedRelativeEdge :: forall m. MonadState Board m => RelativeEdge -> m (Maybe RelativeEdge)
-connectedRelativeEdge relEdge = do
-  port <- getPortOnEdge relEdge
-  adjRelEdge <- adjacentRelativeEdge relEdge
-  adjPort <- getPortOnEdge adjRelEdge
-  if (portMatches <$> port <*> adjPort) == Just true
-    then pure (Just adjRelEdge)
-    else pure Nothing
 
 allConnectedRelativeEdges :: forall m. MonadState Board m => Location -> m (Array RelativeEdge)
 allConnectedRelativeEdges loc =
-  wither connectedRelativeEdge (relative loc <$> allDirections)
-
--- returns both board ports and piece ports
-getPortOnEdge :: forall m. MonadState Board m => RelativeEdge -> m (Maybe Port)
-getPortOnEdge (Relative (Edge { loc, dir })) = do
-  maybePieceInfo <- use (_pieces <<< at loc)
-  pure $ maybePieceInfo >>= (\info -> getPort info.piece dir)
-
---getBoardRelEdge :: forall m. MonadState Board m => CardinalDirection -> m RelativeEdge
---getBoardRelEdge dir = do
---  loc <- getBoardEdgePseudoLocation dir
---  toRelativeEdge (absolute loc (oppositeDirection dir))
+  wither (runMaybeT <<< connected) (relative loc <$> allDirections)
 
 isInsideBoard :: forall m. MonadState Board m => Location -> m Boolean
 isInsideBoard (Location {x, y}) = do
   n <- use _size
   pure $ 0 <= x && x < n && 0 <= y && y < n
-
---connectedTo :: forall m. MonadState Board m => Location -> m (Array Location)
---connectedTo loc = A.catMaybes <$> for allDirections \dir -> do
---  adjRelEdge <- toRelativeEdge (absolute loc dir) >>= matchingRelativeEdge
---  pure $ Just $ relativeEdgeLocation adjRelEdge
-
---directSuccessors :: forall m. MonadState Board m => Location -> m (Array Location)
---directSuccessors loc = A.catMaybes <$> for allDirections \dir -> do
---  relEdge <- toRelativeEdge (absolute loc dir) >>= matchingRelativeEdge
---  maybePort <- getPortOnEdge relEdge
---  pure $ maybePort >>= \p -> guard (not (isInput p)) $> relativeEdgeLocation relEdge
---
---directPredecessors :: forall m. MonadState Board m => Location -> m (Array Location)
---directPredecessors loc = A.catMaybes <$> for allDirections \dir -> do
---  relEdge <- toRelativeEdge (absolute loc dir) >>= matchingRelativeEdge
---  maybePort <- getPortOnEdge relEdge
---  pure $ maybePort >>= \p -> guard (isInput p) $> relativeEdgeLocation relEdge
-
-
-
 
 {-
   boards have 4 port areas that can take input/output. If these ports were pieces, which locations whould they occupy?
@@ -143,8 +81,16 @@ getBoardEdgePseudoLocation dir = do
     Direction.Down  -> location (n`div`2) (n)
     Direction.Left  -> location (-1)      (n`div`2)
 
-
-
+--
+getBoardEdges :: forall m. MonadState Board m => m (Map CardinalDirection Location)
+getBoardEdges = do
+  n <- use _size
+  pure $ M.fromFoldable
+    [ Tuple (Direction.Up)    (location (n`div`2) 0)
+    , Tuple (Direction.Right) (location (n-1)       (n`div`2))
+    , Tuple (Direction.Down)  (location (n`div`2) (n-1))
+    , Tuple (Direction.Left)  (location 0      (n`div`2))
+    ]
 
 getBoardPortEdge :: forall m. MonadState Board m => CardinalDirection -> m RelativeEdge
 getBoardPortEdge dir = do
@@ -153,12 +99,9 @@ getBoardPortEdge dir = do
 
 getBoardPorts :: forall m. MonadState Board m => m (Map CardinalDirection Port)
 getBoardPorts =
-  M.catMaybes <<< M.fromFoldable <$>
-    for allDirections \dir -> do
-      loc <- getBoardEdgePseudoLocation dir
-      relEdge <- toRelativeEdge (absolute loc (oppositeDirection dir)) >>= adjacentRelativeEdge
-      maybePort <- getPortOnEdge relEdge
-      pure (Tuple dir maybePort)
+  map compact do
+     boardEdges <- getBoardEdges
+     forWithIndex boardEdges \dir loc -> runMaybeT $ getPortOnEdge (absolute loc dir)
 
 {-
   Create a bidirectional mapping from inputs to ouptuts ports
@@ -171,16 +114,15 @@ buildConnectionMap = do
 buildConnectionMapAt :: forall m. MonadState Board m
   => Location -> WriterT (List (Tuple RelativeEdge RelativeEdge)) m Unit
 buildConnectionMapAt loc = 
-  for_ allDirections \dir -> do
+  for_ allDirections \dir -> runMaybeT do
     let relEdge = relative loc dir
-    connectedRelativeEdge relEdge >>= traverse_ \adjRelEdge -> do
-      port <- getPortOnEdge relEdge
-      case map portType port of
-        Just Port.Input ->
-            tell (L.singleton (Tuple relEdge adjRelEdge))
-        Just Port.Output ->
-            tell (L.singleton (Tuple adjRelEdge relEdge))
-        Nothing -> pure unit
+    adjRelEdge <- connected relEdge 
+    port <- getPortOnEdge relEdge
+    case portType port of
+      Port.Input ->
+          tell (L.singleton (Tuple relEdge adjRelEdge))
+      Port.Output ->
+          tell (L.singleton (Tuple adjRelEdge relEdge))
 
 --todo: fix this, looks like garbage
 {-
@@ -194,18 +136,18 @@ capacityRippleAcc :: forall m. MonadState Board m
 capacityRippleAcc capacity vars = case vars.openSet of
   Nil -> pure unit
   Cons relEdge otherEdges -> do
-    let loc = relativeEdgeLocation relEdge
+    let loc = edgeLocation relEdge
     let closedSet = S.insert loc vars.closedSet
     maybePiece <- map (_.piece) <$> use (_pieces <<< at loc)
     
-    case maybePiece >>= updateCapacity (relativeEdgeDirection relEdge) capacity of
+    case maybePiece >>= updateCapacity (edgeDirection relEdge) capacity of
       Just piece -> do                                        -- if the capacity can be changed...
         connected <- allConnectedRelativeEdges loc
         _pieces <<< ix loc %= (_ { piece = piece })          -- set the capacity at the location...
 
         if shouldRipple piece
           then do
-            let notInClosedSet r = not (S.member (relativeEdgeLocation r) vars.closedSet)
+            let notInClosedSet r = not (S.member (edgeLocation r) vars.closedSet)
             let openSet = L.fromFoldable (filter notInClosedSet connected) <> otherEdges            -- add the adjacent locations to the open set
             capacityRippleAcc capacity { openSet, closedSet } -- ripple the capacity
           else capacityRippleAcc capacity { openSet: otherEdges, closedSet }

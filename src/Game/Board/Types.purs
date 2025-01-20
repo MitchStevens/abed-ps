@@ -28,7 +28,6 @@ import Data.String as String
 import Data.Tuple (Tuple(..), fst, snd)
 import Data.Unfoldable (replicate)
 import Game.Board.PieceInfo (PieceInfo)
-import Game.Board.RelativeEdge (RelativeEdge, relative, relativeEdgeDirection)
 import Game.Direction (CardinalDirection, oppositeDirection, rotateDirection)
 import Game.Direction as Direction
 import Game.Location (Location(..), location, taxicabDistance)
@@ -76,13 +75,6 @@ _pieces = _Newtype <<< prop (Proxy :: _ "pieces")
 
 standardBoard :: Board
 standardBoard = Board { size: 3, pieces: M.empty }
-
-toLocalInputs :: forall a. Location -> Map RelativeEdge a -> Map CardinalDirection a
-toLocalInputs loc = M.submap (Just (relative loc Direction.Up)) (Just (relative loc Direction.Left)) >>> unsafeMapKey relativeEdgeDirection
-
--- this creates a valid map because d1 >= d2 => reledge loc d1 >= relEdge loc d2
-toGlobalInputs :: forall a. Location -> Map CardinalDirection a -> Map RelativeEdge a
-toGlobalInputs loc = unsafeMapKey (relative loc)
 
 allOccupiedLocations :: Board -> Set Location
 allOccupiedLocations = view $ _pieces <<< to M.keys

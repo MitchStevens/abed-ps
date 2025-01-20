@@ -34,7 +34,7 @@ import Data.TraversableWithIndex (forWithIndex)
 import Data.Tuple (Tuple(..))
 import Data.Zipper (Zipper)
 import Data.Zipper as Z
-import Game.Board (Board(..), BoardError, BoardM, PieceInfo, RelativeEdge, Path, _pieces, evalBoardM, getBoardPortEdge, runBoardM, standardBoard, toLocalInputs)
+import Game.Board (Board(..), BoardError, BoardM, Path, PieceInfo, RelativeEdge, _pieces, evalBoardM, getBoardPortEdge, runBoardM, standardBoard, toLocalInputs)
 import Game.Direction (CardinalDirection)
 import Game.GameEvent (BoardEvent)
 import Game.Location (Location(..))

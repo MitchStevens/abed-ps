@@ -5,6 +5,7 @@ import Prelude
 
 import Control.Monad.Error.Class (class MonadError, class MonadThrow, throwError)
 import Control.Monad.Except (ExceptT, runExceptT)
+import Control.Monad.Maybe.Trans (MaybeT(..), runMaybeT)
 import Control.Monad.State (class MonadState, class MonadTrans, StateT, get, gets, lift, put, runStateT)
 import Data.Array (foldMap)
 import Data.Either (Either(..))
@@ -28,13 +29,12 @@ import Debug (trace)
 import Debug as Debug
 import Effect.Aff.Class (class MonadAff)
 import Effect.Class (class MonadEffect)
+import Game.Board.Edge (AbsoluteEdge, RelativeEdge(..), absolute, adjacent, adjacentAbsoluteEdge, fromAbsoluteEdge, getPortOnEdge, relative)
 import Game.Board.PieceInfo (PieceInfo, _rotation)
-import Game.Board.Query (adjacentRelativeEdge, getPortOnEdge, isInsideBoard)
-import Game.Board.RelativeEdge (RelativeEdge(..), relative)
+import Game.Board.Query (isInsideBoard)
 import Game.Board.Types (Board(..), BoardError(..), _pieces, _size)
 import Game.Direction (allDirections)
 import Game.Direction as Direction
-import Game.Edge (Edge(..), edgeLocation)
 import Game.Location (Location(..), location)
 import Game.Piece (Piece(..), glob, pieceLookup)
 import Game.Port (PortType, portType)
@@ -71,18 +71,19 @@ getPiece loc = (_.piece) <$> getPieceInfo loc
 checkInsideBoard :: forall m. MonadError BoardError m => MonadState Board m => Location -> m Unit
 checkInsideBoard loc = whenM (not <$> isInsideBoard loc) (throwError (InvalidLocation loc))
 
-globRelEdge :: forall m. MonadState Board m => RelativeEdge -> Maybe PortType -> m Unit
-globRelEdge (Relative (Edge {dir, loc})) portType = do
-  use (_pieces <<< at loc) >>= traverse_ \info -> do
-    _pieces <<< ix loc <<< prop (Proxy :: Proxy "piece") .= glob dir portType info.piece
+globRelEdge :: forall m. MonadState Board m => AbsoluteEdge -> Maybe PortType -> MaybeT m Unit
+globRelEdge absEdge portType = do
+  Relative { loc, dir } <- fromAbsoluteEdge absEdge
+  { piece, rotation } <- MaybeT $ use (_pieces <<< at loc)
+  _pieces <<< ix loc <<< prop (Proxy :: Proxy "piece") .= glob dir portType piece
 
 globPortsAround :: forall m. MonadState Board m => Location -> m Unit
-globPortsAround loc = do
+globPortsAround loc =
   for_ allDirections \dir -> do
-    let relEdge = relative loc dir
-    maybePort <- getPortOnEdge relEdge
-    relEdge' <- adjacentRelativeEdge relEdge
-    globRelEdge relEdge' (portType <$> maybePort)
+    let edge = absolute loc dir
+    let adj = adjacentAbsoluteEdge edge
+    maybePort <- runMaybeT (getPortOnEdge edge)
+    void $ runMaybeT $ globRelEdge adj (portType <$> maybePort)
 
 addPieceNoUpdate :: forall m. MonadError BoardError m => MonadState Board m 
   => Location -> Piece -> Rotation -> m Unit

@@ -10,7 +10,7 @@ import Control.Monad.Error.Class (class MonadError, catchError, liftEither, thro
 import Control.Monad.Except (ExceptT(..), lift, runExcept, runExceptT, withExceptT)
 import Control.Monad.List.Trans (ListT, lift, nil)
 import Control.Monad.List.Trans as ListT
-import Control.Monad.Maybe.Trans (MaybeT)
+import Control.Monad.Maybe.Trans (MaybeT, runMaybeT)
 import Control.Monad.State (class MonadState, StateT, evalState, evalStateT, execStateT, get, gets, put)
 import Control.Monad.Writer (class MonadWriter)
 import Data.Array (cons, find, foldr, head, last, length, snoc, (!!))
@@ -41,14 +41,12 @@ import Data.Zipper as Z
 import Debug (trace)
 import Debug as Debug
 import Effect.Aff (Aff, error)
+import Game.Board.Edge (absolute, adjacent)
 import Game.Board.Operation (addPieceNoUpdate, globRelEdge, removePieceNoUpdate)
 import Game.Board.PathSegment (PathSegment(..), PathSegmentError, combineSegmentWithExtant, singlePath)
 import Game.Board.PieceInfo (PieceInfo)
-import Game.Board.Query (adjacentRelativeEdge, toRelativeEdge)
-import Game.Board.RelativeEdge (absolute, relative)
 import Game.Board.Types (Board(..), BoardError(..), _pieces)
 import Game.Direction (CardinalDirection, oppositeDirection)
-import Game.Edge (Edge(..), edgeDirection, edgeLocation)
 import Game.Location (Location(..), directionTo, followDirection)
 import Game.Piece (Piece(..), chickenPiece, cornerCutPiece, crossPiece, idPiece, leftPiece, rightPiece)
 import Game.Port as PortType
@@ -111,8 +109,8 @@ addPath initialDir locations terminalDir = do
 updateEndPoints :: forall m
   .  MonadState Board m
   => Path -> m Unit
-updateEndPoints path = do
-  headAdj <- toRelativeEdge (absolute path.start path.initial) >>= adjacentRelativeEdge
+updateEndPoints path = void $ runMaybeT do
+  headAdj <-  adjacent (absolute path.start path.initial)
   globRelEdge headAdj (Just PortType.Input)
   --do tail later
 

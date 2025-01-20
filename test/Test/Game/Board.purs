@@ -20,7 +20,7 @@ import Debug (trace)
 import Effect.Aff (Aff, Error, error)
 import Effect.Aff.Class (class MonadAff)
 import Effect.Class.Console (log)
-import Game.Board (Board(..), RelativeEdge, absolute, addPath, addPiece, adjacentRelativeEdge, execBoardM, getBoardPortEdge, getPortOnEdge, increaseSize, relative, rotatePieceBy, standardBoard, toAbsoluteEdge, toRelativeEdge)
+import Game.Board (Board(..), RelativeEdge, absolute, addPath, addPiece, adjacent, execBoardM, fromAbsoluteEdge, getBoardPortEdge, getPortOnEdge, increaseSize, relative, rotatePieceBy, standardBoard, toAbsoluteEdge)
 import Game.Capacity (Capacity(..))
 import Game.Direction (CardinalDirection, allDirections)
 import Game.Direction as Direction
@@ -104,21 +104,21 @@ tests = do
       describe "toAbsoluteEdge/toRelativeEdge" do
         it "no piece at location test" do
           toAbsoluteEdge (relative (location 0 0) Direction.Right) `shouldReturn` absolute (location 0 0) Direction.Right
-          toRelativeEdge (absolute (location 0 0) Direction.Right) `shouldReturn` relative (location 0 0) Direction.Right
+          fromAbsoluteEdge (absolute (location 0 0) Direction.Right) `shouldReturn` relative (location 0 0) Direction.Right
         it "piece has no rotation test" do
           toAbsoluteEdge (relative (location 0 1) Direction.Right) `shouldReturn` absolute (location 0 1) Direction.Right
-          toRelativeEdge (absolute (location 0 1) Direction.Right) `shouldReturn` relative (location 0 1) Direction.Right
+          fromAbsoluteEdge (absolute (location 0 1) Direction.Right) `shouldReturn` relative (location 0 1) Direction.Right
         it "piece has rotation" do
           toAbsoluteEdge (relative (location 1 0) Direction.Right) `shouldReturn` absolute (location 1 0) Direction.Down
-          toRelativeEdge (absolute (location 1 0) Direction.Right) `shouldReturn` relative (location 1 0) Direction.Up
+          fromAbsoluteEdge (absolute (location 1 0) Direction.Right) `shouldReturn` relative (location 1 0) Direction.Up
         it "moving from absolute edge to relative edge should a round trip" do
           for_ (absolute <$> allLocations <*> allDirections) \absEdge -> 
-            (toRelativeEdge absEdge >>= toAbsoluteEdge) `shouldReturn` absEdge
+            (fromAbsoluteEdge absEdge >>= toAbsoluteEdge) `shouldReturn` absEdge
       describe "matchingRelativeEdge" do
         it "matches" do
-          adjacentRelativeEdge (relative (location 0 1) Direction.Right) `shouldReturn` relative (location 1 1) Direction.Left
-          adjacentRelativeEdge (relative (location 1 1) Direction.Right) `shouldReturn` relative (location 2 1) Direction.Left
-          adjacentRelativeEdge (relative (location 1 0) Direction.Right) `shouldReturn` relative (location 1 1) Direction.Up
+          adjacent (relative (location 0 1) Direction.Right) `shouldReturn` relative (location 1 1) Direction.Left
+          adjacent (relative (location 1 1) Direction.Right) `shouldReturn` relative (location 2 1) Direction.Left
+          adjacent (relative (location 1 0) Direction.Right) `shouldReturn` relative (location 1 1) Direction.Up
       it "getBoardPortEdge" do
         getBoardPortEdge Direction.Right `shouldReturn` relative (location 3 1) Direction.Right
         getBoardPortEdge Direction.Left `shouldReturn` relative (location (-1) 1) Direction.Right

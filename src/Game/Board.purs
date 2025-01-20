@@ -7,7 +7,7 @@ module Game.Board
 , module Game.Board.PieceInfo
 , module Game.Board.PseudoPiece
 , module Game.Board.Query
-, module Game.Board.RelativeEdge
+, module Game.Board.Edge
 , module Game.Board.Types
 ) where
 
@@ -19,6 +19,6 @@ import Game.Board.PathSegment
 import Game.Board.PieceInfo
 import Game.Board.PseudoPiece
 import Game.Board.Query
-import Game.Board.RelativeEdge
+import Game.Board.Edge
 import Game.Board.Types
 
