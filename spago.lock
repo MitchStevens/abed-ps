@@ -10,7 +10,6 @@ workspace:
           - console
           - contravariant
           - control
-          - datetime
           - debug
           - effect
           - either
@@ -19,7 +18,6 @@ workspace:
           - filterable
           - foldable-traversable
           - foreign-object
-          - generate-values
           - group
           - halogen
           - halogen-store
@@ -95,7 +93,6 @@ workspace:
           - functions
           - functors
           - gen
-          - generate-values
           - group
           - halogen
           - halogen-hooks
@@ -1177,29 +1174,6 @@ packages:
       - tailrec
       - tuples
       - unfoldable
-  generate-values:
-    type: registry
-    version: 1.0.1
-    integrity: sha256-ob85FaE3fklvmmkj0Q5YQx+ii+SD+PZFr/0tOe1/RsY=
-    dependencies:
-      - arrays
-      - control
-      - effect
-      - enums
-      - foldable-traversable
-      - gen
-      - identity
-      - integers
-      - lcg
-      - lists
-      - maybe
-      - newtype
-      - numbers
-      - partial
-      - prelude
-      - tailrec
-      - transformers
-      - tuples
   group:
     type: registry
     version: 4.1.1

@@ -5,6 +5,7 @@
     "postinstall": "spago install",
     "compile-css": "lessc less/default.less dist/static/default.css",
     "compile-css-watch": "find less | entr -s 'npm run compile-css'",
+    "migrate": "spago bundle --migrate",
     "build": "spago bundle",
     "build-watch": "npm run compile-css-watch & fd . -e purs -e js -e less | entr -s 'npm run build'",
     "build-prod": "npm run compile-css & purs-backend-es build && purs-backend-es bundle-app --no-build",

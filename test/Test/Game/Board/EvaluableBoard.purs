@@ -1,15 +1,11 @@
 module Test.Game.Board.EvaluableBoard where
 
-import Game.Board
-import Game.Piece
 import Prelude
 
-import Control.Monad.Error.Class (class MonadError)
 import Control.Monad.Except (except)
-import Control.Monad.Reader (class MonadReader, ReaderT, asks, local, runReaderT)
-import Control.Monad.State (class MonadState, StateT, evalState, evalStateT, get, put, runStateT)
-import Data.Foldable (foldMap, for_, length)
-import Data.FoldableWithIndex (forWithIndex_)
+import Control.Monad.Reader (ReaderT, asks, runReaderT)
+import Control.Monad.State (StateT, evalState, evalStateT, get)
+import Data.Foldable (for_)
 import Data.HeytingAlgebra (ff, tt)
 import Data.Identity (Identity)
 import Data.Lens (use)
@@ -23,22 +19,19 @@ import Data.Newtype (unwrap)
 import Data.Tuple (Tuple(..))
 import Debug (trace)
 import Effect.Aff (Aff)
-import Effect.Class (class MonadEffect)
-import Effect.Class.Console (log, logShow)
-import Effect.Exception (Error)
+import Game.Board (EvaluableBoard(..), RelativeEdge, buildConnectionMap, evalWithPortInfo, evalWithPortInfoAt, evaluableBoardPiece, getOuterPort, injectInputs, isPseudoInput, psuedoPiece, relative, standardBoard, toEvaluableBoard, topologicalSort)
 import Game.Capacity (Capacity(..))
 import Game.Direction as Direction
 import Game.Level (binaryTestInputs)
 import Game.Location (location)
-import Game.Port (inputPort, isOutput, outputPort)
+import Game.Piece (andPiece, eval, getPorts, notPiece, orPiece)
+import Game.Port (inputPort, outputPort)
 import Game.PortInfo (PortInfo)
-import Game.Signal (Signal)
---import Test.Game.Board (testBoard, testBoardCrossOver, toAff)
-import Test.Game.Board (testBoard, toAff)
+import Test.Game.Board (testBoard)
 import Test.Game.Board.Operation (exceptToAff)
-import Test.Spec (Spec, SpecT, before, beforeAll_, describe, describeOnly, hoistSpec, it, itOnly)
-import Test.Spec.Assertions (shouldEqual, shouldNotSatisfy, shouldReturn, shouldSatisfy)
-import Test.Unit.AssertExtra (shouldEqualMap)
+import Test.Spec (Spec, SpecT, describe, describeOnly, hoistSpec, it, itOnly)
+import Test.Spec.Assertions (fail, shouldEqual, shouldNotSatisfy, shouldReturn, shouldSatisfy)
+import Test.Unit.AssertExtra (shouldBeBefore, shouldEqualMap)
 
 testEvaluableBoard :: EvaluableBoard
 testEvaluableBoard = EvaluableBoard
@@ -85,6 +78,29 @@ spec = hoistSpec identity (\_ -> natTransformToAff) tests
 tests :: SpecT EvalM Unit Identity Unit
 tests = do
   describe "Game.Board.EvaluableBoard" do
+    describe "buildConnectionMap" do
+      it "withStandardBoard" do
+        let c0 = evalState buildConnectionMap standardBoard
+        M.size c0 `shouldEqual` 0
+
+      it "with test board" do
+        let c0 = evalState buildConnectionMap testBoard
+        M.size c0 `shouldEqual` 3
+
+    it "topologicalSort" do
+      let in1 = location 0 1
+      let in2 = location 1 0
+      let mid = location 1 1
+      let out = location 2 1
+      let connections = evalState buildConnectionMap testBoard
+      case topologicalSort (L.fromFoldable [in1, in2, mid, out]) connections of
+        Nothing -> fail "no topo sort"
+        Just sortedLocations -> do
+          (location 0 1 `shouldBeBefore` location 1 1) sortedLocations
+          (location 1 0 `shouldBeBefore` location 1 1) sortedLocations
+          (location 1 1 `shouldBeBefore` location 2 1) sortedLocations
+          (location 0 1 `shouldBeBefore` location 2 1) sortedLocations
+
     describe "testBoard" do
       let inRelEdge1 = relative (location (-1) 1) Direction.Right
       let inRelEdge2 = relative (location 1 (-1)) Direction.Right

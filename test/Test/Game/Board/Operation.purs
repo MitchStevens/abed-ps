@@ -1,6 +1,6 @@
 module Test.Game.Board.Operation where
 
-import Data.Lens
+import Data.Lens (use)
 import Prelude
 
 import Control.Monad.Except (class MonadError, ExceptT, runExceptT, throwError)
@@ -9,26 +9,18 @@ import Data.Either (Either(..))
 import Data.Identity (Identity)
 import Data.Lens (use)
 import Data.Lens.At (at)
-import Data.List (List(..), (:))
-import Data.List as L
-import Data.Map as M
 import Data.Maybe (Maybe(..))
 import Data.Set as S
-import Data.Tuple (Tuple(..))
-import Debug (debugger, trace)
-import Effect.Aff.Class (class MonadAff, liftAff)
 import Effect.Class (class MonadEffect)
-import Effect.Class.Console (log)
 import Effect.Exception (Error, error)
-import Game.Board (Board(..), _pieces, relativeEdgeLocation, standardBoard, topologicalSort, BoardError(..), addPiece, addPieceNoUpdate, decreaseSize, increaseSize, removePiece, rotatePieceBy, validBoardSize, buildConnectionMap)
+import Game.Board (Board, BoardError(..), _pieces, addPiece, addPieceNoUpdate, decreaseSize, increaseSize, removePiece, standardBoard, validBoardSize)
 import Game.Direction as Direction
-import Game.GameEvent (BoardEvent(..))
 import Game.Location (location)
-import Game.Piece (andPiece, getOutputDirs, idPiece, leftPiece, name)
+import Game.Piece (andPiece, getOutputDirs, idPiece, leftPiece)
 import Game.Rotation (rotation)
-import Test.Game.Board (testBoard, toAff)
-import Test.Spec (Spec, SpecT, before, beforeAll, beforeAll_, describe, hoistSpec, it, itOnly)
-import Test.Spec.Assertions (expectError, shouldEqual, shouldReturn)
+import Test.Game.Board (toAff)
+import Test.Spec (Spec, SpecT, before, describe, hoistSpec, it)
+import Test.Spec.Assertions (expectError, shouldEqual)
 
 exceptToAff :: forall e m. MonadError Error m => Show e => ExceptT e m ~> m
 exceptToAff exceptT = runExceptT exceptT >>= case _ of

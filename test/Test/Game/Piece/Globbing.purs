@@ -33,8 +33,6 @@ spec =
         for_ allPieces \p ->
             quickCheck $ \d t -> unglob p `lessThanOrEqTo` glob d (Just t) p
 
-        
-
       it "glob with no porttype is commutative" do
         for_ allPieces \p ->
           quickCheck $ \d1 d2 -> glob d1 Nothing (glob d2 Nothing p) `equivalentTo` glob d2 Nothing (glob d1 Nothing p)

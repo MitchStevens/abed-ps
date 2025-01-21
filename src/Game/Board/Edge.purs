@@ -5,6 +5,7 @@ import Prelude
 import Control.Alternative (guard)
 import Control.Monad.Maybe.Trans (MaybeT(..))
 import Control.Monad.State (class MonadState)
+import Data.Function (on)
 import Data.Group (ginverse)
 import Data.Lens (use)
 import Data.Lens.At (at)
@@ -45,6 +46,10 @@ edgeLocation = (coerce :: e -> BaseEdge) >>> _.loc
 
 type BaseEdge = { loc :: Location, dir :: CardinalDirection }
 
+compareBaseEdge :: BaseEdge -> BaseEdge -> Ordering
+compareBaseEdge e1 e2 = compare e1.loc e2.loc <> compare e1.dir e2.dir
+
+
 newtype AbsoluteEdge = Absolute BaseEdge
 
 absolute :: Location -> CardinalDirection -> AbsoluteEdge
@@ -52,7 +57,9 @@ absolute loc dir = Absolute { loc, dir }
 
 derive instance Newtype AbsoluteEdge _
 derive instance Eq AbsoluteEdge
-derive instance Ord AbsoluteEdge
+-- do not derive!
+instance Ord AbsoluteEdge where
+  compare = compareBaseEdge `on` coerce
 instance Show AbsoluteEdge where
   show (Absolute { loc, dir }) = "AbsoluteEdge " <> show loc <> " " <> show dir
 instance Edge AbsoluteEdge where
@@ -74,7 +81,9 @@ relative loc dir = Relative { loc, dir }
 
 derive instance Newtype RelativeEdge _
 derive instance Eq RelativeEdge
-derive instance Ord RelativeEdge
+-- do not derive!
+instance Ord RelativeEdge where
+  compare = compareBaseEdge `on` coerce
 instance Show RelativeEdge where
   show (Relative { loc, dir }) = "RelativeEdge " <> show loc <> " " <> show dir
 instance Edge RelativeEdge where

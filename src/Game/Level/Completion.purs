@@ -20,7 +20,7 @@ import Game.Port (Port(..), PortType, portCapacity)
 import Game.Signal (Signal(..))
 
 data CompletionStatus
-  = NotStarted
+ = NotStarted
   | PortMismatch PortMismatch
   | FailedRestriction FailedRestriction
   | NotEvaluable BoardError

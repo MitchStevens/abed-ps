@@ -1,9 +1,6 @@
 module Resources.LevelSuites.TwoBitSuite where
 
-import Prelude
 
-import Component.DataAttribute (selector)
-import Component.DataAttribute as DataAttr
 import Data.Map as M
 import Data.Set as S
 import Foreign.Object (fromHomogeneous)
@@ -12,7 +9,7 @@ import Game.Direction as Direction
 import Game.Level (LevelSuite, defaultLevel)
 import Game.Level.Problem (defaultProblem)
 import Game.Piece (fusePiece, idPiece, mkWirePiece, notPiece, severPiece, succPiece, twoBitCrossOver, xorPiece)
-import Game.Signal (Signal, mkSignal)
+import Game.Signal (mkSignal)
 
 twoBitSuite :: LevelSuite
 twoBitSuite = fromHomogeneous

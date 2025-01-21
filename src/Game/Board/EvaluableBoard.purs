@@ -26,7 +26,6 @@ module Game.Board.EvaluableBoard
   )
   where
 
-import Data.Lens (use, (.=))
 import Prelude
 
 import Control.Monad.Error.Class (class MonadError, throwError)
@@ -36,6 +35,7 @@ import Control.Monad.Reader (class MonadReader, ReaderT, asks, runReaderT)
 import Control.Monad.State (class MonadState, State, evalState, evalStateT, gets, modify_, runState)
 import Data.Either (Either)
 import Data.FoldableWithIndex (forWithIndex_)
+import Data.Lens (use, (.=))
 import Data.Lens.At (at)
 import Data.List (List(..), find, fold)
 import Data.List as L

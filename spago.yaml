@@ -6,7 +6,6 @@ package:
     - console
     - contravariant
     - control
-    - datetime
     - debug
     - effect
     - either
@@ -15,7 +14,6 @@ package:
     - filterable
     - foldable-traversable
     - foreign-object
-    - generate-values
     - group
     - halogen
     - halogen-subscriptions
@@ -60,13 +58,9 @@ package:
 
   bundle:
     minify: false
-    # Entrypoint for the bundle
     module: Main
-    # The path of the bundle file
     outfile: "dist/static/abed.js"
-    # Possible values are 'node' or 'browser'
     platform: browser
-    # Possible values are 'app' or 'module'
     type: "app"
 
   test:
@@ -91,22 +85,3 @@ workspace:
         - halogen
       git: https://github.com/MitchStevens/purescript-halogen-svg-elems.git
       ref: df7b35f
-    #rough-notation:
-    #  git: https://github.com/MitchStevens/purescript-rough-notation.git
-    #  ref: fde3337
-    #tecton:
-    #  dependencies:
-    #    - "colors"
-    #    - "either"
-    #    - "foldable-traversable"
-    #    - "integers"
-    #    - "lists"
-    #    - "numbers"
-    #    - "prelude"
-    #    - "record"
-    #    - "strings"
-    #    - "transformers"
-    #    - "tuples"
-    #    - "web-html"
-    #  git: https://github.com/MitchStevens/purescript-tecton.git
-    #  ref: 111d91e6c6f99bdcd486344ea13ba17b8743636a
