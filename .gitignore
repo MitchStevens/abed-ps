@@ -2,8 +2,8 @@
 **/node_modules
 **/output
 **/output-es
-dist/default.css
-dist/abed.js
+dist/static/default.css
+dist/static/abed.js
 .psc-ide-port
 npm-debug.log
 .spec-results
