@@ -19,7 +19,7 @@ import Data.Newtype (unwrap)
 import Data.Tuple (Tuple(..))
 import Debug (trace)
 import Effect.Aff (Aff)
-import Game.Board (EvaluableBoard(..), RelativeEdge, buildConnectionMap, evalWithPortInfo, evalWithPortInfoAt, evaluableBoardPiece, getOuterPort, injectInputs, isPseudoInput, psuedoPiece, relative, standardBoard, toEvaluableBoard, topologicalSort)
+import Game.Board (EvaluableBoard(..), RelativeEdge, buildConnectionMap, evalWithPortInfo, evalWithPortInfoAt, evaluableBoardPiece, getOuterPort, getPortInfo, injectInputs, inputEdge, isPseudoInput, outputEdge, psuedoPiece, relative, standardBoard, toEvaluableBoard, topologicalSort)
 import Game.Capacity (Capacity(..))
 import Game.Direction as Direction
 import Game.Level (binaryTestInputs)
@@ -32,6 +32,24 @@ import Test.Game.Board.Operation (exceptToAff)
 import Test.Spec (Spec, SpecT, describe, describeOnly, hoistSpec, it, itOnly)
 import Test.Spec.Assertions (fail, shouldEqual, shouldNotSatisfy, shouldReturn, shouldSatisfy)
 import Test.Unit.AssertExtra (shouldBeBefore, shouldEqualMap)
+
+emptyEvaluableBoard :: EvaluableBoard
+emptyEvaluableBoard = EvaluableBoard
+  { pieces: M.empty
+  , connections: M.empty
+  , evalOrder: Nil
+  , psuedoPieceLocations: M.empty
+  }
+
+singleOrPieceEvaluableBoard :: EvaluableBoard
+singleOrPieceEvaluableBoard = EvaluableBoard
+  { pieces: M.singleton (location 1 1) orPiece
+  , connections: M.empty
+  , evalOrder: location 1 1 : Nil
+  , psuedoPieceLocations: M.empty
+  }
+
+
 
 testEvaluableBoard :: EvaluableBoard
 testEvaluableBoard = EvaluableBoard
@@ -46,13 +64,13 @@ testEvaluableBoard = EvaluableBoard
       , Tuple (location 3 1) (psuedoPiece (outputPort OneBit))
       ]
   , connections:  M.fromFoldable
-    [ Tuple (relative (location 1 1) Direction.Left) (relative (location 0 1) Direction.Right)
-    , Tuple (relative (location 1 1) Direction.Up)   (relative (location 1 0) Direction.Right)
-    , Tuple (relative (location 2 1) Direction.Left) (relative (location 1 1) Direction.Right)
+    [ Tuple (inputEdge (location 1 1) Direction.Left) (outputEdge (location 0 1) Direction.Right)
+    , Tuple (inputEdge (location 1 1) Direction.Up)   (outputEdge (location 1 0) Direction.Right)
+    , Tuple (inputEdge (location 2 1) Direction.Left) (outputEdge (location 1 1) Direction.Right)
 
-    , Tuple (relative (location 0 1) Direction.Left) (relative (location (-1) 1) Direction.Right)
-    , Tuple (relative (location 1 0) Direction.Left) (relative (location 1 (-1)) Direction.Right)
-    , Tuple (relative (location 3 1) Direction.Right) (relative (location 2 1) Direction.Right)
+    , Tuple (inputEdge (location 0 1) Direction.Left) (outputEdge (location (-1) 1) Direction.Right)
+    , Tuple (inputEdge (location 1 0) Direction.Left) (outputEdge (location 1 (-1)) Direction.Right)
+    , Tuple (inputEdge (location 3 1) Direction.Right) (outputEdge (location 2 1) Direction.Right)
     ]
   , evalOrder: 
       location (-1) 1 : location 0 1 :
@@ -86,6 +104,19 @@ tests = do
       it "with test board" do
         let c0 = evalState buildConnectionMap testBoard
         M.size c0 `shouldEqual` 3
+
+    describe "getPortInfo" do
+      it "with empty board" do
+        getPortInfo emptyEvaluableBoard `shouldEqual` M.empty
+
+      it "with test eval board" do
+        let loc = location 1 1
+        getPortInfo singleOrPieceEvaluableBoard `shouldEqual`
+          M.fromFoldable 
+            [ Tuple (relative loc Direction.Left)  { port: inputPort OneBit,  connected: false }
+            , Tuple (relative loc Direction.Up)    { port: inputPort OneBit,  connected: false }
+            , Tuple (relative loc Direction.Right) { port: outputPort OneBit, connected: false }
+            ]
 
     it "topologicalSort" do
       let in1 = location 0 1

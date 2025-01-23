@@ -34,10 +34,6 @@ derive instance Ord Signal
 derive newtype instance Semiring Signal
 derive newtype instance Ring Signal
 
-----todo: improve this implementation
---instance Eq Signal where
---  eq (Signal s1) (Signal s2) = show s1 == show s2
-
 instance Show Signal where
   show = printSignal (SignalRepresentation Hexadecimal EightBit)
 
@@ -78,7 +74,7 @@ toInt capacity signal =
   equivalent capacity signal 
 -}
 canonical :: Capacity -> Signal -> Signal
-canonical capacity signal = signal `conj` maxValue capacity
+canonical capacity signal = signal && maxValue capacity
 
 equivalent :: Capacity -> Signal -> Signal -> Boolean
 equivalent capacity = eq `on` canonical capacity

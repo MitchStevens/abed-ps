@@ -12,7 +12,7 @@ import Data.Map as M
 import Data.Maybe (Maybe(..))
 import Data.Tuple (Tuple(..))
 import Effect.Exception (Error)
-import Game.Board (Board, _pieces, buildConnectionMap, capacityRipple, relative)
+import Game.Board (Board, _pieces, buildConnectionMap, capacityRipple, inputEdge, outputEdge, relative)
 import Game.Capacity (Capacity(..))
 import Game.Direction as Direction
 import Game.Location (location)
@@ -39,9 +39,9 @@ tests = do
           let l21 = location 2 1
           connections <- buildConnectionMap
           connections `shouldEqual` M.fromFoldable
-            [ Tuple (relative l11 Direction.Left) (relative l01 Direction.Right)
-            , Tuple (relative l11 Direction.Up) (relative l10 Direction.Right)
-            , Tuple (relative l21 Direction.Left) (relative l11 Direction.Right)
+            [ Tuple (inputEdge l11 Direction.Left) (outputEdge l01 Direction.Right)
+            , Tuple (inputEdge l11 Direction.Up)   (outputEdge l10 Direction.Right)
+            , Tuple (inputEdge l21 Direction.Left) (outputEdge l11 Direction.Right)
             ]
         describe "capacityRipple" do
           it "ripples" do

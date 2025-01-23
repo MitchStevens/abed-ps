@@ -25,7 +25,7 @@ import Data.TraversableWithIndex (forWithIndex, traverseWithIndex)
 import Data.Tuple (Tuple(..))
 import Data.Witherable (wither)
 import Debug (trace)
-import Game.Board.Edge (RelativeEdge(..), absolute, adjacent, connected, edgeDirection, edgeLocation, getPortOnEdge, relative)
+import Game.Board.Edge (InputEdge(..), OutputEdge(..), RelativeEdge(..), absolute, adjacent, connected, edgeDirection, edgeLocation, getPortOnEdge, outputEdge, relative)
 import Game.Board.PieceInfo (_rotation)
 import Game.Board.Types (Board(..), _pieces, _size)
 import Game.Capacity (Capacity)
@@ -36,6 +36,7 @@ import Game.Piece (getPort, shouldRipple, updateCapacity)
 import Game.Port (Port(..), portMatches, portType)
 import Game.Port as Port
 import Game.Rotation (Rotation(..))
+import Safe.Coerce (coerce)
 
 {- 
   EDGE QUERIES:
@@ -89,7 +90,7 @@ getBoardEdges = do
     [ Tuple (Direction.Up)    (location (n`div`2) 0)
     , Tuple (Direction.Right) (location (n-1)       (n`div`2))
     , Tuple (Direction.Down)  (location (n`div`2) (n-1))
-    , Tuple (Direction.Left)  (location 0      (n`div`2))
+    , Tuple (Direction.Left)  (location 0         (n`div`2))
     ]
 
 getBoardPortEdge :: forall m. MonadState Board m => CardinalDirection -> m RelativeEdge
@@ -106,23 +107,26 @@ getBoardPorts =
 {-
   Create a bidirectional mapping from inputs to ouptuts ports
 -}
-buildConnectionMap :: forall m. MonadState Board m => m (Map RelativeEdge RelativeEdge)
+buildConnectionMap :: forall m. MonadState Board m => m (Map InputEdge OutputEdge)
 buildConnectionMap = do
   pieceInfos <- use _pieces
   map M.fromFoldable <$> execWriterT $ traverse_ buildConnectionMapAt (L.fromFoldable (M.keys pieceInfos))
 
 buildConnectionMapAt :: forall m. MonadState Board m
-  => Location -> WriterT (List (Tuple RelativeEdge RelativeEdge)) m Unit
+  => Location -> WriterT (List (Tuple InputEdge OutputEdge)) m Unit
 buildConnectionMapAt loc = 
   for_ allDirections \dir -> runMaybeT do
     let relEdge = relative loc dir
-    adjRelEdge <- connected relEdge 
     port <- getPortOnEdge relEdge
     case portType port of
-      Port.Input ->
-          tell (L.singleton (Tuple relEdge adjRelEdge))
-      Port.Output ->
-          tell (L.singleton (Tuple adjRelEdge relEdge))
+      Port.Input -> do
+          let inputEdge = InputEdge relEdge
+          outputEdge <- OutputEdge <$> connected relEdge 
+          tell (L.singleton (Tuple inputEdge outputEdge))
+      Port.Output -> do
+          inputEdge <- InputEdge <$> connected relEdge 
+          let outputEdge = OutputEdge relEdge
+          tell (L.singleton (Tuple inputEdge outputEdge))
 
 --todo: fix this, looks like garbage
 {-

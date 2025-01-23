@@ -15,6 +15,7 @@ module Game.Piece.Types
   , name
   , shouldRipple
   , truncateInputs
+  , truncateOutputs
   , unglob
   , updateCapacity
   )
@@ -43,7 +44,7 @@ import Game.Piece.Complexity (Complexity(..))
 import Game.Piece.Complexity as Complexity
 import Game.Port (Port(..), PortType, isInput, isOutput, portCapacity)
 import Game.PortInfo (PortInfo)
-import Game.Signal (Signal(..), mkSignal)
+import Game.Signal (Signal(..), canonical, mkSignal)
 import Prim.Row (class Union)
 import Record.Unsafe.Union (unsafeUnion)
 
@@ -196,8 +197,12 @@ mkPieceNoGlob piece = Lazy.force (fix go)
 name :: Piece -> PieceId
 name (Piece p) = p.name
 
+{-
+  
+
+-}
 eval :: Piece -> Map CardinalDirection Signal -> Map CardinalDirection Signal
-eval (Piece p) = p.eval
+eval (Piece p) inputs = p.eval inputs
 
 shouldRipple :: Piece -> Boolean
 shouldRipple (Piece p) = p.shouldRipple
@@ -247,4 +252,11 @@ truncateInputs :: Piece -> Map CardinalDirection Signal -> Map CardinalDirection
 truncateInputs (Piece p) inputs =
   flip M.mapMaybeWithKey p.ports \dir port -> do
     guard (isInput port)
-    M.lookup dir inputs
+    canonical (portCapacity port) <$> M.lookup dir inputs
+
+truncateOutputs :: Piece -> Map CardinalDirection Signal -> Map CardinalDirection Signal 
+truncateOutputs (Piece p) outputs = 
+  flip M.mapMaybeWithKey p.ports \dir port -> do
+    guard (isOutput port)
+    canonical (portCapacity port) <$> M.lookup dir outputs
+    
