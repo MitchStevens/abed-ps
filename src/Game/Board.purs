@@ -1,6 +1,6 @@
 module Game.Board
 ( module Game.Board.CompiledBoard
-, module Game.Board.EvaluableBoard
+, module Game.Board.Evaluable
 , module Game.Board.Operation
 , module Game.Board.Path
 , module Game.Board.PathSegment
@@ -12,7 +12,7 @@ module Game.Board
 ) where
 
 import Game.Board.CompiledBoard
-import Game.Board.EvaluableBoard
+import Game.Board.Evaluable
 import Game.Board.Operation
 import Game.Board.Path
 import Game.Board.PathSegment

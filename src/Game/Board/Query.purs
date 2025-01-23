@@ -104,29 +104,6 @@ getBoardPorts =
      boardEdges <- getBoardEdges
      forWithIndex boardEdges \dir loc -> runMaybeT $ getPortOnEdge (absolute loc dir)
 
-{-
-  Create a bidirectional mapping from inputs to ouptuts ports
--}
-buildConnectionMap :: forall m. MonadState Board m => m (Map InputEdge OutputEdge)
-buildConnectionMap = do
-  pieceInfos <- use _pieces
-  map M.fromFoldable <$> execWriterT $ traverse_ buildConnectionMapAt (L.fromFoldable (M.keys pieceInfos))
-
-buildConnectionMapAt :: forall m. MonadState Board m
-  => Location -> WriterT (List (Tuple InputEdge OutputEdge)) m Unit
-buildConnectionMapAt loc = 
-  for_ allDirections \dir -> runMaybeT do
-    let relEdge = relative loc dir
-    port <- getPortOnEdge relEdge
-    case portType port of
-      Port.Input -> do
-          let inputEdge = InputEdge relEdge
-          outputEdge <- OutputEdge <$> connected relEdge 
-          tell (L.singleton (Tuple inputEdge outputEdge))
-      Port.Output -> do
-          inputEdge <- InputEdge <$> connected relEdge 
-          let outputEdge = OutputEdge relEdge
-          tell (L.singleton (Tuple inputEdge outputEdge))
 
 --todo: fix this, looks like garbage
 {-
