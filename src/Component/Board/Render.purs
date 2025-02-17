@@ -13,8 +13,9 @@ import Component.Multimeter as Multimeter
 import Component.Piece as Piece
 import Component.Rendering.Path (renderPathWithEvents)
 import Component.Rendering.Port (portPath)
+import Component.Sidebar.BoardSizeSlider as BoardSizeSlider
 import Control.Monad.State (evalState)
-import Data.Array (elem, (..))
+import Data.Array (elem, replicate, (..))
 import Data.Array as A
 import Data.Either (hush)
 import Data.Foldable (foldMap, intercalate)
@@ -56,7 +57,13 @@ render state =
       --, [ multimeter ]
       ]
   where
-    gridTemplate = "25fr repeat(" <> show n <> ", 100fr) 25fr"
+    gridTemplate = intercalate " " [ "25fr", invisibleCells, visibleCells, invisibleCells, "25fr" ]
+      where
+        visibleCells = intercalate " " (replicate n "100fr")
+        invisibleCells = intercalate " " (replicate ((BoardSizeSlider.maxBoardSize - n) `div` 2) "0fr")
+
+
+
     board = Z.head state.boardHistory
     n = board ^. _size
 
@@ -71,11 +78,7 @@ render state =
       HH.div
         [ DA.attr DA.location (location i j)
         , HP.class_ (ClassName "piece")
-        , HP.style $ intercalate "; "
-          [ --"transform: rotate("<> (show (rot * 90)) <>"deg)"
-          --, 
-          gridArea (Tuple i j )
-          ]
+        , HP.style (gridLayoutStyle (pieceGridLayout (Tuple i j)))
         , HE.onMouseDown (LocationOnMouseDown loc)
         , HE.onMouseOver (LocationOnMouseOver loc)
         , HE.onMouseUp (LocationOnMouseUp loc)
@@ -102,8 +105,7 @@ render state =
         [ HP.class_ (ClassName "board-port")
         , HE.onClick (\_ -> ToggleInput dir)
         , DA.attr DA.direction dir
-        , HP.style $ intercalate "; "
-          [ gridArea (boardPortLocation dir) ]
+        , HP.style ( gridLayoutStyle (portGridLayout dir))
         ]
         [ SE.svg
           [ viewBox ]
@@ -117,21 +119,28 @@ render state =
 
         path = portPath portInfo
 
-        boardPortLocation :: CardinalDirection -> Tuple Int Int
-        boardPortLocation = case _ of
-          Direction.Left    -> Tuple (-1) (n `div` 2)
-          Direction.Right  -> Tuple n (n `div` 2)
-          Direction.Up  -> Tuple (n `div` 2) (-1)
-          Direction.Down -> Tuple (n `div` 2) n
+        portGridLayout :: CardinalDirection -> Tuple Int Int
+        portGridLayout = case _ of
+          Direction.Left  -> Tuple 1 (m `div` 2 + 1)
+          Direction.Right -> Tuple m (m `div` 2 + 1)
+          Direction.Up    -> Tuple (m `div` 2 + 1) 1
+          Direction.Down  -> Tuple (m `div` 2 + 1) m
+          where m = BoardSizeSlider.maxBoardSize + 2
 
         viewBox =
           if dir `elem` [Direction.Up, Direction.Down]
             then SA.viewBox 0.0 0.0 50.0 25.0
             else SA.viewBox 12.5 (-12.5) 25.0 50.0
 
-    gridArea :: Tuple Int Int -> String
-    gridArea (Tuple i j) = 
-      "grid-area: " <> show (j+2) <> " / " <> show (i+2)
+    pieceGridLayout :: Tuple Int Int -> Tuple Int Int
+    pieceGridLayout (Tuple i j) = Tuple (center + i) (center + j)
+      where center = (BoardSizeSlider.maxBoardSize + 2)`div`2 -n`div`2 + 1
+
+    gridLayoutStyle :: Tuple Int Int -> String
+    gridLayoutStyle (Tuple i j) = intercalate ";"
+      [ "grid-column: " <> show i
+      , "grid-row: "    <> show j 
+      ]
 
     --pieceHTML piece location =
     --    HH.slot Piece.slot location Piece.component { piece, location } PieceOutput

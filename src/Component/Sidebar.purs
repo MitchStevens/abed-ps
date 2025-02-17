@@ -39,29 +39,6 @@ import Web.HTML.HTMLInputElement as HTMLInputElement
 component :: Component Query Input Output AppM
 component = mkComponent { eval , initialState , render }
   where
-    {-
-    eval :: HalogenQ Query Action Input ~> HalogenM State Action Slots Output AppM
-    eval = mkEval
-      { finalize: Nothing
-      , handleAction: case _ of
-          Initialise input -> put (initialState input)
-          PieceOnDrop piece _ -> do
-            H.raise (PieceDropped piece)
-          ButtonClicked button _ -> do
-            when (button == RunTests) do
-              _completionStatus .= ReadyForTesting
-            H.raise (ButtonOutput button)
-          TestRunnerOutput testRunnerOutput -> case testRunnerOutput of
-            TestRunner.TestCaseData testCaseData ->
-              H.raise (RunTestCase testCaseData)
-            TestRunner.AllTestsPassed -> do
-              modify_ $ _ { completionStatus = Completed }
-          DoNothing -> pure unit
-      , handleQuery: case _ of
-          TestCaseOutcome testCaseOutcome next -> do
-            H.tell TestRunner.slot unit (TestRunner.TestCaseOutcome testCaseOutcome)
-            pure (Just next)
-            -}
 
   eval :: HalogenQ Query Action Input ~> HalogenM State Action Slots Output AppM
   eval = mkEval

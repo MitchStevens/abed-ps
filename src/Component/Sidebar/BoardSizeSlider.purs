@@ -4,10 +4,14 @@ import Prelude
 
 import Capability.Animate (headShake)
 import Component.Sidebar.Segment (segment)
+import Control.Alternative (guard)
 import Control.Monad.Error.Class (throwError)
+import Control.Monad.List.Trans (unfold)
 import Data.Foldable (for_)
 import Data.Int as Int
 import Data.Maybe (Maybe(..), maybe, maybe')
+import Data.Tuple (Tuple(..))
+import Data.Unfoldable (unfoldr)
 import Effect (Effect)
 import Effect.Aff.Class (class MonadAff)
 import Effect.Exception (error, throw)
@@ -23,6 +27,9 @@ import Web.HTML (HTMLInputElement, window)
 import Web.HTML.HTMLDocument as HTMLDocument
 import Web.HTML.HTMLInputElement as HTMLInputElement
 import Web.HTML.Window as Window
+
+minBoardSize = 3 :: Int
+maxBoardSize = 9 :: Int
 
 type Input = { boardSize :: Int }
 
@@ -80,8 +87,8 @@ component = mkComponent { eval, initialState, render }
             [ HH.input
               [ HP.type_ HP.InputRange
               , HP.list "values"
-              , HP.min 3.0
-              , HP.max 9.0
+              , HP.min (Int.toNumber minBoardSize)
+              , HP.max (Int.toNumber maxBoardSize)
               , HP.step (HP.Step 2.0)
               , HP.value (show state.boardSize)
               , HE.onInput   (const InputRangeChange)
@@ -89,12 +96,11 @@ component = mkComponent { eval, initialState, render }
               ]
             , HH.datalist
               [ HP.id "values" ]
-              [ HH.option [ HP.value "3" ] []
-              , HH.option [ HP.value "5" ] []
-              , HH.option [ HP.value "7" ] []
-              , HH.option [ HP.value "9" ] []
-              ]
+              (option <$> optionValues)
             ]
+        optionValues = unfoldr (\n -> guard (n <= maxBoardSize) $> Tuple (n+2) (n+2)) minBoardSize
+        option n = HH.option [ HP.value (show n) ] []
+
 
 slot :: Proxy "boardSizeSlider"
 slot = Proxy
