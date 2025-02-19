@@ -6,7 +6,9 @@ module Component.Board.Render
 import Prelude
 
 import AppM (AppM)
-import Component.Board.Types (Action(..), Slots, State, boardPortInfo, pieceInput, slot)
+import Component.Board.BoardPort (gridLayoutStyle)
+import Component.Board.BoardPort as BoardPort
+import Component.Board.Types (Action(..), Slots, State, boardPortInfo, gridLayoutLocation, pieceInput, slot)
 import Component.DataAttribute as DA
 import Component.GameEventLogger as GameEventLogger
 import Component.Multimeter as Multimeter
@@ -22,6 +24,7 @@ import Data.Foldable (foldMap, intercalate)
 import Data.FunctorWithIndex (mapWithIndex)
 import Data.Lens ((^.), (^?))
 import Data.Lens.At (at)
+import Data.Map as M
 import Data.Maybe (fromMaybe, maybe)
 import Data.Tuple (Tuple(..))
 import Data.Zipper as Z
@@ -78,7 +81,7 @@ render state =
       HH.div
         [ DA.attr DA.location (location i j)
         , HP.class_ (ClassName "piece")
-        , HP.style (gridLayoutStyle (pieceGridLayout (Tuple i j)))
+        , HP.style (gridLayoutStyle (gridLayoutLocation n loc))
         , HE.onMouseDown (LocationOnMouseDown loc)
         , HE.onMouseOver (LocationOnMouseOver loc)
         , HE.onMouseUp (LocationOnMouseUp loc)
@@ -100,47 +103,10 @@ render state =
       mapWithIndex renderBoardPort (evalState boardPortInfo state)
 
     renderBoardPort :: CardinalDirection -> PortInfo -> ComponentHTML Action Slots AppM
-    renderBoardPort dir portInfo = 
-      HH.div
-        [ HP.class_ (ClassName "board-port")
-        , HE.onClick (\_ -> ToggleInput dir)
-        , DA.attr DA.direction dir
-        , HP.style ( gridLayoutStyle (portGridLayout dir))
-        ]
-        [ SE.svg
-          [ viewBox ]
-          [ SE.g 
-            [ SA.transform [ Rotate rotation 25.0 12.5 ] ]
-            [ renderPathWithEvents path (BoardPortOnMouseEnter dir) (BoardPortOnMouseLeave) ]
-          ]
-        ]
+    renderBoardPort direction portInfo = 
+        HH.slot_ BoardPort.slot direction BoardPort.component { portInfo, signal, direction }
       where
-        rotation = toDegrees (clockwiseRotation Direction.Up dir) + 180.0
-
-        path = portPath portInfo
-
-        portGridLayout :: CardinalDirection -> Tuple Int Int
-        portGridLayout = case _ of
-          Direction.Left  -> Tuple 1 (m `div` 2 + 1)
-          Direction.Right -> Tuple m (m `div` 2 + 1)
-          Direction.Up    -> Tuple (m `div` 2 + 1) 1
-          Direction.Down  -> Tuple (m `div` 2 + 1) m
-          where m = BoardSizeSlider.maxBoardSize + 2
-
-        viewBox =
-          if dir `elem` [Direction.Up, Direction.Down]
-            then SA.viewBox 0.0 0.0 50.0 25.0
-            else SA.viewBox 12.5 (-12.5) 25.0 50.0
-
-    pieceGridLayout :: Tuple Int Int -> Tuple Int Int
-    pieceGridLayout (Tuple i j) = Tuple (center + i) (center + j)
-      where center = (BoardSizeSlider.maxBoardSize + 2)`div`2 -n`div`2 + 1
-
-    gridLayoutStyle :: Tuple Int Int -> String
-    gridLayoutStyle (Tuple i j) = intercalate ";"
-      [ "grid-column: " <> show i
-      , "grid-row: "    <> show j 
-      ]
+        signal = fromMaybe zero $ M.lookup direction state.inputs <> M.lookup direction state.outputs
 
     --pieceHTML piece location =
     --    HH.slot Piece.slot location Piece.component { piece, location } PieceOutput

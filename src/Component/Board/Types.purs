@@ -10,6 +10,7 @@ module Component.Board.Types
   , _outputs
   , _wireLocations
   , boardPortInfo
+  , gridLayoutLocation
   , initialState
   , pieceInput
   , slot
@@ -19,9 +20,12 @@ module Component.Board.Types
 import Data.Lens
 import Prelude
 
+import Component.Board.BoardPort as BoardPort
 import Component.Multimeter as Multimeter
 import Component.Piece as Piece
+import Component.Sidebar.BoardSizeSlider as BoardSizeSlider
 import Control.Monad.State (class MonadState, evalState, gets, runState)
+import Data.Array (intercalate)
 import Data.Either (Either)
 import Data.Foldable (for_)
 import Data.Lens.At (at)
@@ -36,6 +40,7 @@ import Data.Zipper (Zipper)
 import Data.Zipper as Z
 import Game.Board (Board(..), BoardError, BoardM, Path, PieceInfo, RelativeEdge, _pieces, evalBoardM, getBoardPortEdge, runBoardM, standardBoard, toLocalInputs)
 import Game.Direction (CardinalDirection)
+import Game.Direction as Direction
 import Game.GameEvent (BoardEvent)
 import Game.Location (Location(..))
 import Game.Piece (Piece(..), defaultPortInfo)
@@ -120,8 +125,9 @@ data Output
   | BoardEvent BoardEvent
 
 type Slots =
-  ( piece :: Slot Piece.Query Piece.Output Location
-  , multimeter :: Slot Multimeter.Query Multimeter.Output Unit
+  ( piece       :: Slot Piece.Query       Piece.Output      Location
+  , multimeter  :: Slot Multimeter.Query  Multimeter.Output Unit
+  , boardPort   :: Slot BoardPort.Query   BoardPort.Output  CardinalDirection
   )
 
 initialState :: Input -> State
@@ -157,3 +163,8 @@ boardPortInfo = do
   forWithIndex boardPorts \dir port -> do
     let relEdge = evalState (getBoardPortEdge dir) board
     gets (_.lastEvalWithPortInfo >>> M.lookup relEdge >>> fromMaybe { connected: false, port, signal: zero})
+
+gridLayoutLocation :: Int -> Location -> Tuple Int Int
+gridLayoutLocation boardSize (Location {x, y}) = Tuple (center + x) (center + y)
+  where center = (BoardSizeSlider.maxBoardSize + 2)`div`2 - boardSize`div`2 + 1
+

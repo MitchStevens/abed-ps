@@ -36,3 +36,14 @@ renderPathWithEvents { path, gradient, attrs } onMouseEnter onMouseLeave =
       , HP.onMouseLeave (\_ -> onMouseLeave)
       ]
     ]
+
+renderPath :: forall a s m. Path -> ComponentHTML a s m
+renderPath { path, gradient, attrs } =
+  SE.g []
+    [ SE.defs [] [ fromPlainHTML gradient.def ]
+    , SE.path
+      [ SA.d path
+      , unsafeCoerce attrs
+      , SA.fillGradient ("#" <> gradient.id)
+      ]
+    ]
