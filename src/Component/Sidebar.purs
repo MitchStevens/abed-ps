@@ -29,8 +29,10 @@ import Data.Traversable (traverse)
 import Effect (Effect)
 import Effect.Aff.Class (class MonadAff)
 import Effect.Class.Console (log)
+import GlobalState as GlobalState
 import Halogen (Component, HalogenM, HalogenQ, liftEffect, mkComponent, mkEval)
 import Halogen as H
+import Halogen.Store.Monad (updateStore)
 import Web.DOM.ParentNode (QuerySelector(..))
 import Web.Event.Event (Event)
 import Web.Event.Event as Event
@@ -49,6 +51,9 @@ component = mkComponent { eval , initialState , render }
           H.tell BoardSizeSlider.slot unit (BoardSizeSlider.AmendBoardSizeSlider input.boardSize)
         PieceOnDrop piece _ -> do
           H.raise (PieceDropped piece)
+        ButtonClicked (Base base) _ -> do
+          updateStore (GlobalState.SetBase base) 
+          H.raise (ButtonOutput (Base base))
         ButtonClicked button _ -> 
           H.raise (ButtonOutput button)
         BoardSizeSliderAction (BoardSizeSlider.BoardSizeChange { boardSize }) ->

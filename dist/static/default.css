@@ -35,15 +35,48 @@
 .board-component .board-port {
   box-sizing: border-box;
   display: grid;
-  justify-items: center;
-  align-items: center;
   overflow: hidden;
+  position: relative;
 }
-.board-component .board-port[data-direction='up'] svg {
-  width: 50%;
+.board-component .board-port > * {
+  grid-row: 1;
+  grid-column: 1;
 }
-.board-component .board-port[data-direction='down'] svg {
-  width: 50%;
+.board-component .board-port[data-direction="left"],
+.board-component .board-port[data-direction="right"] {
+  align-items: center;
+}
+.board-component .board-port[data-direction="left"] svg,
+.board-component .board-port[data-direction="right"] svg {
+  height: 50%;
+}
+.board-component .board-port[data-direction="left"] .signal,
+.board-component .board-port[data-direction="right"] .signal {
+  width: 100%;
+  text-align: center;
+  text-anchor: middle;
+  translate: 0 40px;
+}
+.board-component .board-port[data-direction="up"],
+.board-component .board-port[data-direction="down"] {
+  align-items: center;
+}
+.board-component .board-port[data-direction="up"] svg,
+.board-component .board-port[data-direction="down"] svg {
+  height: 50%;
+}
+.board-component .board-port[data-direction="up"] .signal,
+.board-component .board-port[data-direction="down"] .signal {
+  width: 100%;
+  text-align: center;
+  text-anchor: middle;
+  translate: 0 40px;
+}
+.board-component .board-port[data-direction='left'] {
+  justify-content: right;
+}
+.board-component .board-port[data-direction='right'] {
+  justify-content: left;
 }
 .board-component #multimeter {
   position: absolute;

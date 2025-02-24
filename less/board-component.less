@@ -27,12 +27,49 @@
     & .board-port {
         box-sizing: border-box;
         display: grid;
-        justify-items: center;
-        align-items: center;
         overflow: hidden;
+        position: relative;
+        & > * {
+            grid-row: 1;
+            grid-column: 1;
+        }
 
-        &[data-direction='up'] svg { width: 50%; }
-        &[data-direction='down'] svg { width: 50%; }
+
+        &[data-direction="left"], &[data-direction="right"] {
+            align-items: center;
+            & svg { height: 50%; }
+            
+            .signal {
+                width: 100%;
+                text-align: center;
+                text-anchor: middle;
+                translate: 0 40px;
+            }
+        }
+
+        &[data-direction="up"], &[data-direction="down"] {
+            align-items: center;
+            & svg { height: 50%; }
+            
+            .signal {
+                width: 100%;
+                text-align: center;
+                text-anchor: middle;
+                translate: 0 40px;
+            }
+        }
+
+
+
+        &[data-direction='left'] {
+            justify-content: right;
+        }
+
+        &[data-direction='right'] {
+            justify-content: left;
+        }
+
+
     }
 
     & #multimeter {

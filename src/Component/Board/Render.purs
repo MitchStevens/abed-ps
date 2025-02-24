@@ -60,12 +60,11 @@ render state =
       --, [ multimeter ]
       ]
   where
-    gridTemplate = intercalate " " [ "25fr", invisibleCells, visibleCells, invisibleCells, "25fr" ]
+    gridTemplate = intercalate " " [ margin, invisibleCells, visibleCells, invisibleCells, margin ]
       where
         visibleCells = intercalate " " (replicate n "100fr")
         invisibleCells = intercalate " " (replicate ((BoardSizeSlider.maxBoardSize - n) `div` 2) "0fr")
-
-
+        margin = "50px"
 
     board = Z.head state.boardHistory
     n = board ^. _size

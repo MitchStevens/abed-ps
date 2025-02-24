@@ -18,10 +18,12 @@ import Game.Port (portCapacity)
 import Game.PortInfo (PortInfo)
 import Game.Rotation (toDegrees)
 import Game.Signal (Base(..), Signal, SignalRepresentation(..), printSignal)
+import GlobalState as GlobalState
 import Halogen (ClassName(..), Component, ComponentHTML, HalogenM, HalogenQ, defaultEval, mkEval)
 import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.Properties as HP
+import Halogen.Store.Connect (subscribe)
 import Halogen.Svg.Attributes (Transform(..))
 import Halogen.Svg.Attributes as SA
 import Halogen.Svg.Elements as SE
@@ -85,7 +87,7 @@ component = H.mkComponent { initialState: initialState Binary, render, eval }
         
         labelX = 0.0
         labelY = 0.0
-        labelText = printSignal (SignalRepresentation state.base (portCapacity state.portInfo.port)) state.signal
+        labelText = printSignal (SignalRepresentation state.base (portCapacity state.portInfo.port)) state.signal -- <> show state.base
     
     eval :: HalogenQ Query Action Input ~> HalogenM State Action () Output AppM
     eval = mkEval $ defaultEval
@@ -95,7 +97,8 @@ component = H.mkComponent { initialState: initialState Binary, render, eval }
       }
       where
         handleAction = case _ of
-          Initialise -> pure unit
+          Initialise -> do
+            subscribe GlobalState.baseSelector NewBase
           NewBase base -> modify_ (_ { base = base })
           Receive input -> do
             base <- gets _.base
