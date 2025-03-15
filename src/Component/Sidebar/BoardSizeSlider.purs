@@ -2,6 +2,7 @@ module Component.Sidebar.BoardSizeSlider where
 
 import Prelude
 
+import AppM (AppM)
 import Capability.Animate (headShake)
 import Component.Sidebar.Segment (segment)
 import Control.Alternative (guard)
@@ -15,11 +16,13 @@ import Data.Unfoldable (unfoldr)
 import Effect (Effect)
 import Effect.Aff.Class (class MonadAff)
 import Effect.Exception (error, throw)
+import GlobalState (GlobalStateAction(..))
 import Halogen (ClassName(..), Component, ComponentHTML, HalogenM, HalogenQ, gets, liftEffect, mkComponent, mkEval, modify_, put)
 import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
+import Halogen.Store.Monad (updateStore)
 import Type.Proxy (Proxy(..))
 import Web.DOM.ParentNode (QuerySelector(..), querySelector)
 import Web.Event.Internal.Types (Event)
@@ -47,12 +50,12 @@ data Output
   = BoardSizeChange { boardSize :: Int }
 
 
-component :: forall m. MonadAff m => Component Query Input Output m
+component :: Component Query Input Output AppM
 component = mkComponent { eval, initialState, render }
   where
     initialState = identity
 
-    eval :: HalogenQ Query Action Input ~> HalogenM State Action () Output m
+    eval :: HalogenQ Query Action Input ~> HalogenM State Action () Output AppM
     eval = mkEval
       { finalize: Nothing
       , handleAction
@@ -69,6 +72,7 @@ component = mkComponent { eval, initialState, render }
           Initialise state -> put state
           InputRangeChange -> do
             boardSize <- liftEffect getValue
+            updateStore (NewBoardSize boardSize)
             H.raise (BoardSizeChange { boardSize } )
           InputRangeMouseUp -> do
             sliderValue <- liftEffect getValue
@@ -77,7 +81,7 @@ component = mkComponent { eval, initialState, render }
               liftEffect (setValue boardSize)
               headShake (QuerySelector "#sidebar-component .board-size h2")
     
-    render :: State -> ComponentHTML Action () m
+    render :: State -> ComponentHTML Action () AppM
     render state = 
       segment (ClassName "board-size") title html
       where

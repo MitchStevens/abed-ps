@@ -11,7 +11,7 @@ import Control.Monad.State.Class (gets, modify_, put)
 import Data.Array (elem, intercalate)
 import Data.Maybe (Maybe(..))
 import Data.Tuple (Tuple(..))
-import Game.Direction (CardinalDirection, clockwiseRotation)
+import Game.Direction (CardinalDirection, clockwiseRotation, isHorizontal)
 import Game.Direction as Direction
 import Game.Location (Location(..))
 import Game.Port (portCapacity)
@@ -40,11 +40,13 @@ type State =
   , signal :: Signal
   , direction :: CardinalDirection
   , base :: Base
+  , boardSize :: Int
   }
 
 data Action
   = Initialise
   | NewBase Base
+  | NewBoardSize Int
   | Receive Input
 
 data Query a
@@ -56,7 +58,7 @@ component :: Component Query Input Output AppM
 component = H.mkComponent { initialState: initialState Binary, render, eval }
   where
     initialState base { portInfo, direction, signal } = 
-      { portInfo, direction, signal, base }
+      { portInfo, direction, signal, base, boardSize: 3 }
 
     render :: State -> ComponentHTML Action () AppM
     render state =
@@ -73,7 +75,9 @@ component = H.mkComponent { initialState: initialState Binary, render, eval }
             [ renderPath path ]
           ]
         , HH.div
-          [ HP.classes [ ClassName "signal" ] ]
+          [ HP.classes [ ClassName "signal" ]
+          , HP.style labelTranslate
+          ]
           [ HH.text labelText ]
         ]
       where
@@ -84,9 +88,22 @@ component = H.mkComponent { initialState: initialState Binary, render, eval }
           if state.direction `elem` [ Direction.Up, Direction.Down ]
             then SA.viewBox 0.0 0.0 50.0 25.0
             else SA.viewBox 12.5 (-12.5) 25.0 50.0
-        
-        labelX = 0.0
-        labelY = 0.0
+
+        labelTranslate = 
+          if isHorizontal state.direction 
+            then "translate 0 " <> yOffset
+            else "translate " <> xOffset <> " 0"
+
+          where
+            Tuple xOffset yOffset = case state.boardSize of
+              3 -> Tuple "0.0" "50px"
+              5 -> Tuple "0.0" "30px"
+              7 -> Tuple "0.0" "20px"
+              _ -> Tuple "0.0" "15px"
+
+
+
+
         labelText = printSignal (SignalRepresentation state.base (portCapacity state.portInfo.port)) state.signal -- <> show state.base
     
     eval :: HalogenQ Query Action Input ~> HalogenM State Action () Output AppM
@@ -99,7 +116,9 @@ component = H.mkComponent { initialState: initialState Binary, render, eval }
         handleAction = case _ of
           Initialise -> do
             subscribe GlobalState.baseSelector NewBase
+            subscribe GlobalState.boardSizeSelector NewBoardSize
           NewBase base -> modify_ (_ { base = base })
+          NewBoardSize boardSize -> modify_ (_ { boardSize = boardSize })
           Receive input -> do
             base <- gets _.base
             put (initialState base input)
@@ -119,3 +138,4 @@ gridLayoutStyle (Tuple i j) = intercalate ";"
   [ "grid-column: " <> show i
   , "grid-row: "    <> show j 
   ]
+

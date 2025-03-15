@@ -3,6 +3,7 @@ module Component.Sidebar.Render where
 import Component.Sidebar.Types
 import Prelude
 
+import AppM (AppM)
 import Component (toCssSelectorString)
 import Component.DataAttribute as DA
 import Component.Piece as Piece
@@ -38,7 +39,7 @@ import Halogen.HTML.Events as HE
 import Halogen.HTML.Extras (mapActionOverHTML)
 import Halogen.HTML.Properties as HP
 
-render :: forall m. MonadAff m => State -> ComponentHTML Action Slots m
+render :: State -> ComponentHTML Action Slots AppM
 render state = 
   HH.div 
     [ HP.id "sidebar-component" ]
@@ -213,7 +214,7 @@ render state =
           , signalRepresentationOption Hexadecimal "Hexidecimal"
           ]
       where
-        signalRepresentationOption :: Base -> String -> ComponentHTML Action Slots m
+        signalRepresentationOption :: Base -> String -> ComponentHTML Action Slots AppM
         signalRepresentationOption base text =
           HH.span
             [ HE.onClick (ButtonClicked (Base base)) ]

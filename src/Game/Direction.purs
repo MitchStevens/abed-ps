@@ -2,6 +2,8 @@ module Game.Direction
   ( CardinalDirection(..)
   , allDirections
   , clockwiseRotation
+  , isHorizontal
+  , isVertical
   , oppositeDirection
   , rotateDirection
   )
@@ -10,6 +12,7 @@ module Game.Direction
 import Prelude
 
 import Control.Monad.Gen (oneOf)
+import Data.Array (elem)
 import Data.Array.NonEmpty (cons')
 import Data.Enum (class BoundedEnum, class Enum, Cardinality(..), enumFromTo, fromEnum, toEnum)
 import Data.Maybe (Maybe(..), fromMaybe)
@@ -77,3 +80,9 @@ rotateDirection dir rot = fromMaybe Up $ toEnum ((fromEnum dir + fromEnum rot) `
 
 clockwiseRotation :: CardinalDirection -> CardinalDirection -> Rotation
 clockwiseRotation d1 d2 = rotation (fromEnum d2 - fromEnum d1)
+
+isVertical :: CardinalDirection -> Boolean
+isVertical = (_ `elem` [ Up, Down ])
+
+isHorizontal :: CardinalDirection -> Boolean
+isHorizontal = not <<< isVertical
