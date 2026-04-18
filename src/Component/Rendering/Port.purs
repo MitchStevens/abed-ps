@@ -6,7 +6,7 @@ import Prelude
 import Component.DataAttribute as DA
 import Component.Piece.Types as Piece
 import Component.Rendering.Gradient (createPortGradient)
-import Component.Rendering.Path (Path)
+import Component.Rendering.Path (Path, PathFill(..))
 import Component.Rendering.Wire (arrowPath, betweenPath, initialLocation, stubPath)
 import Data.Foldable (intercalate)
 import Data.Tuple (Tuple(..))
@@ -25,7 +25,7 @@ import Halogen.Svg.Elements as SE
 portPath :: PortInfo -> Path
 portPath info =
   { path
-  , gradient: createPortGradient info
+  , pathFill: FillWithPortGradient (createPortGradient info)
   , attrs: DA.attr DA.isConnected info.connected
   }
   where

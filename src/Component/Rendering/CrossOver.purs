@@ -50,8 +50,8 @@ renderDualInputDualOutputPiece (Tuple to1 from1) (Tuple to2 from2) portStates = 
   , renderPathWithEvents path2 (Piece.PortOnMouseEnter from2) Piece.PortOnMouseLeave
   ]
   where
-    path1 = wirePath (M.filterKeys (_ `elem` [to1, from1]) portStates)
-    path2 = wirePath (M.filterKeys (_ `elem` [to2, from2]) portStates)
+    path1 = wirePath false (M.filterKeys (_ `elem` [to1, from1]) portStates)
+    path2 = wirePath false (M.filterKeys (_ `elem` [to2, from2]) portStates)
 
 
 

@@ -52,7 +52,7 @@ renderPiece state =
     animations = []
 
     render
-      | isWirePiece state.piece = renderWire state.portStates
+      | isWirePiece state.piece = renderWire state.piece state.portStates
       | name state.piece == name crossPiece = renderCrossOver state.portStates
       | name state.piece == name cornerCutPiece = renderCornerCut state.portStates
       | name state.piece == name chickenPiece = renderChicken state.portStates

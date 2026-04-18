@@ -5,7 +5,7 @@ import Prelude
 import Component.DataAttribute as DA
 import Component.Piece.Types as Piece
 import Component.Rendering.Gradient (createPortGradient)
-import Component.Rendering.Path (Path, renderPathWithEvents)
+import Component.Rendering.Path (Path, PathFill(..), renderPathWithEvents)
 import Control.Monad.Writer (execWriter, tell)
 import Data.Array (zip)
 import Data.Array as A
@@ -17,6 +17,7 @@ import Data.Maybe (fromMaybe, fromMaybe', maybe')
 import Data.Tuple (Tuple(..), fst, uncurry)
 import Game.Direction (CardinalDirection)
 import Game.Direction as Direction
+import Game.Piece (Piece, name, superPiece)
 import Game.Port (isInput)
 import Game.PortInfo (PortInfo)
 import Game.Rotation (Rotation(..))
@@ -29,8 +30,11 @@ import Partial.Unsafe (unsafeCrashWith)
 wirePieceFrameStroke :: Color
 wirePieceFrameStroke = RGB 198 193 183
 
-renderWire :: forall s m. Map CardinalDirection PortInfo -> ComponentHTML Piece.Action s m
-renderWire portStates =
+superPieceWireStroke :: Color
+superPieceWireStroke = RGB 72 78 90
+
+renderWire :: forall s m. Piece -> Map CardinalDirection PortInfo -> ComponentHTML Piece.Action s m
+renderWire piece portStates =
   SE.g []
     [ SE.rect
         [ SA.x inset
@@ -43,7 +47,7 @@ renderWire portStates =
         , SA.stroke wirePieceFrameStroke
         , SA.strokeWidth 0.85
         ]
-    , renderPathWithEvents (wirePath portStates) (Piece.PortOnMouseEnter inputDirection) Piece.PortOnMouseLeave
+    , renderPathWithEvents (wirePath (name piece == name superPiece) portStates) (Piece.PortOnMouseEnter inputDirection) Piece.PortOnMouseLeave
     ]
   where
   inset = 5.0
@@ -107,8 +111,9 @@ betweenPath to from = [ q Rel dx dy x' y' ]
       Direction.Down -> Tuple x' 0.0
       Direction.Left -> Tuple 0.0 y'
 
-wirePath :: Map CardinalDirection PortInfo -> Path
-wirePath ports = { path, gradient, attrs }
+-- | When `strokeOnly` is true (super piece), draw the trace as an unfilled path with a thin stroke instead of a port gradient.
+wirePath :: Boolean -> Map CardinalDirection PortInfo -> Path
+wirePath strokeOnly ports = { path, pathFill, attrs }
   where
     path = execWriter do
       for_ (A.uncons (M.toUnfoldable ports)) \{head, tail} -> do
@@ -121,7 +126,11 @@ wirePath ports = { path, gradient, attrs }
 
     info = fromMaybe' (\_ -> unsafeCrashWith $ "assertion failed: wire path created with no inputs. ports: " <> show ports) 
               (find (\portInfo -> isInput portInfo.port) ports)
-    gradient = createPortGradient info
+    pathFill =
+      if strokeOnly then
+        FillNoneWithStroke { stroke: superPieceWireStroke, strokeWidth: 1.0 }
+      else
+        FillWithPortGradient (createPortGradient info)
     attrs = DA.attr DA.isConnected info.connected
 
 
