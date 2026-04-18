@@ -18,7 +18,7 @@ import Data.Number (pi)
 import Debug (trace)
 import Game.Direction (allDirections, clockwiseRotation, rotateDirection)
 import Game.Direction as Direction
-import Game.Piece (PieceId(..), allWirePieces, chickenPiece, cornerCutPiece, crossPiece, isWirePiece, name)
+import Game.Piece (PieceId(..), allWirePieces, chickenPiece, cornerCutPiece, crossPiece, isWirePiece, name, superPiece)
 import Game.Rotation (Rotation(..), toDegrees, toRadians)
 import Halogen (ComponentHTML)
 import Halogen.Svg.Attributes (Color(..), Transform(..))
@@ -26,9 +26,13 @@ import Halogen.Svg.Attributes as SA
 import Halogen.Svg.Attributes.Duration (defaultDuration)
 import Halogen.Svg.Elements as SE
 
--- | Board-style parchment behind the whole wire-piece graphic (SVG root).
+-- | Board-style parchment behind other wire pieces (SVG root).
 wirePieceSvgBackground :: Color
 wirePieceSvgBackground = RGB 249 246 238
+
+-- | Eggshell white behind the super piece only (SVG root).
+superPieceSvgBackground :: Color
+superPieceSvgBackground = RGB 240 234 214
 
 renderPiece :: forall s m. State -> ComponentHTML Action s m
 renderPiece state = 
@@ -39,11 +43,13 @@ renderPiece state =
         ([ render ] <> animations)
       ]
   where
-    rootFillAttrs =
-      if isWirePiece state.piece then
-        [ SA.fill wirePieceSvgBackground ]
-      else
-        []
+    rootFillAttrs
+      | name state.piece == name superPiece =
+          [ SA.fill superPieceSvgBackground ]
+      | isWirePiece state.piece =
+          [ SA.fill wirePieceSvgBackground ]
+      | otherwise =
+          []
 
     pieceRotation =   maybe (toDegrees state.rotation) (_.currentRotation >>> mul (180.0 / pi)) state.isRotating
 
