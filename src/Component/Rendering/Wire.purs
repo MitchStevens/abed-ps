@@ -45,7 +45,7 @@ renderWire piece portStates =
         , SA.ry cornerRadius
         , SA.fill (Named "none")
         , SA.stroke wirePieceFrameStroke
-        , SA.strokeWidth 0.85
+        , SA.strokeWidth 0.55
         ]
     , renderPathWithEvents (wirePath (name piece == name superPiece) portStates) (Piece.PortOnMouseEnter inputDirection) Piece.PortOnMouseLeave
     ]
@@ -128,7 +128,7 @@ wirePath strokeOnly ports = { path, pathFill, attrs }
               (find (\portInfo -> isInput portInfo.port) ports)
     pathFill =
       if strokeOnly then
-        FillNoneWithStroke { stroke: superPieceWireStroke, strokeWidth: 1.0 }
+        FillNoneWithStroke { stroke: superPieceWireStroke, strokeWidth: 0.65 }
       else
         FillWithPortGradient (createPortGradient info)
     attrs = DA.attr DA.isConnected info.connected
