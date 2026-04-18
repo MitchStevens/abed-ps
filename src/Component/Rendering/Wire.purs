@@ -26,12 +26,8 @@ import Halogen.Svg.Attributes as SA
 import Halogen.Svg.Elements as SE
 import Partial.Unsafe (unsafeCrashWith)
 
--- | Parchment tile behind wire traces (matches `.piece-component` in the board UI).
-wirePieceBackdropFill :: Color
-wirePieceBackdropFill = RGB 249 246 238
-
-wirePieceBackdropStroke :: Color
-wirePieceBackdropStroke = RGB 198 193 183
+wirePieceFrameStroke :: Color
+wirePieceFrameStroke = RGB 198 193 183
 
 renderWire :: forall s m. Map CardinalDirection PortInfo -> ComponentHTML Piece.Action s m
 renderWire portStates =
@@ -43,8 +39,8 @@ renderWire portStates =
         , SA.height (100.0 - 2.0 * inset)
         , SA.rx cornerRadius
         , SA.ry cornerRadius
-        , SA.fill wirePieceBackdropFill
-        , SA.stroke wirePieceBackdropStroke
+        , SA.fill (Named "none")
+        , SA.stroke wirePieceFrameStroke
         , SA.strokeWidth 0.85
         ]
     , renderPathWithEvents (wirePath portStates) (Piece.PortOnMouseEnter inputDirection) Piece.PortOnMouseLeave

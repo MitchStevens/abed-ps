@@ -21,20 +21,30 @@ import Game.Direction as Direction
 import Game.Piece (PieceId(..), allWirePieces, chickenPiece, cornerCutPiece, crossPiece, isWirePiece, name)
 import Game.Rotation (Rotation(..), toDegrees, toRadians)
 import Halogen (ComponentHTML)
-import Halogen.Svg.Attributes (Transform(..))
+import Halogen.Svg.Attributes (Color(..), Transform(..))
 import Halogen.Svg.Attributes as SA
 import Halogen.Svg.Attributes.Duration (defaultDuration)
 import Halogen.Svg.Elements as SE
 
+-- | Board-style parchment behind the whole wire-piece graphic (SVG root).
+wirePieceSvgBackground :: Color
+wirePieceSvgBackground = RGB 249 246 238
+
 renderPiece :: forall s m. State -> ComponentHTML Action s m
 renderPiece state = 
     SE.svg
-      [ SA.viewBox 0.0 0.0 100.0 100.0 ]
+      ( [ SA.viewBox 0.0 0.0 100.0 100.0 ] <> rootFillAttrs )
       [ SE.g
         attributes
         ([ render ] <> animations)
       ]
   where
+    rootFillAttrs =
+      if isWirePiece state.piece then
+        [ SA.fill wirePieceSvgBackground ]
+      else
+        []
+
     pieceRotation =   maybe (toDegrees state.rotation) (_.currentRotation >>> mul (180.0 / pi)) state.isRotating
 
     attributes = [ SA.transform [Rotate pieceRotation 50.0 50.0] ]
