@@ -21,16 +21,40 @@ import Game.Port (isInput)
 import Game.PortInfo (PortInfo)
 import Game.Rotation (Rotation(..))
 import Halogen (ComponentHTML)
-import Halogen.HTML as HH
-import Halogen.Svg.Attributes (CommandPositionReference(..), PathCommand, l, m, q)
+import Halogen.Svg.Attributes (Color(..), CommandPositionReference(..), PathCommand, l, m, q)
+import Halogen.Svg.Attributes as SA
+import Halogen.Svg.Elements as SE
 import Partial.Unsafe (unsafeCrashWith)
 
+-- | Parchment tile behind wire traces (matches `.piece-component` in the board UI).
+wirePieceBackdropFill :: Color
+wirePieceBackdropFill = RGB 249 246 238
+
+wirePieceBackdropStroke :: Color
+wirePieceBackdropStroke = RGB 198 193 183
 
 renderWire :: forall s m. Map CardinalDirection PortInfo -> ComponentHTML Piece.Action s m
-renderWire portStates = renderPathWithEvents (wirePath portStates) (Piece.PortOnMouseEnter inputDirection) Piece.PortOnMouseLeave -- todo: change direction.left to
+renderWire portStates =
+  SE.g []
+    [ SE.rect
+        [ SA.x inset
+        , SA.y inset
+        , SA.width (100.0 - 2.0 * inset)
+        , SA.height (100.0 - 2.0 * inset)
+        , SA.rx cornerRadius
+        , SA.ry cornerRadius
+        , SA.fill wirePieceBackdropFill
+        , SA.stroke wirePieceBackdropStroke
+        , SA.strokeWidth 0.85
+        ]
+    , renderPathWithEvents (wirePath portStates) (Piece.PortOnMouseEnter inputDirection) Piece.PortOnMouseLeave
+    ]
   where
-    inputDirection = maybe' (\_ -> unsafeCrashWith $ "assertion failed: wire path created with no inputs. ports: " <> show portStates) (_.index)
-              (findWithIndex (\_ info -> isInput info.port) portStates)
+  inset = 5.0
+  cornerRadius = 9.0
+
+  inputDirection = maybe' (\_ -> unsafeCrashWith $ "assertion failed: wire path created with no inputs. ports: " <> show portStates) (_.index)
+        (findWithIndex (\_ info -> isInput info.port) portStates)
 
 initialLocation :: CardinalDirection -> Tuple Number Number
 initialLocation = case _ of
