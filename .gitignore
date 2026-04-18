@@ -4,6 +4,7 @@
 **/output-es
 dist/static/default.css
 dist/static/abed.js
+dist-piece-viewer/
 .psc-ide-port
 npm-debug.log
 .spec-results

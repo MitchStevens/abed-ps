@@ -1,0 +1,27 @@
+package:
+  name: piece-viewer
+  dependencies:
+    - abed
+    - aff
+    - arrays
+    - control
+    - effect
+    - enums
+    - foldable-traversable
+    - halogen
+    - integers
+    - maybe
+    - numbers
+    - ordered-collections
+    - partial
+    - prelude
+    - unsafe-coerce
+    - web-dom
+    - web-html
+
+  bundle:
+    minify: false
+    module: PieceViewer.Main
+    outfile: "../dist-piece-viewer/static/piece-viewer.js"
+    platform: browser
+    type: app

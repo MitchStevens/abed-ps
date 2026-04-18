@@ -23,7 +23,6 @@ import Game.Message (Conversation, Message(..), button, guideMessage, noUser, se
 import Game.Piece (chickenPiece, cornerCutPiece, idPiece, leftPiece, notPiece, orPiece)
 import Halogen.HTML as HH
 import Halogen.HTML.Properties as HP
-import Test.Game.Level.Problem (problemDescription)
 
 tutorialSuite :: LevelSuite
 tutorialSuite = fromHomogeneous
