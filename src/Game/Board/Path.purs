@@ -42,7 +42,7 @@ import Debug (trace)
 import Debug as Debug
 import Effect.Aff (Aff, error)
 import Game.Board.Edge (absolute, adjacent)
-import Game.Board.Operation (addPieceNoUpdate, globRelEdge, removePieceNoUpdate)
+import Game.Board.Operation (addPieceNoUpdate, adaptRelEdge, removePieceNoUpdate)
 import Game.Board.PathSegment (PathSegment(..), PathSegmentError, combineSegmentWithExtant, singlePath)
 import Game.Board.PieceInfo (PieceInfo)
 import Game.Board.Types (Board(..), BoardError(..), _pieces)
@@ -111,7 +111,7 @@ updateEndPoints :: forall m
   => Path -> m Unit
 updateEndPoints path = void $ runMaybeT do
   headAdj <-  adjacent (absolute path.start path.initial)
-  globRelEdge headAdj (Just PortType.Input)
+  adaptRelEdge headAdj (Just PortType.Input)
   --do tail later
 
 {-

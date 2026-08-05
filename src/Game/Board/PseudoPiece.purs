@@ -15,9 +15,9 @@ import Data.Maybe (Maybe(..))
 import Data.String (Pattern(..))
 import Data.String as String
 import Game.Direction as Direction
-import Game.Piece (Piece(..), PieceId(..), mkPieceNoGlob)
+import Game.Piece (Piece(..), PieceId(..), mkPieceNoAdapt)
 import Game.Piece.Complexity as Complexity
-import Game.Port (Port(..), matchingPort, portType)
+import Game.Port (Port(..), getPortType, matchingPort)
 import Game.Port as Port
 import Partial.Unsafe (unsafeCrashWith)
 
@@ -28,8 +28,8 @@ import Partial.Unsafe (unsafeCrashWith)
   The role of the psuedo input is to provide a signal to a port adjacent to the edge of the board. This means that a pseudo-input has an output port on the right, and a psuedo-output has an input port on the right.
 -}
 psuedoPiece :: Port -> Piece
-psuedoPiece port = mkPieceNoGlob
-  { name: PieceId $ case portType port of
+psuedoPiece port = mkPieceNoAdapt
+  { name: PieceId $ case getPortType port of
       Port.Input  -> "psuedo-input"
       Port.Output -> "psuedo-output"
   , eval: \_ -> M.empty

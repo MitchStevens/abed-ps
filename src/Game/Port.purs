@@ -70,8 +70,8 @@ portMatches :: Port -> Port -> Boolean
 portMatches port otherPort = port == matchingPort otherPort 
 
 
-portType :: Port -> PortType
-portType = view _portType
+getPortType :: Port -> PortType
+getPortType = view _portType
 
 portCapacity :: Port -> Capacity
 portCapacity = view _portCapacity

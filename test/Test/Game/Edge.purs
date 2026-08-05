@@ -7,6 +7,7 @@ import Control.Monad.Error.Class (class MonadError, class MonadThrow, throwError
 import Control.Monad.Maybe.Trans (MaybeT(..), lift, runMaybeT)
 import Control.Monad.State (class MonadState, StateT(..), evalStateT, runStateT)
 import Data.Foldable (for_)
+import Data.HeytingAlgebra (implies)
 import Data.Identity (Identity)
 import Data.Maybe (maybe)
 import Effect.Aff (Aff)
@@ -18,11 +19,17 @@ import Game.Direction (allDirections)
 import Game.Direction as Direction
 import Game.Location (location)
 import Game.Port (inputPort, outputPort)
+import Random.LCG (mkSeed)
 import Test.Game.Board (testBoard)
-import Test.Game.Location (allLocations)
+import Test.Game.Directions (genDirection)
+import Test.Game.Location (allLocations, genLocation)
+import Test.QuickCheck (Result(..), quickCheckPure)
+import Test.QuickCheck.Gen (Gen)
 import Test.Spec (Spec, SpecT(..), describe, hoistSpec, it, itOnly)
 import Test.Spec.Assertions (fail, shouldEqual, shouldNotEqual, shouldReturn)
-import Test.Spec.QuickCheck (quickCheck)
+
+genEdge :: Gen AbsoluteEdge
+genEdge = absolute <$> genLocation <*> genDirection
 
 allEdges :: Array AbsoluteEdge
 allEdges = absolute <$> allLocations <*> allDirections
@@ -45,10 +52,14 @@ tests =
     --  for_ allEdges \edge -> matchEdge edge `shouldNotEqual` edge
     --  for_ allEdges \edge -> matchEdge (matchEdge edge) `shouldEqual` edge
     it "should have derived Ord correctly" do
-      for_ allEdges \e1 -> 
-        for_ allEdges \e2 -> 
-          unless (not (edgeLocation e1 > edgeLocation e2) || (e1 > e2)) do
-            fail ""
+      let
+        results = quickCheckPure (mkSeed 42) 100 do
+          e1 <- genEdge
+          e2 <- genEdge
+          pure ((edgeLocation e1 > edgeLocation e2) `implies` (e1 > e2))
+      for_ results case _ of
+        Success -> pure unit
+        Failed msg -> fail msg
     describe "getPortOnEdge" do
       it "should return empty if space is not occupied" do
         expectNothing $ getPortOnEdge (relative (location 0 0) Direction.Up)

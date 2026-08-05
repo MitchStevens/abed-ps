@@ -3,14 +3,15 @@
   "private": true,
   "scripts": {
     "postinstall": "spago install",
-    "compile-css": "lessc less/default.less dist/static/default.css",
-    "compile-css-watch": "find less | entr -s 'npm run compile-css'",
+    "compile-css": "make css",
+    "compile-css-watch": "find less | entr -s 'make css'",
     "migrate": "spago bundle --migrate",
-    "build": "spago bundle -p abed",
-    "build:piece-viewer": "spago bundle -p piece-viewer && mkdir -p dist-piece-viewer/static/images && cp piece-viewer/index.html dist-piece-viewer/ && cp piece-viewer/piece-viewer.css dist-piece-viewer/static/ && if [ -d dist/static/images ]; then cp -r dist/static/images/. dist-piece-viewer/static/images/; fi",
-    "build-watch": "npm run compile-css-watch & fd . -e purs -e js -e less | entr -s 'npm run build'",
-    "build-prod": "npm run compile-css & purs-backend-es build && purs-backend-es bundle-app --no-build",
-    "test": "spago test -- --fail-fast",
+    "build": "make abed",
+    "build:piece-viewer": "make piece-viewer",
+    "build-watch": "find less | entr -s 'make css' & fd . -e purs -e js -e less | entr -s 'make abed'",
+    "build-prod": "make prod",
+    "test": "make test",
+    "clean": "make clean",
     "test-watch": "fd . -e purs -e js | entr -s 'npm run test'"
   },
   "devDependencies": {

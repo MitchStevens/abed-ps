@@ -11,7 +11,7 @@ import Data.Ord (greaterThan, lessThan)
 import Data.Tuple (Tuple(..))
 import Game.Capacity (Capacity(..))
 import Game.Direction as Direction
-import Game.Piece (Piece(..), PieceId(..), mkPieceNoGlob)
+import Game.Piece (Piece(..), PieceId(..), mkPieceNoAdapt)
 import Game.Piece as Complexity
 import Game.Port (inputPort, outputPort)
 import Game.Signal (Signal)
@@ -30,7 +30,7 @@ type ComparisonPiece =
   }
 
 mkComparisonPiece :: ComparisonPiece -> Piece
-mkComparisonPiece piece@{ name, comparison, capacity } = mkPieceNoGlob
+mkComparisonPiece piece@{ name, comparison, capacity } = mkPieceNoAdapt
   { name
   , eval: \inputs ->
       let a = fold (M.lookup Direction.Left inputs)

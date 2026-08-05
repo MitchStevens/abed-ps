@@ -27,7 +27,7 @@ spec = do
                 , Tuple Direction.Right {connected: false, port: outputPort OneBit, signal}
                 , Tuple Direction.Down {connected: false, port: outputPort OneBit, signal} ]
 
-      (wirePath false id).path `shouldEqual`
+      wirePath false id `shouldEqual`
         [ m Rel 75.0 35.0
         , l Rel 13.0 0.0
         , l Rel 0.0 (-10.0)
@@ -41,7 +41,7 @@ spec = do
         , l Rel 25.0 0.0
         , q Rel 0.0 0.0 50.0 0.0
         ]
-      (wirePath false left).path `shouldEqual`
+      wirePath false left `shouldEqual`
         [ m Rel 35.0 25.0
         , l Rel 0.0 (-13.0)
         , l Rel (-10.0) 0.0
@@ -56,7 +56,7 @@ spec = do
         , q Rel 10.0 0.0 10.0 (-10.0)
         ]
 
-      (wirePath false super).path `shouldEqual`
+      wirePath false super `shouldEqual`
         [ m Rel 35.0 25.0
         , l Rel 0.0 (-13.0)
         , l Rel (-10.0) 0.0

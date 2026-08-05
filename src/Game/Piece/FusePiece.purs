@@ -12,7 +12,7 @@ import Data.UInt (fromInt, shl, shr, (.&.), (.|.))
 import Game.Capacity (Capacity(..), doubleCapacity, halveCapacity, toInt)
 import Game.Direction as Direction
 import Game.Piece.Complexity as Complexity
-import Game.Piece.Types (Piece(..), PieceId(..), isSimplifiable, mkPieceNoGlob)
+import Game.Piece.Types (Piece(..), PieceId(..), isSimplifiable, mkPieceNoAdapt)
 import Game.Port (inputPort, outputPort)
 import Game.Signal (Signal(..), over2Signal, overSignal)
 
@@ -29,7 +29,7 @@ severPiece = mkSeverPiece { outputCapacity: OneBit }
 type FusePiece = { inputCapacity :: Capacity }
 
 mkFusePiece :: FusePiece -> Piece
-mkFusePiece { inputCapacity } = mkPieceNoGlob
+mkFusePiece { inputCapacity } = mkPieceNoAdapt
   { name: PieceId "fuse-piece"
   , eval: \inputs -> 
       let high = fold (M.lookup Direction.Up inputs)
@@ -67,7 +67,7 @@ fuseSignals inputCapacity = over2Signal $ \high low ->
 type SeverPiece = { outputCapacity :: Capacity }
 
 mkSeverPiece :: SeverPiece -> Piece
-mkSeverPiece { outputCapacity } = mkPieceNoGlob
+mkSeverPiece { outputCapacity } = mkPieceNoAdapt
   { name: PieceId "sever-piece"
   , eval: \inputs ->
       let Tuple high low = foldMap (severSignal outputCapacity) (M.lookup Direction.Left inputs)

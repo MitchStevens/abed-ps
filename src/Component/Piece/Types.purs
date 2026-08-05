@@ -56,12 +56,13 @@ data Query a
   -- | SetRotation Rotation a
 
 data Action
-  = Receive Input
+  = Initialise
+  | Finalise
+  | Receive Input
   | OnDrop Location DragEvent
   | OnDrag DragEvent
   | OnMouseDown MouseEvent
   | OnMouseMove MouseEvent
-  -- | OnMouseUp Location MouseEvent
   | OnMouseUp MouseEvent
   | OnAuxClick MouseEvent
   | PortOnMouseEnter CardinalDirection

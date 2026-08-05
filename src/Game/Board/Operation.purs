@@ -36,8 +36,8 @@ import Game.Board.Types (Board(..), BoardError(..), _pieces, _size)
 import Game.Direction (allDirections)
 import Game.Direction as Direction
 import Game.Location (Location(..), location)
-import Game.Piece (Piece(..), glob, pieceLookup)
-import Game.Port (PortType, portType)
+import Game.Piece (Piece(..), adapt, pieceLookup)
+import Game.Port (PortType, getPortType)
 import Game.Rotation (Rotation(..), rotation)
 import Type.Proxy (Proxy(..))
 
@@ -71,19 +71,19 @@ getPiece loc = (_.piece) <$> getPieceInfo loc
 checkInsideBoard :: forall m. MonadError BoardError m => MonadState Board m => Location -> m Unit
 checkInsideBoard loc = whenM (not <$> isInsideBoard loc) (throwError (InvalidLocation loc))
 
-globRelEdge :: forall m. MonadState Board m => AbsoluteEdge -> Maybe PortType -> MaybeT m Unit
-globRelEdge absEdge portType = do
+adaptRelEdge :: forall m. MonadState Board m => AbsoluteEdge -> Maybe PortType -> MaybeT m Unit
+adaptRelEdge absEdge portType = do
   Relative { loc, dir } <- fromAbsoluteEdge absEdge
   { piece, rotation } <- MaybeT $ use (_pieces <<< at loc)
-  _pieces <<< ix loc <<< prop (Proxy :: Proxy "piece") .= glob dir portType piece
+  _pieces <<< ix loc <<< prop (Proxy :: Proxy "piece") .= adapt dir portType piece
 
-globPortsAround :: forall m. MonadState Board m => Location -> m Unit
-globPortsAround loc =
+adaptPortsAround :: forall m. MonadState Board m => Location -> m Unit
+adaptPortsAround loc =
   for_ allDirections \dir -> do
     let edge = absolute loc dir
     let adj = adjacentAbsoluteEdge edge
     maybePort <- runMaybeT (getPortOnEdge edge)
-    void $ runMaybeT $ globRelEdge adj (portType <$> maybePort)
+    void $ runMaybeT $ adaptRelEdge adj (getPortType <$> maybePort)
 
 addPieceNoUpdate :: forall m. MonadError BoardError m => MonadState Board m 
   => Location -> Piece -> Rotation -> m Unit
@@ -97,7 +97,7 @@ addPieceNoUpdate loc piece rotation = do
 addPiece :: forall m. MonadError BoardError m => MonadState Board m => Location -> Piece -> m Unit
 addPiece loc piece = do
    addPieceNoUpdate loc piece (rotation 0)
-   globPortsAround loc
+   adaptPortsAround loc
 
 removePieceNoUpdate :: forall m. MonadError BoardError m => MonadState Board m => Location -> m PieceInfo
 removePieceNoUpdate loc = do
@@ -112,7 +112,7 @@ removePieceNoUpdate loc = do
 removePiece :: forall m. MonadError BoardError m => MonadState Board m => Location -> m PieceInfo
 removePiece loc = do
   piece <- removePieceNoUpdate loc
-  globPortsAround loc
+  adaptPortsAround loc
   pure piece
 
 
@@ -126,8 +126,8 @@ movePiece src dst = do
 
       _pieces <<< at src .= Nothing
       _pieces <<< at dst .= Just pieceInfoSrc
-      globPortsAround src
-      globPortsAround dst
+      adaptPortsAround src
+      adaptPortsAround dst
       pure $ pieceInfoSrc
     Nothing ->
       throwError (LocationNotOccupied src)
@@ -150,7 +150,7 @@ rotatePieceBy loc rot = do
   checkInsideBoard loc
   _ <- getPiece loc
   _pieces <<< ix loc <<< _rotation <>= rot
-  globPortsAround loc
+  adaptPortsAround loc
 
 {-
   change size

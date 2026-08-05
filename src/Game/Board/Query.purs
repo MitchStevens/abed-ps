@@ -33,7 +33,7 @@ import Game.Direction (CardinalDirection, allDirections, oppositeDirection, rota
 import Game.Direction as Direction
 import Game.Location (Location(..), location)
 import Game.Piece (getPort, shouldRipple, updateCapacity)
-import Game.Port (Port(..), portMatches, portType)
+import Game.Port (Port(..), getPortType, portMatches)
 import Game.Port as Port
 import Game.Rotation (Rotation(..))
 
@@ -118,7 +118,7 @@ buildConnectionMapAt loc =
     let relEdge = relative loc dir
     adjRelEdge <- connected relEdge 
     port <- getPortOnEdge relEdge
-    case portType port of
+    case getPortType port of
       Port.Input ->
           tell (L.singleton (Tuple relEdge adjRelEdge))
       Port.Output ->

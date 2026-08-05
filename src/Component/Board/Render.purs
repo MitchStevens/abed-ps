@@ -11,7 +11,7 @@ import Component.DataAttribute as DA
 import Component.GameEventLogger as GameEventLogger
 import Component.Multimeter as Multimeter
 import Component.Piece as Piece
-import Component.Rendering.Path (renderPathWithEvents)
+import Component.Rendering.Path (renderPath)
 import Component.Rendering.Port (portPath)
 import Component.Sidebar.BoardSizeSlider as BoardSizeSlider
 import Control.Monad.State (evalState)
@@ -111,7 +111,7 @@ render state =
           [ viewBox ]
           [ SE.g 
             [ SA.transform [ Rotate rotation 25.0 12.5 ] ]
-            [ renderPathWithEvents path (BoardPortOnMouseEnter dir) (BoardPortOnMouseLeave) ]
+            [ renderPath path ]
           ]
         ]
       where

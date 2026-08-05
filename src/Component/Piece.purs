@@ -1,5 +1,7 @@
 module Component.Piece
-  ( component
+  ( PieceComponent
+  , component
+  , mkPieceComponent
   , module Component.Piece.Types
   )
   where
@@ -33,8 +35,9 @@ import Game.Board (relative)
 import Game.Piece (name)
 import Game.PortInfo (clampPortInfo)
 import Game.Rotation (rotation, toRadians)
-import Halogen (AttrName(..), ClassName(..), Component, HalogenM, HalogenQ, RefLabel(..), defaultEval, getHTMLElementRef, getRef, gets, mkComponent, mkEval, raise)
+import Halogen (AttrName(..), ClassName(..), Component, HalogenM, HalogenQ, RefLabel(..), ComponentHTML, defaultEval, getHTMLElementRef, getRef, gets, mkComponent, mkEval, raise)
 import Halogen as H
+import Halogen.Component (EvalSpec)
 import Halogen.HTML (HTML, PlainHTML, fromPlainHTML)
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
@@ -55,8 +58,17 @@ import Web.UIEvent.MouseEvent as MouseEvent
 
 --import Web.UIEvent.MouseEvent.Extras (MouseButton(..), button)
 
-component :: forall m. MonadEffect m => Component Query Input Output m
-component = mkComponent { eval , initialState , render }
+type PieceComponent m = Component Query Input Output m
+
+type PieceComponentSpec m = 
+  { renderPiece :: State -> Array (ComponentHTML Action () m)
+  }
+
+component :: forall m. MonadEffect m => PieceComponent m
+component = mkPieceComponent { renderPiece: \st -> [ renderPiece st ] }
+
+mkPieceComponent :: forall m. MonadEffect m => PieceComponentSpec m -> PieceComponent m
+mkPieceComponent { renderPiece } = mkComponent { eval , initialState , render }
   where
   render = HH.memoized eq $ \state -> 
     HH.div
@@ -74,26 +86,17 @@ component = mkComponent { eval , initialState , render }
       , HE.onMouseMove OnMouseMove
       , HE.onMouseUp OnMouseUp
       , HE.onKeyDown OnKeyDown
-      , HE.onAuxClick OnAuxClick
       ]
-      [ renderPiece state ]
-  
-  refPiece = RefLabel "piece"
+      (renderPiece state)
 
-  getPosition :: MouseEvent -> Tuple Number Number 
-  getPosition e = Tuple (toNumber (clientX e)) (toNumber (clientY e))
+  eval = mkEval defaultPieceEval
 
-  elementCenterClient :: Element -> Effect (Tuple Number Number)
-  elementCenterClient e = do
-    bb <- getBoundingClientRect e
-    let cx = (bb.right + bb.left) / 2.0
-    let cy = (bb.bottom + bb.top) / 2.0
-    pure $ Tuple cx cy
-
-  eval :: forall slots. HalogenQ Query Action Input ~> HalogenM State Action slots Output m
-  eval = mkEval $ defaultEval
-    { finalize = Nothing
+defaultPieceEval :: forall sl m. MonadEffect m => EvalSpec State Query Action sl Input Output m
+defaultPieceEval = defaultEval
+    { finalize = Just Finalise
     , handleAction = case _ of
+        Initialise -> pure unit
+        Finalise -> pure unit
         Receive { piece, location, rotation, portStates } -> do
           modify_ $ _ 
             { piece = piece
@@ -170,18 +173,8 @@ component = mkComponent { eval , initialState , render }
             pure { relativeEdge, info }
         PortOnMouseLeave -> do
           raise (NewMultimeterFocus Nothing)
-    --, handleQuery: case _ of
-    --    SetPortStates portStates next -> do
-    --      modify_ $ _ { portStates = portStates }
-    --      pure (Just next)
-    --    SetPiece piece next -> do
-    --      modify_ (_ {piece = piece})
-    --      pure (Just next)
-    --    SetRotation rot next -> do
-    --      modify_ (_ { rotation = rot })
-    --      pure (Just next)
-    , initialize = Nothing
-    , receive = Just <<< Receive --Just <<< Initialise -- :: input -> Maybe action
+    , initialize = Just Initialise
+    , receive = Just <<< Receive
     }
 
 angleBetween :: Tuple Number Number -> Tuple Number Number -> Number
@@ -189,3 +182,16 @@ angleBetween  v1 v2 = atan2 (v1 `det` v2) (v1 `dot` v2)
   where
     dot (Tuple x1 y1) (Tuple x2 y2) = x1*x2 + y1*y2
     det (Tuple x1 y1) (Tuple x2 y2) = x1*y2 - x2*y1
+
+getPosition :: MouseEvent -> Tuple Number Number 
+getPosition e = Tuple (toNumber (clientX e)) (toNumber (clientY e))
+
+elementCenterClient :: Element -> Effect (Tuple Number Number)
+elementCenterClient e = do
+  bb <- getBoundingClientRect e
+  let cx = (bb.right + bb.left) / 2.0
+  let cy = (bb.bottom + bb.top) / 2.0
+  pure $ Tuple cx cy
+
+refPiece :: RefLabel
+refPiece = RefLabel "piece"

@@ -16,7 +16,6 @@ import Component.DataAttribute (attr)
 import Component.DataAttribute as DA
 import Component.Multimeter as Multimeter
 import Component.Piece as Piece
-import Component.Rendering.Path (renderPathWithEvents)
 import Component.Rendering.Port (portPath)
 import Control.Monad.Except (ExceptT, lift, throwError)
 import Control.Monad.Logger.Class (class MonadLogger, debug, info, warn)

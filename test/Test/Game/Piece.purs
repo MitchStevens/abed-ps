@@ -20,14 +20,14 @@ import Data.Tuple (Tuple(..))
 import Effect.Exception (Error)
 import Game.Capacity (Capacity)
 import Game.Direction (CardinalDirection, allDirections)
-import Game.Piece (Piece(..), eval, getPorts, name, truncateInputs)
+import Game.Piece (Piece(..), allPieces, eval, getPorts, name, pieceVault, truncateInputs)
 import Game.Port (portCapacity)
 import Game.Signal (Signal, equivalent)
 import Test.Game.Signal (genSignal, shouldBeEquivalentTo)
 import Test.QuickCheck (Result(..), arbitrary, assertEquals, withHelp)
 import Test.QuickCheck.Gen (Gen)
-import Test.Spec (Spec, describe)
-import Test.Spec.Assertions (fail)
+import Test.Spec (Spec, describe, it)
+import Test.Spec.Assertions (fail, shouldEqual)
 import Text.Printf (printf)
 import Type.Proxy (Proxy(..))
 
@@ -44,6 +44,12 @@ testEval piece inputs expected = do
       Nothing, Nothing -> pure unit
       _, _ -> fail "expected"
 
+spec :: Spec Unit
+spec =
+  describe "Game.Piece" do
+    it "piece names are unique" do
+      A.length allPieces `shouldEqual` M.size pieceVault
+
 genSignals :: Gen (Map CardinalDirection Signal)
 genSignals = M.fromFoldable <$> for allDirections \dir -> Tuple dir <$> genSignal
 
@@ -52,8 +58,8 @@ equivalentTo p1 p2 = do
   inputs <- genSignals
   pure $ eval p1 inputs `assertEquals` eval p2 inputs
 
-lessThanOrEqTo :: Piece -> Piece -> Gen Result
-lessThanOrEqTo p1 p2 = do
+isLessAdaptedOrEqualTo :: Piece -> Piece -> Gen Result
+isLessAdaptedOrEqualTo p1 p2 = do
   inputs <- truncateInputs p1 <$> genSignals
   let outs1 = eval p1 inputs
   let outs2 = eval p2 inputs

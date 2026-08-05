@@ -3,7 +3,7 @@ module Component.Instructions where
 import Prelude
 
 import AppM (AppM)
-import Component.Instructions.Globbing as Globbing
+import Component.Instructions.Adapting as Adapting
 import Component.Layout.DefaultLayout (defaultLayout)
 import Data.Maybe (Maybe)
 import Effect.Aff.Class (class MonadAff)
@@ -33,7 +33,7 @@ component = H.mkComponent { eval , initialState , render }
         --, HH.h2_ [ HH.text "Pieces" ]
         --, HH.h2_ [ HH.text "Board" ]
         --, HH.h2_ [ HH.text "Specification" ]
-        --, HH.slot_ Globbing.slot unit Globbing.component unit
+        --, HH.slot_ Adapting.slot unit Adapting.component unit
         ]
   
   eval :: forall slots. HalogenQ q Action i ~> HalogenM State Action slots o AppM

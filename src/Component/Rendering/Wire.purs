@@ -5,7 +5,7 @@ import Prelude
 import Component.DataAttribute as DA
 import Component.Piece.Types as Piece
 import Component.Rendering.Gradient (createPortGradient)
-import Component.Rendering.Path (Path, PathFill(..), renderPathWithEvents)
+import Component.Rendering.Path (Path, renderPath)
 import Control.Monad.Writer (execWriter, tell)
 import Data.Array (zip)
 import Data.Array as A
@@ -27,34 +27,47 @@ import Halogen.Svg.Attributes as SA
 import Halogen.Svg.Elements as SE
 import Partial.Unsafe (unsafeCrashWith)
 
+{-
+A wirepath is a path that implies the operation of a piece. The outline traces a path with arrows for outputs and stubs for inputs.
+-}
+
+
+
 wirePieceFrameStroke :: Color
 wirePieceFrameStroke = RGB 198 193 183
 
 superPieceWireStroke :: Color
 superPieceWireStroke = RGB 72 78 90
 
-renderWire :: forall s m. Piece -> Map CardinalDirection PortInfo -> ComponentHTML Piece.Action s m
-renderWire piece portStates =
-  SE.g []
-    [ SE.rect
-        [ SA.x inset
-        , SA.y inset
-        , SA.width (100.0 - 2.0 * inset)
-        , SA.height (100.0 - 2.0 * inset)
-        , SA.rx cornerRadius
-        , SA.ry cornerRadius
-        , SA.fill (Named "none")
-        , SA.stroke wirePieceFrameStroke
-        , SA.strokeWidth 0.55
-        ]
-    , renderPathWithEvents (wirePath (name piece == name superPiece) portStates) (Piece.PortOnMouseEnter inputDirection) Piece.PortOnMouseLeave
+-- | The rounded-rect border shared by every wire-family piece (simple wires and the
+-- | dual-input/dual-output crossover pieces), so they all frame their trace consistently.
+wirePieceFrame :: forall a s m. ComponentHTML a s m
+wirePieceFrame =
+  SE.rect
+    [ SA.x inset
+    , SA.y inset
+    , SA.width (100.0 - 2.0 * inset)
+    , SA.height (100.0 - 2.0 * inset)
+    , SA.rx cornerRadius
+    , SA.ry cornerRadius
+    , SA.fill (Named "none")
+    , SA.stroke wirePieceFrameStroke
+    , SA.strokeWidth 0.55
     ]
   where
   inset = 5.0
   cornerRadius = 9.0
 
-  inputDirection = maybe' (\_ -> unsafeCrashWith $ "assertion failed: wire path created with no inputs. ports: " <> show portStates) (_.index)
-        (findWithIndex (\_ info -> isInput info.port) portStates)
+renderWire :: forall s m. Piece -> Map CardinalDirection PortInfo -> ComponentHTML Piece.Action s m
+renderWire piece portStates =
+  SE.g []
+    [ wirePieceFrame
+    --, renderPathWithEvents (wirePath (name piece == name superPiece) portStates) (Piece.PortOnMouseEnter inputDirection) Piece.PortOnMouseLeave
+    , renderPath (wirePath (name piece == name superPiece) portStates)
+    ]
+
+  --inputDirection = maybe' (\_ -> unsafeCrashWith $ "assertion failed: wire path created with no inputs. ports: " <> show portStates) (_.index)
+  --      (findWithIndex (\_ info -> isInput info.port) portStates)
 
 initialLocation :: CardinalDirection -> Tuple Number Number
 initialLocation = case _ of
@@ -101,8 +114,8 @@ outputPath :: Boolean -> CardinalDirection -> Array PathCommand
 outputPath connected = if connected then stubPath else arrowPath
 
 
-betweenPath :: CardinalDirection -> CardinalDirection -> Array PathCommand
-betweenPath to from = [ q Rel dx dy x' y' ]
+curveBetweenPath :: CardinalDirection -> CardinalDirection -> Array PathCommand
+curveBetweenPath to from = [ q Rel dx dy x' y' ]
   where 
     Tuple x' y' = initialLocation from - terminalLocation to
     Tuple dx dy = case from of
@@ -111,9 +124,12 @@ betweenPath to from = [ q Rel dx dy x' y' ]
       Direction.Down -> Tuple x' 0.0
       Direction.Left -> Tuple 0.0 y'
 
+
+
+
 -- | When `strokeOnly` is true (super piece), draw the trace as an unfilled path with a thin stroke instead of a port gradient.
 wirePath :: Boolean -> Map CardinalDirection PortInfo -> Path
-wirePath strokeOnly ports = { path, pathFill, attrs }
+wirePath strokeOnly ports = path
   where
     path = execWriter do
       for_ (A.uncons (M.toUnfoldable ports)) \{head, tail} -> do
@@ -122,16 +138,16 @@ wirePath strokeOnly ports = { path, pathFill, attrs }
         let sides = zip (M.toUnfoldable ports) (map fst $ tail <> [head])
         traverse_ (uncurry renderSide) sides
 
-    renderSide (Tuple from info) to = tell $ (if isInput info.port then stubPath from else outputPath info.connected from) <> betweenPath from to
+    renderSide (Tuple from info) to = tell $ (if isInput info.port then stubPath from else outputPath info.connected from) <> curveBetweenPath from to
 
-    info = fromMaybe' (\_ -> unsafeCrashWith $ "assertion failed: wire path created with no inputs. ports: " <> show ports) 
-              (find (\portInfo -> isInput portInfo.port) ports)
-    pathFill =
-      if strokeOnly then
-        FillNoneWithStroke { stroke: superPieceWireStroke, strokeWidth: 0.65 }
-      else
-        FillWithPortGradient (createPortGradient info)
-    attrs = DA.attr DA.isConnected info.connected
+    --info = fromMaybe' (\_ -> unsafeCrashWith $ "assertion failed: wire path created with no inputs. ports: " <> show ports) 
+    --          (find (\portInfo -> isInput portInfo.port) ports)
+    --pathFill =
+    --  if strokeOnly then
+    --    FillNoneWithStroke { stroke: superPieceWireStroke, strokeWidth: 0.65 }
+    --  else
+    --    FillWithPortGradient (createPortGradient info)
+    --attrs = DA.attr DA.isConnected info.connected
 
 
 

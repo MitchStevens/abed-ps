@@ -6,7 +6,7 @@ import Component.Rendering.Colours (portColours)
 import Data.Foldable (intercalate)
 import Game.Capacity (Capacity(..), toInt)
 import Game.Piece as Port
-import Game.Port (Port(..), isInput, portCapacity, portType)
+import Game.Port (Port(..), getPortType, isInput, portCapacity)
 import Game.Port as Port
 import Game.PortInfo (PortInfo)
 import Game.Signal (Signal(..))
@@ -21,7 +21,7 @@ createPortGradient { port, connected, signal } = { id, def }
     def = SE.linearGradient
       [ SA.id id
       , SA.gradientTransform [ Rotate 90.0 0.0 0.0 ] ]
-      $ case portType port of
+      $ case getPortType port of
         Port.Input -> 
           [ SE.stop [ SA.offset "5%" , SA.stopColor color, SA.stopOpacity 0.5 ] 
           , SE.stop [ SA.offset "95%" , SA.stopColor color ] 

@@ -1,4 +1,4 @@
-module Component.Instructions.Globbing where
+module Component.Instructions.Adapting where
 
 import Prelude
 
@@ -23,7 +23,7 @@ type Action = Void
 type Slots = 
   ( boardDiagram :: Slot BoardDiagram.Query BoardDiagram.Output Unit )
 
-slot = Proxy :: Proxy "instructionsGlobbing"
+slot = Proxy :: Proxy "instructionsAdapting"
 
 {-
 component :: forall q i. Component q i Void AppM
@@ -39,7 +39,7 @@ component = H.mkComponent { eval: H.mkEval H.defaultEval, render, initialState: 
     firstDiagram = HH.slot_ BoardDiagram.slot unit BoardDiagram.component
       { board: Board { size: 2, pieces }
       , initialise: reset
-      , actions: M.fromFoldable [ Tuple "Reset" reset, Tuple "glob" glob ]
+      , actions: M.fromFoldable [ Tuple "Reset" reset, Tuple "adapt" adapt ]
       , description: "hello world"
       }
       where
@@ -53,7 +53,7 @@ component = H.mkComponent { eval: H.mkEval H.defaultEval, render, initialState: 
           , const $ Board.AddPiece (location 1 1) idPiece (const unit)
           , const $ Board.RotatePieceBy (location 1 1) (rotation 1) (const unit)
           ]
-        glob = 
+        adapt =
           [ const $ Board.RemovePiece (location 1 1) (const unit)
           , const $ Board.AddPiece (location 0 1) idPiece (const unit)
           , const $ Board.RotatePieceBy (location 0 1) (rotation 1) (const unit)

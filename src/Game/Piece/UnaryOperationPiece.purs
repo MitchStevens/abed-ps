@@ -11,7 +11,7 @@ import Game.Capacity (Capacity(..))
 import Game.Direction as Direction
 import Game.Piece.Complexity (space)
 import Game.Piece.Complexity as Complexity
-import Game.Piece.Types (Piece(..), PieceId(..), mkPieceNoGlob, shouldRipple)
+import Game.Piece.Types (Piece(..), PieceId(..), mkPieceNoAdapt, shouldRipple)
 import Game.Port (inputPort, outputPort)
 import Game.Signal (Signal(..), overSignal)
 
@@ -27,7 +27,7 @@ type UnaryOperation =
     - both inputs have the same capacity
 -}
 mkUnaryOperation :: UnaryOperation -> Piece
-mkUnaryOperation { name, capacity, operation } = mkPieceNoGlob
+mkUnaryOperation { name, capacity, operation } = mkPieceNoAdapt
     { name
     , eval: \inputs ->
         let signal = fromMaybe zero (M.lookup Direction.Left inputs)

@@ -17,7 +17,7 @@ import Game.Direction (CardinalDirection(..))
 import Game.Direction as Direction
 import Game.Piece.Complexity (Complexity)
 import Game.Piece.Complexity as Complexity
-import Game.Piece.Types (Piece(..), PieceId(..), mkPieceNoGlob)
+import Game.Piece.Types (Piece(..), PieceId(..), mkPieceNoAdapt)
 import Game.Port (PortType(..), createPort, inputPort, outputPort)
 import Game.Signal (Signal(..), xor)
 
@@ -29,7 +29,7 @@ type BasicPiece =
   }
 
 basicPiece :: BasicPiece -> Piece
-basicPiece basic = mkPieceNoGlob
+basicPiece basic = mkPieceNoAdapt
   { name: basic.name
   , eval: basic.eval
   , ports: map (\portType -> createPort portType basic.capacity) basic.ports

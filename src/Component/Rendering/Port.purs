@@ -6,12 +6,12 @@ import Prelude
 import Component.DataAttribute as DA
 import Component.Piece.Types as Piece
 import Component.Rendering.Gradient (createPortGradient)
-import Component.Rendering.Path (Path, PathFill(..))
-import Component.Rendering.Wire (arrowPath, betweenPath, initialLocation, stubPath)
+import Component.Rendering.Path (Path)
+import Component.Rendering.Wire (arrowPath, curveBetweenPath, initialLocation, stubPath)
 import Data.Foldable (intercalate)
 import Data.Tuple (Tuple(..))
 import Game.Direction as Direction
-import Game.Port (portType)
+import Game.Port (getPortType)
 import Game.Port as Port
 import Game.PortInfo (PortInfo)
 import Halogen (ClassName(..), ComponentHTML)
@@ -23,16 +23,12 @@ import Halogen.Svg.Elements as SE
 
 
 portPath :: PortInfo -> Path
-portPath info =
-  { path
-  , pathFill: FillWithPortGradient (createPortGradient info)
-  , attrs: DA.attr DA.isConnected info.connected
-  }
+portPath info = path
   where
-    Tuple x0 y0 = if portType info.port == Port.Input then Tuple 40.0 0.0 else  Tuple 10.0 25.0
-    path = [ m Rel x0 y0 ] <> headPath <> betweenPath Direction.Up Direction.Up
+    Tuple x0 y0 = if getPortType info.port == Port.Input then Tuple 40.0 0.0 else  Tuple 10.0 25.0
+    path = [ m Rel x0 y0 ] <> headPath <> curveBetweenPath Direction.Up Direction.Up
 
-    headPath = case portType info.port, info.connected of
+    headPath = case getPortType info.port, info.connected of
         Port.Input, _ -> arrowPath Direction.Down
         Port.Output, true -> stubPath Direction.Up
         Port.Output, false -> arrowPath Direction.Up

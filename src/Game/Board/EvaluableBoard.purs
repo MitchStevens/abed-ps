@@ -55,7 +55,7 @@ import Game.Capacity (Capacity)
 import Game.Direction (CardinalDirection, clockwiseRotation)
 import Game.Direction as Direction
 import Game.Location (Location)
-import Game.Piece (Piece(..), PieceId(..), mkPieceNoGlob)
+import Game.Piece (Piece(..), PieceId(..), mkPieceNoAdapt)
 import Game.Piece as Complexity
 import Game.Port (Port, inputPort, isInput, isOutput, matchingPort, outputPort, portCapacity)
 import Game.PortInfo (PortInfo)
@@ -144,7 +144,7 @@ topologicalSort nodes edges = do
   Cons r <$> topologicalSort nodes' edges'
 
 evaluableBoardPiece :: EvaluableBoard -> Piece
-evaluableBoardPiece evaluable = mkPieceNoGlob
+evaluableBoardPiece evaluable = mkPieceNoAdapt
   { name: PieceId "evaluable"
   , eval: \m -> evalState (runReaderT (evalWithPortInfo m) evaluable) M.empty
   , ports: getPorts evaluable

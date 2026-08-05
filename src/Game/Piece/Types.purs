@@ -1,21 +1,20 @@
 module Game.Piece.Types
-  ( MkPieceNoGlob
+  ( MkPieceNoAdapt
   , Piece(..)
   , PieceId(..)
   , Simplification(..)
+  , adapt
   , defaultPortInfo
   , eval
   , getInputDirs
   , getOutputDirs
   , getPort
   , getPorts
-  , glob
   , isSimplifiable
-  , mkPieceNoGlob
+  , mkPieceNoAdapt
   , name
   , shouldRipple
   , truncateInputs
-  , unglob
   , updateCapacity
   )
   where
@@ -23,13 +22,10 @@ module Game.Piece.Types
 import Prelude
 
 import Control.Alternative (guard)
-import Control.Lazy (fix)
 import Data.Array (fold)
 import Data.Foldable (and)
 import Data.FunctorWithIndex (mapWithIndex)
 import Data.Generic.Rep (class Generic)
-import Data.Lazy (Lazy)
-import Data.Lazy as Lazy
 import Data.Map (Map)
 import Data.Map as M
 import Data.Maybe (Maybe(..), fromMaybe, maybe)
@@ -79,7 +75,6 @@ derive instance Eq Simplification
 instance Show Simplification where
   show = genericShow
 
-
 {-
   What is a piece?
 
@@ -93,9 +88,7 @@ instance Show Simplification where
 -}
 newtype Piece = Piece
   {-
-    This name should be unique. If pieces with the same name are added to the `pieceVault`, the application will crash.
-
-    TODO: figure out how to 
+    This name should be unique. If pieces with the same name are added to the `pieceVault`, pieceVault will not contain all of Pieces available.
   -}
   { name :: PieceId
   {-
@@ -124,18 +117,7 @@ newtype Piece = Piece
   , shouldRipple :: Boolean
   , updateCapacity :: CardinalDirection -> Capacity -> Maybe Piece
   , ports :: Map CardinalDirection Port
-
-  {-
-  rules forglobbing :
-    unglob p <= p <= glob d t p
-    glob d1 t1 <<< glob d2 t2 = glob d2 t2 <<< glob d1 t1
-    unglob <<< unglob = unglob
-    unglob <<< glob d t = unglob
-
-
-  -}
-  , glob :: CardinalDirection -> Maybe PortType -> Maybe Piece
-  , unglob :: Lazy Piece
+  , adapt :: CardinalDirection -> Maybe PortType -> Maybe Piece
   {-
     To effeciently compile a board, we need to know whether a piece can be simplified. Since our `eval` function is non-symbolic, we need to encode this information into the piece type. 
 
@@ -166,7 +148,7 @@ instance Show Piece where
   show (Piece p) = "(Piece " <> show p.name <> ")"
 derive instance Newtype Piece _
 
-type MkPieceNoGlob =
+type MkPieceNoAdapt =
   { name :: PieceId
   , eval :: Map CardinalDirection Signal -> Map CardinalDirection Signal
   , ports :: Map CardinalDirection Port
@@ -176,21 +158,17 @@ type MkPieceNoGlob =
   , isSimplifiable :: Maybe Simplification
   }
 
-mkPieceNoGlob :: MkPieceNoGlob -> Piece
-mkPieceNoGlob piece = Lazy.force (fix go)
-  where
-    go :: Lazy Piece -> Lazy Piece
-    go this = Lazy.defer \_ -> Piece
-      { name: piece.name
-      , eval: piece.eval
-      , ports: piece.ports
-      , complexity: piece.complexity
-      , shouldRipple: piece.shouldRipple
-      , updateCapacity: piece.updateCapacity
-      , glob: \_ _ -> Nothing
-      , unglob: this
-      , isSimplifiable: piece.isSimplifiable
-      }
+mkPieceNoAdapt :: MkPieceNoAdapt -> Piece
+mkPieceNoAdapt piece = Piece
+  { name: piece.name
+  , eval: piece.eval
+  , ports: piece.ports
+  , complexity: piece.complexity
+  , shouldRipple: piece.shouldRipple
+  , updateCapacity: piece.updateCapacity
+  , adapt: \_ _ -> Nothing
+  , isSimplifiable: piece.isSimplifiable
+  }
 
 
 name :: Piece -> PieceId
@@ -209,23 +187,14 @@ getPorts :: Piece -> Map CardinalDirection Port
 getPorts (Piece p) = p.ports
 
 {-
-
-  glob d1 Nothing >>> glob d2 Nothing == glob d2 Nothing >>> glob d1 Nothing
-
-  glob d Nothing p <= p
-  p <= glob d (Just t) p
+  rules for adapting:
+    if d1 /= d2 then adapt d1 t1 <<< adapt d2 t2 = adapt d2 t2 <<< adapt d1 t1
+    adapt is idempotent: adapt d t <<< adapt d t = adapt d t
+    adapt d Nothing p <= p
+    p <= adapt d (Just t) p
 -}
-glob :: CardinalDirection -> Maybe PortType -> Piece -> Piece
-glob dir port (Piece p) = fromMaybe (Piece p) (p.glob dir port)
-
-
-{-
-  unglob >>> unglob = unglob
-  unglob p <= p
-  unglob p <= glob d t 
--}
-unglob :: Piece -> Piece
-unglob (Piece p) = Lazy.force p.unglob
+adapt :: CardinalDirection -> Maybe PortType -> Piece -> Piece
+adapt dir port (Piece p) = fromMaybe (Piece p) (p.adapt dir port)
 
 isSimplifiable :: Piece -> Maybe Simplification
 isSimplifiable (Piece p) = p.isSimplifiable
