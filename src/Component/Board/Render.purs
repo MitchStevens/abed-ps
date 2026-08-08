@@ -11,8 +11,8 @@ import Component.DataAttribute as DA
 import Component.GameEventLogger as GameEventLogger
 import Component.Multimeter as Multimeter
 import Component.Piece as Piece
-import Component.Rendering.Path (renderPath)
 import Component.Rendering.Port (portPath)
+import Component.Rendering.Segment (renderPath)
 import Component.Sidebar.BoardSizeSlider as BoardSizeSlider
 import Control.Monad.State (evalState)
 import Data.Array (elem, replicate, (..))

@@ -5,8 +5,8 @@ module Component.Piece.Default
 import Prelude
 
 import Component.Piece.Types as Piece
-import Component.Rendering.Path (renderPath)
 import Component.Rendering.Port (portPath)
+import Component.Rendering.Segment (renderPath)
 import Data.Array as A
 import Data.Int (toNumber)
 import Data.Map as M

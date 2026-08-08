@@ -3,7 +3,7 @@ module Component.Rendering.CrossOver where
 import Prelude
 
 import Component.Piece.Types as Piece
-import Component.Rendering.Path (renderPath)
+import Component.Rendering.Segment (renderPath)
 import Component.Rendering.Wire (renderWire, wirePath, wirePieceFrame)
 import Data.Foldable (elem)
 import Data.Int (toNumber)

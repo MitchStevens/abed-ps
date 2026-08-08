@@ -3,6 +3,7 @@ module Test.Component.Rendering.Wire where
 import Game.Piece
 import Prelude
 
+import Component.Rendering.Segment (Segment(..))
 import Component.Rendering.Wire (wirePath)
 import Data.Map as M
 import Data.Tuple (Tuple(..))
@@ -10,7 +11,6 @@ import Game.Capacity (Capacity(..))
 import Game.Direction as Direction
 import Game.Port (inputPort, outputPort)
 import Game.Signal (Signal)
-import Halogen.Svg.Attributes (CommandPositionReference(..), l, m, q)
 import Test.Spec (Spec, describe, it, itOnly)
 import Test.Spec.Assertions (shouldEqual)
 
@@ -27,60 +27,60 @@ spec = do
                 , Tuple Direction.Right {connected: false, port: outputPort OneBit, signal}
                 , Tuple Direction.Down {connected: false, port: outputPort OneBit, signal} ]
 
+      -- Expected points are the same relative deltas the old `PathCommand`
+      -- assertions checked (see git history), walked out into absolute
+      -- coordinates -- `wirePath` no longer has a hidden cursor to thread.
       wirePath false id `shouldEqual`
-        [ m Rel 75.0 35.0
-        , l Rel 13.0 0.0
-        , l Rel 0.0 (-10.0)
-        , l Rel 12.0 25.0
-        , l Rel (-12.0) 25.0
-        , l Rel 0.0 (-10.0)
-        , l Rel (-13.0) 0.0
-        , q Rel 0.0 0.0 (-50.0) 0.0
-        , l Rel (-25.0) 0.0
-        , l Rel 0.0 (-30.0)
-        , l Rel 25.0 0.0
-        , q Rel 0.0 0.0 50.0 0.0
+        [ LineTo { from: { x: 75.0, y: 35.0 }, to: { x: 88.0, y: 35.0 } }
+        , LineTo { from: { x: 88.0, y: 35.0 }, to: { x: 88.0, y: 25.0 } }
+        , LineTo { from: { x: 88.0, y: 25.0 }, to: { x: 100.0, y: 50.0 } }
+        , LineTo { from: { x: 100.0, y: 50.0 }, to: { x: 88.0, y: 75.0 } }
+        , LineTo { from: { x: 88.0, y: 75.0 }, to: { x: 88.0, y: 65.0 } }
+        , LineTo { from: { x: 88.0, y: 65.0 }, to: { x: 75.0, y: 65.0 } }
+        , QuadTo { from: { x: 75.0, y: 65.0 }, control: { x: 75.0, y: 65.0 }, to: { x: 25.0, y: 65.0 } }
+        , LineTo { from: { x: 25.0, y: 65.0 }, to: { x: 0.0, y: 65.0 } }
+        , LineTo { from: { x: 0.0, y: 65.0 }, to: { x: 0.0, y: 35.0 } }
+        , LineTo { from: { x: 0.0, y: 35.0 }, to: { x: 25.0, y: 35.0 } }
+        , QuadTo { from: { x: 25.0, y: 35.0 }, control: { x: 25.0, y: 35.0 }, to: { x: 75.0, y: 35.0 } }
         ]
       wirePath false left `shouldEqual`
-        [ m Rel 35.0 25.0
-        , l Rel 0.0 (-13.0)
-        , l Rel (-10.0) 0.0
-        , l Rel 25.0 (-12.0)
-        , l Rel 25.0 12.0
-        , l Rel (-10.0) 0.0
-        , l Rel 0.0 13.0
-        , q Rel 0.0 40.0 (-40.0) 40.0
-        , l Rel (-25.0) 0.0
-        , l Rel 0.0 (-30.0)
-        , l Rel 25.0 0.0
-        , q Rel 10.0 0.0 10.0 (-10.0)
+        [ LineTo { from: { x: 35.0, y: 25.0 }, to: { x: 35.0, y: 12.0 } }
+        , LineTo { from: { x: 35.0, y: 12.0 }, to: { x: 25.0, y: 12.0 } }
+        , LineTo { from: { x: 25.0, y: 12.0 }, to: { x: 50.0, y: 0.0 } }
+        , LineTo { from: { x: 50.0, y: 0.0 }, to: { x: 75.0, y: 12.0 } }
+        , LineTo { from: { x: 75.0, y: 12.0 }, to: { x: 65.0, y: 12.0 } }
+        , LineTo { from: { x: 65.0, y: 12.0 }, to: { x: 65.0, y: 25.0 } }
+        , QuadTo { from: { x: 65.0, y: 25.0 }, control: { x: 65.0, y: 65.0 }, to: { x: 25.0, y: 65.0 } }
+        , LineTo { from: { x: 25.0, y: 65.0 }, to: { x: 0.0, y: 65.0 } }
+        , LineTo { from: { x: 0.0, y: 65.0 }, to: { x: 0.0, y: 35.0 } }
+        , LineTo { from: { x: 0.0, y: 35.0 }, to: { x: 25.0, y: 35.0 } }
+        , QuadTo { from: { x: 25.0, y: 35.0 }, control: { x: 35.0, y: 35.0 }, to: { x: 35.0, y: 25.0 } }
         ]
 
       wirePath false super `shouldEqual`
-        [ m Rel 35.0 25.0
-        , l Rel 0.0 (-13.0)
-        , l Rel (-10.0) 0.0
-        , l Rel 25.0 (-12.0)
-        , l Rel 25.0 12.0
-        , l Rel (-10.0) 0.0
-        , l Rel 0.0 13.0
-        , q Rel 0.0 10.0 10.0 10.0
-        , l Rel 13.0 0.0
-        , l Rel 0.0 (-10.0)
-        , l Rel 12.0 25.0
-        , l Rel (-12.0) 25.0
-        , l Rel 0.0 (-10.0)
-        , l Rel (-13.0) 0.0
-        , q Rel (-10.0) 0.0 (-10.0) 10.0
-        , l Rel 0.0 13.0
-        , l Rel 10.0 0.0
-        , l Rel (-25.0) 12.0
-        , l Rel (-25.0) (-12.0)
-        , l Rel 10.0 0.0
-        , l Rel 0.0 (-13.0)
-        , q Rel 0.0 (-10.0) (-10.0) (-10.0)
-        , l Rel (-25.0) 0.0
-        , l Rel 0.0 (-30.0)
-        , l Rel 25.0 0.0
-        , q Rel 10.0 0.0 10.0 (-10.0)
+        [ LineTo { from: { x: 35.0, y: 25.0 }, to: { x: 35.0, y: 12.0 } }
+        , LineTo { from: { x: 35.0, y: 12.0 }, to: { x: 25.0, y: 12.0 } }
+        , LineTo { from: { x: 25.0, y: 12.0 }, to: { x: 50.0, y: 0.0 } }
+        , LineTo { from: { x: 50.0, y: 0.0 }, to: { x: 75.0, y: 12.0 } }
+        , LineTo { from: { x: 75.0, y: 12.0 }, to: { x: 65.0, y: 12.0 } }
+        , LineTo { from: { x: 65.0, y: 12.0 }, to: { x: 65.0, y: 25.0 } }
+        , QuadTo { from: { x: 65.0, y: 25.0 }, control: { x: 65.0, y: 35.0 }, to: { x: 75.0, y: 35.0 } }
+        , LineTo { from: { x: 75.0, y: 35.0 }, to: { x: 88.0, y: 35.0 } }
+        , LineTo { from: { x: 88.0, y: 35.0 }, to: { x: 88.0, y: 25.0 } }
+        , LineTo { from: { x: 88.0, y: 25.0 }, to: { x: 100.0, y: 50.0 } }
+        , LineTo { from: { x: 100.0, y: 50.0 }, to: { x: 88.0, y: 75.0 } }
+        , LineTo { from: { x: 88.0, y: 75.0 }, to: { x: 88.0, y: 65.0 } }
+        , LineTo { from: { x: 88.0, y: 65.0 }, to: { x: 75.0, y: 65.0 } }
+        , QuadTo { from: { x: 75.0, y: 65.0 }, control: { x: 65.0, y: 65.0 }, to: { x: 65.0, y: 75.0 } }
+        , LineTo { from: { x: 65.0, y: 75.0 }, to: { x: 65.0, y: 88.0 } }
+        , LineTo { from: { x: 65.0, y: 88.0 }, to: { x: 75.0, y: 88.0 } }
+        , LineTo { from: { x: 75.0, y: 88.0 }, to: { x: 50.0, y: 100.0 } }
+        , LineTo { from: { x: 50.0, y: 100.0 }, to: { x: 25.0, y: 88.0 } }
+        , LineTo { from: { x: 25.0, y: 88.0 }, to: { x: 35.0, y: 88.0 } }
+        , LineTo { from: { x: 35.0, y: 88.0 }, to: { x: 35.0, y: 75.0 } }
+        , QuadTo { from: { x: 35.0, y: 75.0 }, control: { x: 35.0, y: 65.0 }, to: { x: 25.0, y: 65.0 } }
+        , LineTo { from: { x: 25.0, y: 65.0 }, to: { x: 0.0, y: 65.0 } }
+        , LineTo { from: { x: 0.0, y: 65.0 }, to: { x: 0.0, y: 35.0 } }
+        , LineTo { from: { x: 0.0, y: 35.0 }, to: { x: 25.0, y: 35.0 } }
+        , QuadTo { from: { x: 25.0, y: 35.0 }, control: { x: 35.0, y: 35.0 }, to: { x: 35.0, y: 25.0 } }
         ]

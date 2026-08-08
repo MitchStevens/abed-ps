@@ -2,30 +2,23 @@ module Component.Rendering.Wire where
 
 import Prelude
 
-import Component.DataAttribute as DA
 import Component.Piece.Types as Piece
-import Component.Rendering.Gradient (createPortGradient)
-import Component.Rendering.Path (Path, renderPath)
-import Control.Monad.Writer (execWriter, tell)
+import Component.Rendering.LegShape (curveBetweenPath, initialLocation, outputPath, stubPath, terminalLocation)
+import Component.Rendering.Segment (Segment, renderPath)
 import Data.Array (zip)
 import Data.Array as A
-import Data.Foldable (find, for_, traverse_)
-import Data.FoldableWithIndex (findWithIndex)
 import Data.Map (Map)
 import Data.Map as M
-import Data.Maybe (fromMaybe, fromMaybe', maybe')
+import Data.Maybe (maybe)
 import Data.Tuple (Tuple(..), fst, uncurry)
 import Game.Direction (CardinalDirection)
-import Game.Direction as Direction
 import Game.Piece (Piece, name, superPiece)
 import Game.Port (isInput)
 import Game.PortInfo (PortInfo)
-import Game.Rotation (Rotation(..))
 import Halogen (ComponentHTML)
-import Halogen.Svg.Attributes (Color(..), CommandPositionReference(..), PathCommand, l, m, q)
+import Halogen.Svg.Attributes (Color(..))
 import Halogen.Svg.Attributes as SA
 import Halogen.Svg.Elements as SE
-import Partial.Unsafe (unsafeCrashWith)
 
 {-
 A wirepath is a path that implies the operation of a piece. The outline traces a path with arrows for outputs and stubs for inputs.
@@ -62,96 +55,20 @@ renderWire :: forall s m. Piece -> Map CardinalDirection PortInfo -> ComponentHT
 renderWire piece portStates =
   SE.g []
     [ wirePieceFrame
-    --, renderPathWithEvents (wirePath (name piece == name superPiece) portStates) (Piece.PortOnMouseEnter inputDirection) Piece.PortOnMouseLeave
     , renderPath (wirePath (name piece == name superPiece) portStates)
     ]
 
-  --inputDirection = maybe' (\_ -> unsafeCrashWith $ "assertion failed: wire path created with no inputs. ports: " <> show portStates) (_.index)
-  --      (findWithIndex (\_ info -> isInput info.port) portStates)
-
-initialLocation :: CardinalDirection -> Tuple Number Number
-initialLocation = case _ of
-  Direction.Up    -> Tuple 35.0 25.0
-  Direction.Right -> Tuple 75.0 35.0
-  Direction.Down  -> Tuple 65.0 75.0
-  Direction.Left  -> Tuple 25.0 65.0
-
-terminalLocation :: CardinalDirection -> Tuple Number Number
-terminalLocation = case _ of
-  Direction.Up    -> Tuple 65.0 25.0
-  Direction.Right -> Tuple 75.0 65.0
-  Direction.Down  -> Tuple 35.0 75.0
-  Direction.Left  -> Tuple 25.0 35.0
-
-rotatePoint :: Rotation  -> Tuple Number Number -> Tuple Number Number
-rotatePoint rot (Tuple x y) = Tuple (c * x - s * y) (s * x + c * y)
-  where
-    Tuple s c = case rot of
-      Rotation 0 -> Tuple 0.0     1.0
-      Rotation 1 -> Tuple 1.0     0.0
-      Rotation 2 -> Tuple 0.0     (-1.0)
-      Rotation _ -> Tuple (-1.0)  0.0
-
-arrowPath :: CardinalDirection -> Array PathCommand
-arrowPath = case _ of
-  Direction.Up -> 
-    [ l Rel 0.0 (-13.0), l Rel (-10.0) 0.0, l Rel 25.0 (-12.0), l Rel 25.0 12.0, l Rel (-10.0) 0.0, l Rel 0.0 13.0 ]
-  Direction.Right -> 
-    [ l Rel 13.0 0.0, l Rel 0.0 (-10.0), l Rel 12.0 25.0, l Rel (-12.0) 25.0, l Rel 0.0 (-10.0), l Rel (-13.0) 0.0 ]
-  Direction.Down -> 
-    [ l Rel 0.0 13.0, l Rel 10.0 0.0,  l Rel (-25.0) 12.0,  l Rel (-25.0) (-12.0),  l Rel 10.0 0.0,  l Rel 0.0 (-13.0) ]
-  Direction.Left ->
-    [ l Rel (-13.0) 0.0, l Rel 0.0 10.0, l Rel (-12.0) (-25.0), l Rel 12.0 (-25.0),  l Rel 0.0 10.0,  l Rel 13.0 0.0 ]
-
-stubPath :: CardinalDirection -> Array PathCommand
-stubPath = case _ of 
-  Direction.Up -> [ l Rel 0.0 (-25.0), l Rel 30.0 0.0,   l Rel 0.0 25.0 ]
-  Direction.Right -> [ l Rel 25.0 0.0, l Rel 0.0 30.0,   l Rel (-25.0) 0.0  ]
-  Direction.Down -> [ l Rel 0.0 25.0,  l Rel (-30.0) 0.0,  l Rel 0.0 (-25.0) ]
-  Direction.Left -> [ l Rel (-25.0) 0.0, l Rel 0.0 (-30.0), l Rel 25.0 0.0 ]
-
-outputPath :: Boolean -> CardinalDirection -> Array PathCommand
-outputPath connected = if connected then stubPath else arrowPath
-
-
-curveBetweenPath :: CardinalDirection -> CardinalDirection -> Array PathCommand
-curveBetweenPath to from = [ q Rel dx dy x' y' ]
-  where 
-    Tuple x' y' = initialLocation from - terminalLocation to
-    Tuple dx dy = case from of
-      Direction.Up -> Tuple x' 0.0
-      Direction.Right -> Tuple 0.0 y'
-      Direction.Down -> Tuple x' 0.0
-      Direction.Left -> Tuple 0.0 y'
-
-
-
-
 -- | When `strokeOnly` is true (super piece), draw the trace as an unfilled path with a thin stroke instead of a port gradient.
-wirePath :: Boolean -> Map CardinalDirection PortInfo -> Path
-wirePath strokeOnly ports = path
+wirePath :: Boolean -> Map CardinalDirection PortInfo -> Array Segment
+wirePath _strokeOnly ports = maybe [] render (A.uncons (M.toUnfoldable ports))
   where
-    path = execWriter do
-      for_ (A.uncons (M.toUnfoldable ports)) \{head, tail} -> do
-        let Tuple x0 y0 = initialLocation (fst head)
-        tell [m Rel x0 y0]
-        let sides = zip (M.toUnfoldable ports) (map fst $ tail <> [head])
-        traverse_ (uncurry renderSide) sides
+  render :: { head :: Tuple CardinalDirection PortInfo, tail :: Array (Tuple CardinalDirection PortInfo) } -> Array Segment
+  render { head, tail } =
+    A.concatMap (uncurry renderSide) sides
+    where
+    sides = zip (M.toUnfoldable ports) (map fst $ tail <> [head])
 
-    renderSide (Tuple from info) to = tell $ (if isInput info.port then stubPath from else outputPath info.connected from) <> curveBetweenPath from to
-
-    --info = fromMaybe' (\_ -> unsafeCrashWith $ "assertion failed: wire path created with no inputs. ports: " <> show ports) 
-    --          (find (\portInfo -> isInput portInfo.port) ports)
-    --pathFill =
-    --  if strokeOnly then
-    --    FillNoneWithStroke { stroke: superPieceWireStroke, strokeWidth: 0.65 }
-    --  else
-    --    FillWithPortGradient (createPortGradient info)
-    --attrs = DA.attr DA.isConnected info.connected
-
-
-
-
-
-
-
+  renderSide :: Tuple CardinalDirection PortInfo -> CardinalDirection -> Array Segment
+  renderSide (Tuple from info) to =
+    (if isInput info.port then stubPath (initialLocation from) from else outputPath info.connected (initialLocation from) from)
+      <> curveBetweenPath (terminalLocation from) from to
