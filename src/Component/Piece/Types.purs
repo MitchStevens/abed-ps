@@ -12,6 +12,7 @@ module Component.Piece.Types
 
 import Prelude
 
+import Component.Piece.Outline as Outline
 import Data.FunctorWithIndex (mapWithIndex)
 import Data.Lens (Lens')
 import Data.Lens.Record (prop)
@@ -26,6 +27,7 @@ import Game.Piece (Piece(..))
 import Game.PortInfo (PortInfo)
 import Game.Rotation (Rotation(..), rotation)
 import Game.Signal (Signal)
+import Halogen as H
 import Type.Proxy (Proxy(..))
 import Web.HTML.Event.DragEvent (DragEvent)
 import Web.UIEvent.KeyboardEvent (KeyboardEvent)
@@ -38,14 +40,14 @@ type Input =
   , portStates :: Map CardinalDirection PortInfo
   }
 
-type State = 
+type State =
   { piece :: Piece
   , location :: Location
   , rotation  :: Rotation
   , portStates :: Map CardinalDirection PortInfo
   , isRotating :: Maybe
     { initialClickPosition :: Tuple Number Number
-    , currentRotation :: Number 
+    , currentRotation :: Number
     }
   , isDragging :: Boolean
   }
@@ -75,10 +77,24 @@ data Output
   | RemoveThis Location
   | NewMultimeterFocus (Maybe {info :: PortInfo, relativeEdge :: RelativeEdge })
 
+type ChildSlots = ( outline :: H.Slot Outline.Query Void Unit )
+
+-- the subset of state used for rendering (for memoization)
+type RenderState =
+  { piece :: Piece
+  , location :: Location
+  , rotation  :: Rotation
+  , portStates :: Map CardinalDirection PortInfo
+  , isRotating :: Maybe
+    { initialClickPosition :: Tuple Number Number
+    , currentRotation :: Number
+    }
+  }
+
 slot = Proxy :: Proxy "piece"
 
 initialState :: Input -> State
-initialState { piece, rotation, location, portStates } = 
+initialState { piece, rotation, location, portStates } =
   { piece
   , location
   , rotation
@@ -89,3 +105,16 @@ initialState { piece, rotation, location, portStates } =
 
 _portStates :: Lens' State (Map CardinalDirection PortInfo)
 _portStates = prop (Proxy :: _ "portStates")
+
+--type State =
+--  { piece :: Piece
+--  , location :: Location
+--  , rotation  :: Rotation
+--  , portStates :: Map CardinalDirection PortInfo
+--  , isRotating :: Maybe
+--    { initialClickPosition :: Tuple Number Number
+--    , currentRotation :: Number
+--    }
+--  , isDragging :: Boolean
+--
+--  }

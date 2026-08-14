@@ -3773,6 +3773,28 @@
   -webkit-animation-name: slideOutUp;
   animation-name: slideOutUp;
 }
+@keyframes outline-fade-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+.outline-fade-out {
+  animation: outline-fade-out 320ms ease both;
+}
+@keyframes outline-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+.outline-fade-in {
+  animation: outline-fade-in 320ms ease both;
+}
 @keyframes glow {
   from {
     box-shadow: 0 0 100 -100px #f4aec4;
@@ -3818,14 +3840,6 @@
 }
 .piece-component > div {
   position: absolute;
-}
-.piece-component svg circle {
-  fill: aliceblue;
-}
-.piece-component svg text {
-  fill: black;
-  font-size: 90px ;
-  font-family: 'Courier New', Courier, monospace;
 }
 #chat-component {
   font-family: 'Courier New', Courier, monospace;

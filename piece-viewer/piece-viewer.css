@@ -97,6 +97,11 @@ body {
   inset: 0;
   transform-origin: center center;
   transition: transform 120ms ease-out;
+  /* Default-rendered pieces (renderDefaultPiece) draw no background of their
+     own -- in the main app that's supplied by .piece-component's
+     background-color, which this stage doesn't share. Same color
+     (eggshellBackground / #F9F6EE), so those pieces look the same here. */
+  background-color: #F9F6EE;
 }
 
 .pv-piece-stage > svg {
@@ -174,6 +179,37 @@ body {
 
 .pv-animate-piece-removed {
   animation: pv-piece-removed-kf 0.55s ease-in-out both;
+}
+
+/* A piece's outline changing shape crossfades the old and new outline --
+   see Component.Outline. Duration is baked into `fadeDuration` there too;
+   keep the two in sync by hand if either changes. Mirrors
+   less/piece-component.less, duplicated here since piece-viewer ships its
+   own stylesheet rather than the app's compiled LESS. */
+@keyframes outline-fade-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+.outline-fade-out {
+  animation: outline-fade-out 320ms ease both;
+}
+
+@keyframes outline-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.outline-fade-in {
+  animation: outline-fade-in 320ms ease both;
 }
 
 .pv-tile-grid {

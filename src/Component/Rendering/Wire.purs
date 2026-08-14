@@ -2,7 +2,6 @@ module Component.Rendering.Wire where
 
 import Prelude
 
-import Component.Piece.Types as Piece
 import Component.Rendering.LegShape (curveBetweenPath, initialLocation, outputPath, stubPath, terminalLocation)
 import Component.Rendering.Segment (Segment, renderPath)
 import Data.Array (zip)
@@ -12,7 +11,6 @@ import Data.Map as M
 import Data.Maybe (maybe)
 import Data.Tuple (Tuple(..), fst, uncurry)
 import Game.Direction (CardinalDirection)
-import Game.Piece (Piece, name, superPiece)
 import Game.Port (isInput)
 import Game.PortInfo (PortInfo)
 import Halogen (ComponentHTML)
@@ -28,9 +26,6 @@ A wirepath is a path that implies the operation of a piece. The outline traces a
 
 wirePieceFrameStroke :: Color
 wirePieceFrameStroke = RGB 198 193 183
-
-superPieceWireStroke :: Color
-superPieceWireStroke = RGB 72 78 90
 
 -- | The rounded-rect border shared by every wire-family piece (simple wires and the
 -- | dual-input/dual-output crossover pieces), so they all frame their trace consistently.
@@ -51,16 +46,15 @@ wirePieceFrame =
   inset = 5.0
   cornerRadius = 9.0
 
-renderWire :: forall s m. Piece -> Map CardinalDirection PortInfo -> ComponentHTML Piece.Action s m
-renderWire piece portStates =
+renderWire :: forall action s m. Map CardinalDirection PortInfo -> ComponentHTML action s m
+renderWire portStates =
   SE.g []
     [ wirePieceFrame
-    , renderPath (wirePath (name piece == name superPiece) portStates)
+    , renderPath (wirePath portStates)
     ]
 
--- | When `strokeOnly` is true (super piece), draw the trace as an unfilled path with a thin stroke instead of a port gradient.
-wirePath :: Boolean -> Map CardinalDirection PortInfo -> Array Segment
-wirePath _strokeOnly ports = maybe [] render (A.uncons (M.toUnfoldable ports))
+wirePath :: Map CardinalDirection PortInfo -> Array Segment
+wirePath ports = maybe [] render (A.uncons (M.toUnfoldable ports))
   where
   render :: { head :: Tuple CardinalDirection PortInfo, tail :: Array (Tuple CardinalDirection PortInfo) } -> Array Segment
   render { head, tail } =

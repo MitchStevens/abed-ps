@@ -5,12 +5,13 @@ import Prelude
 import Component.DataAttribute (availablePiece)
 import Component.DataAttribute as DA
 import Component.Piece as Piece
-import Component.Rendering.Piece (renderPiece)
+import Component.Piece.Render (ChildSlots, renderPiece)
 import Data.Array as A
 import Data.Map as M
 import Data.Maybe (Maybe(..))
 import Data.Set (Set)
 import Data.Set as S
+import Effect.Aff.Class (class MonadAff)
 import Game.Location (location)
 import Game.Piece (Piece(..), PieceId(..), defaultPortInfo, name)
 import Game.Rotation (rotation)
@@ -46,10 +47,10 @@ data Query a
 
 type Output = Action
 
-component :: forall m. Component Query Input Output m
+component :: forall m. MonadAff m => Component Query Input Output m
 component = mkComponent { initialState: identity, eval, render }
 
-eval :: forall m. HalogenQ Query Action Input ~> HalogenM State Action () Output m
+eval :: forall m. MonadAff m => HalogenQ Query Action Input ~> HalogenM State Action ChildSlots Output m
 eval = mkEval
   { handleAction: \action -> H.raise action
   , handleQuery: \_ -> pure Nothing
@@ -58,7 +59,7 @@ eval = mkEval
   , finalize: Nothing
   }
 
-render :: forall m. State -> ComponentHTML Action () m
+render :: forall m. MonadAff m => State -> ComponentHTML Action ChildSlots m
 render { availablePieces } = 
   if S.isEmpty availablePieces
     then HH.text ""

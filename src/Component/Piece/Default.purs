@@ -19,7 +19,7 @@ import Halogen.Svg.Attributes (Transform(..))
 import Halogen.Svg.Attributes as SA
 import Halogen.Svg.Elements as SE
 
-renderDefaultPiece :: forall s m. Piece.State -> ComponentHTML Piece.Action s m
+renderDefaultPiece :: forall action s m. Piece.State -> ComponentHTML action s m
 renderDefaultPiece state = SE.g [] (allPorts <> [ center ])
   where
     allPorts = do

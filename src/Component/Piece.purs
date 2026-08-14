@@ -11,9 +11,9 @@ import Data.Lens
 import Prelude
 
 import Component.DataAttribute as DA
-import Component.Rendering.Piece (renderPiece)
+import Component.Piece.Outline as Outline
+import Component.Piece.Render (ChildSlots, outlineSegmentsFor, renderPiece)
 import Control.Monad.State.Trans (gets, modify_)
-import Data.Array as A
 import Data.Enum (enumFromTo, fromEnum)
 import Data.Foldable (for_, traverse_)
 import Data.FunctorWithIndex (mapWithIndex)
@@ -24,12 +24,13 @@ import Data.Lens.Index (ix)
 import Data.Lens.Record (prop)
 import Data.Map (Map)
 import Data.Map as M
-import Data.Maybe (Maybe(..), fromMaybe, isJust, isNothing, maybe)
+import Data.Maybe (Maybe(..), isJust, isNothing, maybe)
 import Data.Number (acos, atan2, pi, sqrt)
 import Data.Tuple (Tuple(..))
 import Debug (trace)
 import Effect (Effect)
-import Effect.Class (class MonadEffect, liftEffect)
+import Effect.Aff.Class (class MonadAff)
+import Effect.Class (liftEffect)
 import Effect.Class.Console (log, logShow)
 import Game.Board (relative)
 import Game.Piece (name)
@@ -60,17 +61,28 @@ import Web.UIEvent.MouseEvent as MouseEvent
 
 type PieceComponent m = Component Query Input Output m
 
-type PieceComponentSpec m = 
-  { renderPiece :: State -> Array (ComponentHTML Action () m)
+type PieceComponentSpec m =
+  { renderPiece :: State -> Array (ComponentHTML Action ChildSlots m)
   }
 
-component :: forall m. MonadEffect m => PieceComponent m
+component :: forall m. MonadAff m => PieceComponent m
 component = mkPieceComponent { renderPiece: \st -> [ renderPiece st ] }
 
-mkPieceComponent :: forall m. MonadEffect m => PieceComponentSpec m -> PieceComponent m
+mkPieceComponent :: forall m. MonadAff m => PieceComponentSpec m -> PieceComponent m
 mkPieceComponent { renderPiece } = mkComponent { eval , initialState , render }
   where
-  render = HH.memoized eq $ \state -> 
+  -- | Not memoized: `HH.memoized` here previously skipped re-rendering when
+  -- | `piece`/`portStates` were unchanged (see the removed `renderEq`), on
+  -- | the theory that the Outline child's own shape updates ride on an
+  -- | explicit `H.tell` query (see `Receive` below) rather than on this
+  -- | render being re-invoked. That part held, but a skipped/thunked render
+  -- | doesn't just leave the DOM alone here -- it also detaches the
+  -- | already-mounted Outline child slot nested inside it, so any `modify_`
+  -- | that Halogen's memoization considered a no-op (e.g. clicking, which
+  -- | sets `isRotating` to the value it already had) silently deleted the
+  -- | piece's outline from the page.
+  render = \state ->
+    trace ("Piece.render: " <> show (name state.piece) <> " at " <> show state.location) \_ ->
     HH.div
       [ HP.classes [ ClassName "piece-component" ]
       , DA.attr DA.isDragging state.isDragging
@@ -78,7 +90,7 @@ mkPieceComponent { renderPiece } = mkComponent { eval , initialState , render }
       , DA.attr DA.pieceId (name state.piece)
       , HP.draggable (isNothing state.isRotating)
       , HP.ref refPiece
-      , HP.contentEditable true
+      , HP.tabIndex 0
 
       , HE.onDragEnd (OnDrop state.location)
       , HE.onDrag OnDrag
@@ -91,25 +103,38 @@ mkPieceComponent { renderPiece } = mkComponent { eval , initialState , render }
 
   eval = mkEval defaultPieceEval
 
-defaultPieceEval :: forall sl m. MonadEffect m => EvalSpec State Query Action sl Input Output m
+defaultPieceEval :: forall m. MonadAff m => EvalSpec State Query Action ChildSlots Input Output m
 defaultPieceEval = defaultEval
     { finalize = Just Finalise
     , handleAction = case _ of
         Initialise -> pure unit
         Finalise -> pure unit
         Receive { piece, location, rotation, portStates } -> do
-          modify_ $ _ 
+          oldPiece <- gets _.piece
+          oldPortStates <- gets _.portStates
+          let
+            mOld = outlineSegmentsFor oldPiece oldPortStates
+            mNew = outlineSegmentsFor piece portStates
+          modify_ $ _
             { piece = piece
             , location = location
             , rotation = rotation
             , portStates = map clampPortInfo portStates }
+          case mOld, mNew of
+            Just oldSegs, Just newSegs | oldSegs /= newSegs ->
+              void $ H.tell Outline.slot unit (Outline.Transition newSegs)
+            _, _ -> pure unit
 
         OnDrop loc event -> do
           modify_ (_ { isDragging = false })
           raise (Dropped loc)
         OnDrag dragEvent -> do
-          modify_ (_ { isDragging = true })
-          pure unit
+          -- The native `drag` event fires continuously for the whole
+          -- gesture, but `isDragging` only actually changes once (false ->
+          -- true) -- only modify_ then, so the dozens of no-op events later
+          -- in the same drag don't each force a full re-render.
+          isDragging <- gets (_.isDragging)
+          unless isDragging $ modify_ (_ { isDragging = true })
         OnMouseDown me ->
           getHTMLElementRef refPiece >>= traverse_ \he -> do
             r <- liftEffect $ mul 0.5 <$> clientWidth (toElement he)

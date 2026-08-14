@@ -2,7 +2,6 @@ module Component.Rendering.CrossOver where
 
 import Prelude
 
-import Component.Piece.Types as Piece
 import Component.Rendering.Segment (renderPath)
 import Component.Rendering.Wire (renderWire, wirePath, wirePieceFrame)
 import Data.Foldable (elem)
@@ -20,27 +19,27 @@ import Halogen.Svg.Attributes (Transform(..))
 import Halogen.Svg.Attributes as SA
 import Halogen.Svg.Elements as SE
 
-renderCrossOver :: forall s m. Map CardinalDirection PortInfo -> ComponentHTML Piece.Action s m
+renderCrossOver :: forall action s m. Map CardinalDirection PortInfo -> ComponentHTML action s m
 renderCrossOver = renderDualInputDualOutputPiece (Tuple Direction.Left Direction.Right) (Tuple Direction.Up Direction.Down)
 
-renderCornerCut :: forall s m. Map CardinalDirection PortInfo -> ComponentHTML Piece.Action s m
+renderCornerCut :: forall action s m. Map CardinalDirection PortInfo -> ComponentHTML action s m
 renderCornerCut = renderDualInputDualOutputPiece (Tuple Direction.Left Direction.Down) (Tuple Direction.Up Direction.Right)
 
-renderChicken :: forall s m. Map CardinalDirection PortInfo -> ComponentHTML Piece.Action s m
+renderChicken :: forall action s m. Map CardinalDirection PortInfo -> ComponentHTML action s m
 renderChicken = renderDualInputDualOutputPiece (Tuple Direction.Left Direction.Down) (Tuple Direction.Right Direction.Up)
 
-renderReverseChicken :: forall s m. Map CardinalDirection PortInfo -> ComponentHTML Piece.Action s m
+renderReverseChicken :: forall action s m. Map CardinalDirection PortInfo -> ComponentHTML action s m
 renderReverseChicken = renderDualInputDualOutputPiece (Tuple Direction.Left Direction.Right) (Tuple Direction.Up Direction.Down)
 
-renderDualInputDualOutputPiece :: forall s m. Tuple CardinalDirection CardinalDirection -> Tuple CardinalDirection CardinalDirection -> Map CardinalDirection PortInfo -> ComponentHTML Piece.Action s m
+renderDualInputDualOutputPiece :: forall action s m. Tuple CardinalDirection CardinalDirection -> Tuple CardinalDirection CardinalDirection -> Map CardinalDirection PortInfo -> ComponentHTML action s m
 renderDualInputDualOutputPiece (Tuple to1 from1) (Tuple to2 from2) portStates = SE.g []
   [ wirePieceFrame
   , renderPath path1
   , renderPath path2
   ]
   where
-    path1 = wirePath false (M.filterKeys (_ `elem` [to1, from1]) portStates)
-    path2 = wirePath false (M.filterKeys (_ `elem` [to2, from2]) portStates)
+    path1 = wirePath (M.filterKeys (_ `elem` [to1, from1]) portStates)
+    path2 = wirePath (M.filterKeys (_ `elem` [to2, from2]) portStates)
 
 
 

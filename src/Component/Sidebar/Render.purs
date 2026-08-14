@@ -6,7 +6,7 @@ import Prelude
 import Component (toCssSelectorString)
 import Component.DataAttribute as DA
 import Component.Piece as Piece
-import Component.Rendering.Piece (renderPiece)
+import Component.Piece.Render (renderPiece)
 import Component.Sidebar.BoardSizeSlider as BoardSizeSlider
 import Component.Sidebar.Segment (segment, segmentWithTitle)
 import Component.TestRunner as TestRunner
