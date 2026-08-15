@@ -3,7 +3,6 @@ module Resources.LevelSuites where
 import Prelude
 
 import Capability.Progress (LevelProgress, getLevelProgress)
-import Component.Chat as Chat
 import Data.HeytingAlgebra (ff, tt)
 import Data.Map (Map)
 import Data.Map as M

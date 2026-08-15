@@ -7,12 +7,10 @@ import Capability.Animate (headShake)
 import Capability.Navigate (Route(..), navigateTo)
 import Component.Board as Board
 import Component.Demonstration as Demonstration
+import Component.Feedback as Feedback
 import Component.GameEventLogger as GameEventLogger
-import Component.Marginalia.Types (Marginalia, marginalia)
-import Component.Marginalium as Marginalium
 import Component.Selector as Selector
 import Component.Sidebar as Sidebar
-import Component.TestRunner as TestRunner
 import Control.Alt ((<|>))
 import Control.Monad.Cont (ContT(..), callCC, lift, runContT)
 import Control.Monad.Except (ExceptT(..), runExceptT)
@@ -35,8 +33,6 @@ import Data.Time.Duration (Milliseconds(..), Seconds(..))
 import Data.Traversable (for, traverse)
 import Data.TraversableWithIndex (forWithIndex)
 import Data.Tuple (Tuple(..), fst, snd)
-import Data.UUID.Random (UUIDv4)
-import Data.UUID.Random as UUID
 import Effect.Aff (forkAff)
 import Effect.Aff as Aff
 import Effect.Aff.Class (class MonadAff, liftAff)
@@ -71,8 +67,7 @@ type Input =
 
 type State =
   { levelId :: LevelId
-  , level :: Level 
-  , marginalia :: Map UUIDv4 Marginalia
+  , level :: Level
   , completionStatus :: CompletionStatus
   , boardSize :: Int
   , boardPorts :: Map CardinalDirection Port
@@ -87,39 +82,34 @@ data Action
   | BoardOutput       Board.Output
   | SidebarOutput     Sidebar.Output
   | SelectorOutput    Selector.Action
-  | MarginaliumOutput Marginalium.Output
 
 
 type Slots =
   ( board           :: Slot Board.Query         Board.Output Unit
   , sidebar         :: Slot Sidebar.Query       Sidebar.Output Unit
   , selector        :: Slot Selector.Query      Selector.Output Unit
-  , marginalia      :: Slot Marginalium.Query   Marginalium.Output UUIDv4
   , demonstration   :: Slot Demonstration.Query Demonstration.Output Unit
---  , marginalium :: Slot Marginalium.Query Marginalium.Output UUIDv4
   , gameEventLogger :: forall q. Slot q Void Unit
   )
 
 component :: forall q o. Component q Input o AppM
 component = H.mkComponent { eval , initialState , render }
   where
-  initialState { levelId, level } = 
+  initialState { levelId, level } =
     { levelId
     , level
     , completionStatus: NotStarted
     , boardSize: 3
     , boardPorts: evalState getBoardPorts standardBoard
-    , marginalia: M.empty
     , base: level.options.base
     }
 
   --render :: State -> HalogenM State Action Slots o m Unit
-  render { level, levelId, marginalia, completionStatus, boardSize, boardPorts, base } = HH.div
+  render { level, levelId, completionStatus, boardSize, boardPorts, base } = HH.div
     [ HP.id "puzzle-component"]
     [ HH.slot Board.slot unit Board.component { board: standardBoard } BoardOutput
     , HH.slot Sidebar.slot unit Sidebar.component sidebarInput SidebarOutput
     , HH.slot Selector.slot unit Selector.component { availablePieces: level.problem.availablePieces } SelectorOutput
-    --, HH.div [ HP.id "marginalia" ] ((M.toUnfoldable marginalia :: Array _) <#> \(Tuple uuid m) -> HH.slot _marginalia uuid Marginalium.component { uuid, marginalia: m } MarginaliumOutput)
     --, HH.slot_ _gameEventLogger unit GameEventLogger.component unit
     , fromMaybe (HH.text "") $
         HH.slot_ Demonstration.slot unit Demonstration.component <$> level.problem.demonstration
@@ -142,12 +132,6 @@ component = H.mkComponent { eval , initialState , render }
       levelId <- gets (_.levelId)
       lift $ debug M.empty ("Initialised level " <> show levelId)
 
-      --init marginalia
-      gets (_.level.marginalia) >>= traverse_ \m -> do
-        lift $ info M.empty "initialising marginalia"
-        uuid <- UUID.make
-        modify_ (\state -> state { marginalia = M.insert uuid m state.marginalia})
-      
       -- init demonstration
       _ <- delay (Milliseconds 1000.0) TriggerDemonstration >>= H.subscribe
       pure unit
@@ -202,13 +186,17 @@ component = H.mkComponent { eval , initialState , render }
           modify_ $ _ { base = base }
         Sidebar.RunDemonstration -> do
           handleAction TriggerDemonstration
-      Sidebar.TestRunnerOutput output -> case output of
-        TestRunner.TestCaseData testCaseData -> do
+      Sidebar.FeedbackOutput output -> case output of
+        Feedback.TestCaseData testCaseData -> do
           H.request Board.slot unit (Board.RunTestCase testCaseData) >>= traverse_ \outcome -> do
             H.tell Sidebar.slot unit (Sidebar.TestCaseResponse outcome)
           pure unit
-        TestRunner.AllTestsPassed -> 
+        Feedback.AllTestsPassed ->
           modify_ (_ { completionStatus = Completion.Completed})
+        -- Sidebar intercepts PushCard itself (forwards it to CardStack) and
+        -- never forwards it up as a FeedbackOutput; kept here only so this
+        -- match stays exhaustive against Feedback.Output.
+        Feedback.PushCard _ -> pure unit
 
 
     SelectorOutput output -> case output of
@@ -221,14 +209,6 @@ component = H.mkComponent { eval , initialState , render }
         for_ maybeLocation \loc -> 
           H.request Board.slot unit (Board.AddPiece loc (pieceLookup pieceId))
       Selector.DoNothing -> pure unit
-      
-      
-    MarginaliumOutput marginaliaOutput -> case marginaliaOutput of
-      Marginalium.TriggerNext marginalia -> do
-        uuid <- UUID.make
-        modify_ (\state -> state { marginalia = M.insert uuid marginalia state.marginalia})
-      Marginalium.RemoveThis uuid -> do
-        modify_ \state -> state { marginalia = M.delete uuid state.marginalia }
 
 
 delay :: forall m a. MonadAff m => Milliseconds -> a -> m (Emitter a)

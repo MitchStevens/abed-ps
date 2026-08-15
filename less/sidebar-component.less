@@ -16,6 +16,30 @@
         font-weight: 100;
     }
 
+    // Everything but the level info and the card stack -- pinned to the
+    // bottom of the sidebar so the card stack owns the space in between.
+    & .sidebar-controls {
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-start;
+        gap: 7px;
+        width: 100%;
+        margin-top: auto;
+
+        // These items used to be direct children of #sidebar-component,
+        // which is what the title/control-inline rule below keys off of --
+        // repeat it here now that they're one level deeper.
+        & > * {
+            display: inline-flex;
+            justify-content: space-between;
+            width: 100%;
+
+            & > * {
+                align-content: center;
+            }
+        }
+    }
+
 
     & > * {
         display: inline-flex;
@@ -60,63 +84,19 @@
         }
     }
 
-    & .test-runner {
+    // Card visuals -- the slot, the card, and its action buttons -- live in
+    // the reusable `.card-stack-component`, see less/card-stack-component.less.
+    // TestRunner itself renders nothing (see Component/TestRunner/Render.purs).
+    // It's the only source of textual feedback to the player, so it gets a
+    // bit more breathing room than the other sidebar items' 7px gap.
+    & .card-stack {
+        margin: 16px 0;
 
-        & .buttons {
-            display: flex;
-            flex-direction: row;
-            gap: 10px;
-            padding-top: 10px;
-        }
-
-        & table {
-            @border: @red 2px solid;
-            width: 100%;
-            border-collapse: collapse;
-            text-align: center;
-            
-            & thead { 
-                border-bottom: @border;
-                border-top: @border
-            }
-
-            & tfoot {
-                border-top: @border;
-            }
-           
-            & tr {
-                opacity: 0.9;
-                &[data-test-case-status='failed'] {
-                    background-color: @red;
-
-                }
-
-                &[data-test-case-status='passed'] {
-                    background-color: @green;
-                }
-            }
-
-            & colgroup {
-                & col.test-case-index {
-                    min-width: 3px;
-                    max-width: 3px;
-                }
-
-                
-                & col.test-case-input, col.test-case-expected, col.test-case-recieved {
-                    width: auto;
-                    max-width: 10px;
-                    border-left: @border;
-                    border-right: @border;
-                }
-
-                & col.test-case-status {
-                    width: 70px;
-                }
-            }
+        & .card-mount {
+            padding: 10px;
+            box-sizing: border-box;
         }
     }
-
 
     .board-port-diagram {
 

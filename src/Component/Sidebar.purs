@@ -18,9 +18,10 @@ import Prelude
 import AppM (AppM)
 import Capability.Animate (headShake)
 import Capability.Navigate (Route(..), navigateTo)
+import Component.CardStack as CardStack
+import Component.Feedback as Feedback
 import Component.Sidebar.BoardSizeSlider as BoardSizeSlider
 import Component.Sidebar.Render (render)
-import Component.TestRunner as TestRunner
 import Control.Monad.State (modify_, put)
 import Data.Foldable (for_)
 import Data.Int as Int
@@ -53,7 +54,15 @@ component = mkComponent { eval , initialState , render }
           H.raise (ButtonOutput button)
         BoardSizeSliderAction (BoardSizeSlider.BoardSizeChange { boardSize }) ->
           H.raise (InputFieldOutput (BoardSize boardSize))
-        TestRunnerAction output -> H.raise (TestRunnerOutput output)
+        FeedbackAction output -> case output of
+          -- CardStack is Sidebar's child now, not Feedback's -- forward
+          -- what used to be a direct H.tell from Feedback on to CardStack.
+          Feedback.PushCard content ->
+            H.tell CardStack.slot unit (CardStack.PushCard content)
+          _ -> H.raise (FeedbackOutput output)
+        -- CardStack doesn't raise anything meaningful right now (its cards
+        -- have no buttons any more -- see Component.CardStack).
+        CardStackAction _ -> pure unit
         DoNothing -> pure unit
     , handleQuery: case _ of
         AmendBoardSizeSlider size next -> do
@@ -61,7 +70,7 @@ component = mkComponent { eval , initialState , render }
           headShake (QuerySelector "#sidebar-component .board-size h3")
           pure (Just next)
         TestCaseResponse outcome next -> do
-          H.tell TestRunner.slot unit (TestRunner.TestCaseOutcome outcome)
+          H.tell Feedback.slot unit (Feedback.TestCaseOutcome outcome)
           pure (Just next)
     , initialize: Nothing
     , receive: Just <<< Initialise
@@ -71,8 +80,3 @@ getValueFromEvent :: Event -> Effect (Maybe Number)
 getValueFromEvent = 
     (Event.target >=> HTMLInputElement.fromEventTarget) 
       >>> traverse HTMLInputElement.valueAsNumber
---
---      , initialize: Nothing
---      , receive: Just <<< Initialise
---      }
--- >>>>>>> 23f884ca6d049f83b197a624058326ab47ad69b3

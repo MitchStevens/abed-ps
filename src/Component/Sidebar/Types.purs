@@ -2,8 +2,9 @@ module Component.Sidebar.Types where
 
 import Prelude
 
+import Component.CardStack as CardStack
+import Component.Feedback as Feedback
 import Component.Sidebar.BoardSizeSlider as BoardSizeSlider
-import Component.TestRunner as TestRunner
 import Data.Lens (Lens')
 import Data.Lens.Record (prop)
 import Data.Map (Map)
@@ -60,7 +61,8 @@ data Action
   | PieceOnDrop PieceId DragEvent
   | ButtonClicked Button MouseEvent
   | BoardSizeSliderAction BoardSizeSlider.Output
-  | TestRunnerAction TestRunner.Output
+  | FeedbackAction Feedback.Output
+  | CardStackAction CardStack.Output
   {-
     the sidebar creates little icons using the same piece rendering as pieces. the type of HTML used in piece rendering is:
       `ComponentHTML Piece.Action s m`
@@ -77,11 +79,12 @@ data Output
   = PieceDropped PieceId
   | ButtonOutput Button
   | InputFieldOutput InputField
-  | TestRunnerOutput TestRunner.Output
+  | FeedbackOutput Feedback.Output
 
 type Slots =
-  ( testRunner :: Slot TestRunner.Query TestRunner.Output Unit
+  ( feedback :: Slot Feedback.Query Feedback.Output Unit
   , boardSizeSlider :: Slot BoardSizeSlider.Query BoardSizeSlider.Output Unit
+  , cardStack :: Slot CardStack.Query CardStack.Output Unit
   )
 
 initialState :: Input -> State

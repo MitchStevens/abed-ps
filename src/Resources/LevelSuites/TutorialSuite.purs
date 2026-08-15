@@ -3,7 +3,6 @@ module Resources.LevelSuites.TutorialSuite.Suite where
 import Prelude
 
 import Capability.Navigate (Route(..))
-import Component.Marginalia.Types (description, marginalia)
 import Control.Monad.Reader (ask, lift)
 import Control.Plus ((<|>))
 import Data.Array.NonEmpty.Internal (NonEmptyArray(..))

@@ -10,7 +10,7 @@ import Data.Foldable (for_)
 import Data.List (List(..), (:))
 import Data.List as L
 import Data.Maybe (Maybe(..))
-import Data.Zipper (Zipper(..), moveLeft, moveRight)
+import Data.Zipper (Zipper(..), appendLeft, appendRight, focusMostLeft, focusMostRight, moveLeft, moveRight)
 import Test.Spec (Spec, describe, describeOnly, it)
 import Test.Spec.Assertions (shouldEqual)
 
@@ -40,6 +40,48 @@ spec = describe "Data.Zipper" do
       for_ (duplicate (Zipper Nil 0 (1:2:3:4:Nil))) \z ->
         for_ (Just z >>= moveLeft >>= moveRight) \z' ->
           z `shouldEqual` z'
+
+    it "focusMostLeft" do
+      -- already at the left end: a no-op
+      focusMostLeft (Zipper Nil 0 Nil) `shouldEqual` Zipper Nil 0 Nil
+      focusMostLeft (Zipper Nil 0 (1:2:Nil)) `shouldEqual` Zipper Nil 0 (1:2:Nil)
+      -- focused in the middle/at the right end: walks all the way left
+      focusMostLeft (Zipper (1:0:Nil) 2 (3:4:Nil)) `shouldEqual` Zipper Nil 0 (1:2:3:4:Nil)
+      focusMostLeft (Zipper (3:2:1:0:Nil) 4 Nil) `shouldEqual` Zipper Nil 0 (1:2:3:4:Nil)
+      -- idempotent
+      focusMostLeft (focusMostLeft (Zipper (1:0:Nil) 2 (3:4:Nil))) `shouldEqual`
+        focusMostLeft (Zipper (1:0:Nil) 2 (3:4:Nil))
+
+    it "focusMostRight" do
+      -- already at the right end: a no-op
+      focusMostRight (Zipper Nil 0 Nil) `shouldEqual` Zipper Nil 0 Nil
+      focusMostRight (Zipper (1:0:Nil) 2 Nil) `shouldEqual` Zipper (1:0:Nil) 2 Nil
+      -- focused in the middle/at the left end: walks all the way right
+      focusMostRight (Zipper (1:0:Nil) 2 (3:4:Nil)) `shouldEqual` Zipper (3:2:1:0:Nil) 4 Nil
+      focusMostRight (Zipper Nil 0 (1:2:3:4:Nil)) `shouldEqual` Zipper (3:2:1:0:Nil) 4 Nil
+      -- idempotent
+      focusMostRight (focusMostRight (Zipper (1:0:Nil) 2 (3:4:Nil))) `shouldEqual`
+        focusMostRight (Zipper (1:0:Nil) 2 (3:4:Nil))
+
+  describe "appendLeft/appendRight" do
+    it "appendLeft inserts next to the focus without moving it" do
+      appendLeft 9 (Zipper Nil 0 Nil) `shouldEqual` Zipper (9:Nil) 0 Nil
+      appendLeft 9 (Zipper (1:0:Nil) 2 (3:4:Nil)) `shouldEqual` Zipper (9:1:0:Nil) 2 (3:4:Nil)
+
+    it "appendRight inserts next to the focus without moving it" do
+      appendRight 9 (Zipper Nil 0 Nil) `shouldEqual` Zipper Nil 0 (9:Nil)
+      appendRight 9 (Zipper (1:0:Nil) 2 (3:4:Nil)) `shouldEqual` Zipper (1:0:Nil) 2 (9:3:4:Nil)
+
+    it "never loses elements: length grows by exactly one" do
+      let z = Zipper (1:0:Nil) 2 (3:4:Nil)
+      A.length (A.fromFoldable (appendLeft 9 z)) `shouldEqual` (A.length (A.fromFoldable z) + 1)
+      A.length (A.fromFoldable (appendRight 9 z)) `shouldEqual` (A.length (A.fromFoldable z) + 1)
+
+    it "the appended element becomes the new immediate neighbour" do
+      moveLeft (appendLeft 9 (Zipper (1:0:Nil) 2 (3:4:Nil))) `shouldEqual`
+        Just (Zipper (1:0:Nil) 9 (2:3:4:Nil))
+      moveRight (appendRight 9 (Zipper (1:0:Nil) 2 (3:4:Nil))) `shouldEqual`
+        Just (Zipper (2:1:0:Nil) 9 (3:4:Nil))
 
   it "extend" do
     extend identity (Zipper (1:0:Nil) 2 (3:4:Nil)) `shouldEqual`

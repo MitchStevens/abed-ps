@@ -52,7 +52,6 @@ workspace:
           - uint
           - unfoldable
           - unsafe-coerce
-          - uuidv4
           - web-dom
           - web-events
           - web-html
@@ -143,7 +142,6 @@ workspace:
           - unicode
           - unsafe-coerce
           - unsafe-reference
-          - uuidv4
           - validation
           - web-clipboard
           - web-dom
@@ -346,7 +344,6 @@ workspace:
           - unicode
           - unsafe-coerce
           - unsafe-reference
-          - uuidv4
           - validation
           - web-clipboard
           - web-dom
@@ -2282,21 +2279,6 @@ packages:
     integrity: sha256-ttSJTQUnK8AK2eGOsfRxLUJEDPL6pnmExjbiOqfwC6I=
     dependencies:
       - prelude
-  uuidv4:
-    type: registry
-    version: 1.0.0
-    integrity: sha256-SW+Jpjp1DNSnHdueEV9EWgoPx4RWyyv8LxMjVlkrong=
-    dependencies:
-      - arrays
-      - control
-      - effect
-      - foldable-traversable
-      - integers
-      - maybe
-      - partial
-      - prelude
-      - random
-      - strings
   validation:
     type: registry
     version: 6.0.0

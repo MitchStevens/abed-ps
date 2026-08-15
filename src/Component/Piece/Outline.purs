@@ -11,9 +11,9 @@ module Component.Piece.Outline
 
 import Prelude
 
+import Component.Rendering.Path (Path)
 import Component.Rendering.Segment (Segment, toPath)
 import Data.Maybe (Maybe(..), isJust)
-import Debug (trace)
 import Effect.Aff (Milliseconds(..))
 import Effect.Aff as Aff
 import Effect.Aff.Class (class MonadAff)
@@ -30,7 +30,22 @@ import Type.Proxy (Proxy(..))
 
 -- | The path currently shown, plus (while a shape change is still
 -- | crossfading in) the path it's replacing, plus the current fill.
-type State = { current :: Array Segment, fadingOut :: Maybe (Array Segment), fill :: String }
+-- |
+-- | `currentPath`/`fadingOutPath` are `toPath current`/`toPath <$>
+-- | fadingOut`, computed once here rather than in `render`. `render` fires
+-- | on every `Receive` -- which, since a piece is re-rendered wholesale on
+-- | every drag/rotate mouse-move, is often -- even though `current` itself
+-- | (the piece's shape) essentially never changes mid-drag, only `fill`
+-- | (or nothing at all) does. Recomputing `toPath` from scratch on each of
+-- | those renders was pure waste; keeping the derived `Path` in `State`
+-- | means it's only ever recomputed when the shape actually changes.
+type State =
+  { current :: Array Segment
+  , currentPath :: Path
+  , fadingOut :: Maybe (Array Segment)
+  , fadingOutPath :: Maybe Path
+  , fill :: String
+  }
 
 -- | `fill` is anything an SVG `fill` accepts -- a colour, or a
 -- | `"url(#patternId)"` reference.
@@ -58,7 +73,8 @@ data Action
 slot = Proxy :: Proxy "outline"
 
 initialState :: Input -> State
-initialState { segments, fill } = { current: segments, fadingOut: Nothing, fill }
+initialState { segments, fill } =
+  { current: segments, currentPath: toPath segments, fadingOut: Nothing, fadingOutPath: Nothing, fill }
 
 -- | How long the old and new outline take to crossfade. Matches the
 -- | `320ms` baked into `outline-fade-in`/`outline-fade-out`'s
@@ -88,28 +104,29 @@ component =
     }
   where
   render :: State -> ComponentHTML Action () m
-  render state = trace ("Outline.render: fadingOut=" <> show (isJust state.fadingOut)) \_ ->
-    SE.g [] (fadingOutPath <> [ currentPath ])
+  render state = SE.g [] (fadingOutPath <> [ currentPath ])
     where
-    fadingOutPath = case state.fadingOut of
+    fadingOutPath = case state.fadingOutPath of
       Just old -> [ SE.g [ SA.classes [ ClassName "outline-fade-out" ] ] [ renderFilledPath state.fill old ] ]
       Nothing -> []
 
-    currentPath = SE.g fadeInClass [ renderFilledPath state.fill state.current ]
+    currentPath = SE.g fadeInClass [ renderFilledPath state.fill state.currentPath ]
     fadeInClass
       | isJust state.fadingOut = [ SA.classes [ ClassName "outline-fade-in" ] ]
       | otherwise = []
 
   handleAction :: Action -> HalogenM State Action () output m Unit
   handleAction = case _ of
-    SetPath path -> modify_ _ { current = path, fadingOut = Nothing }
+    SetPath path -> modify_ _ { current = path, currentPath = toPath path, fadingOut = Nothing, fadingOutPath = Nothing }
     TransitionTo target -> do
-      { current } <- get
-      modify_ _ { current = target, fadingOut = Just current }
+      { current, currentPath } <- get
+      modify_ _ { current = target, currentPath = toPath target, fadingOut = Just current, fadingOutPath = Just currentPath }
       _ <- H.subscribe =<< after fadeDuration EndTransition
       pure unit
-    EndTransition -> modify_ _ { fadingOut = Nothing }
-    Receive input -> modify_ _ { fill = input.fill }
+    EndTransition -> modify_ _ { fadingOut = Nothing, fadingOutPath = Nothing }
+    Receive input -> do
+      { fill } <- get
+      when (fill /= input.fill) (modify_ _ { fill = input.fill })
 
   handleQuery :: forall a. Query a -> HalogenM State Action () output m (Maybe a)
   handleQuery = case _ of
@@ -117,15 +134,15 @@ component =
       handleAction (TransitionTo target)
       pure (Just a)
 
-renderFilledPath :: forall w i. String -> Array Segment -> HTML w i
-renderFilledPath fillValue segments =
+renderFilledPath :: forall w i. String -> Path -> HTML w i
+renderFilledPath fillValue path =
   SE.path
     [ SA.fill (Named fillValue)
     , SA.stroke (Named "black")
     , SA.strokeWidth 1.0
     , SA.strokeLineJoin LineJoinRound
     , SA.strokeLineCap LineCapRound
-    , SA.d (toPath segments)
+    , SA.d path
     ]
 
 -- | An `Emitter` that fires `value` once, after `delay` -- same `HS.create`

@@ -10,7 +10,7 @@ import Data.Function (on)
 import Data.Lens (Lens', lens)
 import Data.List (List(..))
 import Data.List as L
-import Data.Maybe (Maybe(..))
+import Data.Maybe (Maybe(..), maybe)
 import Data.Traversable (class Traversable, sequence, traverse)
 import Data.Tuple (Tuple(..))
 import Data.Unfoldable (class Unfoldable1, unfoldr, unfoldr1)
@@ -79,8 +79,24 @@ head = extract
 _head :: forall a. Lens' (Zipper a) a
 _head = lens head (\(Zipper ls _ rs) x -> Zipper ls x rs)
 
-append :: forall a. a -> Zipper a -> Zipper a
-append v' (Zipper ls v rs) = Zipper (Cons v ls) v' Nil
+-- | Inserts immediately to the left of the focus, without moving it.
+-- | Unlike the old `append`, this never drops elements:
+-- | `length (appendLeft x z) == length z + 1` always holds.
+appendLeft :: forall a. a -> Zipper a -> Zipper a
+appendLeft v' (Zipper ls v rs) = Zipper (Cons v' ls) v rs
+
+-- | Inserts immediately to the right of the focus, without moving it.
+-- | `length (appendRight x z) == length z + 1` always holds.
+appendRight :: forall a. a -> Zipper a -> Zipper a
+appendRight v' (Zipper ls v rs) = Zipper ls v (Cons v' rs)
+
+-- | Records a new focus, discarding everything to the right -- the usual
+-- | undo/redo-history move: making a fresh edit after undoing invalidates
+-- | whatever you'd have redone. This is what `append` used to do under a
+-- | misleading name (it didn't preserve length); `Component.Board`'s
+-- | `boardHistory` is the one place that actually wants this behaviour.
+pushFocus :: forall a. a -> Zipper a -> Zipper a
+pushFocus v' (Zipper ls v rs) = Zipper (Cons v ls) v' Nil
 
 singleton :: forall a. a -> Zipper a
 singleton v = Zipper Nil v Nil
@@ -90,3 +106,9 @@ currentIndex (Zipper ls v rs) = L.length ls
 
 undo = moveLeft
 redo = moveRight
+
+focusMostLeft :: forall a. Zipper a -> Zipper a
+focusMostLeft z = maybe z focusMostLeft (moveLeft z)
+
+focusMostRight :: forall a. Zipper a -> Zipper a
+focusMostRight z = maybe z focusMostRight (moveRight z)

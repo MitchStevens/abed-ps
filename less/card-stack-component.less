@@ -1,0 +1,123 @@
+.card-stack-component {
+    @card: #f9f6ee;
+    @grey: #8c7777;
+    @amber: darkgoldenrod;
+
+    width: 100%;
+
+    & .stage {
+        width: 100%;
+    }
+
+    // The current card and (usually) the previous one both live here,
+    // stacked exactly on top of each other -- see Component.CardStack's
+    // `render` -- so the outgoing card stays visible underneath while the
+    // incoming one animates in over it, instead of leaving a gap. This is
+    // the box that actually owns the card's size/shape now; each `.card`
+    // just fills it via `inset: 0`.
+    & .card-mount {
+        position: relative;
+        width: 100%;
+        // Credit-card proportions (~1.586:1) -- fills the sidebar's width
+        // (see .card-stack-component/.stage above) but keeps its shape
+        // rather than growing however tall a card's content needs.
+        aspect-ratio: 1.586;
+    }
+
+    & .card {
+        position: absolute;
+        inset: 0;
+        box-sizing: border-box;
+        background: @card;
+        border: 1px solid @grey;
+        border-radius: 6px;
+        box-shadow: 0 8px 14px -6px fade(@brown, 45%);
+        padding: 7px 9px 9px;
+        font-size: 12px;
+        overflow: hidden;
+        // animate.css's zoomInDown -- already vendored (see
+        // less/animate.css, pulled in via piece-component.less's import)
+        // and its own keyframes carry per-stage easing already, so no
+        // extra timing function needed here.
+        animation: zoomInDown 550ms both;
+
+        // The card sitting underneath the current one (see
+        // Component.CardStack's `render`) -- already fully shown, so no
+        // animation, forced explicitly rather than trusted to `both`
+        // fill-mode surviving its DOM node being reordered.
+        &.card-previous {
+            animation: none;
+        }
+
+        // The permanent "nothing showing" occupant of the slot --
+        // `Component.CardStack`'s `emptyCard`. Same size/shape as a real
+        // card, recessed (inset shadow, no border) so it reads as a
+        // carved-out indentation rather than a card, and it doesn't fade
+        // in -- it's just always there when nothing else is.
+        //
+        // Transparent rather than a flat fill: `backdrop-filter` darkens
+        // whatever's actually behind it (the page's own parchment texture)
+        // instead of painting a differently-textured patch on top, so the
+        // indentation reads as the same material, just recessed.
+        &.card-empty {
+            // Bigger than a real card on every side -- see .card-mount --
+            // rather than filling the same box exactly, so it still reads
+            // as a groove a card sits *within*, not just a same-sized swap.
+            inset: -2px;
+            padding: 0;
+            border: none;
+            border-radius: 12px;
+            background: transparent;
+            backdrop-filter: brightness(0.98) saturate(1.05);
+            -webkit-backdrop-filter: brightness(0.98) saturate(1.05);
+            box-shadow: inset 0 3px 8px -2px fade(@brown, 55%), inset 0 -1px 0 fade(white, 20%);
+            animation: none;
+        }
+
+        & .card-head {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            font-weight: bold;
+            margin-bottom: 4px;
+            padding-bottom: 4px;
+            border-bottom: 1px solid @grey;
+        }
+
+        & .status-pill {
+            font-size: 9px;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+            padding: 1px 6px;
+            border-radius: 100px;
+            border: 1px solid @grey;
+            color: @grey;
+        }
+
+        &[data-card-status='active'] .status-pill {
+            color: white;
+            background: @amber;
+            border-color: @amber;
+        }
+        &[data-card-status='success'] .status-pill {
+            color: white;
+            background: @green;
+            border-color: @green;
+        }
+        &[data-card-status='failure'] .status-pill {
+            color: white;
+            background: @red;
+            border-color: @red;
+        }
+
+        & .card-row {
+            margin-top: 2px;
+        }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        & .card {
+            animation: none;
+        }
+    }
+}

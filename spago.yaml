@@ -43,7 +43,6 @@ package:
     - tailrec
     - uint
     - halogen-store
-    - uuidv4
     - these
     - transformers
     - tuples

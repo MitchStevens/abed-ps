@@ -4,11 +4,12 @@ import Component.Sidebar.Types
 import Prelude
 
 import Component (toCssSelectorString)
+import Component.CardStack as CardStack
 import Component.DataAttribute as DA
+import Component.Feedback as Feedback
 import Component.Piece.Render (renderPiece)
 import Component.Sidebar.BoardSizeSlider as BoardSizeSlider
 import Component.Sidebar.Segment (segment, segmentWithTitle)
-import Component.TestRunner as TestRunner
 import Data.Array as A
 import Data.Array.NonEmpty.Internal (NonEmptyArray(..))
 import Data.Either (Either(..))
@@ -41,14 +42,9 @@ render state =
   HH.div 
     [ HP.id "sidebar-component" ]
     [ renderLevelInfo
-    --, renderCompletionInfo
-    , renderCompletionStatus
-    , renderRunDemonstration
-    , H.slot BoardSizeSlider.slot unit BoardSizeSlider.component { boardSize: state.boardSize } BoardSizeSliderAction
-    , renderUndoRedo
-    , renderClear
-    --, renderSignalRepresentation
-    , renderGiveUp
+    , renderCardStack
+    , renderSidebarControls
+    , renderFeedback
     ]
   where
 
@@ -58,51 +54,34 @@ render state =
       , HH.span [ HP.class_ (ClassName "description")] [ markupDescription state.problem.description ]
       ]
 
-    renderCompletionStatus = HH.div
-      [ HP.class_ ( ClassName "completion-status" ) ] $
-        case state.completionStatus of
-          NotStarted -> []
-          FailedRestriction restriction -> 
-            [ HH.h2_ [ HH.text "Restriction!" ]
-            , HH.text $ "This level has a special restriction: "
-            , HH.b_ [ HH.text restriction.name ]
-            , HH.br_
-            , HH.text restriction.description
-            ]
-          NotEvaluable boardError -> 
-            [ HH.h2_ [ HH.text "Not Evaluable!" ]
-            , HH.text ("not evaluable due to: " <> show boardError) ]
-          PortMismatch mismatch ->
-            [ HH.h2_ [ HH.text "Port mismatch" ]
-            , case mismatch of
-                PortExpected { direction, expected } -> HH.text $ "You need " <> describePort expected <> " in the " <> show direction <> " direction"
-                NoPortExpected { direction, received } -> HH.text $ "Remove the port in the " <> show direction <> "direction"
-                IncorrectPortType { direction, capacity, received, expected } -> HH.text $ "Port in the " <> show direction <> " direction should be an " <> show expected 
-                IncorrectCapacity { direction, portType, received, expected } -> HH.text $ "Port in the " <> show direction <> " direction should have capacity " <> show (toInt expected)
-            ]
-          ReadyForTesting ->
-            [ HH.h2_ [ HH.text "Testing" ]
-            , HH.slot TestRunner.slot unit TestRunner.component { base: state.base, inputs: NonEmptyArray state.problem.testCases, model: state.problem.goal } TestRunnerAction
-            ]
-          Completed ->
-            [ HH.h2_ [ HH.text "Level Complete!" ]
-            , HH.slot TestRunner.slot unit TestRunner.component { base: state.base, inputs: NonEmptyArray state.problem.testCases, model: state.problem.goal } TestRunnerAction
-            , HH.button
-                [ HP.class_ (ClassName "run-tests-again")
-                , HE.onClick (ButtonClicked RunTests) ]
-                [ HH.text "Run Tests again"]
-            , HH.button
-                [ HP.class_ (ClassName "back-to-level-select")
-                , HE.onClick (ButtonClicked BackToLevelSelect) ]
-                [ HH.text "Back to Level Select "]
-            ]
-          where
-            describePort :: Port -> String
-            describePort (Port {portType, capacity}) =
-              "an " <> if portType == Port.Input then "input" else "output" <> " of capacity " <> show (toInt capacity)
+    renderCardStack = HH.div
+      [ HP.class_ ( ClassName "card-stack") ]
+      [ HH.slot CardStack.slot unit CardStack.component unit CardStackAction ]
 
-            renderTestSuccess :: forall p i. Int -> Int -> HTML p i
-            renderTestSuccess i n = HH.span_ [ green (show i <> "/" <> show n), HH.text " Sucessful" ]
+    -- Render-less (see Component.Feedback) -- mounted purely so its eval
+    -- loop runs and it can push cards into CardStack via Sidebar.
+    renderFeedback = HH.slot Feedback.slot unit Feedback.component feedbackInput FeedbackAction
+      where
+        feedbackInput =
+          { completionStatus: state.completionStatus
+          , base: state.base
+          , goal: state.problem.goal
+          , testInputs: NonEmptyArray state.problem.testCases
+          }
+
+    -- Everything below the card stack, pinned to the bottom of the sidebar
+    -- (see `#sidebar-component .sidebar-controls`'s `margin-top: auto`) so
+    -- the card stack -- the only source of textual feedback -- gets the
+    -- space in between.
+    renderSidebarControls = HH.div
+      [ HP.class_ ( ClassName "sidebar-controls") ]
+      [ renderRunDemonstration
+      , H.slot BoardSizeSlider.slot unit BoardSizeSlider.component { boardSize: state.boardSize } BoardSizeSliderAction
+      , renderUndoRedo
+      , renderClear
+      --, renderSignalRepresentation
+      , renderGiveUp
+      ]
 
     --renderBoardSize =
     --  HH.div

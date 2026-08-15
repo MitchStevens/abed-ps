@@ -45,10 +45,14 @@ component = H.mkComponent { eval, initialState, render }
       { handleAction = handleAction
       , handleQuery = handleQuery
       , receive = Just <<< Receive
+      , initialize = Just Initialize
       })
 
     handleAction  :: Action -> HalogenM State Action () Output m Unit
     handleAction = case _ of
+      Initialize ->
+        pushCard
+
       Receive input -> do
         modify_ (_ { base = input.base })
 
@@ -62,15 +66,27 @@ component = H.mkComponent { eval, initialState, render }
           Nothing -> H.raise AllTestsPassed
           Just testCase -> do
             _currentTestCase <<< _Just %= (_ { status = TestCase.InProgress})
+            pushCard
             H.raise (TestCaseData testCase.data)
-      
+
+    -- TestRunner is render-less (see Render.purs) -- CardStack is slotted
+    -- directly into Sidebar instead of nested here, so pushing a card is a
+    -- raised Output that Sidebar forwards on, rather than a direct H.tell to
+    -- a child. Keyed on `currentIndex` -- see `cardContentFor`.
+    pushCard :: HalogenM State Action () Output m Unit
+    pushCard = do
+      state <- get
+      case currentTestCase state of
+        Nothing -> pure unit
+        Just testCase ->
+          H.raise (PushCard (cardContentFor state testCase))
 
     handleQuery :: forall a. Query a -> HalogenM State Action () Output m (Maybe a)
     handleQuery = case _ of
       TestCaseOutcome outcome next -> do
         liftAff (delay delayBetweenTests)
         _currentTestCase <<< _Just %= (_ { status = TestCase.Completed outcome })
-        --use _currentTestCase >>= logShow
+        pushCard
 
         case outcome of
           TestCase.Passed -> do
@@ -84,5 +100,12 @@ component = H.mkComponent { eval, initialState, render }
                   H.raise AllTestsPassed
           TestCase.Failed _ -> do
             modify_ (_ { testSuiteFailed = true } )
-        
+
+        pure (Just next)
+
+      CardActionTriggered actionId next -> do
+        if actionId == rerunCurrentTestActionId
+          then handleAction RunCurrentTest
+          else when (actionId == runAllTestsActionId || actionId == retryAllTestsActionId) do
+            handleAction RunAllTests
         pure (Just next)

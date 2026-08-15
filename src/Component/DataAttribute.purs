@@ -114,9 +114,6 @@ location = dataAttribute (AttrName "data-location") attrPrint attrParse
 availablePiece :: DataAttribute PieceId
 availablePiece = dataAttribute (AttrName "data-available-piece") unwrap (PieceId <$> rest)
 
-chatUsername :: DataAttribute String
-chatUsername = dataAttribute (AttrName "data-username") identity rest
-
 progress :: DataAttribute LevelProgress
 progress = dataAttribute (AttrName "data-puzzle-progress") attrPrint attrParse
   where

@@ -276,7 +276,7 @@ component = mkComponent { eval , initialState , render }
         SetBoard board -> do
           lift $ debug M.empty "Updating board"
           -- append new board to board history for undo purposes 
-          modify_ $ \s -> s { boardHistory = Z.append board s.boardHistory }
+          modify_ $ \s -> s { boardHistory = Z.pushFocus board s.boardHistory }
           handleAction EvaluateBoard
           -- tell puzzle component that board state has been changed
           raise (NewBoardState board)
