@@ -15,7 +15,7 @@ import Component.Board.Render (render)
 import Component.DataAttribute (attr)
 import Component.DataAttribute as DA
 import Component.Multimeter as Multimeter
-import Component.Piece as Piece
+import Component.Piece.Movement as Piece
 import Component.Rendering.Port (portPath)
 import Control.Monad.Except (ExceptT, lift, throwError)
 import Control.Monad.Logger.Class (class MonadLogger, debug, info, warn)
@@ -218,9 +218,6 @@ component = mkComponent { eval , initialState , render }
         PieceOutput (Piece.RemoveThis loc) -> do
           _ <- liftBoardM (removePiece loc)
           pure unit
-        
-        PieceOutput (Piece.NewMultimeterFocus focus) -> do
-          tell Multimeter.slot unit (Multimeter.NewFocus focus)
 
         -- todo: fix this
         MultimeterOutput (Multimeter.SetCapacity relativeEdge capacity) -> do

@@ -1,13 +1,12 @@
--- | Owns every drag/rotate gesture concern that used to live in
--- | `Component.Piece`: hit-testing whether a mousedown starts a drag or a
--- | rotate, tracking the in-progress gesture, and applying the resulting
--- | rotation as a CSS transform on its own wrapping element. The actual
--- | piece drawing is delegated to a nested `Component.Piece.Visual` slot, so
--- | the high-frequency updates here (every mousemove of a rotate drag) never
--- | touch that child's own render cycle.
--- |
--- | Not wired up anywhere yet -- `Board`/etc. still talk to the old
--- | `Component.Piece`.
+-- | Owns every drag/rotate gesture concern that used to live in the old,
+-- | now-deleted `Component.Piece`: hit-testing whether a mousedown starts a
+-- | drag or a rotate, tracking the in-progress gesture, and applying the
+-- | resulting rotation as a CSS transform on an inner wrapper (see `render`
+-- | for why it's not on this component's own outer, draggable element). The
+-- | actual piece drawing is delegated to a nested `Component.Piece.Visual`
+-- | slot, so the high-frequency updates here (every mousemove of a rotate
+-- | drag) never touch that child's own render cycle. This is what `Board`
+-- | mounts at its `piece` slot.
 module Component.Piece.Movement
   ( Action(..)
   , ChildSlots
@@ -116,6 +115,13 @@ component =
         }
     }
 
+-- | The rotation transform lives on an inner wrapper, not on this outer
+-- | draggable div itself: browsers (Chromium especially) generate the
+-- | native drag-ghost image by snapshotting the dragged element, and a
+-- | `transform` set directly on that element is often dropped from the
+-- | snapshot, so the ghost briefly reverts to unrotated mid-drag even
+-- | though the piece is correctly rotated at rest. Keeping `draggable`
+-- | and the rotation on two different elements sidesteps that entirely.
 render :: forall m. MonadAff m => State -> ComponentHTML Action ChildSlots m
 render state =
   HH.div
@@ -126,7 +132,6 @@ render state =
     , HP.draggable (isNothing state.isRotating)
     , HP.ref refPiece
     , HP.tabIndex 0
-    , HP.style ("transform: rotate(" <> show (displayDegrees state) <> "deg);")
 
     , HE.onDragEnd (OnDrop state.location)
     , HE.onDrag OnDrag
@@ -135,8 +140,19 @@ render state =
     , HE.onMouseUp OnMouseUp
     , HE.onKeyDown OnKeyDown
     ]
-    [ HH.slot_ Visual.slot unit Visual.component
-        { piece: state.piece, portStates: state.portStates }
+    [ HH.div
+        -- | `less/piece-component.less` applies `position: absolute` to any
+        -- | direct-child `div` of `.piece-component` (pre-dating this
+        -- | wrapper) -- with no explicit size that shrinks this to its
+        -- | content instead of filling the square, so pin it down here.
+        [ HP.style
+            ( "position: absolute; top: 0; left: 0; width: 100%; height: 100%; "
+                <> "transform: rotate(" <> show (displayDegrees state) <> "deg);"
+            )
+        ]
+        [ HH.slot_ Visual.slot unit Visual.component
+            { piece: state.piece, portStates: state.portStates }
+        ]
     ]
 
 -- | The angle actually shown: the live drag preview while a rotate gesture

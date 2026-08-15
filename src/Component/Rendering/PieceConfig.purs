@@ -3,13 +3,12 @@ module Component.Rendering.PieceConfig where
 import Prelude
 
 import Component.Rendering.Background (eggshellBackground)
-import Component.Rendering.Icon (andGateIcon, notGateIcon, orGateIcon, xorGateIcon)
+import Component.Rendering.Icon (xorGateIcon)
 import Component.Rendering.PieceShape (IconConfig(..), JunctionType(..), PieceRenderConfig, Trace(..))
 import Data.Maybe (Maybe(..))
 import Game.Direction (CardinalDirection(..))
 import Game.Piece (Piece, andPiece, name, notPiece, orPiece, xorPiece)
 import Game.Port (PortType(..))
-import Halogen.Svg.Attributes (Color(..))
 import Partial.Unsafe (unsafeCrashWith)
 
 -- | Left in, Right out -- the same 2-leg loop as idPiece.
@@ -33,17 +32,17 @@ pieceRenderConfig piece
   | name piece == name notPiece =
       { background: { fill: Just eggshellBackground, frame: true }
       , outline: { shape: [ notPieceTrace ] }
-      , icon: VectorIcon (const notGateIcon)
+      , icon: ImageIcon (name notPiece)
       }
   | name piece == name andPiece =
       { background: { fill: Just eggshellBackground, frame: true }
       , outline: { shape: [ dualInputGateTrace ] }
-      , icon: VectorIcon (const andGateIcon)
+      , icon: ImageIcon (name andPiece)
       }
   | name piece == name orPiece =
       { background: { fill: Just eggshellBackground, frame: true }
       , outline: { shape: [ dualInputGateTrace ] }
-      , icon: VectorIcon (const orGateIcon)
+      , icon: ImageIcon (name orPiece)
       }
   | name piece == name xorPiece =
       { background: { fill: Just eggshellBackground, frame: true }

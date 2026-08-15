@@ -22,7 +22,7 @@ body {
     height: 100vh;
     min-width: 100%;
     display: inline-grid;
-    grid-template-columns: minmax(300px, 1fr) 900px 1fr;
+    grid-template-columns: minmax(300px, 1fr) 1000px 1fr;
 }
 
 #abed {
@@ -167,7 +167,7 @@ span.green { color: @green }
     padding-bottom: 40px;
 
 
-    grid-gap: 10px;
+    grid-gap: 20px;
     height: 100vh;
     box-sizing: border-box;
 
@@ -182,6 +182,8 @@ span.green { color: @green }
     & #sidebar-component {
         grid-area: 1 / 2 / span 2 / auto;
         //display: none;
+        border-left: 1px solid fade(@brown, 40%);
+        padding-left: 10px;
 
         & input[type=range] {
         }

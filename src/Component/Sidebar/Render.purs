@@ -5,7 +5,6 @@ import Prelude
 
 import Component (toCssSelectorString)
 import Component.DataAttribute as DA
-import Component.Piece as Piece
 import Component.Piece.Render (renderPiece)
 import Component.Sidebar.BoardSizeSlider as BoardSizeSlider
 import Component.Sidebar.Segment (segment, segmentWithTitle)
@@ -17,7 +16,7 @@ import Data.Filterable (eitherBool)
 import Data.List (List(..), (:))
 import Data.List as L
 import Data.Map as M
-import Data.Maybe (Maybe(..))
+import Data.Maybe (Maybe(..), maybe)
 import Data.String (Pattern(..), split)
 import Data.Tuple (Tuple(..), fst, snd)
 import Effect.Aff.Class (class MonadAff)
@@ -41,46 +40,23 @@ render :: forall m. MonadAff m => State -> ComponentHTML Action Slots m
 render state = 
   HH.div 
     [ HP.id "sidebar-component" ]
-    [ HH.div_ 
-      [ renderTitle
-      , renderSubtitle
-      , renderDescription state.problem.description
-      ]
+    [ renderLevelInfo
     --, renderCompletionInfo
     , renderCompletionStatus
     , renderRunDemonstration
     , H.slot BoardSizeSlider.slot unit BoardSizeSlider.component { boardSize: state.boardSize } BoardSizeSliderAction
     , renderUndoRedo
     , renderClear
-    , renderSignalRepresentation
+    --, renderSignalRepresentation
     , renderGiveUp
     ]
   where
-    renderTitle = HH.h1 [ HP.class_ (ClassName "title") ]  [ HH.text state.problem.title ]
 
-    renderSubtitle = case state.problem.subtitle of
-      Just subtitle ->
-        HH.h3
-          [ HP.class_ (ClassName "subtitle") ]
-          [ HH.text subtitle ]
-      Nothing -> HH.text ""
-
-
-    renderDescription = HH.span [ HP.class_ (ClassName "description") ] <<< A.fromFoldable <<< map asHTML <<< reduceStrings <<< map filterPieceNames <<< L.fromFoldable <<< split (Pattern " ")
-      where
-        filterPieceNames :: String -> Either String String 
-        filterPieceNames = eitherBool \s -> not (M.member (PieceId s) pieceVault)
-
-        reduceStrings :: List (Either String String) -> List (Either String String)
-        reduceStrings (Right s1 : Right s2 : sn) = reduceStrings (Right (s1 <> " " <> s2) : sn)
-        reduceStrings (Left p   : Right s2 : sn) = Left p : reduceStrings (Right (" " <> s2) : sn)
-        reduceStrings (Right s1 : Left p   : sn) = Right (s1 <> " ") : Left p : reduceStrings sn
-        reduceStrings (s : sn) = s : reduceStrings sn
-        reduceStrings Nil = Nil
-
-        asHTML :: forall p i. Either String String -> HTML p i
-        asHTML (Left pieceName) = HH.span [ HP.class_ (ClassName "piece-name") ] [ HH.text pieceName ]
-        asHTML (Right text) = HH.text text
+    renderLevelInfo = HH.div [ HP.class_ (ClassName "level-info")]
+      [ HH.h1 [ HP.class_ (ClassName "title") ]  [ HH.text state.problem.title ]
+      , maybe (HH.text "") (\subtitle -> HH.h3 [ HP.class_ (ClassName "subtitle") ] [ HH.text subtitle ]) state.problem.subtitle
+      , HH.span [ HP.class_ (ClassName "description")] [ markupDescription state.problem.description ]
+      ]
 
     renderCompletionStatus = HH.div
       [ HP.class_ ( ClassName "completion-status" ) ] $
@@ -107,10 +83,6 @@ render state =
           ReadyForTesting ->
             [ HH.h2_ [ HH.text "Testing" ]
             , HH.slot TestRunner.slot unit TestRunner.component { base: state.base, inputs: NonEmptyArray state.problem.testCases, model: state.problem.goal } TestRunnerAction
-
---             [ HH.h3_ [ HH.text "Ready for testing" ]
---             , HH.slot TestRunner.slot unit TestRunner.component { base: state.base, inputs: NonEmptyArray state.problem.testCases, model: state.problem.goal } TestRunnerOutput
--- >>>>>>> 23f884ca6d049f83b197a624058326ab47ad69b3
             ]
           Completed ->
             [ HH.h2_ [ HH.text "Level Complete!" ]
@@ -220,4 +192,20 @@ render state =
               then [ HH.b_ [ HH.text text ] ]
               else [ HH.text text ])
 
+-- markup the description so piece-names look fancy
+markupDescription :: forall p i. String -> HTML p i
+markupDescription = HH.span_ <<< A.fromFoldable <<< map asHTML <<< reduceStrings <<< map filterPieceNames <<< L.fromFoldable <<< split (Pattern " ")
+  where
+    filterPieceNames :: String -> Either String String 
+    filterPieceNames = eitherBool \s -> not (M.member (PieceId s) pieceVault)
 
+    reduceStrings :: List (Either String String) -> List (Either String String)
+    reduceStrings (Right s1 : Right s2 : sn) = reduceStrings (Right (s1 <> " " <> s2) : sn)
+    reduceStrings (Left p   : Right s2 : sn) = Left p : reduceStrings (Right (" " <> s2) : sn)
+    reduceStrings (Right s1 : Left p   : sn) = Right (s1 <> " ") : Left p : reduceStrings sn
+    reduceStrings (s : sn) = s : reduceStrings sn
+    reduceStrings Nil = Nil
+
+    asHTML :: forall p i. Either String String -> HTML p i
+    asHTML (Left pieceName) = HH.span [ HP.class_ (ClassName "piece-name") ] [ HH.text pieceName ]
+    asHTML (Right text) = HH.text text

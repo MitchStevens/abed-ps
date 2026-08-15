@@ -20,7 +20,7 @@ import Data.Lens
 import Prelude
 
 import Component.Multimeter as Multimeter
-import Component.Piece as Piece
+import Component.Piece.Movement as Piece
 import Control.Monad.State (class MonadState, evalState, gets, runState)
 import Data.Either (Either)
 import Data.Foldable (for_)

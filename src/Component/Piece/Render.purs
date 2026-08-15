@@ -10,6 +10,7 @@ import Component.Rendering.CrossOver (renderChicken, renderCornerCut, renderCros
 import Component.Rendering.Icon (renderIcon)
 import Component.Rendering.Outline (renderOutline, renderTrace)
 import Component.Rendering.PieceConfig (pieceRenderConfig)
+import Component.Rendering.PortColours (portColoursFillRef, renderPortColoursPattern, renderWirePortColoursPattern, wirePortColoursFillRef)
 import Component.Rendering.Segment (Segment)
 import Component.Rendering.Wire (renderWire, wirePath, wirePieceFrame)
 import Data.Array as Array
@@ -105,15 +106,20 @@ renderPiece state =
         let config = pieceRenderConfig state.piece
         in SE.g []
              [ renderBackground config.background
-             , outlineSlot segments
+             , renderPortColoursPattern state.portStates
+             , outlineSlot segments (portColoursFillRef state.portStates)
              , renderIcon config.icon state.portStates
              ]
       Just segments | isWirePiece state.piece ->
-        SE.g [] [ wirePieceFrame, outlineSlot segments ]
+        SE.g []
+          [ wirePieceFrame
+          , renderWirePortColoursPattern state.portStates
+          , outlineSlot segments (wirePortColoursFillRef state.portStates)
+          ]
       _ -> renderStatic
 
-    outlineSlot :: Array Segment -> ComponentHTML action ChildSlots m
-    outlineSlot segments = HH.slot_ Outline.slot unit Outline.component segments
+    outlineSlot :: Array Segment -> String -> ComponentHTML action ChildSlots m
+    outlineSlot segments fill = HH.slot_ Outline.slot unit Outline.component { segments, fill }
 
     renderStatic
       | isMigratedPiece state.piece =

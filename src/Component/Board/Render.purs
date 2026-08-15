@@ -10,7 +10,7 @@ import Component.Board.Types (Action(..), Slots, State, boardPortInfo, pieceInpu
 import Component.DataAttribute as DA
 import Component.GameEventLogger as GameEventLogger
 import Component.Multimeter as Multimeter
-import Component.Piece as Piece
+import Component.Piece.Movement as Piece
 import Component.Rendering.Port (portPath)
 import Component.Rendering.Segment (renderPath)
 import Component.Sidebar.BoardSizeSlider as BoardSizeSlider

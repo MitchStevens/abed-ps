@@ -16,13 +16,14 @@ import Halogen.Svg.Elements as SE
 
 -- | Draw whatever icon a piece's config specifies (none, an image, or a
 -- | custom vector glyph) on top of its outline. Generic in `i`: no icon here
--- | raises an action today, so it isn't typed as if one did. Every vector
--- | icon gets the same badge behind it, so gates read as one family
--- | regardless of how many legs feed them.
+-- | raises an action today, so it isn't typed as if one did. Every image or
+-- | vector icon gets the same badge behind it, so gates read as one family
+-- | regardless of how many legs feed them or whether their glyph is drawn or
+-- | a raster image.
 renderIcon :: forall w i. IconConfig w i -> Map CardinalDirection PortInfo -> HTML w i
 renderIcon config portStates = case config of
   NoIcon -> SE.g [] []
-  ImageIcon pieceId -> renderImageIcon pieceId
+  ImageIcon pieceId -> SE.g [] [ iconBadge, renderImageIcon pieceId ]
   VectorIcon render -> SE.g [] [ iconBadge, render portStates ]
 
 renderImageIcon :: forall w i. PieceId -> HTML w i

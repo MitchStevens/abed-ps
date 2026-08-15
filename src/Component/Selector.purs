@@ -4,7 +4,7 @@ import Prelude
 
 import Component.DataAttribute (availablePiece)
 import Component.DataAttribute as DA
-import Component.Piece as Piece
+import Component.Piece.Types as Piece
 import Component.Piece.Render (ChildSlots, renderPiece)
 import Data.Array as A
 import Data.Map as M
@@ -64,12 +64,12 @@ render { availablePieces } =
   if S.isEmpty availablePieces
     then HH.text ""
     else
-      HH.div 
+      HH.div
         [ HP.id "selector-component" ]
-        [ HH.span
+        [ HH.h2_ [ HH.text "Available pieces"]
+        , HH.span
           [ HP.class_ (ClassName "pieces") ]
           (renderAvailablePiece <$> (A.fromFoldable availablePieces))
-        , HH.h2_ [ HH.text "Available pieces"]
         ]
   where
     renderAvailablePiece piece =

@@ -3,7 +3,7 @@ module PieceViewer.Main where
 import Prelude
 
 import Capability.Animate (headShake)
-import Component.Piece as Piece
+import Component.Piece.Movement as Piece
 import Control.Monad.Error.Class (throwError)
 import Data.Array as A
 import Data.Foldable (for_)
@@ -131,8 +131,6 @@ handleAction = case _ of
     Piece.Dropped _ ->
       pure unit
     Piece.RemoveThis _ ->
-      pure unit
-    Piece.NewMultimeterFocus _ ->
       pure unit
 
 render :: State -> ComponentHTML Action ChildSlots Aff

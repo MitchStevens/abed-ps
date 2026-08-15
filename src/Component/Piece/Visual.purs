@@ -21,8 +21,9 @@ module Component.Piece.Visual
 
 import Prelude
 
-import Component.Piece.Render as Piece.Render
-import Component.Piece.Types
+import Component.Piece.Outline as Outline
+import Component.Piece.Render as Render
+import Component.Piece.Types as PieceTypes
 import Data.Map (Map)
 import Data.Maybe (Maybe(..))
 import Effect.Aff.Class (class MonadAff)
@@ -31,7 +32,8 @@ import Game.Location (location)
 import Game.Piece (Piece)
 import Game.PortInfo (PortInfo)
 import Game.Rotation (rotation)
-import Halogen (Component, ComponentHTML, HalogenM, defaultEval, mkComponent, mkEval, modify_)
+import Halogen (Component, ComponentHTML, HalogenM, defaultEval, gets, mkComponent, mkEval, modify_)
+import Halogen as H
 import Type.Proxy (Proxy(..))
 
 type ChildSlots = Render.ChildSlots
@@ -80,6 +82,18 @@ render state = Render.renderPiece paddedState
     , isDragging: false
     }
 
+-- | The Outline child only reacts to a new outline *shape* via an explicit
+-- | `Transition` query (see Component.Piece.Outline) -- its own `Input`
+-- | only sets the starting path at mount, so an in-progress crossfade can't
+-- | get clobbered by an unrelated re-render. That means this `Receive` has
+-- | to do the diffing and tell it explicitly, same as the old
+-- | `Component.Piece` used to before this component existed.
 handleAction :: forall m. MonadAff m => Action -> HalogenM State Action ChildSlots Output m Unit
 handleAction = case _ of
-  Receive input -> modify_ (const input)
+  Receive input -> do
+    old <- gets identity
+    modify_ (const input)
+    case Render.outlineSegmentsFor old.piece old.portStates, Render.outlineSegmentsFor input.piece input.portStates of
+      Just oldSegs, Just newSegs | oldSegs /= newSegs ->
+        void $ H.tell Outline.slot unit (Outline.Transition newSegs)
+      _, _ -> pure unit

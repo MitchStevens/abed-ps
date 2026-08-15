@@ -3921,8 +3921,13 @@
 #sidebar-component .pieces > div {
   border: lightgray 2px solid;
 }
+#sidebar-component .level-info {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
 #sidebar-component .completion-status {
-  padding-top: 50px;
+  padding-top: 10px;
   height: 100px;
   flex-grow: 1;
   display: flex;
@@ -4091,7 +4096,7 @@ body {
   height: 100vh;
   min-width: 100%;
   display: inline-grid;
-  grid-template-columns: minmax(300px, 1fr) 900px 1fr;
+  grid-template-columns: minmax(300px, 1fr) 1000px 1fr;
 }
 #abed {
   color: #39230d;
@@ -4208,7 +4213,7 @@ span.green {
   padding-right: 5px;
   padding-top: 40px;
   padding-bottom: 40px;
-  grid-gap: 10px;
+  grid-gap: 20px;
   height: 100vh;
   box-sizing: border-box;
 }
@@ -4220,6 +4225,8 @@ span.green {
 }
 #puzzle-component #sidebar-component {
   grid-area: 1 / 2 / span 2 / auto;
+  border-left: 1px solid rgba(57, 35, 13, 0.4);
+  padding-left: 10px;
 }
 #home-component {
   display: grid;
