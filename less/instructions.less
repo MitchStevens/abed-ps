@@ -1,5 +1,31 @@
 #instructions-component {
 
+  // The figure owns the width now (rather than shrink-wrapping to whatever
+  // size a clip happened to be recorded at), so every demo -- whatever its
+  // native resolution -- ends up the same size, and the caption below has
+  // a fixed box to wrap within instead of stretching out to full width.
+  & figure {
+    width: 320px;
+    margin: 16px auto;
+  }
+
+  & video, & img {
+    display: block;
+    box-sizing: border-box;
+    width: 100%;
+    height: auto;
+    border: 2px solid @brown;
+    border-radius: 4px;
+  }
+
+  & figcaption {
+    margin-top: 6px;
+    text-align: center;
+    font-style: italic;
+    color: fade(@brown, 55%);
+    overflow-wrap: break-word;
+  }
+
   & .board-diagram {
     display: grid;
     width: 300px; 
