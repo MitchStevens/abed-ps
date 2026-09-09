@@ -14,8 +14,26 @@
         width: 100%;
         aspect-ratio: 1 / 1;
         z-index: 0;
-        border: lightgray 2px solid;
+        // Every cell draws its own right/bottom edge, so each interior
+        // line is drawn exactly once (by whichever cell is above/left of
+        // it) instead of twice. Only the first column/row need to draw
+        // the left/top edges too, since nothing else covers those.
+        // (A negative-margin overlap trick was tried instead of this --
+        // relying on two cells' borders landing on the exact same pixel --
+        // but this board's track sizes aren't always whole pixels, so the
+        // overlap wasn't always exact and the lines still looked faintly
+        // doubled. Targeting the actual edge cells via their data-location
+        // has no such rounding dependency.)
+        border-right: lightgray 2px solid;
+        border-bottom: lightgray 2px solid;
         overflow: hidden;
+
+        &[data-location^="(0,"] {
+            border-left: lightgray 2px solid;
+        }
+        &[data-location$=",0)"] {
+            border-top: lightgray 2px solid;
+        }
 
         .location-text {
             padding-left: 10px;
@@ -30,6 +48,25 @@
         justify-items: center;
         align-items: center;
         overflow: hidden;
+
+        // Invisible borders matching the .piece rule above -- not for a
+        // visible line (transparent), but so a port's SVG is squeezed by
+        // the same 2px that its neighbouring piece's real border squeezes
+        // that piece's own SVG by. Without this, the port and the piece
+        // render at very slightly different px-per-unit scales (the piece
+        // is 2px narrower/shorter inside), so a piece's port stub and the
+        // board-port icon it lines up with drift a couple pixels apart.
+        // Only the axis that isn't shared with the piece grid gets a
+        // border -- adding one on the shared edge itself would instead
+        // push the icon away from the piece and open a visible gap.
+        &[data-direction='up'],
+        &[data-direction='down'] {
+            border-right: transparent 2px solid;
+        }
+        &[data-direction='left'],
+        &[data-direction='right'] {
+            border-bottom: transparent 2px solid;
+        }
 
         &[data-direction='up'] svg { width: 50%; }
         &[data-direction='down'] svg { width: 50%; }

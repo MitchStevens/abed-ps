@@ -2,7 +2,7 @@ module Test.Capability.Navigate where
 
 import Prelude
 
-import Capability.Navigate (Route(..), Underscore(..), routeCodec, toUnderscore)
+import Capability.Navigate (InstructionPage(..), Route(..), Underscore(..), routeCodec, toUnderscore)
 import Capability.Navigate as Navigate
 import Data.Either (Either(..), isLeft)
 import Data.Foldable (for_)
@@ -20,7 +20,7 @@ spec = describe "Capability.Navigate" do
       it "About" do
         parse routeCodec "/about" `shouldEqual` Right About
       it "Instructions" do
-        parse routeCodec "/how-to-play" `shouldEqual` Right Instructions
+        parse routeCodec "/how-to-play/wire" `shouldEqual` Right (Instructions Navigate.Wire)
       it "LevelSelect" do
         parse routeCodec "/level-select" `shouldEqual` Right LevelSelect
       it "Level" do
@@ -37,7 +37,7 @@ spec = describe "Capability.Navigate" do
     it "round trip" do
       let routes = [ Navigate.home
         , Navigate.about
-        , Navigate.instructions
+        , Navigate.instructions Navigate.Wire
         , Navigate.levelSelect
         , Navigate.level { suiteName: "A grand suite", levelName: "the glorious level" }
         ]

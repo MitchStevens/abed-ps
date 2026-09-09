@@ -1,27 +1,12 @@
-module Test.Component.Rendering.Segment where
+module Test.Render.Segment where
 
 import Prelude
 
-import Component.Rendering.Segment (Point, Segment(..), endPoint, rotate, startPoint, translate)
-import Data.Int (toNumber)
+import Render.Segment (Point, Segment(..), endPoint, genPoint, rotate, startPoint, translate)
 import Data.Number (abs, sqrt)
-import Test.QuickCheck ((<?>))
-import Test.QuickCheck.Gen (Gen, chooseInt)
-import Test.Rotation (genRotation)
+import Test.QuickCheck (arbitrary, (<?>))
 import Test.Spec (Spec, describe, it)
 import Test.Spec.QuickCheck (quickCheck)
-
--- | Coordinates bounded to a plausible viewBox-ish range.
-genPoint :: Gen Point
-genPoint = { x: _, y: _ } <$> genCoord <*> genCoord
-  where
-  genCoord = toNumber <$> chooseInt (-50) 50
-
-genSegment :: Gen Segment
-genSegment = chooseInt 0 2 >>= case _ of
-  0 -> (\from to -> LineTo { from, to }) <$> genPoint <*> genPoint
-  1 -> (\from control to -> QuadTo { from, control, to }) <$> genPoint <*> genPoint <*> genPoint
-  _ -> (\from to -> ClosePath { from, to }) <$> genPoint <*> genPoint
 
 -- | Straight-line distance between two points -- a local, test-only stand-in
 -- | for a Segment's own length (`endPoint`/`startPoint` are all this module
@@ -42,11 +27,11 @@ approxEqual a b = abs (a - b) < 1.0e-9
 
 spec :: Spec Unit
 spec =
-  describe "Component.Rendering.Segment" do
+  describe "Render.Segment" do
     describe "translate" do
       it "doesn't change the distance between a Segment's start and end" do
         quickCheck do
-          segment <- genSegment
+          segment <- arbitrary
           delta <- genPoint
           let
             before = distance (startPoint segment) (endPoint segment)
@@ -57,7 +42,7 @@ spec =
 
       it "shifts both start and end by exactly the given offset" do
         quickCheck do
-          segment <- genSegment
+          segment <- arbitrary
           delta <- genPoint
           let translated = translate delta segment
           pure
@@ -69,9 +54,9 @@ spec =
     describe "rotate" do
       it "doesn't change the distance between a Segment's start and end" do
         quickCheck do
-          segment <- genSegment
+          segment <- arbitrary
           center <- genPoint
-          rot <- genRotation
+          rot <- arbitrary
           let
             before = distance (startPoint segment) (endPoint segment)
             rotated = rotate center rot segment
@@ -82,7 +67,7 @@ spec =
       it "doesn't move the center it rotates about" do
         quickCheck do
           center <- genPoint
-          rot <- genRotation
+          rot <- arbitrary
           let rotated = rotate center rot (LineTo { from: center, to: center })
           pure $ (startPoint rotated == center && endPoint rotated == center)
             <?> ("rotating a point already at the center moved it to " <> show rotated)

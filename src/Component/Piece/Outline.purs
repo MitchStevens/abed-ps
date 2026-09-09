@@ -11,8 +11,8 @@ module Component.Piece.Outline
 
 import Prelude
 
-import Component.Rendering.Path (Path)
-import Component.Rendering.Segment (Segment, toPath)
+import Render.Path (Path)
+import Render.Segment (Segment, toPath)
 import Data.Maybe (Maybe(..), isJust)
 import Effect.Aff (Milliseconds(..))
 import Effect.Aff as Aff

@@ -1,9 +1,9 @@
-module Component.Rendering.Wire where
+module Render.Wire where
 
 import Prelude
 
-import Component.Rendering.LegShape (curveBetweenPath, initialLocation, outputPath, stubPath, terminalLocation)
-import Component.Rendering.Segment (Segment, renderPath)
+import Render.LegShape (curveBetweenPath, initialLocation, outputPath, stubPath, terminalLocation)
+import Render.Segment (Segment, renderPath)
 import Data.Array (zip)
 import Data.Array as A
 import Data.Map (Map)

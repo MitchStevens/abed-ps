@@ -44,10 +44,9 @@ data Query a
 
 data Button
   = AddPiece PieceId
-  | BackToLevelSelect 
+  | BackToLevelSelect
   | Undo
   | Redo
-  | RunTests
   | Clear
   | Base Base
   | RunDemonstration
@@ -62,7 +61,6 @@ data Action
   | ButtonClicked Button MouseEvent
   | BoardSizeSliderAction BoardSizeSlider.Output
   | FeedbackAction Feedback.Output
-  | CardStackAction CardStack.Output
   {-
     the sidebar creates little icons using the same piece rendering as pieces. the type of HTML used in piece rendering is:
       `ComponentHTML Piece.Action s m`

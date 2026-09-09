@@ -27,12 +27,21 @@ import Data.UInt (UInt, and, complement, fromInt, or, (.&.), (.|.))
 import Data.UInt as UInt
 import Game.Capacity (Capacity(..))
 import Game.Capacity as Capacity
+import Test.QuickCheck (class Arbitrary)
+import Test.QuickCheck.Gen (chooseInt)
 
 newtype Signal = Signal UInt
 derive instance Eq Signal
 derive instance Ord Signal
 derive newtype instance Semiring Signal
 derive newtype instance Ring Signal
+
+-- | Bounded to a single byte -- the same 0-255 range every existing test
+-- | already generated signals over -- rather than `UInt`'s full range,
+-- | since nothing in this game ever carries a signal wider than
+-- | `EightBit`.
+instance Arbitrary Signal where
+  arbitrary = mkSignal <$> chooseInt 0 255
 
 ----todo: improve this implementation
 --instance Eq Signal where

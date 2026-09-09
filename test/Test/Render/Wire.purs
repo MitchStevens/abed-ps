@@ -1,10 +1,10 @@
-module Test.Component.Rendering.Wire where
+module Test.Render.Wire where
 
 import Game.Piece
 import Prelude
 
-import Component.Rendering.Segment (Segment(..))
-import Component.Rendering.Wire (wirePath)
+import Render.Segment (Segment(..))
+import Render.Wire (wirePath)
 import Data.Map as M
 import Data.Tuple (Tuple(..))
 import Game.Capacity (Capacity(..))
@@ -16,7 +16,7 @@ import Test.Spec.Assertions (shouldEqual)
 
 spec :: Spec Unit
 spec = do
-  describe "Component.Rendering.Wire" do
+  describe "Render.Wire" do
     it "wirePath" do
       let signal = zero
       let id = M.fromFoldable [ Tuple Direction.Left {connected: false, port: inputPort OneBit, signal} , Tuple Direction.Right {connected: false, port: outputPort OneBit, signal} ]

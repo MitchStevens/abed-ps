@@ -29,6 +29,7 @@ import Game.Piece (PieceId(..), name, pieceVault)
 import Game.Port (Port(..))
 import Game.Port as Port
 import Game.Signal (Base(..), SignalRepresentation(..), printSignal)
+import GlobalState (GlobalState, GlobalStateAction)
 import Halogen (ClassName(..), ComponentHTML)
 import Halogen.HTML (HTML)
 import Halogen.HTML as H
@@ -36,15 +37,16 @@ import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Extras (mapActionOverHTML)
 import Halogen.HTML.Properties as HP
+import Halogen.Store.Monad (class MonadStore)
 
-render :: forall m. MonadAff m => State -> ComponentHTML Action Slots m
+render :: forall m. MonadAff m => MonadStore GlobalStateAction GlobalState m => State -> ComponentHTML Action Slots m
 render state = 
   HH.div 
     [ HP.id "sidebar-component" ]
     [ renderLevelInfo
     , renderCardStack
-    , renderSidebarControls
     , renderFeedback
+    , renderSidebarControls
     ]
   where
 
@@ -56,10 +58,12 @@ render state =
 
     renderCardStack = HH.div
       [ HP.class_ ( ClassName "card-stack") ]
-      [ HH.slot CardStack.slot unit CardStack.component unit CardStackAction ]
+      [ HH.slot_ CardStack.slot unit CardStack.component unit ]
 
-    -- Render-less (see Component.Feedback) -- mounted purely so its eval
-    -- loop runs and it can push cards into CardStack via Sidebar.
+    -- Feedback pushes result cards into CardStack (see `Component.Feedback`'s
+    -- `pushStatusCard`) but also renders its own test-control buttons here,
+    -- directly below the card stack -- "start testing", the post-failure
+    -- retries, and the post-completion "back to level select".
     renderFeedback = HH.slot Feedback.slot unit Feedback.component feedbackInput FeedbackAction
       where
         feedbackInput =

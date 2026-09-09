@@ -1,24 +1,19 @@
 module GlobalState where
 
-import Prelude
+import Data.Maybe (Maybe(..))
+import Game.Level.Demonstration (Demonstration)
 
-import Game.GameEvent (BoardEvent, GameEvent(..))
-import Halogen.Store.Monad (updateStore)
+data GlobalStateAction
+  = RequestDemonstration Demonstration
 
-data GlobalStateAction =
-  NewGameEvent GameEvent
-
-type GlobalState = 
-  { lastGameEvent :: GameEvent
-  , enableDemonstrations :: Boolean
+type GlobalState =
+  { enableDemonstrations :: Boolean
+  , requestedDemonstration :: Maybe Demonstration
   }
 
 initialGlobalState :: GlobalState
-initialGlobalState = { lastGameEvent: GameStarted, enableDemonstrations: true }
+initialGlobalState = { enableDemonstrations: true, requestedDemonstration: Nothing }
 
 reduce :: GlobalState -> GlobalStateAction -> GlobalState
 reduce state = case _ of
-   NewGameEvent gameEvent -> state { lastGameEvent = gameEvent }
-
-newBoardEvent :: BoardEvent -> GlobalStateAction
-newBoardEvent boardEvent = NewGameEvent (BoardEvent boardEvent)
+  RequestDemonstration demonstration -> state { requestedDemonstration = Just demonstration }

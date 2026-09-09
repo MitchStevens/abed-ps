@@ -21,15 +21,11 @@ import Game.Location (location)
 import Game.Port (inputPort, outputPort)
 import Random.LCG (mkSeed)
 import Test.Game.Board (testBoard)
-import Test.Game.Directions (genDirection)
-import Test.Game.Location (allLocations, genLocation)
-import Test.QuickCheck (Result(..), quickCheckPure)
+import Test.Game.Location (allLocations)
+import Test.QuickCheck (Result(..), arbitrary, quickCheckPure)
 import Test.QuickCheck.Gen (Gen)
 import Test.Spec (Spec, SpecT(..), describe, hoistSpec, it, itOnly)
 import Test.Spec.Assertions (fail, shouldEqual, shouldNotEqual, shouldReturn)
-
-genEdge :: Gen AbsoluteEdge
-genEdge = absolute <$> genLocation <*> genDirection
 
 allEdges :: Array AbsoluteEdge
 allEdges = absolute <$> allLocations <*> allDirections
@@ -54,8 +50,8 @@ tests =
     it "should have derived Ord correctly" do
       let
         results = quickCheckPure (mkSeed 42) 100 do
-          e1 <- genEdge
-          e2 <- genEdge
+          e1 <- arbitrary :: Gen AbsoluteEdge
+          e2 <- arbitrary :: Gen AbsoluteEdge
           pure ((edgeLocation e1 > edgeLocation e2) `implies` (e1 > e2))
       for_ results case _ of
         Success -> pure unit

@@ -1,10 +1,10 @@
-module Component.Rendering.Outline where
+module Render.Outline where
 
 import Prelude
 
-import Component.Rendering.LegShape (arrowPath, curveBetweenPath, initialLocation, outputPath, stubPath, terminalLocation)
-import Component.Rendering.PieceShape (JunctionType(..), Leg, OutlineConfig, Trace(..))
-import Component.Rendering.Segment (Segment(..), renderPath)
+import Render.LegShape (arrowPath, curveBetweenPath, initialLocation, outputPath, stubPath, terminalLocation)
+import Render.PieceShape (JunctionType(..), Leg, OutlineConfig, Trace(..))
+import Render.Segment (Segment(..), renderPath)
 import Data.Map (Map)
 import Data.Map as M
 import Data.Maybe (Maybe(..), maybe)

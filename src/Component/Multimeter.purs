@@ -3,7 +3,7 @@ module Component.Multimeter where
 import Prelude
 
 import Capability.GlobalEventEmmiters (globalKeyDownEventEmitter, globalMouseMoveEventEmitter)
-import Component.Rendering.Colours (green)
+import Render.Colours (green)
 import Data.Align (aligned)
 import Data.Array (elem, range, replicate)
 import Data.Array as A

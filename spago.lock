@@ -8,7 +8,6 @@ workspace:
           - arrays
           - bifunctors
           - console
-          - contravariant
           - control
           - debug
           - effect
@@ -31,10 +30,8 @@ workspace:
           - monad-logger
           - newtype
           - now
-          - nullable
           - numbers
           - ordered-collections
-          - parallel
           - parsing
           - partial
           - prelude
@@ -244,7 +241,6 @@ workspace:
           - abed
           - aff
           - arrays
-          - control
           - effect
           - enums
           - foldable-traversable
@@ -255,7 +251,6 @@ workspace:
           - ordered-collections
           - partial
           - prelude
-          - unsafe-coerce
           - web-dom
           - web-html
         build_plan:

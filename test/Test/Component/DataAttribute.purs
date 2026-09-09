@@ -13,15 +13,8 @@ import Game.Level.Completion (PortMismatch(..))
 import Game.Piece (PieceId(..))
 import Game.Port (inputPort)
 import Parsing (runParser)
-import Test.Game.Capacity (genCapacity)
-import Test.Game.Directions (genDirection)
-import Test.Game.Level.Completion (genPortMismatch)
-import Test.Game.Location (genLocation)
-import Test.Game.Port (genPort, genPortType)
-import Test.Game.Signal (genSignal)
 import Test.QuickCheck (Result, arbitrary, assertEquals, quickCheckGen, randomSeed)
 import Test.QuickCheck.Gen (Gen, chooseInt)
-import Test.Rotation (genRotation)
 import Test.Spec (Spec, describe, describeOnly, it, itOnly)
 import Test.Spec.Assertions (shouldEqual)
 import Test.Spec.QuickCheck (quickCheckPure)
@@ -40,18 +33,18 @@ spec = describe "Component.DataAttribute" do
     pure unit
   it "round trips" do
     seed <- liftEffect randomSeed
-    --quickCheckPure seed 100 (roundTripProperty DA.signal genSignal)
+    --quickCheckPure seed 100 (roundTripProperty DA.signal arbitrary)
     quickCheckPure seed 100 (roundTripProperty DA.int (chooseInt 0 2147483647))
     quickCheckPure seed 100 (roundTripProperty DA.boolean arbitrary)
     quickCheckPure seed 100 (roundTripProperty DA.pieceId (PieceId <$> arbitrary))
-    quickCheckPure seed 100 (roundTripProperty DA.location genLocation)
-    quickCheckPure seed 100 (roundTripProperty DA.direction genDirection)
-    quickCheckPure seed 100 (roundTripProperty DA.rotation genRotation)
-    quickCheckPure seed 100 (roundTripProperty DA.portType genPortType)
-    quickCheckPure seed 100 (roundTripProperty DA.capacity genCapacity)
-    quickCheckPure seed 100 (roundTripProperty DA.port genPort)
-    quickCheckPure seed 100 (roundTripProperty DA.portMismatch genPortMismatch)
-    -- quickCheckGen (roundTripProperty DA.rotation genRotation) completion status
+    quickCheckPure seed 100 (roundTripProperty DA.location arbitrary)
+    quickCheckPure seed 100 (roundTripProperty DA.direction arbitrary)
+    quickCheckPure seed 100 (roundTripProperty DA.rotation arbitrary)
+    quickCheckPure seed 100 (roundTripProperty DA.portType arbitrary)
+    quickCheckPure seed 100 (roundTripProperty DA.capacity arbitrary)
+    quickCheckPure seed 100 (roundTripProperty DA.port arbitrary)
+    quickCheckPure seed 100 (roundTripProperty DA.portMismatch arbitrary)
+    -- quickCheckGen (roundTripProperty DA.rotation arbitrary) completion status
 
 
  -- = PortExpected { direction :: CardinalDirection, expected :: Port }

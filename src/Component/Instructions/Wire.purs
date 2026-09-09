@@ -1,10 +1,10 @@
-module Component.Instructions where
+module Component.Instructions.Wire where
 
 import Prelude
 
 import AppM (AppM)
 import Component.Instructions.Adapting as Adapting
-import Component.Instructions.AutoClearBoard as AutoClearBoard
+import Component.Instructions.InstructionalBoard as InstructionalBoard
 import Component.Layout.DefaultLayout (defaultLayout)
 import Data.Maybe (Maybe)
 import Data.MediaType (MediaType(..))
@@ -19,7 +19,7 @@ type VoidF a = Void
 
 type State = {}
 
-type Slots = ( autoClearBoard :: Slot AutoClearBoard.Query AutoClearBoard.Output Unit )
+type Slots = ( instructionalBoard :: Slot InstructionalBoard.Query InstructionalBoard.Output Unit )
 
 data Action
 
@@ -60,8 +60,6 @@ component = H.mkComponent { eval , initialState , render }
         [
         ]
 
-        , HH.slot_ AutoClearBoard.slot unit AutoClearBoard.component unit
-
         , HH.h2_ [ HH.text "Wires" ]
         , HH.p_
           [ HH.text "A wire doesn't do anything to a signal on its own, it just carries it from one piece to another. "
@@ -92,6 +90,15 @@ component = H.mkComponent { eval , initialState , render }
         -- The Gates
         -- Not — flips a single input
         -- And, Or, Xor — two inputs (Left and Up), one output (Right)
+
+        , HH.slot_ InstructionalBoard.slot unit InstructionalBoard.component
+            { availablePieces: []
+            , objectives:
+                [ InstructionalBoard.madeAWire
+                , InstructionalBoard.madeADoubleLengthWire
+                , InstructionalBoard.forkedAWire
+                ]
+            }
         ]
   
   eval :: forall slots. HalogenQ q Action i ~> HalogenM State Action slots o AppM

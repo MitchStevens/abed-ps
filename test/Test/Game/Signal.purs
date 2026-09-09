@@ -3,21 +3,18 @@ module Test.Game.Signal where
 import Prelude
 
 import Control.Monad.Error.Class (class MonadError, class MonadThrow)
-import Control.Monad.Gen (class MonadGen, chooseInt)
 import Data.Array (fold)
 import Data.Foldable (for_)
 import Data.HeytingAlgebra (ff, tt)
 import Effect.Class (liftEffect)
 import Effect.Exception (Error)
 import Game.Capacity (Capacity(..))
-import Game.Signal (Base(..), Signal(..), SignalRepresentation(..), canonical, equivalent, mkSignal, printSignal)
-import Test.QuickCheck.Gen (randomSample)
+import Game.Signal (Base(..), Signal, SignalRepresentation(..), canonical, equivalent, mkSignal, printSignal)
+import Test.QuickCheck (arbitrary)
+import Test.QuickCheck.Gen (Gen, randomSample)
 import Test.Spec (Spec, describe, it, pending)
 import Test.Spec.Assertions (fail, shouldEqual, shouldNotEqual)
 import Test.Spec.QuickCheck (quickCheck)
-
-genSignal :: forall g. MonadGen g => g Signal
-genSignal = mkSignal <$> chooseInt 0 255
 
 shouldBeEquivalentTo :: forall m. MonadThrow Error m => Capacity -> Signal -> Signal -> m Unit
 shouldBeEquivalentTo capacity recieved expected = 
@@ -68,7 +65,7 @@ spec = do
         canonical EightBit tt `shouldEqual` (mkSignal 255)
 
       it "should be idempotent" do
-        signals <- liftEffect $ randomSample genSignal
+        signals <- liftEffect $ randomSample (arbitrary :: Gen Signal)
         for_ signals \signal ->
           for_ [OneBit, TwoBit, FourBit, EightBit] \capacity -> do
             let f = canonical capacity

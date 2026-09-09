@@ -1,4 +1,4 @@
-module Component.Rendering.PieceShape where
+module Render.PieceShape where
 
 import Prelude
 

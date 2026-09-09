@@ -9,10 +9,16 @@ import Data.Array as A
 import Data.Either (Either(..))
 import Data.Foldable (class Foldable, elem, foldl, foldr, for_)
 import Data.FoldableWithIndex (foldMapWithIndex)
+import Data.List (List(..))
+import Data.List as L
 import Data.Map (Map)
 import Data.Map as M
 import Data.Maybe (Maybe(..))
 import Data.Maybe.First (First)
+import Data.Set.NonEmpty (NonEmptySet)
+import Data.Set.NonEmpty as NES
+import Data.Traversable (traverse)
+import Data.Tuple (Tuple(..))
 import Effect.Aff.Class (class MonadAff, liftAff)
 import Effect.Exception (Error)
 import Test.Spec.Assertions (fail, shouldEqual)
@@ -76,7 +82,35 @@ shouldBeBefore first second fa =
       fail $ show second <> " was not found in " <> show arr
     Nothing, Just _ -> 
       fail $ show first <> " was not found in " <> show arr
-    Nothing, Nothing -> 
+    Nothing, Nothing ->
       fail $ "neither " <> show first <> " nor " <> show second <> " was found in " <> show arr
   where arr = A.fromFoldable fa
+
+{-
+  Given a layer decomposition (as produced by `layerDecomposition`) and a list of locations,
+  returns whether the list is a valid topological order with respect to that decomposition: every
+  location must appear in the decomposition, and a location from a later layer may never appear
+  before a location from an earlier layer. Locations from the same layer may appear in any
+  relative order.
+-}
+isToposortedByLayers :: forall a. Ord a => List (NonEmptySet a) -> List a -> Boolean
+isToposortedByLayers layers locations =
+  case traverse (\loc -> M.lookup loc layerIndexOf) locations of
+    Nothing -> false
+    Just indices -> isSorted indices
+  where
+    layerIndexOf :: Map a Int
+    layerIndexOf = indexLayers 0 layers
+
+    indexLayers :: Int -> List (NonEmptySet a) -> Map a Int
+    indexLayers _ Nil = M.empty
+    indexLayers i (Cons layer rest) =
+      M.union
+        (M.fromFoldable (map (\loc -> Tuple loc i) (L.fromFoldable (NES.toSet layer) :: List a)))
+        (indexLayers (i + 1) rest)
+
+    isSorted :: List Int -> Boolean
+    isSorted Nil = true
+    isSorted (Cons _ Nil) = true
+    isSorted (Cons x (Cons y rest)) = x <= y && isSorted (Cons y rest)
 

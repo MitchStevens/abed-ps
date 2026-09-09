@@ -1,8 +1,8 @@
-module Component.Rendering.Background where
+module Render.Background where
 
 import Prelude
 
-import Component.Rendering.PieceShape (BackgroundConfig)
+import Render.PieceShape (BackgroundConfig)
 import Data.Foldable (foldMap)
 import Halogen.HTML (HTML)
 import Halogen.Svg.Attributes (Color(..))

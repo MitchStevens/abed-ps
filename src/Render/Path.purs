@@ -1,4 +1,4 @@
-module Component.Rendering.Path where
+module Render.Path where
 
 import Prelude
 
@@ -17,10 +17,13 @@ import Unsafe.Coerce (unsafeCoerce)
 type Path = Array PathCommand
 
 renderPath :: forall w i. Path -> HTML w i
-renderPath path  =
+renderPath = renderPathWithFill (Named "none")
+
+renderPathWithFill :: forall w i. Color -> Path -> HTML w i
+renderPathWithFill fill path =
   SE.g []
     [ SE.path $
-        [ SA.fill (Named "none")
+        [ SA.fill fill
         , SA.stroke (Named "black")
         , SA.strokeWidth 1.0
         , SA.strokeLineJoin LineJoinRound
@@ -28,4 +31,3 @@ renderPath path  =
         , SA.d path
         ]
     ]
-      

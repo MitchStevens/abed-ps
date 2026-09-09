@@ -12,16 +12,20 @@
 @import "parchment";
 
 body {
-    margin: 0; 
+    margin: 0;
     background: url(./images/fancy-cushion.webp);
     background-size: 500px;
+}
+
+input[type=range] {
+    accent-color: #527A91;
 }
 
 #content {
     height: 100vh;
     min-width: 100%;
     display: inline-grid;
-    grid-template-columns: minmax(300px, 1fr) 1000px 1fr;
+    grid-template-columns: 1fr 1000px 1fr;
 }
 
 #abed {
@@ -37,8 +41,12 @@ body {
 
 
     #title {
+        display: inline-block;
         font-size: 100px;
         font-family: pirata;
+        color: inherit;
+        text-decoration: none;
+        cursor: pointer;
     }
 
     h1, h2, h3, h4 {
@@ -95,7 +103,7 @@ body {
         font-family: pirata;
         font-size: 20px;
         border-width: 2px;
-        border-color: @brown;
+        border-color: #39230d21;
         border-style: solid;
     }
 
@@ -183,9 +191,6 @@ span.green { color: @green }
         //display: none;
         border-left: 1px solid fade(@brown, 40%);
         padding-left: 10px;
-
-        & input[type=range] {
-        }
     }
 }
 
@@ -223,37 +228,54 @@ span.green { color: @green }
         mix-blend-mode: multiply;
     }
 
-    & .menu {
-        display: flex;
-        flex-direction: column;
-        gap: 22px;
+}
+
+// Shared by any page that lists navigable links as a vertical menu --
+// currently the home splash and the how-to-play index.
+.menu {
+    display: flex;
+    flex-direction: column;
+    gap: 22px;
+}
+
+.menu-item {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    text-decoration: none;
+    color: @brown;
+    border-bottom: 1px solid fade(@brown, 25%);
+    padding-bottom: 10px;
+    cursor: pointer;
+
+    &:hover {
+        border-bottom-color: @brown;
     }
+}
 
-    & .menu-item {
-        display: flex;
-        flex-direction: column;
-        gap: 2px;
-        text-decoration: none;
-        color: @brown;
-        border-bottom: 1px solid fade(@brown, 25%);
-        padding-bottom: 10px;
-        cursor: pointer;
+.menu-label {
+    font-family: pirata;
+    font-size: 34px;
+}
 
-        &:hover {
-            border-bottom-color: @brown;
-        }
-    }
+.menu-description {
+    font-family: tienne;
+    font-style: italic;
+    font-size: 15px;
+    color: fade(@brown, 70%);
+}
 
-    & .menu-label {
+#how-to-play-component {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    max-width: 640px;
+    margin-top: 20px;
+
+    & h1 {
         font-family: pirata;
-        font-size: 34px;
-    }
-
-    & .menu-description {
-        font-family: tienne;
-        font-style: italic;
-        font-size: 15px;
-        color: fade(@brown, 70%);
+        color: @brown;
+        margin: 0;
     }
 }
 

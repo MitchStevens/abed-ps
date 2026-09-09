@@ -1,8 +1,8 @@
-module Component.Rendering.Gradient where
+module Render.Gradient where
 
 import Prelude
 
-import Component.Rendering.Colours (portColours)
+import Render.Colours (portColours)
 import Data.Foldable (intercalate)
 import Game.Capacity (Capacity(..), toInt)
 import Game.Piece as Port

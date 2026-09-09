@@ -16,7 +16,7 @@ import Component.DataAttribute (attr)
 import Component.DataAttribute as DA
 import Component.Multimeter as Multimeter
 import Component.Piece.Movement as Piece
-import Component.Rendering.Port (portPath)
+import Render.Port (portPath)
 import Control.Monad.Except (ExceptT, lift, throwError)
 import Control.Monad.Logger.Class (class MonadLogger, debug, info, warn)
 import Control.Monad.Maybe.Trans (MaybeT(..), runMaybeT)
@@ -26,7 +26,7 @@ import Control.Monad.State.Class (modify_, gets)
 import Data.Array (elem, intercalate, last, (..))
 import Data.Array as A
 import Data.Bifunctor (lmap)
-import Data.Either (Either(..), blush, either, fromRight, hush, isLeft, isRight)
+import Data.Either (Either(..), blush, either, fromRight, hush, isLeft)
 import Data.Enum (fromEnum)
 import Data.Foldable (fold, foldMap, for_, traverse_)
 import Data.FoldableWithIndex (foldlWithIndex, foldrWithIndex, forWithIndex_, traverseWithIndex_)
@@ -60,14 +60,12 @@ import Effect.Class.Console (log, logShow)
 import Game.Board (Board(..), BoardError, BoardM, _pieces, _size, addPath, addPiece, buildEvaluableBoard, capacityRipple, decreaseSize, evalBoardM, evalWithPortInfo, execBoardM, getBoardPortEdge, getPieceInfo, increaseSize, pieceDropped, removePiece, rotatePieceBy, runBoardM, runEvaluableM, setBoardSize, toLocalInputs, transaction)
 import Game.Direction (CardinalDirection, allDirections)
 import Game.Direction as Direction
-import Game.GameEvent (BoardEvent(..))
 import Game.Location (Location(..), location)
 import Game.Port (isInput, portCapacity)
 import Game.PortInfo (PortInfo)
 import Game.Rotation (Rotation(..))
 import Game.Signal (Signal(..), maxValue)
 import Game.TestCase (testCaseOutcome)
-import GlobalState (GlobalState, newBoardEvent)
 import Halogen (AttrName(..), ClassName(..), Component, ComponentHTML, ComponentSlot, HalogenM(..), HalogenQ, Slot, mkComponent, mkEval, raise, subscribe, tell)
 import Halogen as H
 import Halogen.HTML (HTML, PlainHTML, fromPlainHTML)
@@ -76,7 +74,6 @@ import Halogen.HTML.Events as HE
 import Halogen.HTML.Extras (mapActionOverHTML)
 import Halogen.HTML.Properties as HA
 import Halogen.HTML.Properties as HP
-import Halogen.Store.Monad (class MonadStore, updateStore)
 import Halogen.Svg.Attributes (Transform(..))
 import Halogen.Svg.Attributes as SA
 import Halogen.Svg.Elements as SE
@@ -120,19 +117,15 @@ component = mkComponent { eval , initialState , render }
           result <- liftBoardM (addPiece loc piece)
           case result of
             Left _ -> Animate.headShake (DA.selector DA.location loc)
-            Right _ -> H.raise (BoardEvent (AddPieceEvent loc piece))
+            Right _ -> pure unit
           pure (Just (f result))
 
         AddPath initial locations terminal f -> do
           result <- liftBoardM (addPath initial locations terminal)
-          when (isRight result) do
-            H.raise (BoardEvent (AddPathEvent initial locations terminal))
           pure (Just (f result))
 
         RemovePiece loc f -> do
           result <- liftBoardM (removePiece loc)
-          for_ result \info ->
-            H.raise (BoardEvent (RemovePieceEvent loc info))
           pure (Just (f result))
         
         RotatePieceBy loc rot f -> do

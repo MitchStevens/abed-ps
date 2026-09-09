@@ -4,9 +4,11 @@ import Prelude
 
 import AppM (AppM)
 import Capability.Navigate (Route(..), Underscore(..), fromUnderscore)
+import Capability.Navigate as Navigate
 import Component.About as About
 import Component.Home as Home
-import Component.Instructions as Instructions
+import Component.HowToPlay as HowToPlay
+import Component.Instructions.Wire as Wire
 import Component.Level as Level
 import Component.LevelSelect as LevelSelect
 import Control.Monad.Logger.Class (class MonadLogger, debug)
@@ -28,15 +30,6 @@ import Routing.Match (Match, lit, str)
 import Type.Proxy (Proxy(..))
 import Web.UIEvent.KeyboardEvent (KeyboardEvent)
 
---route :: Match Route
---route = oneOf
---  [ Home <$ lit "home"
---  , About <$ lit "about"
---  , Instructions <$ lit "how-to-play"
---  , LevelSelect <$ lit "level-select"
---  , Level <$> (lit "level" *> str) <*> str
---  ]
-
 type Input = {}
 
 type State = 
@@ -53,6 +46,7 @@ data Output
 type Slots =
   ( home          :: forall q. Slot q Void Unit
   , about         :: forall q. Slot q Void Unit
+  , howToPlay     :: forall q. Slot q Void Unit
   , instructions  :: forall q. Slot q Void Unit
   , levelSelect   :: forall q. Slot q Void Unit
   , level         :: forall q. Slot q Void Unit
@@ -69,8 +63,10 @@ component = H.mkComponent { eval, initialState, render }
         HH.slot_ (Proxy :: _ "home") unit Home.component unit
       About ->
         HH.slot_ (Proxy :: _ "about") unit About.component unit
-      Instructions ->
-        HH.slot_ (Proxy :: _ "instructions") unit Instructions.component unit
+      HowToPlay ->
+        HH.slot_ (Proxy :: _ "howToPlay") unit HowToPlay.component unit
+      Instructions page -> case page of
+        Navigate.Wire -> HH.slot_ (Proxy :: _ "instructions") unit Wire.component unit
       LevelSelect ->
         HH.slot_ (Proxy :: _ "levelSelect") unit LevelSelect.component unit
       Level { suiteName, levelName } -> fromMaybe (HH.text "couldn't find that problem" ) do

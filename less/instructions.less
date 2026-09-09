@@ -28,7 +28,7 @@
 
   & .board-diagram {
     display: grid;
-    width: 300px; 
+    width: 300px;
     border: black 2px solid;
 
     & .board-component {
@@ -46,6 +46,110 @@
 
     & .board-diagram-description {
       grid-area: 2 / 1 / 2 / 2;
+    }
+  }
+
+  // Recessed like the sidebar's empty card slot (see .card-empty in
+  // card-stack-component.less): a transparent panel darkened via
+  // backdrop-filter plus an inset shadow, so it reads as a groove carved
+  // into the parchment rather than a card sitting on top of it.
+  & .instructional-board {
+    position: relative;
+    display: grid;
+    grid-template-columns: minmax(300px, max-content) minmax(0, 260px);
+    gap: 16px;
+    align-items: start;
+    margin: 24px auto;
+    width: fit-content;
+    padding: 20px;
+    // room at the bottom so the absolutely-positioned reset button (see
+    // below) doesn't sit on top of the board or objectives list.
+    padding-bottom: 56px;
+    border-radius: 12px;
+    background: transparent;
+    backdrop-filter: brightness(0.98) saturate(1.05);
+    -webkit-backdrop-filter: brightness(0.98) saturate(1.05);
+    box-shadow: inset 0 3px 8px -2px fade(@brown, 55%), inset 0 -1px 0 fade(white, 20%);
+
+    & .instructional-board-main {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+
+      & .board-component {
+        width: 300px;
+      }
+
+      & .available-pieces-label {
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: fade(@brown, 70%);
+        margin: 0;
+      }
+    }
+
+    & .reset-board-button {
+      position: absolute;
+      right: 20px;
+      bottom: 20px;
+      font-family: inherit;
+      font-weight: bold;
+      font-size: 14px;
+      background: transparent;
+      border: 1px solid fade(@brown, 55%);
+      color: @brown;
+      border-radius: 4px;
+      padding: 8px 16px;
+      cursor: pointer;
+      letter-spacing: 0.02em;
+      white-space: nowrap;
+
+      &:hover {
+        background: fade(@brown, 8%);
+      }
+    }
+
+    & .instructional-board-objectives {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+
+      & .objectives-label {
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: fade(@brown, 70%);
+        margin: 0 0 4px;
+      }
+
+      & .objective {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 4px 10px;
+        border-radius: 4px;
+        cursor: default;
+
+        & .objective-checkbox {
+          width: 15px;
+          height: 15px;
+          flex: none;
+          accent-color: @brown;
+        }
+
+        & .objective-title {
+          font-size: 15px;
+          color: fade(@brown, 80%);
+        }
+
+        &.objective-complete {
+          & .objective-title {
+            color: fade(@brown, 55%);
+            text-decoration: line-through;
+          }
+        }
+      }
     }
   }
 }

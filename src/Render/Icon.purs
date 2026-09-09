@@ -1,9 +1,9 @@
-module Component.Rendering.Icon where
+module Render.Icon where
 
 import Prelude
 
-import Component.Rendering.Background (eggshellBackground, wirePieceFrameStroke)
-import Component.Rendering.PieceShape (IconConfig(..))
+import Render.Background (eggshellBackground, wirePieceFrameStroke)
+import Render.PieceShape (IconConfig(..))
 import Data.Map (Map)
 import Data.Tuple (Tuple(..))
 import Game.Direction (CardinalDirection)

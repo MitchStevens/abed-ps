@@ -7,10 +7,10 @@ import Data.Tuple (Tuple(..), uncurry)
 import Effect.Class (liftEffect)
 import Game.Capacity (Capacity(..))
 import Game.Piece (fuseSignals, severSignal)
-import Game.Signal (Signal(..), mkSignal)
-import Test.Game.Signal (genSignal, shouldBeEquivalentTo)
-import Test.QuickCheck ((===))
-import Test.QuickCheck.Gen (randomSample)
+import Game.Signal (Signal, mkSignal)
+import Test.Game.Signal (shouldBeEquivalentTo)
+import Test.QuickCheck (arbitrary, (===))
+import Test.QuickCheck.Gen (Gen, randomSample)
 import Test.Spec (Spec, describe, it, itOnly)
 import Test.Spec.Assertions (shouldEqual, shouldNotEqual)
 import Test.Spec.QuickCheck (quickCheck)
@@ -29,7 +29,7 @@ spec = do
       severSignal OneBit (mkSignal 2) `shouldEqual` Tuple (mkSignal 1) (mkSignal 0)
       severSignal OneBit (mkSignal 3) `shouldEqual` Tuple (mkSignal 1) (mkSignal 1)
     it "fuse/sever roundtrip" do
-      signals <- liftEffect $ randomSample genSignal
+      signals <- liftEffect $ randomSample (arbitrary :: Gen Signal)
       for_ signals \s -> 
         for_ [OneBit, TwoBit, FourBit, EightBit] \c ->
             shouldBeEquivalentTo c

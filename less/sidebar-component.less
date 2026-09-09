@@ -91,10 +91,70 @@
     // bit more breathing room than the other sidebar items' 7px gap.
     & .card-stack {
         margin: 16px 0;
+        // The stacked cards behind the current one (see CardStack's
+        // `stackEntries`) are `position: absolute` with no z-index, which
+        // makes them paint as a group *after* ordinary in-flow content in
+        // the nearest stacking context -- without this, they'd paint over
+        // `.test-controls` below even though it comes later in the DOM.
+        // Isolating contains that painting order to just this box.
+        isolation: isolate;
 
         & .card-mount {
             padding: 10px;
             box-sizing: border-box;
+        }
+    }
+
+    // The row of buttons directly beneath the card stack -- see
+    // Component.Feedback's `render`. Whatever's showing (start/retry/back
+    // to level select) reads as one action for the current test state, so
+    // these get more visual weight than the plain-text sidebar-controls
+    // links below.
+    & .test-controls {
+        // Stacked (peeking) cards behind the current one are deliberately
+        // allowed to overflow the card stack's own box (see the
+        // `isolation` comment above) -- as plain `position: absolute`
+        // elements they'd otherwise still paint over this despite coming
+        // later in the DOM, since positioned descendants paint as a group
+        // after ordinary in-flow content. A positive z-index forces this
+        // above that group instead.
+        position: relative;
+        z-index: 1;
+        display: flex;
+        gap: 8px;
+        margin: -8px 0 8px;
+
+        &:empty {
+            display: none;
+        }
+
+        & .test-control-button {
+            flex: 1;
+            font-family: inherit;
+            font-weight: bold;
+            font-size: 14px;
+            // Solid, not `fade`/transparent -- this row sits close enough
+            // to the card stack (see the `margin` above) that a stacked
+            // card peeking out from behind would otherwise show through
+            // and read as overlapping the button.
+            background: #f9f6ee;
+            border: 1px solid fade(@brown, 55%);
+            color: @brown;
+            border-radius: 4px;
+            padding: 8px 12px;
+            cursor: pointer;
+
+            // Held invisible (`both` fill-mode) until the card's own
+            // `zoomInDown 550ms` (see card-stack-component.less) has
+            // finished landing, so the button doesn't pop in well before
+            // the card it belongs to. Component.Feedback's `render` keys
+            // each button on its label, so a freshly-appearing button is
+            // always a real DOM insertion and replays this every time.
+            animation: fadeIn 150ms 550ms both;
+
+            &:hover {
+                background: darken(#f9f6ee, 4%);
+            }
         }
     }
 

@@ -4,7 +4,6 @@ package:
     - abed
     - aff
     - arrays
-    - control
     - effect
     - enums
     - foldable-traversable
@@ -15,7 +14,6 @@ package:
     - ordered-collections
     - partial
     - prelude
-    - unsafe-coerce
     - web-dom
     - web-html
 

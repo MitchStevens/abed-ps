@@ -3,18 +3,13 @@ module Test.Rotation where
 import Prelude
 
 import Data.Array (length)
-import Data.Array.NonEmpty (cons')
 import Data.Group (ginverse)
 import Data.Number (pi)
-import Game.Rotation (Rotation(..), allRotations, rotation, toDegrees, toRadians)
-import Test.QuickCheck (arbitrary, (/==), (===))
-import Test.QuickCheck.Gen (Gen, elements)
+import Game.Rotation (allRotations, rotation, toDegrees, toRadians)
+import Test.QuickCheck ((/==), (===))
 import Test.Spec (Spec, describe, it)
 import Test.Spec.Assertions (shouldEqual)
 import Test.Spec.QuickCheck (quickCheck)
-
-genRotation :: Gen Rotation
-genRotation = rotation <$> arbitrary
 
 spec :: Spec Unit
 spec = do

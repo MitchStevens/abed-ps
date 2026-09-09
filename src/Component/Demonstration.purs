@@ -5,61 +5,75 @@ import Prelude
 import Data.Maybe (Maybe(..))
 import Effect.Aff.Class (class MonadAff)
 import Game.Level.Demonstration (Demonstration)
+import GlobalState (GlobalState, GlobalStateAction)
 import Halogen (ClassName(..), Component, HalogenM, HalogenQ, ComponentHTML, defaultEval, mkComponent, mkEval, modify_)
-import Halogen as H
 import Halogen.HTML (fromPlainHTML)
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
+import Halogen.Store.Connect (subscribe)
+import Halogen.Store.Monad (class MonadStore)
+import Halogen.Store.Select (Selector, select)
 import Type.Proxy (Proxy(..))
 
-type Input = Demonstration
+type Input = Unit
 
-type State =
-  { demonstration :: Demonstration
-  , isShowing :: Boolean
-  }
+-- | Nothing when nothing's showing; Just d while `d` is up. No separate
+-- | "isShowing" flag any more -- there's nothing a Just could mean other
+-- | than "showing this".
+type State = Maybe Demonstration
 
-data Query a = OpenDemonstration a | CloseDemonstration a
+-- | No queries any more -- driven entirely by the store (see
+-- | `selectRequestedDemonstration`) rather than being told directly by
+-- | whichever ancestor happens to own this slot.
+data Query a
 
-data Action = CloseButton
+data Action
+  = Initialise
+  | NewDemonstrationRequest (Maybe Demonstration)
+  | CloseButton
 
 type Output = Void
 
-component :: forall m. MonadAff m => Component Query Input Output m
+-- | Never treats two requests as equal, even the same `Demonstration`
+-- | clicked twice in a row -- clicking "Show me" again while the popup is
+-- | closed always has to reopen it, and `Demonstration` carries a
+-- | `PlainHTML`, which has no `Eq` instance to compare structurally anyway.
+selectRequestedDemonstration :: Selector GlobalState (Maybe Demonstration)
+selectRequestedDemonstration = select (\_ _ -> false) (_.requestedDemonstration)
+
+component :: forall m. MonadAff m => MonadStore GlobalStateAction GlobalState m => Component Query Input Output m
 component = mkComponent { initialState, eval, render }
   where
     initialState :: Input -> State
-    initialState  demonstration = { demonstration, isShowing: false }
+    initialState _ = Nothing
 
     eval :: HalogenQ Query Action Input ~> HalogenM State Action () Output m
     eval = mkEval $ defaultEval
-      { handleQuery = case _ of
-        OpenDemonstration next -> do
-          modify_ (_ { isShowing = true}) 
-          pure (Just next)
-        CloseDemonstration next -> do
-          modify_ (_ { isShowing = false}) 
-          pure (Just next)
-      , handleAction = case _ of
-          CloseButton -> modify_ (_ { isShowing = false}) 
+      { handleAction = case _ of
+          Initialise ->
+            subscribe selectRequestedDemonstration NewDemonstrationRequest
+          NewDemonstrationRequest demonstration ->
+            modify_ (const demonstration)
+          CloseButton ->
+            modify_ (const Nothing)
+      , initialize = Just Initialise
       }
 
     render :: State -> ComponentHTML Action () m
-    render state =
-      if state.isShowing
-        then
-          HH.div
-            [ HP.id "demonstration-component" ]
-            [ HH.div_
-              [ HH.h2_ [ HH.text state.demonstration.title ]
-              , fromPlainHTML state.demonstration.html 
-              , HH.button
-                [ HE.onClick (\_ -> CloseButton) ]
-                [ HH.text "Close demonstration" ]
-              ]
-            , HH.div [ HP.class_ (ClassName "parchment")] []
+    render state = case state of
+      Just demonstration ->
+        HH.div
+          [ HP.id "demonstration-component" ]
+          [ HH.div_
+            [ HH.h2_ [ HH.text demonstration.title ]
+            , fromPlainHTML demonstration.html
+            , HH.button
+              [ HE.onClick (\_ -> CloseButton) ]
+              [ HH.text "Close demonstration" ]
             ]
-        else HH.text ""
+          , HH.div [ HP.class_ (ClassName "parchment")] []
+          ]
+      Nothing -> HH.text ""
 
 slot = Proxy :: Proxy "demonstration"

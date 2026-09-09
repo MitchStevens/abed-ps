@@ -3,7 +3,9 @@ module Game.Level.Completion where
 import Prelude
 
 import Control.Monad.Error.Class (throwError)
+import Control.Monad.Gen (oneOf)
 import Control.Monad.State (evalState)
+import Data.Array.NonEmpty (cons')
 import Data.Bifunctor (lmap)
 import Data.Either (Either(..), fromLeft)
 import Data.Foldable (for_)
@@ -18,6 +20,8 @@ import Game.Level.Problem (Problem)
 import Game.Piece (Piece(..), eval, getPort)
 import Game.Port (Port(..), PortType, portCapacity)
 import Game.Signal (Signal(..))
+import Test.QuickCheck (class Arbitrary, arbitrary)
+import Test.QuickCheck.Gen (suchThat)
 
 data CompletionStatus
  = NotStarted
@@ -45,6 +49,22 @@ derive instance Generic PortMismatch _
 derive instance Eq PortMismatch
 instance Show PortMismatch where
   show = genericShow
+
+-- | `suchThat`-filtered: an `IncorrectPortType`/`IncorrectCapacity` where
+-- | `received == expected` wouldn't actually be a mismatch at all.
+instance Arbitrary PortMismatch where
+  arbitrary = (oneOf $ cons'
+    ( map PortExpected      $ { direction: _, expected: _ } <$> arbitrary <*> arbitrary )
+    [ map NoPortExpected    $ { direction: _, received: _ } <$> arbitrary <*> arbitrary
+    , map IncorrectPortType $ { direction: _, capacity: _, received: _, expected: _ } <$> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary
+    , map IncorrectCapacity $ { direction: _, portType: _, received: _, expected: _ } <$> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary
+    ]) `suchThat` isValidMismatch
+    where
+    isValidMismatch = case _ of
+      PortExpected _ -> true
+      NoPortExpected _ -> true
+      IncorrectPortType { received, expected } -> received /= expected
+      IncorrectCapacity { received, expected } -> received /= expected
 
 
 --validPortMismatch = case _ of

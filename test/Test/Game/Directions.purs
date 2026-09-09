@@ -2,25 +2,20 @@ module Test.Game.Directions where
 
 import Prelude
 
-import Data.Array.NonEmpty (cons')
 import Data.Foldable (for_)
 import Game.Direction (CardinalDirection, allDirections, clockwiseRotation, oppositeDirection, rotateDirection)
 import Game.Direction as Direction
-import Game.Rotation (allRotations, rotation)
-import Test.QuickCheck.Gen (Gen, elements)
+import Game.Rotation (Rotation(..), allRotations, rotation)
+import Test.QuickCheck ((===))
 import Test.Spec (Spec, describe, it)
 import Test.Spec.Assertions (shouldEqual, shouldNotEqual)
 import Test.Spec.QuickCheck (quickCheck)
-
-genDirection :: Gen CardinalDirection
-genDirection = elements $ cons' Direction.Up [ Direction.Right, Direction.Down, Direction.Left ]
 
 spec :: Spec Unit
 spec = do
   describe "Direction" do
     it "oppositeDirection" $
-      for_ allDirections \dir ->
-        oppositeDirection (oppositeDirection dir) `shouldEqual` dir
+      quickCheck (\dir -> oppositeDirection (oppositeDirection dir) === dir)
     it "rotateDirection" do 
       rotateDirection Direction.Up (rotation 0) `shouldEqual` Direction.Up
       rotateDirection Direction.Up (rotation 1) `shouldEqual` Direction.Right
@@ -41,7 +36,6 @@ spec = do
         `shouldEqual` rotation 3
       clockwiseRotation Direction.Down Direction.Right
         `shouldEqual` rotation 3
-      
-      for_ allDirections \dir ->
-        for_ allRotations \rot ->
-          clockwiseRotation dir (rotateDirection dir rot) `shouldEqual` rot
+
+      quickCheck (\dir rot ->
+          clockwiseRotation dir (rotateDirection dir rot) === rot )

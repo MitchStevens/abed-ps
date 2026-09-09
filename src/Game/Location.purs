@@ -11,6 +11,8 @@ import Data.Ord (abs)
 import Data.Tuple (Tuple(..))
 import Game.Direction (CardinalDirection, allDirections)
 import Game.Direction as Direction
+import Test.QuickCheck (class Arbitrary)
+import Test.QuickCheck.Gen (chooseInt)
 import Web.HTML.Common (ClassName(..))
 
 
@@ -19,6 +21,13 @@ derive instance Eq Location
 derive instance Ord Location
 instance Show Location where
   show (Location {x, y}) = "(" <> show x <> "," <> show y <> ")"
+
+-- | Bounded to a plausible board-sized grid rather than the full `Int`
+-- | range `{x, y}` could technically hold -- an arbitrary location miles
+-- | off in either direction wouldn't exercise anything a real board play
+-- | does.
+instance Arbitrary Location where
+  arbitrary = location <$> chooseInt 0 10 <*> chooseInt 0 10
 --instance Semigroup Location where
 --  Location a <> Location b = location 
 

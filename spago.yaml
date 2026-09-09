@@ -4,7 +4,6 @@ package:
     - arrays
     - bifunctors
     - console
-    - contravariant
     - control
     - debug
     - effect
@@ -26,10 +25,8 @@ package:
     - monad-logger
     - newtype
     - now
-    - nullable
     - numbers
     - ordered-collections
-    - parallel
     - parsing
     - partial
     - printf
@@ -70,14 +67,14 @@ package:
       - "spec-discovery"
       - "spec-quickcheck"
       - "quickcheck"
-    censor_test_warnings: all
+    censorTestWarnings: all
 
 workspace:
-  package_set:
+  packageSet:
     registry: 62.2.5
     #registry: 60.2.1
     #url: https://raw.githubusercontent.com/purescript/package-sets/psc-0.15.9-20230629/packages.json
-  extra_packages:
+  extraPackages:
     #spec-discovery: 8.2.0
     halogen-svg-elems:
       dependencies:

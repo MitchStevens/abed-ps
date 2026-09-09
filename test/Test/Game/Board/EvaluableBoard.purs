@@ -16,10 +16,11 @@ import Data.Map (Map)
 import Data.Map as M
 import Data.Maybe (Maybe(..), maybe)
 import Data.Newtype (unwrap)
+import Data.Set.NonEmpty as NES
 import Data.Tuple (Tuple(..))
 import Debug (trace)
 import Effect.Aff (Aff)
-import Game.Board (EvaluableBoard(..), RelativeEdge, buildConnectionMap, evalWithPortInfo, evalWithPortInfoAt, evaluableBoardPiece, getOuterPort, injectInputs, isPseudoInput, psuedoPiece, relative, standardBoard, toEvaluableBoard, topologicalSort)
+import Game.Board (EvaluableBoard(..), RelativeEdge, buildConnectionMap, evalWithPortInfo, evalWithPortInfoAt, evaluableBoardPiece, getOuterPort, injectInputs, isPseudoInput, layerDecomposition, psuedoPiece, relative, standardBoard, toEvaluableBoard, topologicalSort)
 import Game.Capacity (Capacity(..))
 import Game.Direction as Direction
 import Game.Level (binaryTestInputs)
@@ -31,7 +32,7 @@ import Test.Game.Board (testBoard)
 import Test.Game.Board.Operation (exceptToAff)
 import Test.Spec (Spec, SpecT, describe, describeOnly, hoistSpec, it, itOnly)
 import Test.Spec.Assertions (fail, shouldEqual, shouldNotSatisfy, shouldReturn, shouldSatisfy)
-import Test.Unit.AssertExtra (shouldBeBefore, shouldEqualMap)
+import Test.Unit.AssertExtra (isToposortedByLayers, shouldBeBefore, shouldEqualMap)
 
 testEvaluableBoard :: EvaluableBoard
 testEvaluableBoard = EvaluableBoard
@@ -54,11 +55,13 @@ testEvaluableBoard = EvaluableBoard
     , Tuple (relative (location 1 0) Direction.Left) (relative (location 1 (-1)) Direction.Right)
     , Tuple (relative (location 3 1) Direction.Right) (relative (location 2 1) Direction.Right)
     ]
-  , evalOrder: 
-      location (-1) 1 : location 0 1 :
-      location 1 (-1) : location 1 0 :
-      location 1 1 : location 2 1 :
-      location 3 1 : Nil
+  , evalOrder:
+      (NES.singleton (location (-1) 1) # NES.insert (location 1 (-1))) :
+      (NES.singleton (location 0 1) # NES.insert (location 1 0)) :
+      NES.singleton (location 1 1) :
+      NES.singleton (location 2 1) :
+      NES.singleton (location 3 1) :
+      Nil
 
   , psuedoPieceLocations: M.fromFoldable
     [ Tuple Direction.Left  (location (-1) 1)
@@ -87,6 +90,20 @@ tests = do
         let c0 = evalState buildConnectionMap testBoard
         M.size c0 `shouldEqual` 3
 
+    describe "isToposortedByLayers" do
+      let layers = NES.singleton 1 : NES.insert 3 (NES.singleton 2) : NES.singleton 4 : Nil
+      it "accepts a list consistent with the layers" do
+        isToposortedByLayers layers (L.fromFoldable [1, 2, 3, 4]) `shouldEqual` true
+        -- locations from the same layer (2 and 3) may appear in either order
+        isToposortedByLayers layers (L.fromFoldable [1, 3, 2, 4]) `shouldEqual` true
+
+      it "rejects a list that places a later layer before an earlier one" do
+        isToposortedByLayers layers (L.fromFoldable [2, 1, 3, 4]) `shouldEqual` false
+        isToposortedByLayers layers (L.fromFoldable [4, 1, 2, 3]) `shouldEqual` false
+
+      it "rejects a list containing a location absent from the layers" do
+        isToposortedByLayers layers (L.fromFoldable [1, 2, 3, 4, 5]) `shouldEqual` false
+
     it "topologicalSort" do
       let in1 = location 0 1
       let in2 = location 1 0
@@ -100,6 +117,31 @@ tests = do
           (location 1 0 `shouldBeBefore` location 1 1) sortedLocations
           (location 1 1 `shouldBeBefore` location 2 1) sortedLocations
           (location 0 1 `shouldBeBefore` location 2 1) sortedLocations
+
+    it "layerDecomposition" do
+      let in1 = location 0 1
+      let in2 = location 1 0
+      let mid = location 1 1
+      let out = location 2 1
+      let nodes = L.fromFoldable [in1, in2, mid, out]
+      let connections = evalState buildConnectionMap testBoard
+      case layerDecomposition nodes connections of
+        Nothing -> fail "no layer decomposition"
+        Just layers -> do
+          -- in1 and in2 have no dependencies on one another, so they land in the same layer
+          isToposortedByLayers layers (L.fromFoldable [in1, in2, mid, out]) `shouldEqual` true
+          isToposortedByLayers layers (L.fromFoldable [in2, in1, mid, out]) `shouldEqual` true
+          -- out depends (transitively) on in1 and in2, so it can never precede them
+          isToposortedByLayers layers (L.fromFoldable [out, mid, in1, in2]) `shouldEqual` false
+          isToposortedByLayers layers (L.fromFoldable [in1, out, in2, mid]) `shouldEqual` false
+
+    it "layerDecomposition agrees with topologicalSort" do
+      let nodes = L.fromFoldable [location 0 1, location 1 0, location 1 1, location 2 1]
+      let connections = evalState buildConnectionMap testBoard
+      case Tuple <$> layerDecomposition nodes connections <*> topologicalSort nodes connections of
+        Nothing -> fail "expected both a layer decomposition and a topological sort"
+        Just (Tuple layers sortedLocations) ->
+          isToposortedByLayers layers sortedLocations `shouldEqual` true
 
     describe "testBoard" do
       let inRelEdge1 = relative (location (-1) 1) Direction.Right

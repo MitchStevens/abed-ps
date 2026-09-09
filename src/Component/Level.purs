@@ -5,10 +5,10 @@ import Prelude
 import AppM (AppM)
 import Capability.Animate (headShake)
 import Capability.Navigate (Route(..), navigateTo)
+import Capability.Progress (LevelProgress(..), saveLevelProgress) as Progress
 import Component.Board as Board
 import Component.Demonstration as Demonstration
 import Component.Feedback as Feedback
-import Component.GameEventLogger as GameEventLogger
 import Component.Selector as Selector
 import Component.Sidebar as Sidebar
 import Control.Alt ((<|>))
@@ -47,7 +47,7 @@ import Game.Piece (Piece(..), pieceLookup)
 import Game.Port (Port(..))
 import Game.Signal (Base, Signal(..), SignalRepresentation)
 import Game.TestCase (testCaseOutcome)
-import GlobalState (GlobalState, newBoardEvent)
+import GlobalState (GlobalStateAction(..))
 import Halogen (ClassName(..), Component, HalogenM, HalogenQ, Slot, ComponentHTML, gets, modify_)
 import Halogen as H
 import Halogen.HTML (PlainHTML, i)
@@ -89,7 +89,6 @@ type Slots =
   , sidebar         :: Slot Sidebar.Query       Sidebar.Output Unit
   , selector        :: Slot Selector.Query      Selector.Output Unit
   , demonstration   :: Slot Demonstration.Query Demonstration.Output Unit
-  , gameEventLogger :: forall q. Slot q Void Unit
   )
 
 component :: forall q o. Component q Input o AppM
@@ -110,9 +109,7 @@ component = H.mkComponent { eval , initialState , render }
     [ HH.slot Board.slot unit Board.component { board: standardBoard } BoardOutput
     , HH.slot Sidebar.slot unit Sidebar.component sidebarInput SidebarOutput
     , HH.slot Selector.slot unit Selector.component { availablePieces: level.problem.availablePieces } SelectorOutput
-    --, HH.slot_ _gameEventLogger unit GameEventLogger.component unit
-    , fromMaybe (HH.text "") $
-        HH.slot_ Demonstration.slot unit Demonstration.component <$> level.problem.demonstration
+    , HH.slot_ Demonstration.slot unit Demonstration.component unit
     ]
     where sidebarInput = { problem: level.problem, completionStatus, boardSize, boardPorts, base }
 
@@ -132,17 +129,21 @@ component = H.mkComponent { eval , initialState , render }
       levelId <- gets (_.levelId)
       lift $ debug M.empty ("Initialised level " <> show levelId)
 
-      -- init demonstration
-      _ <- delay (Milliseconds 1000.0) TriggerDemonstration >>= H.subscribe
-      pure unit
-
-      
-    TriggerDemonstration -> do
-      H.tell Demonstration.slot unit (Demonstration.OpenDemonstration)
-
-      -- make the board component display goal ports
+      -- Goal ports drive the board's first real evaluation, so this needs
+      -- to happen as soon as the board exists -- it used to be bundled
+      -- into TriggerDemonstration below, which meant the board sat with no
+      -- goal ports set (and never evaluated) for the full second before
+      -- the demonstration popup's own delay elapsed.
       Piece piece <- H.gets (_.level.problem.goal)
       H.tell Board.slot unit (Board.SetGoalPorts piece.ports)
+
+    -- User-triggered only now (the sidebar's "Demonstrate" button, via
+    -- Sidebar.RunDemonstration below) -- it used to also fire on a timer
+    -- right after mount, autoplaying over the player without being asked.
+    TriggerDemonstration -> do
+      demonstration <- H.gets (_.level.problem.demonstration)
+      for_ demonstration \d ->
+        updateStore (RequestDemonstration d)
 
     BoardOutput boardOutput -> case boardOutput of
       Board.NewBoardState board -> do
@@ -153,8 +154,6 @@ component = H.mkComponent { eval , initialState , render }
           { completionStatus = isReadyForTesting problem board
           , boardSize = board ^. _size
           , boardPorts = evalState getBoardPorts board }
-      Board.BoardEvent boardEvent -> do
-        updateStore (newBoardEvent boardEvent)
 
     SidebarOutput sidebarOutput -> case sidebarOutput of
       Sidebar.PieceDropped pieceId -> do
@@ -174,12 +173,11 @@ component = H.mkComponent { eval , initialState , render }
             for_ (firstEmptyLocation board) \loc ->
               H.request Board.slot unit (Board.AddPiece loc (pieceLookup pieceId))
         Sidebar.BackToLevelSelect  ->
-          liftEffect $ navigateTo LevelSelect
+          H.lift $ navigateTo LevelSelect
         Sidebar.Undo ->
           H.tell Board.slot unit Board.Undo
         Sidebar.Redo ->
           H.tell Board.slot unit Board.Redo
-        Sidebar.RunTests -> pure unit
         Sidebar.Clear ->
           H.tell Board.slot unit Board.Clear
         Sidebar.Base base -> do
@@ -191,12 +189,17 @@ component = H.mkComponent { eval , initialState , render }
           H.request Board.slot unit (Board.RunTestCase testCaseData) >>= traverse_ \outcome -> do
             H.tell Sidebar.slot unit (Sidebar.TestCaseResponse outcome)
           pure unit
-        Feedback.AllTestsPassed ->
+        Feedback.AllTestsPassed -> do
+          levelId <- gets (_.levelId)
+          Progress.saveLevelProgress levelId Progress.Completed
           modify_ (_ { completionStatus = Completion.Completed})
-        -- Sidebar intercepts PushCard itself (forwards it to CardStack) and
-        -- never forwards it up as a FeedbackOutput; kept here only so this
-        -- match stays exhaustive against Feedback.Output.
+        Feedback.ReturnToLevelSelect ->
+          H.lift $ navigateTo LevelSelect
+        -- Sidebar intercepts PushCard/ReplaceCard itself (forwards them to
+        -- CardStack) and never forwards either up as a FeedbackOutput; kept
+        -- here only so this match stays exhaustive against Feedback.Output.
         Feedback.PushCard _ -> pure unit
+        Feedback.ReplaceCard _ -> pure unit
 
 
     SelectorOutput output -> case output of

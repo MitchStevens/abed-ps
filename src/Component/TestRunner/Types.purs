@@ -108,6 +108,8 @@ cardContentFor state testCase =
   { title: "Test " <> show (state.currentIndex + 1) <> " of " <> show (A.length state.testCases)
   , statusBar: Just { status: cardStatus, text: cardStatusLabel }
   , text: [ "In: " <> formatSignals testCase.data.inputs, "Expected: " <> formatSignals testCase.data.expected ] <> receivedLine <> mismatchLine
+  , diagram: Nothing
+  , demonstration: Nothing
   }
   where
     ports = getPorts state.model

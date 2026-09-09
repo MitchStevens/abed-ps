@@ -36,7 +36,6 @@ import Data.Zipper (Zipper)
 import Data.Zipper as Z
 import Game.Board (Board(..), BoardError, BoardM, Path, PieceInfo, RelativeEdge, _pieces, evalBoardM, getBoardPortEdge, runBoardM, standardBoard, toLocalInputs)
 import Game.Direction (CardinalDirection)
-import Game.GameEvent (BoardEvent)
 import Game.Location (Location(..))
 import Game.Piece (Piece(..), defaultPortInfo)
 import Game.Port (Port(..))
@@ -117,7 +116,6 @@ data Action
 
 data Output
   = NewBoardState Board
-  | BoardEvent BoardEvent
 
 type Slots =
   ( piece :: Slot Piece.Query Piece.Output Location

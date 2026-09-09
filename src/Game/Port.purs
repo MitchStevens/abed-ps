@@ -38,6 +38,9 @@ derive instance Newtype Port _
 derive instance Eq Port
 derive instance Ord Port
 
+instance Arbitrary Port where
+  arbitrary = createPort <$> arbitrary <*> arbitrary
+
 instance Show Port where
   show (Port { portType, capacity }) = "(" <> show portType <> " " <> show capacity <> ")"
 

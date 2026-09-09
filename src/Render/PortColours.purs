@@ -4,19 +4,20 @@
 -- | signal. Applied as the fill of the outline path itself (see
 -- | Component.Piece.Outline) via an SVG <pattern>, rather than as a flat
 -- | square sitting behind the whole piece.
-module Component.Rendering.PortColours
+module Render.PortColours
   ( portColoursFillRef
   , portColoursHref
   , renderPortColours
   , renderPortColoursPattern
   , renderWirePortColoursPattern
+  , renderWirePortColoursPatterns
   , wirePortColoursFillRef
   )
   where
 
 import Prelude
 
-import Data.Array (filter)
+import Data.Array (filter, nub)
 import Data.Foldable (any, intercalate)
 import Data.Map (Map)
 import Data.Map as M
@@ -109,6 +110,15 @@ portColoursFillRef = fillRef <<< portColoursName
 
 renderWirePortColoursPattern :: forall w i. Map CardinalDirection PortInfo -> HTML w i
 renderWirePortColoursPattern = renderPattern <<< wirePortColoursName
+
+-- | Same as `renderWirePortColoursPattern`, but for several independent wire
+-- | loops sharing one piece (see the crossover pieces in Render.CrossOver) --
+-- | `wirePortColoursName` only ever comes back "off" or "up-right-down-left",
+-- | so two loops can easily land on the same name; `nub` keeps the <pattern>
+-- | defs from duplicating that id in the DOM.
+renderWirePortColoursPatterns :: forall w i. Array (Map CardinalDirection PortInfo) -> HTML w i
+renderWirePortColoursPatterns portStatesList =
+  SE.g [] (map renderPattern (nub (map wirePortColoursName portStatesList)))
 
 wirePortColoursFillRef :: Map CardinalDirection PortInfo -> String
 wirePortColoursFillRef = fillRef <<< wirePortColoursName

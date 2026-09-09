@@ -17,6 +17,7 @@ import Game.Piece (getPort)
 import Game.Port (Port, portMatches)
 import Prim.Coerce (class Coercible)
 import Safe.Coerce (coerce)
+import Test.QuickCheck (class Arbitrary, arbitrary)
 
 {-
   toAbsoluteEdge >=> 
@@ -62,6 +63,8 @@ instance Ord AbsoluteEdge where
   compare = compareBaseEdge `on` coerce
 instance Show AbsoluteEdge where
   show (Absolute { loc, dir }) = "AbsoluteEdge " <> show loc <> " " <> show dir
+instance Arbitrary AbsoluteEdge where
+  arbitrary = absolute <$> arbitrary <*> arbitrary
 instance Edge AbsoluteEdge where
   toAbsoluteEdge = pure
   fromAbsoluteEdge = pure

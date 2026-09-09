@@ -2,6 +2,7 @@ module Component.Home where
 
 import Prelude
 
+import AppM (AppM)
 import Capability.Navigate (Route(..), navigateTo)
 import Component.Layout.DefaultLayout (defaultLayout)
 import Effect.Class (class MonadEffect)
@@ -22,12 +23,12 @@ data Action
 pieceGlyphs :: Array String
 pieceGlyphs = [ "and", "or", "not", "xor", "fuse", "sever" ]
 
-component :: forall q i o m. MonadEffect m => H.Component q i o m
+component :: forall q i o. H.Component q i o AppM
 component = H.mkComponent { eval, initialState, render }
   where
   initialState _ = unit
 
-  render :: forall s. State -> ComponentHTML Action s m
+  render :: forall s. State -> ComponentHTML Action s AppM
   render _ = defaultLayout $
     HH.div
       [ HP.id "home-component" ]
@@ -40,7 +41,7 @@ component = H.mkComponent { eval, initialState, render }
       , HH.nav
           [ HP.class_ (ClassName "menu") ]
           [ menuItem LevelSelect "Choose a level" "Pick up where you left off"
-          , menuItem Instructions "How to play" "Learn the pieces and the goal"
+          , menuItem HowToPlay "How to play" "Learn the pieces and the goal"
           , menuItem About "About" "Who made this, and why"
           ]
       ]
@@ -61,8 +62,8 @@ component = H.mkComponent { eval, initialState, render }
         , HH.span [ HP.class_ (ClassName "menu-description") ] [ HH.text description ]
         ]
 
-  eval :: forall slots. HalogenQ q Action i ~> HalogenM State Action slots o m
+  eval :: forall slots. HalogenQ q Action i ~> HalogenM State Action slots o AppM
   eval = H.mkEval H.defaultEval
     { handleAction = case _ of
-        NavigateTo route -> navigateTo route
+        NavigateTo route -> H.lift $ navigateTo route
     }

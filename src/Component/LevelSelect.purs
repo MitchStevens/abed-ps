@@ -2,6 +2,7 @@ module Component.LevelSelect where
 
 import Prelude
 
+import AppM (AppM)
 import Capability.Navigate (Route(..), navigateTo, level)
 import Capability.Navigate as Navigate
 import Capability.Progress (LevelProgress(..), saveLevelProgress)
@@ -39,12 +40,12 @@ type State = { levelProgress :: Map LevelId LevelProgress }
 
 data Action = Initialise | NavigateTo LevelId
 
-component :: forall q i o m. MonadAff m => H.Component q i o m
+component :: forall q i o. H.Component q i o AppM
 component = H.mkComponent { eval , initialState , render }
   where
     initialState _ = { levelProgress: M.empty } 
 
-    render :: State -> ComponentHTML Action () m
+    render :: State -> ComponentHTML Action () AppM
     render state =  
       defaultLayout $
         HH.div [ HP.id "puzzle-select-component" ]
@@ -54,7 +55,7 @@ component = H.mkComponent { eval , initialState , render }
 
 
       where
-        renderLevelSuite :: String -> LevelSuite -> ComponentHTML Action () m
+        renderLevelSuite :: String -> LevelSuite -> ComponentHTML Action () AppM
         renderLevelSuite suiteName levelSuite =
           HH.div
             [ HP.class_ (ClassName "level-suite")]
@@ -81,7 +82,7 @@ component = H.mkComponent { eval , initialState , render }
           Just Incomplete -> HH.span [ attr DataAttr.progress Incomplete ] [ HH.text " ✶" ]
           Nothing -> HH.text ""
     
-    eval :: forall slots. HalogenQ q Action i ~> HalogenM State Action slots o m
+    eval :: forall slots. HalogenQ q Action i ~> HalogenM State Action slots o AppM
     eval = H.mkEval H.defaultEval
       { handleAction = case _ of
           Initialise -> do
@@ -90,6 +91,6 @@ component = H.mkComponent { eval , initialState , render }
             H.modify_ (_ { levelProgress = progress})
           NavigateTo levelId -> do
             saveLevelProgress levelId Incomplete
-            navigateTo (level levelId)
+            H.lift $ navigateTo (level levelId)
       , initialize = Just Initialise
       }

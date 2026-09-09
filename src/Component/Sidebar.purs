@@ -59,10 +59,9 @@ component = mkComponent { eval , initialState , render }
           -- what used to be a direct H.tell from Feedback on to CardStack.
           Feedback.PushCard content ->
             H.tell CardStack.slot unit (CardStack.PushCard content)
+          Feedback.ReplaceCard content ->
+            H.tell CardStack.slot unit (CardStack.ReplaceCard content)
           _ -> H.raise (FeedbackOutput output)
-        -- CardStack doesn't raise anything meaningful right now (its cards
-        -- have no buttons any more -- see Component.CardStack).
-        CardStackAction _ -> pure unit
         DoNothing -> pure unit
     , handleQuery: case _ of
         AmendBoardSizeSlider size next -> do

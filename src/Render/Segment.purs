@@ -1,9 +1,11 @@
-module Component.Rendering.Segment
+module Render.Segment
   ( Point
   , Segment(..)
   , endPoint
+  , genPoint
   , lineSequence
   , renderPath
+  , renderPathWithFill
   , rotate
   , startPoint
   , toPath
@@ -13,19 +15,32 @@ module Component.Rendering.Segment
 
 import Prelude
 
-import Component.Rendering.Path (Path)
-import Component.Rendering.Path (renderPath) as Path
+import Render.Path (Path)
+import Render.Path (renderPath, renderPathWithFill) as Path
 import Data.Array as Array
 import Data.Generic.Rep (class Generic)
+import Data.Int (toNumber)
 import Data.Maybe (Maybe(..))
 import Data.Show.Generic (genericShow)
 import Data.Tuple (Tuple(..))
 import Game.Rotation (Rotation(..))
 import Halogen.HTML (HTML)
-import Halogen.Svg.Attributes (CommandPositionReference(..), PathCommand, l, m, q)
+import Halogen.Svg.Attributes (Color, CommandPositionReference(..), PathCommand, l, m, q)
+import Test.QuickCheck (class Arbitrary)
+import Test.QuickCheck.Gen (Gen, chooseInt)
 
 -- | A point in the piece's 0-100 viewBox space.
 type Point = { x :: Number, y :: Number }
+
+-- | Not an `Arbitrary` instance: `Point` is a plain type alias for a bare
+-- | `{ x :: Number, y :: Number }` record, which has no identity of its own
+-- | to hang an instance on -- any other record that happens to share that
+-- | exact shape would silently pick it up too. Bounded to a plausible
+-- | viewBox-ish range rather than the full `Number` range, same as before.
+genPoint :: Gen Point
+genPoint = { x: _, y: _ } <$> genCoord <*> genCoord
+  where
+  genCoord = toNumber <$> chooseInt (-50) 50
 
 -- | One step of an SVG path, always in absolute coordinates, and always
 -- | carrying its own start point (`from`) as well as where it ends up.
@@ -60,6 +75,12 @@ derive instance genericSegment :: Generic Segment _
 instance showSegment :: Show Segment where
   show = genericShow
 
+instance arbitrarySegment :: Arbitrary Segment where
+  arbitrary = chooseInt 0 2 >>= case _ of
+    0 -> (\from to -> LineTo { from, to }) <$> genPoint <*> genPoint
+    1 -> (\from control to -> QuadTo { from, control, to }) <$> genPoint <*> genPoint <*> genPoint
+    _ -> (\from to -> ClosePath { from, to }) <$> genPoint <*> genPoint
+
 -- | Render one Segment down to the library's own PathCommand -- the only
 -- | place a Segment ever needs to know that type exists. `from` isn't
 -- | needed here: the real rendered path is already sitting at the right
@@ -88,6 +109,12 @@ toPath segments = leadingMove <> map toPathCommand segments
 -- | the SVG library wants right here, at the end of the rendering process.
 renderPath :: forall w i. Array Segment -> HTML w i
 renderPath = Path.renderPath <<< toPath
+
+-- | Same as `renderPath`, but with an explicit fill instead of `none` -- see
+-- | `Component.Board.Render`'s board-port icons, which fill blue once their
+-- | signal goes live.
+renderPathWithFill :: forall w i. Color -> Array Segment -> HTML w i
+renderPathWithFill fill = Path.renderPathWithFill fill <<< toPath
 
 -- | Shift every point of a Segment by a constant offset.
 translate :: Point -> Segment -> Segment

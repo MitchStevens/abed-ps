@@ -26,6 +26,7 @@ import Component.Piece.Render as Render
 import Component.Piece.Types as PieceTypes
 import Data.Map (Map)
 import Data.Maybe (Maybe(..))
+import Data.Tuple (Tuple(..))
 import Effect.Aff.Class (class MonadAff)
 import Game.Direction (CardinalDirection)
 import Game.Location (location)
@@ -88,6 +89,11 @@ render state = Render.renderPiece paddedState
 -- | get clobbered by an unrelated re-render. That means this `Receive` has
 -- | to do the diffing and tell it explicitly, same as the old
 -- | `Component.Piece` used to before this component existed.
+-- |
+-- | Crossover pieces (cross/corner-cut/chicken/reverse-chicken) mount two
+-- | Outline slots, one per independent wire loop -- each diffed and told
+-- | separately, so e.g. a path simplification that only reroutes one loop
+-- | only crossfades that one.
 handleAction :: forall m. MonadAff m => Action -> HalogenM State Action ChildSlots Output m Unit
 handleAction = case _ of
   Receive input -> do
@@ -95,5 +101,10 @@ handleAction = case _ of
     modify_ (const input)
     case Render.outlineSegmentsFor old.piece old.portStates, Render.outlineSegmentsFor input.piece input.portStates of
       Just oldSegs, Just newSegs | oldSegs /= newSegs ->
-        void $ H.tell Outline.slot unit (Outline.Transition newSegs)
+        void $ H.tell Outline.slot 0 (Outline.Transition newSegs)
+      _, _ -> pure unit
+    case Render.crossOverSegmentsFor old.piece old.portStates, Render.crossOverSegmentsFor input.piece input.portStates of
+      Just (Tuple oldSegs1 oldSegs2), Just (Tuple newSegs1 newSegs2) -> do
+        when (oldSegs1 /= newSegs1) $ void $ H.tell Outline.slot 0 (Outline.Transition newSegs1)
+        when (oldSegs2 /= newSegs2) $ void $ H.tell Outline.slot 1 (Outline.Transition newSegs2)
       _, _ -> pure unit

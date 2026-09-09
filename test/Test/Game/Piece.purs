@@ -23,7 +23,7 @@ import Game.Direction (CardinalDirection, allDirections)
 import Game.Piece (Piece(..), allPieces, eval, getPorts, name, pieceVault, truncateInputs)
 import Game.Port (portCapacity)
 import Game.Signal (Signal, equivalent)
-import Test.Game.Signal (genSignal, shouldBeEquivalentTo)
+import Test.Game.Signal (shouldBeEquivalentTo)
 import Test.QuickCheck (Result(..), arbitrary, assertEquals, withHelp)
 import Test.QuickCheck.Gen (Gen)
 import Test.Spec (Spec, describe, it)
@@ -51,7 +51,7 @@ spec =
       A.length allPieces `shouldEqual` M.size pieceVault
 
 genSignals :: Gen (Map CardinalDirection Signal)
-genSignals = M.fromFoldable <$> for allDirections \dir -> Tuple dir <$> genSignal
+genSignals = M.fromFoldable <$> for allDirections \dir -> Tuple dir <$> arbitrary
 
 equivalentTo :: Piece -> Piece -> Gen Result
 equivalentTo p1 p2 = do

@@ -8,3 +8,6 @@ dist-piece-viewer/
 .psc-ide-port
 npm-debug.log
 .spec-results
+
+# work-in-progress modules parked out of the compile path
+wip/

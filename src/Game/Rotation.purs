@@ -9,11 +9,15 @@ import Data.Int.Bits as Bits
 import Data.Maybe (Maybe(..))
 import Data.Newtype (class Newtype)
 import Data.Number (pi)
+import Test.QuickCheck (class Arbitrary, arbitrary)
 
 newtype Rotation = Rotation Int
 derive instance Newtype Rotation _
-derive instance Eq Rotation 
-derive instance Ord Rotation 
+derive instance Eq Rotation
+derive instance Ord Rotation
+
+instance Arbitrary Rotation where
+  arbitrary = rotation <$> arbitrary
 
 instance Show Rotation where
   show (Rotation n) = "Rotation " <> show (n * 90) <> "°"

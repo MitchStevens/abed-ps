@@ -8,11 +8,11 @@ import Prelude
 import AppM (AppM)
 import Component.Board.Types (Action(..), Slots, State, boardPortInfo, pieceInput, slot)
 import Component.DataAttribute as DA
-import Component.GameEventLogger as GameEventLogger
 import Component.Multimeter as Multimeter
 import Component.Piece.Movement as Piece
-import Component.Rendering.Port (portPath)
-import Component.Rendering.Segment (renderPath)
+import Render.Colours as Colours
+import Render.Port (portPath)
+import Render.Segment (renderPathWithFill)
 import Component.Sidebar.BoardSizeSlider as BoardSizeSlider
 import Control.Monad.State (evalState)
 import Data.Array (elem, replicate, (..))
@@ -36,7 +36,7 @@ import Halogen.HTML (ClassName(..), ComponentHTML, HTML, slot_)
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
-import Halogen.Svg.Attributes (Transform(..))
+import Halogen.Svg.Attributes (Color(..), Transform(..))
 import Halogen.Svg.Attributes as SA
 import Halogen.Svg.Elements as SE
 import Web.HTML.Event.DragEvent as DragEvent
@@ -61,8 +61,6 @@ render state =
       where
         visibleCells = intercalate " " (replicate n "100fr")
         invisibleCells = intercalate " " (replicate ((BoardSizeSlider.maxBoardSize - n) `div` 2) "0fr")
-
-
 
     board = Z.head state.boardHistory
     n = board ^. _size
@@ -109,15 +107,17 @@ render state =
         ]
         [ SE.svg
           [ viewBox ]
-          [ SE.g 
+          [ SE.g
             [ SA.transform [ Rotate rotation 25.0 12.5 ] ]
-            [ renderPath path ]
+            [ renderPathWithFill fill path ]
           ]
         ]
       where
         rotation = toDegrees (clockwiseRotation Direction.Up dir) + 180.0
 
         path = portPath portInfo
+
+        fill = if portInfo.signal /= zero then Colours.portOn else Named "none"
 
         portGridLayout :: CardinalDirection -> Tuple Int Int
         portGridLayout = case _ of

@@ -1,10 +1,10 @@
-module Component.Rendering.PieceConfig where
+module Render.PieceConfig where
 
 import Prelude
 
-import Component.Rendering.Background (eggshellBackground)
-import Component.Rendering.Icon (xorGateIcon)
-import Component.Rendering.PieceShape (IconConfig(..), JunctionType(..), PieceRenderConfig, Trace(..))
+import Render.Background (eggshellBackground)
+import Render.Icon (xorGateIcon)
+import Render.PieceShape (IconConfig(..), JunctionType(..), PieceRenderConfig, Trace(..))
 import Data.Maybe (Maybe(..))
 import Game.Direction (CardinalDirection(..))
 import Game.Piece (Piece, andPiece, name, notPiece, orPiece, xorPiece)
@@ -50,4 +50,4 @@ pieceRenderConfig piece
       , icon: VectorIcon (const xorGateIcon)
       }
   | otherwise =
-      unsafeCrashWith "Component.Rendering.PieceConfig.pieceRenderConfig: not implemented for this piece yet"
+      unsafeCrashWith "Render.PieceConfig.pieceRenderConfig: not implemented for this piece yet"

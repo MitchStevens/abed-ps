@@ -1,4 +1,4 @@
-module Component.Rendering.LegShape
+module Render.LegShape
   ( arrowPath
   , curveBetweenPath
   , initialLocation
@@ -9,7 +9,7 @@ module Component.Rendering.LegShape
 
 import Prelude
 
-import Component.Rendering.Segment (Point, Segment(..), lineSequence)
+import Render.Segment (Point, Segment(..), lineSequence)
 import Game.Direction (CardinalDirection(..))
 
 -- | Where a leg's stub/arrow shape starts, before it's drawn.
@@ -30,9 +30,9 @@ terminalLocation = case _ of
 
 -- | Every leg shape below is a pure "walk the pen by these deltas" recipe,
 -- | anchored at an explicit `start` -- that's what lets them be reused both
--- | by `Component.Rendering.Outline`/`Wire` (where `start` always lines up
+-- | by `Render.Outline`/`Wire` (where `start` always lines up
 -- | with `initialLocation`/`terminalLocation`) and by
--- | `Component.Rendering.Port`'s `portPath` (where it doesn't -- ports draw
+-- | `Render.Port`'s `portPath` (where it doesn't -- ports draw
 -- | the same shapes anchored at their own, unrelated local coordinates).
 arrowPath :: Point -> CardinalDirection -> Array Segment
 arrowPath start dir = lineSequence start $ case dir of

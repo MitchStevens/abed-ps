@@ -18,6 +18,7 @@ module Game.Board.EvaluableBoard
   , getOuterPort
   , getPort
   , injectInputs
+  , layerDecomposition
   , runEvaluableM
   , toEvaluableBoard
   , toGlobalInputs
@@ -44,6 +45,9 @@ import Data.Map as M
 import Data.Map.Unsafe (unsafeMapKey)
 import Data.Maybe (Maybe(..), fromMaybe, maybe)
 import Data.Newtype (class Newtype, unwrap)
+import Data.Set as Set
+import Data.Set.NonEmpty (NonEmptySet)
+import Data.Set.NonEmpty as NES
 import Data.Traversable (for, for_, traverse, traverse_)
 import Data.TraversableWithIndex (forWithIndex)
 import Data.Tuple (Tuple(..))
@@ -65,8 +69,9 @@ newtype EvaluableBoard = EvaluableBoard
   { pieces :: Map Location Piece
   -- maps input relEdges to output relEdges
   , connections :: Map RelativeEdge RelativeEdge
-  -- topologically sorted list of locations
-  , evalOrder :: List Location
+  -- layer decomposition of locations: a topologically sorted list of antichains, where each
+  -- location depends only on locations in earlier layers
+  , evalOrder :: List (NonEmptySet Location)
   --, innerPorts :: Map CardinalDirection Port
   , psuedoPieceLocations :: Map CardinalDirection Location
   }
@@ -125,9 +130,9 @@ buildEvaluableBoard psuedoPiecePorts = evalStateT do
   -- psuedoPieceLocations :: Map CardinalDirection Location
   psuedoPieceLocations <- forWithIndex psuedoPiecePorts \dir _ -> getBoardEdgePseudoLocation dir
 
-  -- toposort the pieces (need connection map)
+  -- layer-decompose the pieces (need connection map)
   let locations = L.fromFoldable <<< M.keys $ pieces
-  evalOrder <- maybe (throwError Cyclic) pure (topologicalSort locations connections)
+  evalOrder <- maybe (throwError Cyclic) pure (layerDecomposition locations connections)
 
   pure $ EvaluableBoard { pieces, connections, evalOrder, psuedoPieceLocations }
 
@@ -142,6 +147,28 @@ topologicalSort nodes edges = do
   let nodes' = L.delete r nodes
       edges' = M.filter (\v -> edgeLocation v /= r) edges
   Cons r <$> topologicalSort nodes' edges'
+
+{-
+  Like `topologicalSort`, but instead of peeling off one ready location at a time, every
+  currently-ready location is grouped into a single layer. Locations within the same layer have
+  no dependency on one another (they form an antichain in the connection graph): a location can
+  only become ready once every location it depends on has already been placed into an earlier
+  layer, so two mutually-dependent locations can never land in the same layer. That means the
+  relative order of locations within a layer doesn't matter -- they can be evaluated or rendered
+  in parallel, and each layer only depends on layers before it.
+
+  Returns `Nothing` if `nodes`/`edges` form a cyclic graph, same as `topologicalSort`.
+-}
+layerDecomposition :: List Location -> Map RelativeEdge RelativeEdge -> Maybe (List (NonEmptySet Location))
+layerDecomposition Nil _ = Just Nil
+layerDecomposition nodes edges = do
+  let doesntAcceptOutput loc = M.isEmpty $ M.submap (Just (relative loc Direction.Up)) (Just (relative loc Direction.Left)) edges
+  readyLayer <- NES.fromFoldable (L.filter doesntAcceptOutput nodes)
+
+  let ready = NES.toSet readyLayer
+      nodes' = L.filter (\loc -> not (Set.member loc ready)) nodes
+      edges' = M.filter (\v -> not (Set.member (edgeLocation v) ready)) edges
+  Cons readyLayer <$> layerDecomposition nodes' edges'
 
 evaluableBoardPiece :: EvaluableBoard -> Piece
 evaluableBoardPiece evaluable = mkPieceNoAdapt
@@ -158,16 +185,17 @@ evaluableBoardPiece evaluable = mkPieceNoAdapt
 {-
   Once the `EvaluableBoard` is build from a `Board`, we do the following to evaluate it:
     1. Inject the inputs into the psuedo inputs
-    2. `eval` each location in the list `evalOrder`
+    2. `eval` each location in `evalOrder`, layer by layer -- locations within a layer have no
+       dependency on one another, so they're evaluated in whatever order they fold in
     3. Extract the outputs from the psuedo outputs
 
 -}
-evalWithPortInfo :: forall m. MonadReader EvaluableBoard m => MonadState (Map RelativeEdge PortInfo) m 
+evalWithPortInfo :: forall m. MonadReader EvaluableBoard m => MonadState (Map RelativeEdge PortInfo) m
   => Map CardinalDirection Signal -> m (Map CardinalDirection Signal)
 evalWithPortInfo inputs = do
   evalOrder <- asks (unwrap >>> (_.evalOrder))
   injectInputs inputs
-  traverse_ evalWithPortInfoAt evalOrder
+  traverse_ (traverse_ evalWithPortInfoAt) evalOrder
   extractOutputs
 
 injectInputs :: forall m. MonadReader EvaluableBoard m => MonadState (Map RelativeEdge PortInfo) m
