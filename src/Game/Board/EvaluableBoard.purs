@@ -9,6 +9,9 @@
 module Game.Board.EvaluableBoard
   ( EvaluableBoard(..)
   , EvaluableM
+  , Terminal(..)
+  , TerminalType(..)
+  , terminalLocations
   , buildEvaluableBoard
   , evalWithPortInfo
   , evalWithPortInfoAt
@@ -36,6 +39,7 @@ import Control.Monad.Reader (class MonadReader, ReaderT, asks, runReaderT)
 import Control.Monad.State (class MonadState, State, evalState, evalStateT, gets, modify_, runState)
 import Data.Either (Either)
 import Data.FoldableWithIndex (forWithIndex_)
+import Data.Generic.Rep (class Generic)
 import Data.Lens (use, (.=))
 import Data.Lens.At (at)
 import Data.List (List(..), find, fold)
@@ -48,6 +52,7 @@ import Data.Newtype (class Newtype, unwrap)
 import Data.Set as Set
 import Data.Set.NonEmpty (NonEmptySet)
 import Data.Set.NonEmpty as NES
+import Data.Show.Generic (genericShow)
 import Data.Traversable (for, for_, traverse, traverse_)
 import Data.TraversableWithIndex (forWithIndex)
 import Data.Tuple (Tuple(..))
@@ -65,6 +70,32 @@ import Game.Port (Port, inputPort, isInput, isOutput, matchingPort, outputPort, 
 import Game.PortInfo (PortInfo)
 import Game.Signal (Signal)
 
+
+-- | What sits on one side of the board, bridging the interior to something else.
+-- | `Input`/`Output` talk to the test harness; `WormholeIn`/`WormholeOut` are the
+-- | two ends of a wormhole (mouth consumes / tail emits, internally, 1-tick delay).
+-- | `WormholeIn`/`WormholeOut` are not produced yet -- see issue #20 / docs/wormholes.md.
+data TerminalType = Input | Output | WormholeIn | WormholeOut
+derive instance Generic TerminalType _
+derive instance Eq TerminalType
+instance Show TerminalType where
+  show = genericShow
+
+-- | A terminal on the board boundary: its kind, the capacity of the signal it
+-- | carries, and the (off-board) `Location` where its pseudo-piece is stood up
+-- | during `buildEvaluableBoard` so `buildConnectionMap` can wire it to the
+-- | adjacent interior piece.
+newtype Terminal = Terminal
+  { terminalType :: TerminalType
+  , capacity :: Capacity
+  , location :: Location
+  }
+derive instance Generic Terminal _
+derive instance Newtype Terminal _
+derive instance Eq Terminal
+instance Show Terminal where
+  show = genericShow
+
 newtype EvaluableBoard = EvaluableBoard
   { pieces :: Map Location Piece
   -- maps input relEdges to output relEdges
@@ -73,12 +104,16 @@ newtype EvaluableBoard = EvaluableBoard
   -- location depends only on locations in earlier layers
   , evalOrder :: List (NonEmptySet Location)
   --, innerPorts :: Map CardinalDirection Port
-  , psuedoPieceLocations :: Map CardinalDirection Location
+  , terminals :: Map CardinalDirection Terminal
   }
 derive instance Newtype EvaluableBoard _
 derive instance Eq EvaluableBoard
 instance Show EvaluableBoard where
   show (EvaluableBoard evaluable) = show evaluable
+
+-- | The off-board `Location` of each terminal's pseudo-piece, keyed by side.
+terminalLocations :: EvaluableBoard -> Map CardinalDirection Location
+terminalLocations = unwrap >>> _.terminals >>> map (unwrap >>> _.location)
 
 type EvaluableM a = ReaderT EvaluableBoard (State (Map RelativeEdge PortInfo)) a
 
@@ -88,17 +123,17 @@ runEvaluableM evaluable evalM = runState (runReaderT evalM evaluable) M.empty
 getOuterPort :: forall m. MonadReader EvaluableBoard m => MonadState (Map RelativeEdge PortInfo) m =>
   CardinalDirection -> m (Maybe Signal)
 getOuterPort dir = do
-  maybeLoc <- asks (unwrap >>> (_.psuedoPieceLocations) >>> M.lookup dir)
+  maybeLoc <- asks (terminalLocations >>> M.lookup dir)
   for maybeLoc \loc ->
     maybe zero (_.signal) <$> gets (M.lookup (relative loc Direction.Right))
 
 {-
-  Note: you can only set an outer port if the pseudopiece is an input psuedopiece
+  Note: you can only set an outer port if the terminal is an input terminal
 -}
 setOuterPort :: forall m. MonadReader EvaluableBoard m => MonadState (Map RelativeEdge PortInfo) m =>
   CardinalDirection -> Signal -> m Unit
 setOuterPort dir signal = void $ runMaybeT do
-  loc <- MaybeT $ asks (unwrap >>> _.psuedoPieceLocations >>> M.lookup dir)
+  loc <- MaybeT $ asks (terminalLocations >>> M.lookup dir)
   piece <- MaybeT $ asks (unwrap >>> _.pieces >>> M.lookup loc)
   when (isPseudoInput piece) do
     port <- MaybeT $ pure (getPsuedoPiecePort piece)
@@ -117,9 +152,10 @@ toEvaluableBoard board = runExcept (buildEvaluableBoard (evalState getBoardPorts
 -}
 buildEvaluableBoard :: forall m. MonadError BoardError m
   => Map CardinalDirection Port -> Board -> m EvaluableBoard
-buildEvaluableBoard psuedoPiecePorts = evalStateT do
-  -- add `psuedopiece`s to board
-  forWithIndex_ psuedoPiecePorts \dir port -> do
+buildEvaluableBoard terminalPorts = evalStateT do
+  -- stand a pseudo-piece up at each terminal so `buildConnectionMap` wires the
+  -- terminal to its adjacent interior piece
+  forWithIndex_ terminalPorts \dir port -> do
     loc <- getBoardEdgePseudoLocation dir
     let rotation = clockwiseRotation Direction.Left dir
     _pieces <<< at loc .= Just { piece: psuedoPiece port, rotation }
@@ -127,14 +163,19 @@ buildEvaluableBoard psuedoPiecePorts = evalStateT do
   pieces <- map (_.piece) <$> use _pieces
   connections <- buildConnectionMap
 
-  -- psuedoPieceLocations :: Map CardinalDirection Location
-  psuedoPieceLocations <- forWithIndex psuedoPiecePorts \dir _ -> getBoardEdgePseudoLocation dir
+  terminals <- forWithIndex terminalPorts \dir port -> do
+    loc <- getBoardEdgePseudoLocation dir
+    pure $ Terminal
+      { terminalType: if isOutput port then Output else Input
+      , capacity: portCapacity port
+      , location: loc
+      }
 
   -- layer-decompose the pieces (need connection map)
   let locations = L.fromFoldable <<< M.keys $ pieces
   evalOrder <- maybe (throwError Cyclic) pure (layerDecomposition locations connections)
 
-  pure $ EvaluableBoard { pieces, connections, evalOrder, psuedoPieceLocations }
+  pure $ EvaluableBoard { pieces, connections, evalOrder, terminals }
 
 -- very simple but maybe not effceient, this is fine for small n
 -- https://gist.github.com/rinse/8c4266ba7cef050a109f42b082782b59
@@ -201,8 +242,8 @@ evalWithPortInfo inputs = do
 injectInputs :: forall m. MonadReader EvaluableBoard m => MonadState (Map RelativeEdge PortInfo) m
   => Map CardinalDirection Signal -> m Unit
 injectInputs inputs = do
-  psuedoPieceLocations <- asks (unwrap >>> (_.psuedoPieceLocations))
-  forWithIndex_ psuedoPieceLocations \dir loc -> do
+  locs <- asks terminalLocations
+  forWithIndex_ locs \dir _ -> do
     for_ (M.lookup dir inputs) \signal -> do
       setOuterPort dir signal
 
@@ -271,16 +312,16 @@ extractOutputs = M.catMaybes <$> do
 getPorts :: forall m. MonadReader EvaluableBoard m => m (Map CardinalDirection Port)
 getPorts = do
   pieces <- asks (unwrap >>> _.pieces)
-  psuedoPieceLocations <- asks (unwrap >>> _.psuedoPieceLocations)
-  
-  pure $ M.mapMaybe (\loc -> map matchingPort $ M.lookup loc pieces >>= (\(Piece p) -> M.lookup Direction.Right p.ports)) psuedoPieceLocations
+  locs <- asks terminalLocations
+
+  pure $ M.mapMaybe (\loc -> map matchingPort $ M.lookup loc pieces >>= (\(Piece p) -> M.lookup Direction.Right p.ports)) locs
 
 getPort :: forall m. MonadReader EvaluableBoard m => CardinalDirection ->  m (Maybe Port)
 getPort dir = do
   pieces <- asks (unwrap >>> _.pieces)
-  psuedoPieceLocations <- asks (unwrap >>> _.psuedoPieceLocations)
+  locs <- asks terminalLocations
   pure $
-    M.lookup dir psuedoPieceLocations
+    M.lookup dir locs
       >>= \loc -> M.lookup loc pieces
       >>= \(Piece p) -> M.lookup Direction.Right p.ports
       <#> matchingPort

@@ -20,7 +20,7 @@ import Data.Set.NonEmpty as NES
 import Data.Tuple (Tuple(..))
 import Debug (trace)
 import Effect.Aff (Aff)
-import Game.Board (EvaluableBoard(..), RelativeEdge, buildConnectionMap, evalWithPortInfo, evalWithPortInfoAt, evaluableBoardPiece, getOuterPort, injectInputs, isPseudoInput, layerDecomposition, psuedoPiece, relative, standardBoard, toEvaluableBoard, topologicalSort)
+import Game.Board (EvaluableBoard(..), RelativeEdge, Terminal(..), TerminalType(..), buildConnectionMap, evalWithPortInfo, evalWithPortInfoAt, evaluableBoardPiece, getOuterPort, injectInputs, isPseudoInput, layerDecomposition, psuedoPiece, relative, standardBoard, toEvaluableBoard, topologicalSort)
 import Game.Capacity (Capacity(..))
 import Game.Direction as Direction
 import Game.Level (binaryTestInputs)
@@ -63,11 +63,11 @@ testEvaluableBoard = EvaluableBoard
       NES.singleton (location 3 1) :
       Nil
 
-  , psuedoPieceLocations: M.fromFoldable
-    [ Tuple Direction.Left  (location (-1) 1)
-    , Tuple Direction.Up    (location 1 (-1))
-    , Tuple Direction.Right (location 3 1)
-    ] 
+  , terminals: M.fromFoldable
+    [ Tuple Direction.Left  (Terminal { terminalType: Input,  capacity: OneBit, location: location (-1) 1 })
+    , Tuple Direction.Up    (Terminal { terminalType: Input,  capacity: OneBit, location: location 1 (-1) })
+    , Tuple Direction.Right (Terminal { terminalType: Output, capacity: OneBit, location: location 3 1 })
+    ]
   }
 
 type EvalM = ReaderT EvaluableBoard (StateT (Map RelativeEdge PortInfo) Aff)
@@ -154,7 +154,7 @@ tests = do
         e1.pieces               `shouldEqual` e2.pieces
         e1.connections          `shouldEqual` e2.connections
         e1.evalOrder            `shouldEqual` e2.evalOrder
-        e1.psuedoPieceLocations `shouldEqual` e2.psuedoPieceLocations
+        e1.terminals            `shouldEqual` e2.terminals
       it "injectInputs" do
         get `shouldReturn` M.empty
         injectInputs inputs
