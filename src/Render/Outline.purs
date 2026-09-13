@@ -45,7 +45,9 @@ isConnected dir portStates = maybe false _.connected (M.lookup dir portStates)
 legPath :: Leg -> Map CardinalDirection PortInfo -> Array Segment
 legPath leg portStates = case leg.portType of
   Input -> stubPath (initialLocation leg.direction) leg.direction
+  WormholeOut -> stubPath (initialLocation leg.direction) leg.direction
   Output -> outputPath (isConnected leg.direction portStates) (initialLocation leg.direction) leg.direction
+  WormholeIn -> outputPath (isConnected leg.direction portStates) (initialLocation leg.direction) leg.direction
 
 -- | Trace one closed cycle of legs into a path, using each leg's connected/
 -- | signal state from portStates to decide stub-vs-arrow at each edge.

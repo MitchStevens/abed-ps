@@ -5,6 +5,7 @@ import Prelude
 import Control.Monad.Except (except)
 import Control.Monad.Reader (ReaderT, asks, runReaderT)
 import Control.Monad.State (StateT, evalState, evalStateT, get)
+import Data.Either (Either(..), isRight)
 import Data.Foldable (for_)
 import Data.HeytingAlgebra (ff, tt)
 import Data.Identity (Identity)
@@ -20,7 +21,7 @@ import Data.Set.NonEmpty as NES
 import Data.Tuple (Tuple(..))
 import Debug (trace)
 import Effect.Aff (Aff)
-import Game.Board (EvaluableBoard(..), RelativeEdge, Terminal(..), TerminalType(..), buildConnectionMap, evalWithPortInfo, evalWithPortInfoAt, evaluableBoardPiece, getOuterPort, injectInputs, isPseudoInput, layerDecomposition, psuedoPiece, relative, standardBoard, toEvaluableBoard, topologicalSort)
+import Game.Board (Board(..), BoardError(..), EvaluableBoard(..), RelativeEdge, Terminal(..), buildConnectionMap, evalWithPortInfo, evalWithPortInfoAt, evaluableBoardPiece, getOuterPort, injectInputs, isTerminalInput, layerDecomposition, terminalPiece, relative, standardBoard, toEvaluableBoard, topologicalSort)
 import Game.Capacity (Capacity(..))
 import Game.Direction as Direction
 import Game.Level (binaryTestInputs)
@@ -41,10 +42,10 @@ testEvaluableBoard = EvaluableBoard
       , Tuple (location 0 1) notPiece
       , Tuple (location 1 1) andPiece
       , Tuple (location 2 1) notPiece
-      -- pseudo ports
-      , Tuple (location (-1) 1) (psuedoPiece (inputPort OneBit))
-      , Tuple (location 1 (-1)) (psuedoPiece (inputPort OneBit))
-      , Tuple (location 3 1) (psuedoPiece (outputPort OneBit))
+      -- terminals
+      , Tuple (location (-1) 1) (terminalPiece (inputPort OneBit))
+      , Tuple (location 1 (-1)) (terminalPiece (inputPort OneBit))
+      , Tuple (location 3 1) (terminalPiece (outputPort OneBit))
       ]
   , connections:  M.fromFoldable
     [ Tuple (relative (location 1 1) Direction.Left) (relative (location 0 1) Direction.Right)
@@ -64,10 +65,11 @@ testEvaluableBoard = EvaluableBoard
       Nil
 
   , terminals: M.fromFoldable
-    [ Tuple Direction.Left  (Terminal { terminalType: Input,  capacity: OneBit, location: location (-1) 1 })
-    , Tuple Direction.Up    (Terminal { terminalType: Input,  capacity: OneBit, location: location 1 (-1) })
-    , Tuple Direction.Right (Terminal { terminalType: Output, capacity: OneBit, location: location 3 1 })
+    [ Tuple Direction.Left  (Terminal { port: inputPort OneBit,  location: location (-1) 1 })
+    , Tuple Direction.Up    (Terminal { port: inputPort OneBit,  location: location 1 (-1) })
+    , Tuple Direction.Right (Terminal { port: outputPort OneBit, location: location 3 1 })
     ]
+  , subBoards: M.empty
   }
 
 type EvalM = ReaderT EvaluableBoard (StateT (Map RelativeEdge PortInfo) Aff)
@@ -142,6 +144,17 @@ tests = do
         Nothing -> fail "expected both a layer decomposition and a topological sort"
         Just (Tuple layers sortedLocations) ->
           isToposortedByLayers layers sortedLocations `shouldEqual` true
+
+    describe "wormhole validation" do
+      it "rejects a wormhole whose entrance and exit are on the same side" do
+        let Board b = testBoard
+        let badBoard = Board (b { wormhole = Just (Tuple Direction.Down Direction.Down) })
+        toEvaluableBoard badBoard `shouldEqual` Left (WormholeInvalid Direction.Down Direction.Down)
+
+      it "accepts a wormhole that joins two different sides" do
+        let Board b = testBoard
+        let goodBoard = Board (b { wormhole = Just (Tuple Direction.Up Direction.Down) })
+        toEvaluableBoard goodBoard `shouldSatisfy` isRight
 
     describe "testBoard" do
       let inRelEdge1 = relative (location (-1) 1) Direction.Right
@@ -221,11 +234,11 @@ tests = do
           , Tuple Direction.Right (outputPort OneBit)
           , Tuple Direction.Left  (inputPort OneBit)
           ]
-      it "has correct psuedopieces as ports" do
+      it "has correct terminal pieces as ports" do
         pieces <- asks (unwrap >>> _.pieces)
-        M.lookup (location 1 (-1)) pieces `shouldSatisfy` maybe false isPseudoInput
-        M.lookup (location (-1) 1) pieces `shouldSatisfy` maybe false isPseudoInput
-        M.lookup (location 3 1) pieces `shouldNotSatisfy` maybe false isPseudoInput
+        M.lookup (location 1 (-1)) pieces `shouldSatisfy` maybe false isTerminalInput
+        M.lookup (location (-1) 1) pieces `shouldSatisfy` maybe false isTerminalInput
+        M.lookup (location 3 1) pieces `shouldNotSatisfy` maybe false isTerminalInput
       it "getOuterPort" do
         getOuterPort Direction.Up    `shouldReturn` Just zero
         getOuterPort Direction.Right `shouldReturn` Just zero
@@ -235,9 +248,9 @@ tests = do
     --describe "test crossover board" do
     --  before_ (exceptToAff (except $ toEvaluableBoard testBoardCrossOver)) do
     --    it "should have exactly 18 pieces" \(EvaluableBoard e) -> 
-    --      length e.pieces `shouldEqual` (14 + 4) -- 14 pieces and 4 psuedo pieces
-    --    it "should have 4 psuedoports" \(EvaluableBoard e) ->
-    --      e.psuedoPieceLocations `shouldEqual` M.fromFoldable
+    --      length e.pieces `shouldEqual` (14 + 4) -- 14 pieces and 4 terminal pieces
+    --    it "should have 4 terminals" \(EvaluableBoard e) ->
+    --      e.terminalPieceLocations `shouldEqual` M.fromFoldable
     --        [ Tuple Direction.Left  (location (-1) 2)
     --        , Tuple Direction.Up    (location 2 (-1))
     --        , Tuple Direction.Right (location 5 2)

@@ -24,12 +24,12 @@ stateDiagram
     Board
     PortInfo --> Board
     Query --> Board
-    PseudoPiece --> Board
+    TerminalPiece --> Board
     Operation --> Query
     EvaluableBoard --> Operation
     CompiledBoard --> Operation
-    EvaluableBoard --> PseudoPiece
-    CompiledBoard --> PseudoPiece
+    EvaluableBoard --> TerminalPiece
+    CompiledBoard --> TerminalPiece
     Path
 ```
 

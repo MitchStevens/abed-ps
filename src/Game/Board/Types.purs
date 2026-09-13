@@ -40,6 +40,7 @@ import Type.Proxy (Proxy(..))
 newtype Board = Board
   { size :: Int
   , pieces :: Map Location PieceInfo
+  , wormhole :: Maybe (Tuple CardinalDirection CardinalDirection)
   }
 
 derive instance Newtype Board _
@@ -54,6 +55,7 @@ data BoardError
   | InvalidBoardInitialisation Int
   | BadBoardSize Int
   | Cyclic
+  | WormholeInvalid CardinalDirection CardinalDirection
   | Other String
 derive instance Eq BoardError
 
@@ -65,6 +67,7 @@ instance Show BoardError where
     InvalidBoardInitialisation n -> "Invalid Board Initialisation: " <> show n <> " is not a valid board size"
     BadBoardSize n -> "Boards of size " <>  show n <>" are not valid"
     Cyclic -> "ABED does not admit cyclic boards"
+    WormholeInvalid wormIn wormOut -> "Invalid wormhole: entrance " <> show wormIn <> " and exit " <> show wormOut <> " must be on different board sides"
     Other other -> "Other error: " <>  other
 
 _size :: Lens' Board Int
@@ -74,7 +77,7 @@ _pieces :: Lens' Board (Map Location PieceInfo)
 _pieces = _Newtype <<< prop (Proxy :: _ "pieces")
 
 standardBoard :: Board
-standardBoard = Board { size: 3, pieces: M.empty }
+standardBoard = Board { size: 3, pieces: M.empty, wormhole: Nothing }
 
 allOccupiedLocations :: Board -> Set Location
 allOccupiedLocations = view $ _pieces <<< to M.keys

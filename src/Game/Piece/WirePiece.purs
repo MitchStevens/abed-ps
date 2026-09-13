@@ -77,6 +77,8 @@ mkWirePiece wire@{ outputs, capacity } = Piece
           guard (outputs /= newOutputs)
           pure $ mkWirePiece (wire { outputs = newOutputs })
       _, Just Output -> Nothing
+      _, Just WormholeIn -> Nothing
+      _, Just WormholeOut -> Nothing
       _, Nothing -> do
           let newOutputs = S.delete dir outputs
           guard (outputs /= newOutputs && newOutputs /= S.empty)

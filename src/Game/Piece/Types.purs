@@ -14,6 +14,8 @@ module Game.Piece.Types
   , mkPieceNoAdapt
   , name
   , shouldRipple
+  , stepPiece
+  , tick
   , truncateInputs
   , updateCapacity
   )
@@ -22,7 +24,9 @@ module Game.Piece.Types
 import Prelude
 
 import Control.Alternative (guard)
+import Control.Monad.State (State, get, put)
 import Data.Array (fold)
+import Data.Array as A
 import Data.Foldable (and)
 import Data.FunctorWithIndex (mapWithIndex)
 import Data.Generic.Rep (class Generic)
@@ -31,13 +35,15 @@ import Data.Map as M
 import Data.Maybe (Maybe(..), fromMaybe, maybe)
 import Data.Newtype (class Newtype)
 import Data.Set (Set)
+import Data.Set as S
 import Data.Show.Generic (genericShow)
 import Data.TraversableWithIndex (forWithIndex)
+import Data.Tuple (Tuple(..))
 import Game.Capacity (Capacity)
-import Game.Direction (CardinalDirection)
+import Game.Direction (CardinalDirection, oppositeDirection)
 import Game.Piece.Complexity (Complexity(..))
 import Game.Piece.Complexity as Complexity
-import Game.Port (Port(..), PortType, isInput, isOutput, portCapacity)
+import Game.Port (Port(..), PortType(..), getPortType, isInput, isOutput, portCapacity)
 import Game.PortInfo (PortInfo)
 import Game.Signal (Signal(..), mkSignal)
 import Prim.Row (class Union)
@@ -176,6 +182,49 @@ name (Piece p) = p.name
 
 eval :: Piece -> Map CardinalDirection Signal -> Map CardinalDirection Signal
 eval (Piece p) = p.eval
+
+{-
+  Advance a piece by one tick, as an `EvaluableBoard` would, injecting this
+  tick's external `inputs` and returning the piece's full output map for the
+  tick.
+
+  A piece with a wormhole feeds a signal from a `WormholeIn` port back into the
+  `WormholeOut` port on the *opposite* side, delayed by one tick. `stepPiece`
+  evaluates the piece against `inputs` overlaid on the signals buffered from the
+  previous tick (held in the `State`), then stores this tick's wormhole signals
+  for the next one.
+
+  Thread an input sequence with `traverse`:
+
+    evalState (traverse (stepPiece piece <<< M.singleton dir) signals) initialBuffer
+-}
+stepPiece
+  :: Piece
+  -> Map CardinalDirection Signal
+  -> State (Map CardinalDirection Signal) (Map CardinalDirection Signal)
+stepPiece piece inputs = do
+  buffered <- get
+  let
+    outputs = eval piece (M.union inputs buffered)
+    ports = getPorts piece
+    wormholeOutDirs =
+      A.fromFoldable (M.keys (M.filter (\p -> getPortType p == WormholeOut) ports))
+  put $ M.fromFoldable $ wormholeOutDirs # A.mapMaybe \outDir -> do
+    let inDir = oppositeDirection outDir
+    guard (maybe false (\p -> getPortType p == WormholeIn) (M.lookup inDir ports))
+    signal <- M.lookup inDir outputs
+    pure (Tuple outDir signal)
+  pure outputs
+
+{-
+  `stepPiece` with no external inputs, discarding the output map -- suitable for
+  `replicateM`/`sequence_` when every tick is identical (e.g. a self-driven
+  counter):
+
+    execState (sequence_ (replicate n (tick piece))) initialBuffer
+-}
+tick :: Piece -> State (Map CardinalDirection Signal) Unit
+tick piece = void (stepPiece piece M.empty)
 
 shouldRipple :: Piece -> Boolean
 shouldRipple (Piece p) = p.shouldRipple

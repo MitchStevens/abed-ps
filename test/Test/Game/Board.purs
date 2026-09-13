@@ -45,6 +45,7 @@ testBoard = Board
     , Tuple (location 1 0) { piece: notPiece, rotation: rotation 1 }
     , Tuple (location 1 1) { piece: andPiece, rotation: rotation 0 }
     ]
+  , wormhole: Nothing
   }
 
 testBoardCrossOver :: Board

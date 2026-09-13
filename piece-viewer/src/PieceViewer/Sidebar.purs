@@ -294,4 +294,6 @@ showPortType :: Maybe PortType -> String
 showPortType = case _ of
   Just Input -> "Port In"
   Just Output -> "Port Out"
+  Just WormholeIn -> "Wormhole In"
+  Just WormholeOut -> "Wormhole Out"
   Nothing -> "Nothing"

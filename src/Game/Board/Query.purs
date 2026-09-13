@@ -72,8 +72,8 @@ isInsideBoard (Location {x, y}) = do
 {-
   boards have 4 port areas that can take input/output. If these ports were pieces, which locations whould they occupy?
 -}
-getBoardEdgePseudoLocation :: forall m. MonadState Board m => CardinalDirection -> m Location
-getBoardEdgePseudoLocation dir = do
+getBoardEdgeTerminalLocation :: forall m. MonadState Board m => CardinalDirection -> m Location
+getBoardEdgeTerminalLocation dir = do
   n <- use _size
   pure $ case dir of
     Direction.Up    -> location (n`div`2) (-1)
@@ -94,7 +94,7 @@ getBoardEdges = do
 
 getBoardPortEdge :: forall m. MonadState Board m => CardinalDirection -> m RelativeEdge
 getBoardPortEdge dir = do
-  loc <- getBoardEdgePseudoLocation dir
+  loc <- getBoardEdgeTerminalLocation dir
   pure $ relative loc Direction.Right
 
 getBoardPorts :: forall m. MonadState Board m => m (Map CardinalDirection Port)
@@ -123,6 +123,10 @@ buildConnectionMapAt loc =
           tell (L.singleton (Tuple relEdge adjRelEdge))
       Port.Output ->
           tell (L.singleton (Tuple adjRelEdge relEdge))
+      -- wormhole edges are a cut in the dependency graph: they never contribute
+      -- a connection, so `layerDecomposition` / the cyclic check ignore them
+      Port.WormholeIn -> pure unit
+      Port.WormholeOut -> pure unit
 
 --todo: fix this, looks like garbage
 {-

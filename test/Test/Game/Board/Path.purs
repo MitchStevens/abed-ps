@@ -52,7 +52,7 @@ spec :: Spec Unit
 spec = hoistSpec identity (\_ -> toAff) tests
 
 emptyBoard :: Board
-emptyBoard = Board { pieces: M.empty, size: 3 }
+emptyBoard = Board { pieces: M.empty, size: 3, wormhole: Nothing }
 
 
 

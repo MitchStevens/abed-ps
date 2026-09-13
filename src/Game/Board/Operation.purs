@@ -44,7 +44,7 @@ import Type.Proxy (Proxy(..))
 emptyBoard :: Int -> Either BoardError Board
 emptyBoard n = 
   if odd n && n >= 1
-    then Right $ Board { size: n, pieces: M.empty }
+    then Right $ Board { size: n, pieces: M.empty, wormhole: Nothing }
     else Left $ InvalidBoardInitialisation n
 
 -- should return either boarderror
@@ -192,4 +192,5 @@ setBoardSize n = do
     Just loc -> throwError (LocationOccupied loc)
     Nothing -> put $ Board
       { size: newSize
-      , pieces: unsafeMapKey shiftLocation pieces }
+      , pieces: unsafeMapKey shiftLocation pieces
+      , wormhole: Nothing }

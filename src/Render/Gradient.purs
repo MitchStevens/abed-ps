@@ -22,13 +22,17 @@ createPortGradient { port, connected, signal } = { id, def }
       [ SA.id id
       , SA.gradientTransform [ Rotate 90.0 0.0 0.0 ] ]
       $ case getPortType port of
-        Port.Input -> 
-          [ SE.stop [ SA.offset "5%" , SA.stopColor color, SA.stopOpacity 0.5 ] 
-          , SE.stop [ SA.offset "95%" , SA.stopColor color ] 
+        Port.Input ->
+          [ SE.stop [ SA.offset "5%" , SA.stopColor color, SA.stopOpacity 0.5 ]
+          , SE.stop [ SA.offset "95%" , SA.stopColor color ]
           ]
-        Port.Output ->
-          [ SE.stop [ SA.offset "5%" , SA.stopColor color, SA.stopOpacity 0.5 ] 
-          , SE.stop [ SA.offset "95%" , SA.stopColor color, SA.stopOpacity 0.0 ] 
+        Port.WormholeOut ->
+          [ SE.stop [ SA.offset "5%" , SA.stopColor color, SA.stopOpacity 0.5 ]
+          , SE.stop [ SA.offset "95%" , SA.stopColor color ]
+          ]
+        _ ->
+          [ SE.stop [ SA.offset "5%" , SA.stopColor color, SA.stopOpacity 0.5 ]
+          , SE.stop [ SA.offset "95%" , SA.stopColor color, SA.stopOpacity 0.0 ]
           ]
 
     color = portColor port signal

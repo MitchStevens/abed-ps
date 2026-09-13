@@ -46,6 +46,8 @@ followDirection (Location {x, y}) = case _ of
   Direction.Down  -> location x (y+1)
   Direction.Left  -> location (x-1) y
 
+inBounds :: Int -> Location -> Boolean
+inBounds n (Location { x, y }) = 0 <= x && x < n && 0 <= y && y < n
 
 directionTo :: Location -> Location -> Maybe CardinalDirection
 directionTo l1 l2 = find (\d -> followDirection l1 d == l2) allDirections

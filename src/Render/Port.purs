@@ -38,5 +38,8 @@ portPath info = headSegments <> [ LineTo { from: curveStart, to: start } ]
 
     headSegments = case getPortType info.port, info.connected of
         Port.Input, _ -> arrowPath start Direction.Down
+        Port.WormholeOut, _ -> arrowPath start Direction.Down
         Port.Output, true -> stubPath start Direction.Up
         Port.Output, false -> arrowPath start Direction.Up
+        Port.WormholeIn, true -> stubPath start Direction.Up
+        Port.WormholeIn, false -> arrowPath start Direction.Up

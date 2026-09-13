@@ -29,6 +29,7 @@ mismatchDemonstration :: PortMismatch -> Maybe Demonstration
 mismatchDemonstration = case _ of
   PortExpected { expected: Port { portType: Input } } -> Just needInputDemonstration
   PortExpected { expected: Port { portType: Output } } -> Just needOutputDemonstration
+  PortExpected _ -> Nothing
   NoPortExpected _ -> Nothing
   IncorrectPortType _ -> Nothing
   IncorrectCapacity _ -> Nothing

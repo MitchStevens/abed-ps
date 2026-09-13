@@ -179,9 +179,13 @@ portType = dataAttribute (AttrName "data-port-type") attrPrint attrParse
     attrPrint = case _ of
       Port.Input -> "input"
       Port.Output -> "output"
+      Port.WormholeIn -> "wormhole-in"
+      Port.WormholeOut -> "wormhole-out"
     attrParse = choice
-      [ string "input"  $> Port.Input
-      , string "output" $> Port.Output
+      [ try (string "input")  $> Port.Input
+      , try (string "output") $> Port.Output
+      , try (string "wormhole-in")  $> Port.WormholeIn
+      , string "wormhole-out" $> Port.WormholeOut
       ]
 
 capacity :: DataAttribute Capacity
