@@ -38,12 +38,13 @@ import Effect.Aff as Aff
 import Effect.Aff.Class (class MonadAff, liftAff)
 import Effect.Class (class MonadEffect, liftEffect)
 import Effect.Class.Console (log)
-import Game.Board (Board(..), _size, firstEmptyLocation, getBoardPorts, standardBoard)
+import Game.Board (Board(..), _size, compile, firstEmptyLocation, getBoardPorts, standardBoard)
 import Game.Direction (CardinalDirection)
 import Game.Level (LevelId, Level)
 import Game.Level.Completion (CompletionStatus(..), RunningTestCase, isReadyForTesting, runSingleTest)
 import Game.Level.Completion as Completion
 import Game.Piece (Piece(..), pieceLookup)
+import Game.Frame (Frame)
 import Game.Port (Port(..))
 import Game.Signal (Base, Signal(..), SignalRepresentation)
 import Game.TestCase (testCaseOutcome)
@@ -70,7 +71,7 @@ type State =
   , level :: Level
   , completionStatus :: CompletionStatus
   , boardSize :: Int
-  , boardPorts :: Map CardinalDirection Port
+  , boardPorts :: Frame Port
   , base :: Base
   }
 
@@ -151,7 +152,7 @@ component = H.mkComponent { eval , initialState , render }
         -- shown, trigger to test is on the sidebar
         problem <- H.gets (_.level.problem)
         modify_ $ _
-          { completionStatus = isReadyForTesting problem board
+          { completionStatus = isReadyForTesting problem board (compile board)
           , boardSize = board ^. _size
           , boardPorts = evalState getBoardPorts board }
 

@@ -17,6 +17,7 @@ import Effect.Aff.Class (class MonadAff, liftAff)
 import Game.Capacity (toInt)
 import Game.Capacity as Capacity
 import Game.Direction (CardinalDirection)
+import Game.Frame (Frame)
 import Game.Level.Completion (CompletionStatus(..), PortMismatch(..))
 import Game.Level.MismatchDemonstration (mismatchDemonstration)
 import Game.Piece (Piece, eval)
@@ -42,7 +43,7 @@ type Input =
   { completionStatus :: CompletionStatus
   , base :: Base
   , goal :: Piece
-  , testInputs :: NonEmptyArray (Map CardinalDirection Signal)
+  , testInputs :: NonEmptyArray (Frame Signal)
   }
 
 type State =
@@ -60,7 +61,7 @@ type State =
   , shownTestIndex :: Maybe Int
   }
 
-testCasesFor :: Piece -> NonEmptyArray (Map CardinalDirection Signal) -> Array TestCase
+testCasesFor :: Piece -> NonEmptyArray (Frame Signal) -> Array TestCase
 testCasesFor goal testInputs =
   A.fromFoldable $ testInputs <#> \i ->
     { data: { inputs: i, expected: eval goal i }

@@ -19,9 +19,10 @@ import Data.TraversableWithIndex (forWithIndex)
 import Data.Tuple (Tuple(..))
 import Effect.Exception (Error)
 import Game.Capacity (Capacity)
-import Game.Direction (CardinalDirection, allDirections)
+import Game.Frame (Frame)
+import Game.Frame as Frame
 import Game.Piece (Piece(..), allPieces, eval, getPorts, name, pieceVault, truncateInputs)
-import Game.Port (portCapacity)
+import Game.Port (isWritable, portCapacity)
 import Game.Signal (Signal, equivalent)
 import Test.Game.Signal (shouldBeEquivalentTo)
 import Test.QuickCheck (Result(..), arbitrary, assertEquals, withHelp)
@@ -31,18 +32,13 @@ import Test.Spec.Assertions (fail, shouldEqual)
 import Text.Printf (printf)
 import Type.Proxy (Proxy(..))
 
-testEval :: forall m. MonadError Error m => Piece -> Map CardinalDirection Signal -> Map CardinalDirection Signal -> m Unit
+testEval :: forall m. MonadError Error m => Piece -> Frame Signal -> Frame Signal -> m Unit
 testEval piece inputs expected = do
   let recieved = eval piece inputs 
   forWithIndex_ (portCapacity <$> getPorts piece) \dir capacity -> 
-    case M.lookup dir expected, M.lookup dir recieved of
-      Just s1, Just s2 ->
-        shouldBeEquivalentTo capacity s1 s2
-          `catchError` \e ->
-            throwError e *> (fail $ " in direction " <> show dir)
-
-      Nothing, Nothing -> pure unit
-      _, _ -> fail "expected"
+    shouldBeEquivalentTo capacity (Frame.index dir expected) (Frame.index dir recieved)
+      `catchError` \e ->
+        throwError e *> (fail $ " in direction " <> show dir)
 
 spec :: Spec Unit
 spec =
@@ -50,8 +46,8 @@ spec =
     it "piece names are unique" do
       A.length allPieces `shouldEqual` M.size pieceVault
 
-genSignals :: Gen (Map CardinalDirection Signal)
-genSignals = M.fromFoldable <$> for allDirections \dir -> Tuple dir <$> arbitrary
+genSignals :: Gen (Frame Signal)
+genSignals = arbitrary
 
 equivalentTo :: Piece -> Piece -> Gen Result
 equivalentTo p1 p2 = do
@@ -63,8 +59,10 @@ isLessAdaptedOrEqualTo p1 p2 = do
   inputs <- truncateInputs p1 <$> genSignals
   let outs1 = eval p1 inputs
   let outs2 = eval p2 inputs
+  -- only the sides `p1` actually writes: `outs1` is total, so it says
+  -- nothing on the others
   let le = flip allWithIndex outs1 \dir signal ->
-         Just signal == M.lookup dir outs2
+         not (isWritable (Frame.index dir (getPorts p1))) || signal == Frame.index dir outs2
 
   if le
     then pure $ Success

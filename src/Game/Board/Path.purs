@@ -44,11 +44,11 @@ import Effect.Aff (Aff, error)
 import Game.Board.Edge (absolute, adjacent)
 import Game.Board.Operation (addPieceNoUpdate, adaptRelEdge, removePieceNoUpdate)
 import Game.Board.PathSegment (PathSegment(..), PathSegmentError, combineSegmentWithExtant, singlePath)
-import Game.Board.PieceInfo (PieceInfo)
-import Game.Board.Types (Board(..), BoardError(..), _pieces)
+import Game.Board.Types (Board, BoardError(..), _pieces, resumeBoard)
 import Game.Direction (CardinalDirection, oppositeDirection)
 import Game.Location (Location(..), directionTo, followDirection)
 import Game.Piece (Piece(..), chickenPiece, cornerCutPiece, crossPiece, idPiece, leftPiece, rightPiece)
+import Game.Capacity (Capacity(..))
 import Game.Port as PortType
 import Partial.Unsafe (unsafeCrashWith)
 
@@ -111,7 +111,8 @@ updateEndPoints :: forall m
   => Path -> m Unit
 updateEndPoints path = void $ runMaybeT do
   headAdj <-  adjacent (absolute path.start path.initial)
-  adaptRelEdge headAdj (Just PortType.Input)
+  -- path segments are one-bit wires (see `PathSegment.toPiece`)
+  adaptRelEdge headAdj (PortType.inputPort OneBit)
   --do tail later
 
 {-
@@ -125,7 +126,12 @@ addPathToBoard path = do
   pathSegments <- liftBoardError (partitionPath path)
   forWithIndex_ pathSegments \loc segment -> do
     extant <- use (_pieces <<< at loc)
-    { piece, rotation } <- liftBoardError (lmap PathSegmentError (combineSegmentWithExtant segment extant))
+    -- combining with an extant piece only understands leaf pieces; a nested
+    -- board isn't supported here yet -- see `Game.Board.EvaluableBoard.Build.leafPiece`.
+    let extantLeaf = extant <#> \e -> case resumeBoard e.piece of
+          Right p -> { piece: p, rotation: e.rotation }
+          Left _ -> unsafeCrashWith "addPathToBoard: nested boards aren't supported yet"
+    { piece, rotation } <- liftBoardError (lmap PathSegmentError (combineSegmentWithExtant segment extantLeaf))
     catchError (void $ removePieceNoUpdate loc) (\_ -> pure unit)
     addPieceNoUpdate loc piece rotation
   

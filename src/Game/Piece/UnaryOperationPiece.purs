@@ -9,10 +9,11 @@ import Data.UInt (UInt)
 import Data.UInt as UInt
 import Game.Capacity (Capacity(..))
 import Game.Direction as Direction
+import Game.Frame as Frame
 import Game.Piece.Complexity (space)
 import Game.Piece.Complexity as Complexity
 import Game.Piece.Types (Piece(..), PieceId(..), mkPieceNoAdapt, shouldRipple)
-import Game.Port (inputPort, outputPort)
+import Game.Port (inputPort, noPort, outputPort)
 import Game.Signal (Signal(..), overSignal)
 
 type UnaryOperation =
@@ -30,9 +31,9 @@ mkUnaryOperation :: UnaryOperation -> Piece
 mkUnaryOperation { name, capacity, operation } = mkPieceNoAdapt
     { name
     , eval: \inputs ->
-        let signal = fromMaybe zero (M.lookup Direction.Left inputs)
-        in M.singleton Direction.Right (overSignal operation signal)
-    , ports: M.fromFoldable [ Tuple Direction.Left (inputPort capacity), Tuple Direction.Right (outputPort capacity)]
+        let signal = Frame.index Direction.Left inputs
+        in Frame.singleton zero Direction.Right (overSignal operation signal)
+    , ports: Frame.fromFoldable noPort [ Tuple Direction.Left (inputPort capacity), Tuple Direction.Right (outputPort capacity)]
     , complexity: Complexity.space 1.0
     , shouldRipple: false
     , updateCapacity: \_ _ -> Nothing

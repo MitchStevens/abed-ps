@@ -11,14 +11,18 @@ import Data.Either (Either(..), fromLeft)
 import Data.Foldable (for_)
 import Data.Generic.Rep (class Generic)
 import Data.Map (Map)
+import Data.Map as M
 import Data.Maybe (Maybe(..), fromMaybe, maybe)
 import Data.Show.Generic (genericShow)
-import Game.Board (Board(..), BoardError, EvaluableBoard(..), evaluableBoardPiece, toEvaluableBoard)
+import Game.Board (Board(..), BoardError)
+import Game.Board.Compiled (CompiledBoard(..))
 import Game.Capacity (Capacity)
 import Game.Direction (CardinalDirection, allDirections)
+import Game.Frame (Frame)
+import Game.Frame as Frame
 import Game.Level.Problem (Problem)
 import Game.Piece (Piece(..), eval, getPort)
-import Game.Port (Port(..), PortType, portCapacity)
+import Game.Port (Port(..), PortType, hasPort, portCapacity)
 import Game.Signal (Signal(..))
 import Test.QuickCheck (class Arbitrary, arbitrary)
 import Test.QuickCheck.Gen (suchThat)
@@ -77,9 +81,9 @@ type RunningTestCase = { testIndex :: Int, numTests :: Int }
 
 type TestCaseOutcome = 
   { testIndex :: Int
-  , inputs :: Map CardinalDirection Signal
-  , expected :: Map CardinalDirection Signal
-  , received :: Map CardinalDirection Signal
+  , inputs :: Frame Signal
+  , expected :: Frame Signal
+  , received :: Frame Signal
   }
 
 type FailedRestriction =
@@ -87,20 +91,20 @@ type FailedRestriction =
   , description :: String
   }
 
--- todo: pass in evaluable so we don't have to convert to evaluable twice?
-isReadyForTesting :: Problem -> Board -> CompletionStatus
-isReadyForTesting problem board = fromLeft ReadyForTesting do
-  evaluable <- checkEvaluable board
-  lmap PortMismatch $ checkPortMismatch problem (evaluableBoardPiece evaluable)
+-- | Neither compiling nor evaluating the board is this module's job --
+-- | both are the caller's (`Component/Level.purs` calls `compile` itself,
+-- | since it already needs the result to drive the live board). This just
+-- | interprets whatever `Either BoardError CompiledBoard` it's handed.
+isReadyForTesting :: Problem -> Board -> Either BoardError CompiledBoard -> CompletionStatus
+isReadyForTesting problem board eitherCompiled = fromLeft ReadyForTesting do
+  CompiledBoard compiled <- lmap NotEvaluable eitherCompiled
+  lmap PortMismatch $ checkPortMismatch problem compiled.ports
   lmap FailedRestriction $ checkOtherRestrictions problem board
 
-checkEvaluable :: Board -> Either CompletionStatus EvaluableBoard
-checkEvaluable board = lmap NotEvaluable (toEvaluableBoard board)
-
-checkPortMismatch :: Problem -> Piece -> Either PortMismatch Unit
-checkPortMismatch problem evaluable = for_ allDirections \dir -> do
+checkPortMismatch :: Problem -> Frame Port -> Either PortMismatch Unit
+checkPortMismatch problem ports = for_ allDirections \dir -> do
   let expected = getPort problem.goal dir
-  let received = getPort evaluable dir
+  let received = Frame.lookupWhere hasPort dir ports
   maybe (Right unit) Left (isPortMismatch dir expected received)
 
 isPortMismatch :: CardinalDirection -> Maybe Port -> Maybe Port -> Maybe PortMismatch
@@ -122,7 +126,7 @@ checkOtherRestrictions problem board = for_ problem.otherRestrictions \r ->
     throwError { name: r.name, description: r.description }
 
 runSingleTest :: forall m. Monad m
-  => Piece -> Int -> Map CardinalDirection Signal -> (Map CardinalDirection Signal -> m (Map CardinalDirection Signal)) -> m TestCaseOutcome
+  => Piece -> Int -> Frame Signal -> (Frame Signal -> m (Frame Signal)) -> m TestCaseOutcome
 runSingleTest piece testIndex inputs testEval = do
   let expected = eval piece inputs
   received <- testEval inputs

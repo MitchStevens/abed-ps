@@ -4,6 +4,7 @@ import Prelude
 
 import Data.Map (Map)
 import Data.Maybe (Maybe)
+import Game.Frame (Frame)
 import Game.Direction (CardinalDirection)
 import Game.Piece (PieceId)
 import Game.Port (PortType)
@@ -50,7 +51,7 @@ type BackgroundConfig =
 data IconConfig w i
   = NoIcon
   | ImageIcon PieceId
-  | VectorIcon (Map CardinalDirection PortInfo -> HTML w i)
+  | VectorIcon (Frame PortInfo -> HTML w i)
 
 -- | Everything needed to render one piece: how to paint the background,
 -- | trace the outline, and draw the icon on top.

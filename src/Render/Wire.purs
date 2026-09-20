@@ -9,10 +9,12 @@ import Data.Array as A
 import Data.Map (Map)
 import Data.Map as M
 import Data.Maybe (maybe)
-import Data.Tuple (Tuple(..), fst, uncurry)
+import Data.Tuple (Tuple(..), fst, snd, uncurry)
+import Game.Frame (Frame)
 import Game.Direction (CardinalDirection)
+import Game.Frame as Frame
 import Game.Port (isInput)
-import Game.PortInfo (PortInfo)
+import Game.PortInfo (PortInfo, hasPortInfo)
 import Halogen (ComponentHTML)
 import Halogen.Svg.Attributes (Color(..))
 import Halogen.Svg.Attributes as SA
@@ -46,21 +48,26 @@ wirePieceFrame =
   inset = 5.0
   cornerRadius = 9.0
 
-renderWire :: forall action s m. Map CardinalDirection PortInfo -> ComponentHTML action s m
+renderWire :: forall action s m. Frame PortInfo -> ComponentHTML action s m
 renderWire portStates =
   SE.g []
     [ wirePieceFrame
     , renderPath (wirePath portStates)
     ]
 
-wirePath :: Map CardinalDirection PortInfo -> Array Segment
-wirePath ports = maybe [] render (A.uncons (M.toUnfoldable ports))
+wirePath :: Frame PortInfo -> Array Segment
+wirePath ports = maybe [] render (A.uncons present)
   where
+  -- the loop runs through the sides that actually have a port, in
+  -- up/right/down/left order -- a side with no port isn't part of it
+  present :: Array (Tuple CardinalDirection PortInfo)
+  present = A.filter (hasPortInfo <<< snd) (A.fromFoldable (Frame.toListWithIndex ports))
+
   render :: { head :: Tuple CardinalDirection PortInfo, tail :: Array (Tuple CardinalDirection PortInfo) } -> Array Segment
   render { head, tail } =
     A.concatMap (uncurry renderSide) sides
     where
-    sides = zip (M.toUnfoldable ports) (map fst $ tail <> [head])
+    sides = zip present (map fst $ tail <> [head])
 
   renderSide :: Tuple CardinalDirection PortInfo -> CardinalDirection -> Array Segment
   renderSide (Tuple from info) to =

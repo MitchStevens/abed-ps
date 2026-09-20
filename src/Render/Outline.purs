@@ -8,7 +8,9 @@ import Render.Segment (Segment(..), renderPath)
 import Data.Map (Map)
 import Data.Map as M
 import Data.Maybe (Maybe(..), maybe)
+import Game.Frame (Frame)
 import Game.Direction (CardinalDirection)
+import Game.Frame as Frame
 import Game.Port (PortType(..))
 import Game.PortInfo (PortInfo)
 import Halogen.HTML (HTML)
@@ -39,20 +41,21 @@ junctionPath Nothing = straightJunction
 junctionPath (Just Curved) = curvedJunction
 junctionPath (Just Sharp) = sharpJunction
 
-isConnected :: CardinalDirection -> Map CardinalDirection PortInfo -> Boolean
-isConnected dir portStates = maybe false _.connected (M.lookup dir portStates)
+isConnected :: CardinalDirection -> Frame PortInfo -> Boolean
+isConnected dir portStates = (Frame.index dir portStates).connected
 
-legPath :: Leg -> Map CardinalDirection PortInfo -> Array Segment
+legPath :: Leg -> Frame PortInfo -> Array Segment
 legPath leg portStates = case leg.portType of
   Input -> stubPath (initialLocation leg.direction) leg.direction
   WormholeOut -> stubPath (initialLocation leg.direction) leg.direction
   Output -> outputPath (isConnected leg.direction portStates) (initialLocation leg.direction) leg.direction
   WormholeIn -> outputPath (isConnected leg.direction portStates) (initialLocation leg.direction) leg.direction
+  NoPort -> []
 
 -- | Trace one closed cycle of legs into a path, using each leg's connected/
 -- | signal state from portStates to decide stub-vs-arrow at each edge.
 -- | Not SVG content itself -- just path data -- so this stays a plain `Array Segment`.
-renderTrace :: Trace -> Map CardinalDirection PortInfo -> Array Segment
+renderTrace :: Trace -> Frame PortInfo -> Array Segment
 renderTrace End _ = []
 renderTrace (Link leg junction rest) portStates =
   go leg.direction leg junction rest
@@ -71,6 +74,6 @@ renderTrace (Link leg junction rest) portStates =
 
 -- | Draw every independent trace in a piece's outline config. Generic in `i`:
 -- | the outline doesn't raise any action today, so it isn't typed as if it did.
-renderOutline :: forall w i. OutlineConfig -> Map CardinalDirection PortInfo -> HTML w i
+renderOutline :: forall w i. OutlineConfig -> Frame PortInfo -> HTML w i
 renderOutline config portStates =
   SE.g [] (map (\trace -> renderPath (renderTrace trace portStates)) config.shape)

@@ -8,14 +8,9 @@ import Prelude
 import AppM (AppM)
 import Component.Board.Types (Action(..), Slots, State, boardPortInfo, pieceInput, slot)
 import Component.DataAttribute as DA
-import Component.Multimeter as Multimeter
 import Component.Piece.Movement as Piece
-import Render.Colours as Colours
-import Render.Port (portPath)
-import Render.Segment (renderPathWithFill)
 import Component.Sidebar.BoardSizeSlider as BoardSizeSlider
-import Control.Monad.State (evalState)
-import Data.Array (elem, replicate, (..))
+import Data.Array (elem, range, replicate, (..))
 import Data.Array as A
 import Data.Either (hush)
 import Data.Foldable (foldMap, intercalate)
@@ -26,11 +21,12 @@ import Data.Maybe (fromMaybe, maybe)
 import Data.Tuple (Tuple(..))
 import Data.Zipper as Z
 import Game.Board (_size, evalBoardM, getPieceInfo)
-import Game.Direction (CardinalDirection, clockwiseRotation)
+import Game.Direction (CardinalDirection, clockwiseRotation, oppositeDirection)
 import Game.Direction as Direction
+import Game.Frame as Frame
 import Game.Location (Location(..), location)
-import Game.PortInfo (PortInfo)
-import Game.Rotation (Rotation(..), toDegrees)
+import Game.PortInfo (PortInfo, hasPortInfo)
+import Game.Rotation (Rotation(..), rotation, toDegrees)
 import Halogen.Component (ComponentSlot(..))
 import Halogen.HTML (ClassName(..), ComponentHTML, HTML, slot_)
 import Halogen.HTML as HH
@@ -39,6 +35,9 @@ import Halogen.HTML.Properties as HP
 import Halogen.Svg.Attributes (Color(..), Transform(..))
 import Halogen.Svg.Attributes as SA
 import Halogen.Svg.Elements as SE
+import Render.Colours as Colours
+import Render.Port (portPath)
+import Render.Segment (renderPathWithFill)
 import Web.HTML.Event.DragEvent as DragEvent
 
 render :: State -> ComponentHTML Action Slots AppM
@@ -50,12 +49,7 @@ render state =
       [ "grid-template-columns: " <> gridTemplate
       , "grid-template-rows:    " <> gridTemplate
       ]
-    ] $
-    join
-      [ pieces
-      , boardPorts
-      --, [ multimeter ]
-      ]
+    ] (pieces <> boardPorts)
   where
     gridTemplate = intercalate " " [ "25fr", invisibleCells, visibleCells, invisibleCells, "25fr" ]
       where
@@ -66,10 +60,8 @@ render state =
     n = board ^. _size
 
     pieces :: Array (ComponentHTML Action Slots AppM)
-    pieces = do
-      i <- 0 .. (n-1)
-      j <- 0 .. (n-1)
-      pure $ renderPieceSlot i j
+    pieces =
+      renderPieceSlot <$> range 0 (n-1) <*> range 0 (n-1)
 
     renderPieceSlot :: Int -> Int -> ComponentHTML Action Slots AppM
     renderPieceSlot i j = 
@@ -95,7 +87,7 @@ render state =
     
     --boardPorts :: forall p. Array (HTML p Action)
     boardPorts = A.fromFoldable $
-      mapWithIndex renderBoardPort (evalState boardPortInfo state)
+      mapWithIndex renderBoardPort (Frame.toMapBy hasPortInfo (boardPortInfo state))
 
     renderBoardPort :: CardinalDirection -> PortInfo -> ComponentHTML Action Slots AppM
     renderBoardPort dir portInfo = 
@@ -108,12 +100,12 @@ render state =
         [ SE.svg
           [ viewBox ]
           [ SE.g
-            [ SA.transform [ Rotate rotation 25.0 12.5 ] ]
+            [ SA.transform [ Rotate rot 25.0 12.5 ] ]
             [ renderPathWithFill fill path ]
           ]
         ]
       where
-        rotation = toDegrees (clockwiseRotation Direction.Up dir) + 180.0
+        rot = toDegrees (clockwiseRotation Direction.Up dir)
 
         path = portPath portInfo
 
@@ -142,12 +134,7 @@ render state =
       , "grid-row: "    <> show j 
       ]
 
-    --pieceHTML piece location =
-    --    HH.slot Piece.slot location Piece.component { piece, location } PieceOutput
-    
     emptyPieceHTML (Location {x, y}) =
-      HH.div 
+      HH.div
         [ HP.class_ (ClassName "location-text") ]
         [ HH.text (show (x+1) <> "," <> show (y+1)) ]
-
-    --multimeter = HH.slot Multimeter.slot unit Multimeter.component {} MultimeterOutput

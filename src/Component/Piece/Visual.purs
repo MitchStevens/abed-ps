@@ -28,6 +28,7 @@ import Data.Map (Map)
 import Data.Maybe (Maybe(..))
 import Data.Tuple (Tuple(..))
 import Effect.Aff.Class (class MonadAff)
+import Game.Frame (Frame)
 import Game.Direction (CardinalDirection)
 import Game.Location (location)
 import Game.Piece (Piece)
@@ -41,7 +42,7 @@ type ChildSlots = Render.ChildSlots
 
 type Input =
   { piece :: Piece
-  , portStates :: Map CardinalDirection PortInfo
+  , portStates :: Frame PortInfo
   }
 
 type State = Input

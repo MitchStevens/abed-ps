@@ -7,7 +7,7 @@ import Data.Maybe (Maybe(..))
 import Data.Set (Set)
 import Data.Set as S
 import Game.Board (Board(..))
-import Game.Direction (CardinalDirection)
+import Game.Frame (Frame)
 import Game.Level.Demonstration (Demonstration)
 import Game.Piece (Piece(..), idPiece)
 import Game.Signal (Signal)
@@ -24,7 +24,7 @@ type Problem =
   , subtitle :: Maybe String
   , description :: String
   , demonstration :: Maybe Demonstration
-  , testCases :: Array (Map CardinalDirection Signal)
+  , testCases :: Array (Frame Signal)
   , requiresAutomaticTesting :: Boolean
   , availablePieces :: Set Piece -- doesn't need to be non empty
   , otherRestrictions :: Array Restriction

@@ -12,7 +12,9 @@ import Data.Int (toNumber)
 import Data.Map as M
 import Game.Direction (allDirections, clockwiseRotation)
 import Game.Direction as Direction
+import Game.Frame as Frame
 import Game.Piece (PieceId(..), name)
+import Game.PortInfo (hasPortInfo)
 import Game.Rotation (Rotation(..))
 import Halogen (ComponentHTML)
 import Halogen.Svg.Attributes (Transform(..))
@@ -32,7 +34,7 @@ renderDefaultPiece state = SE.g [] (allPorts <> [ center ])
           , Translate 25.0 0.0 ]
         ] $
         do
-          portInfo <- A.fromFoldable (M.lookup dir state.portStates)
+          portInfo <- A.fromFoldable (Frame.lookupWhere hasPortInfo dir state.portStates)
           [ renderPath (portPath portInfo) ]
     center = SE.g
       [ SA.transform [ Translate 30.0 30.0 ] ]

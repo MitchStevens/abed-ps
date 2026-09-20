@@ -19,27 +19,25 @@ module Component.Board.Types
 import Data.Lens
 import Prelude
 
-import Component.Multimeter as Multimeter
 import Component.Piece.Movement as Piece
-import Control.Monad.State (class MonadState, evalState, gets, runState)
-import Data.Either (Either)
+import Data.Either (Either(..))
 import Data.Foldable (for_)
-import Data.Lens.At (at)
 import Data.Lens.Record (prop)
 import Data.Map (Map)
 import Data.Map as M
-import Data.Maybe (Maybe(..), fromMaybe)
+import Data.Maybe (Maybe(..))
 import Data.Traversable (for)
-import Data.TraversableWithIndex (forWithIndex)
 import Data.Tuple (Tuple(..))
 import Data.Zipper (Zipper)
 import Data.Zipper as Z
-import Game.Board (Board(..), BoardError, BoardM, Path, PieceInfo, RelativeEdge, _pieces, evalBoardM, getBoardPortEdge, runBoardM, standardBoard, toLocalInputs)
+import Game.Board (Board, BoardError, BoardM, Path, evalBoardM, runBoardM, standardBoard)
+import Game.Board.Compiled (PortIndex)
 import Game.Direction (CardinalDirection)
+import Game.Frame (Frame)
 import Game.Location (Location(..))
-import Game.Piece (Piece(..), defaultPortInfo)
-import Game.Port (Port(..))
-import Game.PortInfo (PortInfo)
+import Game.Piece (Piece(..))
+import Game.Port (Port(..), noPort)
+import Game.PortInfo (PortInfo, noPortInfo)
 import Game.Rotation (Rotation(..))
 import Game.Signal (Signal)
 import Game.TestCase (TestCase, TestCaseData, TestCaseOutcome)
@@ -52,12 +50,19 @@ import Web.UIEvent.MouseEvent (MouseEvent)
 
 type Input = { board :: Board }
 
-type State = 
+type State =
   { boardHistory :: Zipper Board -- todo: limit the number of boards in this data structure
-  , inputs :: Map CardinalDirection Signal
-  , outputs :: Map CardinalDirection Signal
-  , lastEvalWithPortInfo :: Map RelativeEdge PortInfo
-  , boardPorts :: Map CardinalDirection Port
+  , inputs :: Frame Signal
+  , outputs :: Frame Signal
+  -- the tick state threaded through `Game.Board.Compiled.evaluate` from one
+  -- `EvaluateBoard` to the next -- what makes a wormhole piece remember
+  -- what it captured last tick.
+  , lastEvalState :: Map PortIndex Signal
+  -- both precomputed once per `EvaluateBoard`, straight off `lastEvalState`
+  -- -- render just reads them.
+  , pieceInputs :: Map Location Piece.Input
+  , boardPortInfoMap :: Frame PortInfo
+  , boardPorts :: Frame Port
   , isCreatingWire :: Maybe
     { initialDirection :: CardinalDirection
     , locations :: Array Location
@@ -67,20 +72,17 @@ type State =
   }
 
 pieceInput :: State -> Location -> Maybe Piece.Input
-pieceInput state location = do
-  { piece, rotation } <- state ^. _board <<< _pieces <<< at location
-  let portStates = M.union (toLocalInputs location state.lastEvalWithPortInfo) (defaultPortInfo piece) 
-  pure { piece, location, rotation, portStates}
+pieceInput state location = M.lookup location state.pieceInputs
 
 data Query a
   = GetBoard (Board -> a)
   | AddPiece Location Piece (Either BoardError Unit -> a)
   | AddPath CardinalDirection (Array Location) CardinalDirection (Either BoardError Path -> a)
-  | RemovePiece Location  (Either BoardError PieceInfo -> a)
+  | RemovePiece Location  (Either BoardError { rotation :: Rotation, piece :: Board } -> a)
   | RotatePieceBy Location Rotation (Either BoardError Unit -> a)
   | GetMouseOverLocation (Location -> a)
-  | SetInputs (Map CardinalDirection Signal) (Map CardinalDirection Signal -> a)
-  | SetGoalPorts (Map CardinalDirection Port) a
+  | SetInputs (Frame Signal) (Frame Signal -> a)
+  | SetGoalPorts (Frame Port) a
   | SetBoardSize Int (Either BoardError Unit -> a)
   | Undo a
   | Redo a
@@ -90,15 +92,17 @@ data Query a
 data Action
   = Initialise
   | PieceOutput Piece.Output
-  | MultimeterOutput Multimeter.Output
 
   | ToggleInput CardinalDirection
   | IncrementInput CardinalDirection
   | DecrementInput CardinalDirection
-  | SetOutputs (Map CardinalDirection Signal)
+  | SetOutputs (Frame Signal)
 
   | SetBoard Board
   | EvaluateBoard
+  -- fired every 500ms while the component lives, so a wormhole piece's
+  -- state keeps advancing even with no input change -- see `Initialise`.
+  | Tick
   -- | UpdatePieceComponents
 
   | GlobalOnKeyDown KeyboardEvent
@@ -117,18 +121,23 @@ data Action
 data Output
   = NewBoardState Board
 
+-- `Component.Multimeter` exists but isn't currently wired into the board --
+-- it used to be slotted here and driven off port-focus events, but that
+-- wiring depended on the retired `EvaluableBoard`-era port-info map and was
+-- removed rather than migrated. Revisit if/when it's reintroduced.
 type Slots =
   ( piece :: Slot Piece.Query Piece.Output Location
-  , multimeter :: Slot Multimeter.Query Multimeter.Output Unit
   )
 
 initialState :: Input -> State
-initialState { board } = 
+initialState { board } =
   { boardHistory: Z.singleton board
-  , boardPorts: M.empty
-  , inputs: M.empty
-  , outputs: M.empty
-  , lastEvalWithPortInfo: M.empty
+  , boardPorts: pure noPort
+  , inputs: pure zero
+  , outputs: pure zero
+  , lastEvalState: M.empty
+  , pieceInputs: M.empty
+  , boardPortInfoMap: pure noPortInfo
   , isCreatingWire: Nothing
   , isMouseOverLocation: Nothing
   , isMouseOverBoardPort: Nothing
@@ -139,19 +148,14 @@ slot = Proxy :: Proxy "board"
 _board :: Lens' State Board
 _board = prop (Proxy :: Proxy "boardHistory") <<< Z._head
 
-_inputs :: Lens' State (Map CardinalDirection Signal)
+_inputs :: Lens' State (Frame Signal)
 _inputs = prop (Proxy :: Proxy "inputs")
 
-_outputs :: Lens' State (Map CardinalDirection Signal)
+_outputs :: Lens' State (Frame Signal)
 _outputs = prop (Proxy :: Proxy "outputs")
 
 _wireLocations :: Traversal' State (Array Location)
 _wireLocations = prop (Proxy :: Proxy "isCreatingWire") <<< _Just <<< prop (Proxy :: Proxy "locations")
 
-boardPortInfo :: forall m. MonadState State m => m (Map CardinalDirection PortInfo)
-boardPortInfo = do
-  boardPorts <- gets (_.boardPorts)
-  board <- use _board
-  forWithIndex boardPorts \dir port -> do
-    let relEdge = evalState (getBoardPortEdge dir) board
-    gets (_.lastEvalWithPortInfo >>> M.lookup relEdge >>> fromMaybe { connected: false, port, signal: zero})
+boardPortInfo :: State -> Frame PortInfo
+boardPortInfo = _.boardPortInfoMap

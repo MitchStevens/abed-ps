@@ -21,12 +21,14 @@ import Data.Maybe (Maybe(..), fromMaybe, maybe)
 import Data.Show.Generic (genericShow)
 import Data.String as String
 import Data.Time.Duration (Milliseconds(..))
-import Data.Tuple (Tuple(..))
+import Data.Tuple (Tuple(..), snd)
 import Data.Zipper (currentIndex)
 import Game.Capacity (Capacity(..))
-import Game.Direction (CardinalDirection)
+import Game.Direction (CardinalDirection, allDirections)
+import Game.Frame (Frame)
+import Game.Frame as Frame
 import Game.Piece (Piece(..), eval, getPorts)
-import Game.Port (Port(..), portCapacity)
+import Game.Port (Port, hasPort, isInput, isWritable, portCapacity)
 import Game.Signal (Base, Signal, SignalRepresentation(..), printSignal)
 import Game.TestCase as TestCase
 import Halogen (Slot)
@@ -37,7 +39,7 @@ delayBetweenTests = Milliseconds 1000.0
 
 type Input =
   { base :: Base
-  , inputs :: NonEmptyArray (Map CardinalDirection Signal)
+  , inputs :: NonEmptyArray (Frame Signal)
   , model :: Piece
   }
 
@@ -107,19 +109,22 @@ cardContentFor :: State -> TestCase -> CardStack.CardContent
 cardContentFor state testCase =
   { title: "Test " <> show (state.currentIndex + 1) <> " of " <> show (A.length state.testCases)
   , statusBar: Just { status: cardStatus, text: cardStatusLabel }
-  , text: [ "In: " <> formatSignals testCase.data.inputs, "Expected: " <> formatSignals testCase.data.expected ] <> receivedLine <> mismatchLine
+  , text: [ "In: " <> formatSignals isInput testCase.data.inputs, "Expected: " <> formatSignals isWritable testCase.data.expected ] <> receivedLine <> mismatchLine
   , diagram: Nothing
   , demonstration: Nothing
   }
   where
     ports = getPorts state.model
-    rep dir = SignalRepresentation state.base (maybe EightBit portCapacity (M.lookup dir ports))
+    rep dir = SignalRepresentation state.base (maybe EightBit portCapacity (Frame.lookupWhere hasPort dir ports))
 
-    formatSignals :: Map CardinalDirection Signal -> String
-    formatSignals signals =
+    -- a `Frame` has a signal on every side, so which sides to show comes
+    -- from the model's ports: its inputs for a test's `inputs`, the sides it
+    -- writes for `expected`/`received`.
+    formatSignals :: (Port -> Boolean) -> Frame Signal -> String
+    formatSignals shown signals =
       intercalate "  " $
-        (M.toUnfoldable signals :: Array (Tuple CardinalDirection Signal)) <#> \(Tuple dir signal) ->
-          String.take 1 (show dir) <> ": " <> printSignal (rep dir) signal
+        (A.filter (\dir -> shown (Frame.index dir ports)) allDirections) <#> \dir ->
+          String.take 1 (show dir) <> ": " <> printSignal (rep dir) (Frame.index dir signals)
 
     cardStatus = case testCase.status of
       TestCase.NotStarted -> CardStack.Pending
@@ -134,8 +139,8 @@ cardContentFor state testCase =
       TestCase.Completed (TestCase.Failed _) -> "Failed"
 
     receivedLine = case testCase.status of
-      TestCase.Completed TestCase.Passed -> [ "Received: " <> formatSignals testCase.data.expected ]
-      TestCase.Completed (TestCase.Failed { received }) -> [ "Received: " <> formatSignals received ]
+      TestCase.Completed TestCase.Passed -> [ "Received: " <> formatSignals isWritable testCase.data.expected ]
+      TestCase.Completed (TestCase.Failed { received }) -> [ "Received: " <> formatSignals isWritable received ]
       _ -> []
 
     mismatchLine = case testCase.status of

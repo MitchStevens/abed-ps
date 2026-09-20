@@ -8,6 +8,7 @@ import Control.Monad.Maybe.Trans (runMaybeT)
 import Control.Monad.State (class MonadState, gets)
 import Control.Monad.Writer (WriterT, execWriterT, tell)
 import Data.Array as A
+import Data.Either (Either(..))
 import Data.Filterable (compact, filter)
 import Data.Group (ginverse)
 import Data.Lens (use, view, (.=))
@@ -17,7 +18,7 @@ import Data.List (List(..))
 import Data.List as L
 import Data.Map (Map)
 import Data.Map as M
-import Data.Maybe (Maybe(..))
+import Data.Maybe (Maybe(..), fromMaybe)
 import Data.Set (Set)
 import Data.Set as S
 import Data.Traversable (for, for_, traverse_)
@@ -26,14 +27,15 @@ import Data.Tuple (Tuple(..))
 import Data.Witherable (wither)
 import Debug (trace)
 import Game.Board.Edge (RelativeEdge(..), absolute, adjacent, connected, edgeDirection, edgeLocation, getPortOnEdge, relative)
-import Game.Board.PieceInfo (_rotation)
-import Game.Board.Types (Board(..), _pieces, _size)
+import Game.Board.Types (Board, _pieces, _size, pureBoard, resumeBoard)
 import Game.Capacity (Capacity)
 import Game.Direction (CardinalDirection, allDirections, oppositeDirection, rotateDirection)
 import Game.Direction as Direction
 import Game.Location (Location(..), location)
 import Game.Piece (getPort, shouldRipple, updateCapacity)
-import Game.Port (Port(..), getPortType, portMatches)
+import Game.Frame (Frame)
+import Game.Frame as Frame
+import Game.Port (Port(..), getPortType, noPort, portMatches)
 import Game.Port as Port
 import Game.Rotation (Rotation(..))
 
@@ -82,26 +84,27 @@ getBoardEdgeTerminalLocation dir = do
     Direction.Left  -> location (-1)      (n`div`2)
 
 --
-getBoardEdges :: forall m. MonadState Board m => m (Map CardinalDirection Location)
+-- | The location just inside each side of the board. Every side has one, so
+-- | unlike a piece's ports this is total.
+getBoardEdges :: forall m. MonadState Board m => m (Frame Location)
 getBoardEdges = do
   n <- use _size
-  pure $ M.fromFoldable
-    [ Tuple (Direction.Up)    (location (n`div`2) 0)
-    , Tuple (Direction.Right) (location (n-1)       (n`div`2))
-    , Tuple (Direction.Down)  (location (n`div`2) (n-1))
-    , Tuple (Direction.Left)  (location 0      (n`div`2))
-    ]
+  pure $ Frame.tabulate case _ of
+    Direction.Up    -> location (n`div`2) 0
+    Direction.Right -> location (n-1)       (n`div`2)
+    Direction.Down  -> location (n`div`2) (n-1)
+    Direction.Left  -> location 0      (n`div`2)
 
 getBoardPortEdge :: forall m. MonadState Board m => CardinalDirection -> m RelativeEdge
 getBoardPortEdge dir = do
   loc <- getBoardEdgeTerminalLocation dir
   pure $ relative loc Direction.Right
 
-getBoardPorts :: forall m. MonadState Board m => m (Map CardinalDirection Port)
-getBoardPorts =
-  map compact do
-     boardEdges <- getBoardEdges
-     forWithIndex boardEdges \dir loc -> runMaybeT $ getPortOnEdge (absolute loc dir)
+getBoardPorts :: forall m. MonadState Board m => m (Frame Port)
+getBoardPorts = do
+  boardEdges <- getBoardEdges
+  forWithIndex boardEdges \dir loc ->
+    fromMaybe noPort <$> runMaybeT (getPortOnEdge (absolute loc dir))
 
 {-
   Create a bidirectional mapping from inputs to ouptuts ports
@@ -127,6 +130,7 @@ buildConnectionMapAt loc =
       -- a connection, so `layerDecomposition` / the cyclic check ignore them
       Port.WormholeIn -> pure unit
       Port.WormholeOut -> pure unit
+      Port.NoPort -> pure unit
 
 --todo: fix this, looks like garbage
 {-
@@ -142,12 +146,17 @@ capacityRippleAcc capacity vars = case vars.openSet of
   Cons relEdge otherEdges -> do
     let loc = edgeLocation relEdge
     let closedSet = S.insert loc vars.closedSet
-    maybePiece <- map (_.piece) <$> use (_pieces <<< at loc)
-    
+    maybeCell <- map (_.piece) <$> use (_pieces <<< at loc)
+    -- capacity ripple only understands leaf pieces -- a nested board doesn't
+    -- ripple through yet, so it's treated the same as an empty cell here.
+    let maybePiece = maybeCell >>= \cell -> case resumeBoard cell of
+          Right p -> Just p
+          Left _ -> Nothing
+
     case maybePiece >>= updateCapacity (edgeDirection relEdge) capacity of
       Just piece -> do                                        -- if the capacity can be changed...
         connected <- allConnectedRelativeEdges loc
-        _pieces <<< ix loc %= (_ { piece = piece })          -- set the capacity at the location...
+        _pieces <<< ix loc %= (_ { piece = pureBoard piece })     -- set the capacity at the location...
 
         if shouldRipple piece
           then do

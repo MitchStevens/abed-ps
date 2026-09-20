@@ -136,20 +136,21 @@ Define the **adaptation order** `p1 ⊑ p2` ("`p2` is at least as adapted as
 `eval p1 inputs` and `eval p2 inputs` agree on every
 `d ∈ M.keys (eval p1 inputs)`.
 
-**D1** `adapt d Nothing p ⊑ p`. *(tested)*
-**D2** `p ⊑ adapt d (Just t) p`. *(tested)*
+**D1** `adapt d noPort p ⊑ p`. *(tested)*
+**D2** `p ⊑ adapt d port p` for any real `port`. *(tested)*
 **D3** `d1 ≠ d2` ⟹
 `adapt d1 x (adapt d2 y p) ≡ adapt d2 y (adapt d1 x p)`. *(tested for
-`x = y = Nothing`; propose extending to arbitrary port types)*
+`x = y = noPort`; propose extending to arbitrary ports)*
 **D4** Idempotence: `adapt d t (adapt d t p) ≡ adapt d t p`. *(claimed in the
 source comment, not tested)*
 **D5** `name (adapt d t p) == name p`, and `adapt d t p` differs from `p` only
 at port `d`.
-**D6** When `adapt` changes anything (`Just`): `adapt d (Just t) p` yields
-`getPortType (ports ! d) == t`; `adapt d Nothing p` removes port `d`.
+**D6** When `adapt` changes anything: `adapt d port p` yields
+`getPortType (ports ! d) == getPortType port` for a real `port`; `adapt d noPort p`
+removes port `d`.
 
 **Open:** the wormhole cases. `Game.Piece.WirePiece` currently rejects
-`adapt _ (Just WormholeIn/WormholeOut)` outright. D6 should permit
+`adapt _ port` outright when `port` is a `WormholeIn`/`WormholeOut`. D6 should permit
 "adapt to a wormhole type is always `Nothing`" as a legal implementation, but
 whether *some* piece should accept it, and how that interacts with A6 (pairs),
 is unresolved.
@@ -157,8 +158,8 @@ is unresolved.
 ### Why "`adapt` forms a semilattice"
 
 `⊑` is a partial order on pieces (up to `≡`): reflexive, and — modulo checking —
-transitive and antisymmetric. `adapt d (Just t)` only ever moves a piece *up*
-this order (D2), `adapt d Nothing` only *down* (D1), and adapts on different
+transitive and antisymmetric. `adapt d port` only ever moves a piece *up*
+this order (D2), `adapt d noPort` only *down* (D1), and adapts on different
 directions commute (D3). If, in addition, for a fixed piece the set of
 "reachable by adapting" pieces has a **least upper bound** for any two elements
 — i.e. given two adaptations of `p` there is a single most-general piece that is

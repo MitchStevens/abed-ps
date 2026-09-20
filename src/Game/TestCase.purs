@@ -8,6 +8,7 @@ import Data.Map (Map)
 import Data.Map as M
 import Data.Maybe (Maybe(..))
 import Game.Direction (CardinalDirection, allDirections)
+import Game.Frame (Frame)
 import Game.Piece (Piece(..), eval, getPort)
 import Game.Port (Port(..), PortType(..))
 import Game.Signal (Signal, equivalent)
@@ -18,8 +19,8 @@ type TestCase =
   }
 
 type TestCaseData =
-  { inputs :: Map CardinalDirection Signal
-  , expected :: Map CardinalDirection Signal
+  { inputs :: Frame Signal
+  , expected :: Frame Signal
   }
 
 data TestCaseStatus
@@ -36,14 +37,14 @@ instance Show TestCaseStatus where
 
 data TestCaseOutcome
   = Passed
-  | Failed { received :: Map CardinalDirection Signal }
+  | Failed { received :: Frame Signal }
 derive instance Eq TestCaseOutcome
 instance Show TestCaseOutcome where
   show = case _ of
     Passed -> "Passed"
     Failed _ -> "Failed"
 
-testCaseOutcome :: TestCaseData -> Map CardinalDirection Signal -> TestCaseOutcome
+testCaseOutcome :: TestCaseData -> Frame Signal -> TestCaseOutcome
 testCaseOutcome { inputs, expected } received =
   if expected == received then Passed else Failed { received }
 

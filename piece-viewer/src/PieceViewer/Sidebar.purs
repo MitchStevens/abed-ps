@@ -13,6 +13,7 @@ import Data.Maybe (Maybe(..), fromMaybe, maybe)
 import Data.Number (fromString) as N
 import Data.Number.Format as Nf
 import Game.Direction (CardinalDirection(..), allDirections)
+import Game.Frame as Frame
 import Game.Piece (PieceId(..), adapt, allPieces, getPort, name)
 import Game.Port (PortType(..), isInput)
 import Game.Rotation (toDegrees)
@@ -133,7 +134,7 @@ render input onUpdate =
   isInputDir dir = maybe false isInput (getPort input.piece dir)
 
   inputValueFor :: CardinalDirection -> Int
-  inputValueFor dir = Map.lookup dir input.inputValues # fromMaybe 0
+  inputValueFor dir = Frame.index dir input.inputValues
 
   inputsField =
     HH.div_
@@ -254,7 +255,7 @@ render input onUpdate =
           [ HH.text "Adapt piece" ]
       ]
     where
-    adaptPreview = adapt input.adaptDirection input.adaptPortType input.piece
+    adaptPreview = adapt input.adaptDirection (Types.adaptPort input.adaptPortType) input.piece
     adaptWillChange = adaptPreview /= input.piece
 
     adaptSummary =
@@ -296,4 +297,5 @@ showPortType = case _ of
   Just Output -> "Port Out"
   Just WormholeIn -> "Wormhole In"
   Just WormholeOut -> "Wormhole Out"
+  Just NoPort -> "Nothing"
   Nothing -> "Nothing"

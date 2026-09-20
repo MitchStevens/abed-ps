@@ -31,7 +31,10 @@ import Halogen.Svg.Elements as SE
 -- | happened to match that `start`) and left a dangling stray segment for
 -- | the input/`arrowPath ... Direction.Down` case, where it doesn't.
 portPath :: PortInfo -> Array Segment
-portPath info = headSegments <> [ LineTo { from: curveStart, to: start } ]
+portPath info = case getPortType info.port of
+  -- a side with no port has nothing to draw
+  Port.NoPort -> []
+  _ -> headSegments <> [ LineTo { from: curveStart, to: start } ]
   where
     start = if getPortType info.port == Port.Input then { x: 40.0, y: 0.0 } else { x: 10.0, y: 25.0 }
     curveStart = fromMaybe start (endPoint <$> A.last headSegments)
@@ -43,3 +46,4 @@ portPath info = headSegments <> [ LineTo { from: curveStart, to: start } ]
         Port.Output, false -> arrowPath start Direction.Up
         Port.WormholeIn, true -> stubPath start Direction.Up
         Port.WormholeIn, false -> arrowPath start Direction.Up
+        Port.NoPort, _ -> []

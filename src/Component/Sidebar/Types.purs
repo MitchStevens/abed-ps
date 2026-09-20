@@ -13,6 +13,7 @@ import Game.Direction (CardinalDirection)
 import Game.Level.Completion (CompletionStatus)
 import Game.Level.Problem (Problem)
 import Game.Piece (PieceId(..))
+import Game.Frame (Frame)
 import Game.Port (Port(..))
 import Game.Signal (Base, SignalRepresentation)
 import Game.TestCase (TestCase, TestCaseData, TestCaseOutcome)
@@ -26,7 +27,7 @@ type Input =
   { problem :: Problem
   , completionStatus :: CompletionStatus
   , boardSize :: Int
-  , boardPorts :: Map CardinalDirection Port
+  , boardPorts :: Frame Port
   , base :: Base
   }
 
@@ -34,7 +35,7 @@ type State =
   { problem :: Problem
   , completionStatus :: CompletionStatus
   , boardSize :: Int
-  , boardPorts :: Map CardinalDirection Port
+  , boardPorts :: Frame Port
   , base :: Base
   }
 

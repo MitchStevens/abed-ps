@@ -20,7 +20,7 @@ import Data.List as L
 import Data.Map (Map)
 import Data.Map as M
 import Data.Map.Unsafe (unsafeMapKey)
-import Data.Maybe (Maybe(..), isJust, isNothing, maybe)
+import Data.Maybe (Maybe(..), fromMaybe, isJust, isNothing, maybe)
 import Data.Newtype (class Newtype, unwrap)
 import Data.Set as S
 import Data.Traversable (traverse)
@@ -30,30 +30,31 @@ import Debug as Debug
 import Effect.Aff.Class (class MonadAff)
 import Effect.Class (class MonadEffect)
 import Game.Board.Edge (AbsoluteEdge, RelativeEdge(..), absolute, adjacent, adjacentAbsoluteEdge, fromAbsoluteEdge, getPortOnEdge, relative)
-import Game.Board.PieceInfo (PieceInfo, _rotation)
 import Game.Board.Query (isInsideBoard)
-import Game.Board.Types (Board(..), BoardError(..), _pieces, _size)
+import Game.Board.Types (Board, BoardF(BoardF), BoardError(..), _boardF, _pieces, _size, mkBoard, pureBoard, resumeBoard)
 import Game.Direction (allDirections)
 import Game.Direction as Direction
 import Game.Location (Location(..), location)
 import Game.Piece (Piece(..), adapt, pieceLookup)
-import Game.Port (PortType, getPortType)
+import Game.Port (Port, noPort)
 import Game.Rotation (Rotation(..), rotation)
 import Type.Proxy (Proxy(..))
 
 emptyBoard :: Int -> Either BoardError Board
-emptyBoard n = 
+emptyBoard n =
   if odd n && n >= 1
-    then Right $ Board { size: n, pieces: M.empty, wormhole: Nothing }
+    then Right $ mkBoard $ BoardF { size: n, ports: pure noPort, pieces: M.empty, wormhole: Nothing }
     else Left $ InvalidBoardInitialisation n
 
 -- should return either boarderror
-getPieceInfo :: forall m. MonadState Board m => MonadError BoardError m => Location -> m PieceInfo
+getPieceInfo :: forall m. MonadState Board m => MonadError BoardError m => Location -> m { rotation :: Rotation, piece :: Board }
 getPieceInfo loc =
-  use (_pieces <<< at loc) >>= 
+  use (_pieces <<< at loc) >>=
     maybe (throwError (LocationNotOccupied loc)) pure
 
-getPiece :: forall m. MonadState Board m => MonadError BoardError m => Location -> m Piece
+-- a location's piece is generally a whole `Board` (it may be a nested
+-- board rather than a leaf) -- see `Game.Board.Types._pieces`.
+getPiece :: forall m. MonadState Board m => MonadError BoardError m => Location -> m Board
 getPiece loc = (_.piece) <$> getPieceInfo loc
 
 {- 
@@ -71,11 +72,15 @@ getPiece loc = (_.piece) <$> getPieceInfo loc
 checkInsideBoard :: forall m. MonadError BoardError m => MonadState Board m => Location -> m Unit
 checkInsideBoard loc = whenM (not <$> isInsideBoard loc) (throwError (InvalidLocation loc))
 
-adaptRelEdge :: forall m. MonadState Board m => AbsoluteEdge -> Maybe PortType -> MaybeT m Unit
-adaptRelEdge absEdge portType = do
+adaptRelEdge :: forall m. MonadState Board m => AbsoluteEdge -> Port -> MaybeT m Unit
+adaptRelEdge absEdge port = do
   Relative { loc, dir } <- fromAbsoluteEdge absEdge
-  { piece, rotation } <- MaybeT $ use (_pieces <<< at loc)
-  _pieces <<< ix loc <<< prop (Proxy :: Proxy "piece") .= adapt dir portType piece
+  { piece } <- MaybeT $ use (_pieces <<< at loc)
+  -- adapting only makes sense for a leaf piece; a nested board has no
+  -- adaptable port yet, so leave it alone.
+  case resumeBoard piece of
+    Right p -> _pieces <<< ix loc <<< prop (Proxy :: Proxy "piece") .= pureBoard (adapt dir port p)
+    Left _ -> MaybeT $ pure Nothing
 
 adaptPortsAround :: forall m. MonadState Board m => Location -> m Unit
 adaptPortsAround loc =
@@ -83,7 +88,7 @@ adaptPortsAround loc =
     let edge = absolute loc dir
     let adj = adjacentAbsoluteEdge edge
     maybePort <- runMaybeT (getPortOnEdge edge)
-    void $ runMaybeT $ adaptRelEdge adj (getPortType <$> maybePort)
+    void $ runMaybeT $ adaptRelEdge adj (fromMaybe noPort maybePort)
 
 addPieceNoUpdate :: forall m. MonadError BoardError m => MonadState Board m 
   => Location -> Piece -> Rotation -> m Unit
@@ -91,7 +96,7 @@ addPieceNoUpdate loc piece rotation = do
   checkInsideBoard loc
   pieceInfo <- use (_pieces <<< at loc)
   case pieceInfo of
-    Nothing -> _pieces <<< at loc .= Just { piece, rotation }
+    Nothing -> _pieces <<< at loc .= Just { piece: pureBoard piece, rotation }
     Just _ -> throwError (LocationOccupied loc)
 
 addPiece :: forall m. MonadError BoardError m => MonadState Board m => Location -> Piece -> m Unit
@@ -99,7 +104,7 @@ addPiece loc piece = do
    addPieceNoUpdate loc piece (rotation 0)
    adaptPortsAround loc
 
-removePieceNoUpdate :: forall m. MonadError BoardError m => MonadState Board m => Location -> m PieceInfo
+removePieceNoUpdate :: forall m. MonadError BoardError m => MonadState Board m => Location -> m { rotation :: Rotation, piece :: Board }
 removePieceNoUpdate loc = do
   checkInsideBoard loc
   maybePieceInfo <- use (_pieces <<< at loc)
@@ -109,7 +114,7 @@ removePieceNoUpdate loc = do
       _pieces <<< at loc .= Nothing
       pure pieceInfo
 
-removePiece :: forall m. MonadError BoardError m => MonadState Board m => Location -> m PieceInfo
+removePiece :: forall m. MonadError BoardError m => MonadState Board m => Location -> m { rotation :: Rotation, piece :: Board }
 removePiece loc = do
   piece <- removePieceNoUpdate loc
   adaptPortsAround loc
@@ -117,7 +122,7 @@ removePiece loc = do
 
 
 movePiece :: forall m. MonadError BoardError m => MonadState Board m
-  => Location -> Location -> m PieceInfo
+  => Location -> Location -> m { rotation :: Rotation, piece :: Board }
 movePiece src dst = do
   use (_pieces <<< at src) >>= case _ of
     Just pieceInfoSrc -> do
@@ -133,7 +138,7 @@ movePiece src dst = do
       throwError (LocationNotOccupied src)
 
 pieceDropped :: forall m. MonadState Board m => MonadError BoardError m
-  => Location -> Maybe Location -> m PieceInfo
+  => Location -> Maybe Location -> m { rotation :: Rotation, piece :: Board }
 pieceDropped src maybeDst =
   -- when a piece is dropped, it can be dropped over a new location or outside the game board 
   case maybeDst of
@@ -149,7 +154,7 @@ rotatePieceBy :: forall m. MonadError BoardError m => MonadState Board m => Loca
 rotatePieceBy loc rot = do
   checkInsideBoard loc
   _ <- getPiece loc
-  _pieces <<< ix loc <<< _rotation <>= rot
+  _pieces <<< ix loc <<< prop (Proxy :: Proxy "rotation") <>= rot
   adaptPortsAround loc
 
 {-
@@ -180,17 +185,18 @@ increaseSize = do
 
 setBoardSize :: forall m. MonadState Board m => MonadError BoardError m => Int -> m Unit
 setBoardSize n = do
-  Board {size, pieces} <- get
+  BoardF { size, ports, pieces } <- use _boardF
   newSize <- validBoardSize n
   let dSize = -(newSize - size) `div` 2
 
   let insideSquare (Location {x, y}) = all (between 0 (newSize-1)) [x, y]
   let shiftLocation (Location {x, y}) = location (x-dSize) (y - dSize)
-  let firstPieceOusideSquare = find (not <<< insideSquare <<< shiftLocation) (M.keys pieces) 
+  let firstPieceOusideSquare = find (not <<< insideSquare <<< shiftLocation) (M.keys pieces)
 
   case firstPieceOusideSquare of
     Just loc -> throwError (LocationOccupied loc)
-    Nothing -> put $ Board
+    Nothing -> _boardF .= BoardF
       { size: newSize
+      , ports
       , pieces: unsafeMapKey shiftLocation pieces
       , wormhole: Nothing }

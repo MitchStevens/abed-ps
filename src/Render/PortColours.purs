@@ -22,7 +22,9 @@ import Data.Foldable (any, intercalate)
 import Data.Map (Map)
 import Data.Map as M
 import Data.Maybe (maybe)
+import Game.Frame (Frame)
 import Game.Direction (CardinalDirection(..), allDirections)
+import Game.Frame as Frame
 import Game.Port (isInput)
 import Game.PortInfo (PortInfo)
 import Halogen.HTML (HTML)
@@ -42,14 +44,14 @@ isOn portInfo = portInfo.signal /= zero
 
 -- | `allDirections` is already Up, Right, Down, Left -- the same order the
 -- | generated image filenames use -- so filtering it preserves that order.
-onDirections :: Map CardinalDirection PortInfo -> Array CardinalDirection
+onDirections :: Frame PortInfo -> Array CardinalDirection
 onDirections portStates =
-  filter (\dir -> maybe false isOn (M.lookup dir portStates)) allDirections
+  filter (\dir -> isOn (Frame.index dir portStates)) allDirections
 
 -- | Both the image filename and the name of the <pattern> def that embeds it,
 -- | for gate pieces (not/and/or/xor) -- one quadrant per direction, since
 -- | each leg can carry a genuinely different signal.
-portColoursName :: Map CardinalDirection PortInfo -> String
+portColoursName :: Frame PortInfo -> String
 portColoursName portStates = case onDirections portStates of
   [] -> "off"
   dirs -> intercalate "-" (map directionName dirs)
@@ -57,9 +59,9 @@ portColoursName portStates = case onDirections portStates of
 -- | Same, for wire pieces -- every output just broadcasts the one input
 -- | signal, so there's nothing to distinguish per-direction: the whole
 -- | outline is either fully lit or fully off, based on that input alone.
-wirePortColoursName :: Map CardinalDirection PortInfo -> String
+wirePortColoursName :: Frame PortInfo -> String
 wirePortColoursName portStates
-  | any (\info -> isInput info.port && isOn info) (M.values portStates) = "up-right-down-left"
+  | any (\info -> isInput info.port && isOn info) portStates = "up-right-down-left"
   | otherwise = "off"
 
 imageHref :: String -> String
@@ -95,20 +97,20 @@ renderPattern name =
 fillRef :: String -> String
 fillRef name = "url(#" <> patternId name <> ")"
 
-portColoursHref :: Map CardinalDirection PortInfo -> String
+portColoursHref :: Frame PortInfo -> String
 portColoursHref = imageHref <<< portColoursName
 
-renderPortColours :: forall w i. Map CardinalDirection PortInfo -> HTML w i
+renderPortColours :: forall w i. Frame PortInfo -> HTML w i
 renderPortColours = renderImage <<< portColoursName
 
-renderPortColoursPattern :: forall w i. Map CardinalDirection PortInfo -> HTML w i
+renderPortColoursPattern :: forall w i. Frame PortInfo -> HTML w i
 renderPortColoursPattern = renderPattern <<< portColoursName
 
 -- | The `fill="..."`-ready reference to that pattern.
-portColoursFillRef :: Map CardinalDirection PortInfo -> String
+portColoursFillRef :: Frame PortInfo -> String
 portColoursFillRef = fillRef <<< portColoursName
 
-renderWirePortColoursPattern :: forall w i. Map CardinalDirection PortInfo -> HTML w i
+renderWirePortColoursPattern :: forall w i. Frame PortInfo -> HTML w i
 renderWirePortColoursPattern = renderPattern <<< wirePortColoursName
 
 -- | Same as `renderWirePortColoursPattern`, but for several independent wire
@@ -116,9 +118,9 @@ renderWirePortColoursPattern = renderPattern <<< wirePortColoursName
 -- | `wirePortColoursName` only ever comes back "off" or "up-right-down-left",
 -- | so two loops can easily land on the same name; `nub` keeps the <pattern>
 -- | defs from duplicating that id in the DOM.
-renderWirePortColoursPatterns :: forall w i. Array (Map CardinalDirection PortInfo) -> HTML w i
+renderWirePortColoursPatterns :: forall w i. Array (Frame PortInfo) -> HTML w i
 renderWirePortColoursPatterns portStatesList =
   SE.g [] (map renderPattern (nub (map wirePortColoursName portStatesList)))
 
-wirePortColoursFillRef :: Map CardinalDirection PortInfo -> String
+wirePortColoursFillRef :: Frame PortInfo -> String
 wirePortColoursFillRef = fillRef <<< wirePortColoursName

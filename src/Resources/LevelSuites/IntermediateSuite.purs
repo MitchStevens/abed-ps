@@ -4,10 +4,12 @@ import Prelude
 
 import Component.DataAttribute as DataAttr
 import Data.Array.NonEmpty.Internal (NonEmptyArray(..))
+import Data.Either (Either(..))
 import Data.Foldable (all)
+import Data.Lens (view)
 import Data.Set as S
 import Foreign.Object (fromHomogeneous)
-import Game.Board (Board(..))
+import Game.Board (resumeBoard, _pieces)
 import Game.Direction as Direction
 import Game.Level (LevelSuite, binaryTestInputs, defaultLevel)
 import Game.Level.Problem (defaultProblem)
@@ -26,7 +28,9 @@ intermediateSuite = fromHomogeneous
         , otherRestrictions =
           [ { name: "Prohibited Piece"
             , description: "You can't use the CrossOver piece in this level"
-            , restriction: \(Board b) -> flip all b.pieces (\info -> info.piece /= crossPiece)
+            , restriction: \board -> flip all (view _pieces board) \info -> case resumeBoard info.piece of
+                Right p -> p /= crossPiece
+                Left _ -> true
           }
           ]
         }

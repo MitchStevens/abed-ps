@@ -28,8 +28,10 @@ import Data.Maybe (Maybe(..), fromMaybe)
 import Data.String as String
 import Data.Tuple (Tuple(..))
 import Game.Direction (CardinalDirection(..), allDirections)
+import Game.Frame (Frame)
+import Game.Frame as Frame
 import Game.Piece (Piece, getPorts)
-import Game.Port (Port(..), PortType(..))
+import Game.Port (Port(..), PortType(..), hasPort, isInput)
 import Game.Signal (Base, Signal, SignalRepresentation(..), printSignal)
 import Game.TestCase (TestCase, TestCaseOutcome(..), TestCaseStatus(..))
 import Halogen (AttrName(..))
@@ -191,7 +193,7 @@ renderDiagram { instanceKey, goal, testCase } =
 
   wedgeFor :: CardinalDirection -> Maybe (HTML w i)
   wedgeFor dir = do
-    Port { portType } <- M.lookup dir ports
+    Port { portType } <- Frame.lookupWhere hasPort dir ports
     let pts = wedgePoints dir
     pure case portType of
       -- Always the same blue, on or off -- this wedge's colour marks the
@@ -291,13 +293,13 @@ renderReadout { base, goal, testCase } =
     bySide = Array.partition isInputSide allDirections
 
   isInputSide :: CardinalDirection -> Boolean
-  isInputSide dir = case M.lookup dir ports of
+  isInputSide dir = case Frame.lookupWhere hasPort dir ports of
     Just (Port { portType: Input }) -> true
     _ -> false
 
   rowFor :: CardinalDirection -> Maybe (HTML w i)
   rowFor dir = do
-    Port { portType, capacity } <- M.lookup dir ports
+    Port { portType, capacity } <- Frame.lookupWhere hasPort dir ports
     let
       rep = SignalRepresentation base capacity
       dirLabel = String.take 1 (show dir)
@@ -313,6 +315,8 @@ renderReadout { base, goal, testCase } =
         readoutRow dirLabel "OUT" (outputValue print dir)
       WormholeIn ->
         readoutRow dirLabel "OUT" (outputValue print dir)
+      NoPort ->
+        HH.text "" -- never reached: `lookupWhere hasPort` already dropped it
 
   outputValue :: (Signal -> String) -> CardinalDirection -> Array (HTML w i)
   outputValue print dir = case testCase.status of
@@ -331,8 +335,8 @@ renderReadout { base, goal, testCase } =
       , HH.span [ HP.class_ (ClassName "test-readout-got") ] [ HH.text (print (signalAt dir received)) ]
       ]
 
-  signalAt :: CardinalDirection -> Map CardinalDirection Signal -> Signal
-  signalAt dir signals = fromMaybe zero (M.lookup dir signals)
+  signalAt :: CardinalDirection -> Frame Signal -> Signal
+  signalAt = Frame.index
 
   readoutRow :: String -> String -> Array (HTML w i) -> HTML w i
   readoutRow dirLabel roleLabel valueEls =

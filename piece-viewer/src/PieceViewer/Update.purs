@@ -10,6 +10,7 @@ import Data.Enum (fromEnum)
 import Data.Map as Map
 import Data.Maybe (Maybe(..), maybe)
 import Game.Direction (CardinalDirection)
+import Game.Frame as Frame
 import Game.Piece (PieceId(..), adapt, allPieces, getPort, pieceLookup)
 import Game.Port (PortType, isInput)
 import Game.Rotation (rotation)
@@ -33,7 +34,7 @@ data Update
 applyUpdate :: Update -> Types.State -> Types.State
 applyUpdate = case _ of
   SelectPiece pieceId ->
-    \st -> st { piece = pieceLookup pieceId, inputValues = Map.empty }
+    \st -> st { piece = pieceLookup pieceId, inputValues = pure 0 }
   SetScale n ->
     \st -> if st.tiled then st else st { scale = clamp 0.25 2.5 n }
   RotateCW ->
@@ -48,13 +49,13 @@ applyUpdate = case _ of
     \st -> st { adaptPortType = portType }
   ApplyAdapt ->
     \st ->
-      st { piece = adapt st.adaptDirection st.adaptPortType st.piece
-         , inputValues = Map.empty
+      st { piece = adapt st.adaptDirection (Types.adaptPort st.adaptPortType) st.piece
+         , inputValues = pure 0
          }
   SetInputValue dir value ->
     \st ->
       if maybe false isInput (getPort st.piece dir) then
-        st { inputValues = Map.insert dir value st.inputValues }
+        st { inputValues = Frame.set dir value st.inputValues }
       else
         st
   AnimateHeadShake ->

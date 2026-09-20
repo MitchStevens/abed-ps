@@ -10,9 +10,10 @@ import Data.Maybe (Maybe(..), fromMaybe)
 import Data.Tuple (Tuple(..))
 import Game.Capacity (Capacity(..), doubleCapacity, halveCapacity)
 import Game.Direction as Direction
+import Game.Frame as Frame
 import Game.Piece.Complexity as Complexity
 import Game.Piece.Types (Piece(..), PieceId(..), mkPieceNoAdapt, shouldRipple)
-import Game.Port (inputPort, outputPort)
+import Game.Port (inputPort, noPort, outputPort)
 import Game.Signal (Signal(..), maxValue)
 
 succPiece :: Piece
@@ -22,9 +23,9 @@ mkSuccPiece :: Capacity -> Piece
 mkSuccPiece capacity = mkPieceNoAdapt
   { name: PieceId "succ"
   , eval: \m ->
-      let s = fold (M.lookup Direction.Left m)
-      in  M.singleton Direction.Right (if s == maxValue capacity then zero else s + one)
-  , ports: M.fromFoldable
+      let s = Frame.index Direction.Left m
+      in  Frame.singleton zero Direction.Right (if s == maxValue capacity then zero else s + one)
+  , ports: Frame.fromFoldable noPort
       [ Tuple Direction.Left (inputPort capacity)
       , Tuple Direction.Right (outputPort capacity)
       ]
@@ -38,15 +39,15 @@ mkAdder :: Capacity -> Piece
 mkAdder capacity = mkPieceNoAdapt
   { name: PieceId "adder-piece"
   , eval: \m ->
-      let a = fold (M.lookup Direction.Left m)
-          b = fold (M.lookup Direction.Up m)
+      let a = Frame.index Direction.Left m
+          b = Frame.index Direction.Up m
           sum = a + b
           carry = if a+b > maxValue capacity then one else zero
-      in  M.fromFoldable 
+      in  Frame.fromFoldable zero
             [ Tuple Direction.Right sum
             , Tuple Direction.Down carry
             ]
-  , ports: M.fromFoldable
+  , ports: Frame.fromFoldable noPort
       [ Tuple Direction.Left (inputPort capacity)
       , Tuple Direction.Up (inputPort capacity)
       , Tuple Direction.Right (outputPort capacity)
@@ -63,10 +64,10 @@ mkMultiplier :: Capacity -> Piece
 mkMultiplier capacity = mkPieceNoAdapt
   { name: PieceId "multiplier-piece"
   , eval: \m ->
-      let a = fold (M.lookup Direction.Left m)
-          b = fold (M.lookup Direction.Up m)
-      in  M.singleton Direction.Right (a * b)
-  , ports: M.fromFoldable
+      let a = Frame.index Direction.Left m
+          b = Frame.index Direction.Up m
+      in  Frame.singleton zero Direction.Right (a * b)
+  , ports: Frame.fromFoldable noPort
       [ Tuple Direction.Left (inputPort capacity)
       , Tuple Direction.Up (inputPort capacity)
       , Tuple Direction.Right (outputPort $ fromMaybe EightBit $ doubleCapacity capacity)

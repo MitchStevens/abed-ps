@@ -16,15 +16,17 @@ import Render.Wire (renderWire, wirePath, wirePieceFrame)
 import Data.Array as Array
 import Data.Bifunctor (bimap)
 import Data.Foldable (elem)
+import Data.FunctorWithIndex (mapWithIndex)
 import Data.Map (Map)
 import Data.Map as M
 import Data.Maybe (Maybe(..), maybe)
 import Data.Number (pi)
 import Data.Tuple (Tuple(..))
 import Effect.Aff.Class (class MonadAff)
+import Game.Frame (Frame)
 import Game.Direction (CardinalDirection)
 import Game.Piece (Piece, andPiece, chickenPiece, cornerCutPiece, crossPiece, isWirePiece, name, notPiece, orPiece, reverseChickenPiece, xorPiece)
-import Game.PortInfo (PortInfo)
+import Game.PortInfo (PortInfo, noPortInfo)
 import Game.Rotation (toDegrees)
 import Halogen (ComponentHTML)
 import Halogen as H
@@ -59,7 +61,7 @@ isMigratedPiece piece =
 -- | independent paths (see `crossOverSegmentsFor`), and default-rendered
 -- | pieces (arithmetic/comparison/etc.) don't have a single outline in this
 -- | sense at all.
-outlineSegmentsFor :: Piece -> Map CardinalDirection PortInfo -> Maybe (Array Segment)
+outlineSegmentsFor :: Piece -> Frame PortInfo -> Maybe (Array Segment)
 outlineSegmentsFor piece portStates
   | isWirePiece piece =
       Just (wirePath portStates)
@@ -76,19 +78,24 @@ outlineSegmentsFor piece portStates
 -- | of the four crossover pieces.
 crossOverLoopsFor
   :: Piece
-  -> Map CardinalDirection PortInfo
-  -> Maybe (Tuple (Map CardinalDirection PortInfo) (Map CardinalDirection PortInfo))
+  -> Frame PortInfo
+  -> Maybe (Tuple (Frame PortInfo) (Frame PortInfo))
 crossOverLoopsFor piece portStates =
   (\(Tuple (Tuple to1 from1) (Tuple to2 from2)) ->
     Tuple
-      (M.filterKeys (_ `elem` [ to1, from1 ]) portStates)
-      (M.filterKeys (_ `elem` [ to2, from2 ]) portStates)
+      (onlySides [ to1, from1 ] portStates)
+      (onlySides [ to2, from2 ] portStates)
   ) <$> crossOverLegPairs piece
+
+-- | `portStates`, keeping only the given sides: every other side reads as
+-- | having no port.
+onlySides :: Array CardinalDirection -> Frame PortInfo -> Frame PortInfo
+onlySides dirs = mapWithIndex \dir info -> if dir `elem` dirs then info else noPortInfo
 
 -- | Same as `crossOverLoopsFor`, but as the two loops' drawn paths rather
 -- | than their port-state subsets -- what `Component.Piece.Visual` diffs
 -- | against to decide whether either loop needs to crossfade.
-crossOverSegmentsFor :: Piece -> Map CardinalDirection PortInfo -> Maybe (Tuple (Array Segment) (Array Segment))
+crossOverSegmentsFor :: Piece -> Frame PortInfo -> Maybe (Tuple (Array Segment) (Array Segment))
 crossOverSegmentsFor piece portStates = bimap wirePath wirePath <$> crossOverLoopsFor piece portStates
 
 -- | The slots a rendered piece can mount. Every piece `outlineSegmentsFor`

@@ -6,6 +6,7 @@ import Render.Background (eggshellBackground, wirePieceFrameStroke)
 import Render.PieceShape (IconConfig(..))
 import Data.Map (Map)
 import Data.Tuple (Tuple(..))
+import Game.Frame (Frame)
 import Game.Direction (CardinalDirection)
 import Game.Piece (PieceId(..))
 import Game.PortInfo (PortInfo)
@@ -20,7 +21,7 @@ import Halogen.Svg.Elements as SE
 -- | vector icon gets the same badge behind it, so gates read as one family
 -- | regardless of how many legs feed them or whether their glyph is drawn or
 -- | a raster image.
-renderIcon :: forall w i. IconConfig w i -> Map CardinalDirection PortInfo -> HTML w i
+renderIcon :: forall w i. IconConfig w i -> Frame PortInfo -> HTML w i
 renderIcon config portStates = case config of
   NoIcon -> SE.g [] []
   ImageIcon pieceId -> SE.g [] [ iconBadge, renderImageIcon pieceId ]

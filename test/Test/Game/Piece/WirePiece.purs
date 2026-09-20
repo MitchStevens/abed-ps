@@ -9,8 +9,9 @@ import Data.Set as S
 import Data.Tuple (Tuple(..))
 import Game.Capacity (Capacity(..))
 import Game.Direction as Direction
+import Game.Frame as Frame
 import Game.Piece (Simplification(..), adapt, getInputDirs, getOutputDirs, getPorts, idPiece, isSimplifiable, leftPiece, superPiece)
-import Game.Port (inputPort, outputPort)
+import Game.Port (inputPort, noPort, outputPort)
 import Game.Port as PortType
 import Game.Signal (Signal(..))
 import Test.Game.Piece (testEval)
@@ -35,14 +36,14 @@ spec =
     describe "adapt" do
       it "should add an output when a port is found" do
         getPorts idPiece `shouldEqual`
-          M.fromFoldable
+          Frame.fromFoldable noPort
             [ Tuple Direction.Left (inputPort OneBit)
             , Tuple Direction.Right (outputPort OneBit)
             ]
 
-        getPorts (adapt Direction.Down (Just PortType.Input) idPiece)
+        getPorts (adapt Direction.Down (inputPort OneBit) idPiece)
           `shouldEqual`
-            M.fromFoldable
+            Frame.fromFoldable noPort
               [ Tuple Direction.Left (inputPort OneBit)
               , Tuple Direction.Down (outputPort OneBit)
               , Tuple Direction.Right (outputPort OneBit)
@@ -62,8 +63,8 @@ spec =
         --    ])
 
       it "reaches superPiece by adapting an output onto every remaining direction" do
-        adapt Direction.Down (Just PortType.Input)
-          (adapt Direction.Up (Just PortType.Input) idPiece)
+        adapt Direction.Down (inputPort OneBit)
+          (adapt Direction.Up (inputPort OneBit) idPiece)
           `shouldEqual` superPiece
 
     describe "superPiece" do
@@ -73,16 +74,16 @@ spec =
 
       it "broadcasts its input signal to all three outputs" do
         testEval superPiece
-          (M.singleton Direction.Left one)
-          ( M.fromFoldable
+          (Frame.singleton zero Direction.Left one)
+          ( Frame.fromFoldable zero
               [ Tuple Direction.Up one
               , Tuple Direction.Right one
               , Tuple Direction.Down one
               ]
           )
         testEval superPiece
-          (M.singleton Direction.Left zero)
-          ( M.fromFoldable
+          (Frame.singleton zero Direction.Left zero)
+          ( Frame.fromFoldable zero
               [ Tuple Direction.Up zero
               , Tuple Direction.Right zero
               , Tuple Direction.Down zero
@@ -91,14 +92,14 @@ spec =
 
       it "is already maximally adapted: adding an output it already has is a no-op" do
         for_ [ Direction.Up, Direction.Right, Direction.Down ] \dir ->
-          adapt dir (Just PortType.Input) superPiece `shouldEqual` superPiece
+          adapt dir (inputPort OneBit) superPiece `shouldEqual` superPiece
 
       it "can't adapt on its input side, regardless of port type" do
-        for_ [ Nothing, Just PortType.Input, Just PortType.Output ] \portType ->
-          adapt Direction.Left portType superPiece `shouldEqual` superPiece
+        for_ [ noPort, inputPort OneBit, outputPort OneBit ] \port ->
+          adapt Direction.Left port superPiece `shouldEqual` superPiece
 
       it "can shrink again once an output is no longer needed" do
-        getOutputDirs (adapt Direction.Up Nothing superPiece)
+        getOutputDirs (adapt Direction.Up noPort superPiece)
           `shouldEqual` S.fromFoldable [ Direction.Right, Direction.Down ]
 
 

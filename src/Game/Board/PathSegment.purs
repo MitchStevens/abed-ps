@@ -15,7 +15,6 @@ import Data.Set as S
 import Data.Show.Generic (genericShow)
 import Data.Tuple (Tuple(..), swap)
 import Data.Zipper (Zipper(..))
-import Game.Board.PieceInfo (PieceInfo)
 import Game.Capacity (Capacity(..))
 import Game.Direction (CardinalDirection, clockwiseRotation, rotateDirection)
 import Game.Direction as Direction
@@ -85,8 +84,8 @@ combine path1@(PathSegment conn1) path2@(PathSegment conn2) = do
   
 {-
 -}
-fromPiece 
-  :: PieceInfo
+fromPiece
+  :: { piece :: Piece, rotation :: Rotation }
   -> Either PathSegmentError PathSegment
 fromPiece {piece, rotation} = 
   case isSimplifiable piece of
@@ -99,7 +98,7 @@ fromPiece {piece, rotation} =
 {-
   Using the assertions of the `PathSegment` type, this function is made total via `crashWith`
 -}
-toPiece :: PathSegment -> PieceInfo
+toPiece :: PathSegment -> { piece :: Piece, rotation :: Rotation }
 toPiece (PathSegment connections) = case M.toUnfoldable connections of
   [ Tuple from to ] ->
     let rotation = clockwiseRotation Direction.Left from
@@ -140,7 +139,7 @@ toPiece (PathSegment connections) = case M.toUnfoldable connections of
     **Extant Piece is `Nothing`**: 
 
 -}
-combineSegmentWithExtant :: PathSegment -> Maybe PieceInfo -> Either PathSegmentError PieceInfo
+combineSegmentWithExtant :: PathSegment -> Maybe { piece :: Piece, rotation :: Rotation } -> Either PathSegmentError { piece :: Piece, rotation :: Rotation }
 combineSegmentWithExtant segment = map toPiece <<< case _ of
   Nothing -> pure segment
   Just pieceInfo -> do

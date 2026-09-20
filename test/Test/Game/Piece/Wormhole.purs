@@ -13,6 +13,8 @@ import Data.Maybe (Maybe(..), fromMaybe)
 import Data.Traversable (traverse)
 import Game.Direction (CardinalDirection)
 import Game.Direction as Direction
+import Game.Frame (Frame)
+import Game.Frame as Frame
 import Game.Piece (eval)
 import Game.Piece.Types (stepPiece, tick)
 import Game.Piece.Wormhole (counter, risingEdge)
@@ -24,17 +26,17 @@ import Test.Spec.Assertions (shouldEqual)
 import Test.Spec.QuickCheck (quickCheck)
 
 -- | The wormhole buffer after ticking `counter` `n` times from a zero buffer.
-runCounter :: Int -> Map CardinalDirection Signal
-runCounter n = execState (sequence_ (A.replicate n (tick counter))) (M.singleton Direction.Down zero)
+runCounter :: Int -> Frame Signal
+runCounter n = execState (sequence_ (A.replicate n (tick counter))) (pure zero)
 
 -- | Feed a sequence of `Left` inputs (0/1) through `risingEdge`, collecting the
 -- | `Right` output on each tick.
 runRisingEdge :: Array Int -> Array Signal
-runRisingEdge bits = map (\o -> fromMaybe zero (M.lookup Direction.Right o)) outs
+runRisingEdge bits = map (Frame.index Direction.Right) outs
   where
   outs = evalState
-    (traverse (\x -> stepPiece risingEdge (M.singleton Direction.Left (mkSignal x))) bits)
-    M.empty
+    (traverse (\x -> stepPiece risingEdge (Frame.singleton zero Direction.Left (mkSignal x))) bits)
+    (pure zero)
 
 spec :: Spec Unit
 spec = describe "Game.Piece.Wormhole" do
@@ -43,18 +45,18 @@ spec = describe "Game.Piece.Wormhole" do
     it "buffers the tick count after n ticks" do
       quickCheck do
         n <- chooseInt 0 200
-        pure $ M.lookup Direction.Down (runCounter n) === Just (mkSignal n)
+        pure $ Frame.index Direction.Down (runCounter n) === mkSignal n
 
     it "buffers the tick count (worked examples)" do
-      M.lookup Direction.Down (runCounter 0) `shouldEqual` Just (mkSignal 0)
-      M.lookup Direction.Down (runCounter 1) `shouldEqual` Just (mkSignal 1)
-      M.lookup Direction.Down (runCounter 10) `shouldEqual` Just (mkSignal 10)
+      Frame.index Direction.Down (runCounter 0) `shouldEqual` mkSignal 0
+      Frame.index Direction.Down (runCounter 1) `shouldEqual` mkSignal 1
+      Frame.index Direction.Down (runCounter 10) `shouldEqual` mkSignal 10
 
     it "reads the current count on its observable output" do
-      let observed n = M.lookup Direction.Left (eval counter (runCounter n))
-      observed 0 `shouldEqual` Just (mkSignal 0)
-      observed 1 `shouldEqual` Just (mkSignal 1)
-      observed 42 `shouldEqual` Just (mkSignal 42)
+      let observed n = Frame.index Direction.Left (eval counter (runCounter n))
+      observed 0 `shouldEqual` mkSignal 0
+      observed 1 `shouldEqual` mkSignal 1
+      observed 42 `shouldEqual` mkSignal 42
 
   describe "risingEdge" do
     it "pulses on a 0->1 transition and is zero otherwise" do

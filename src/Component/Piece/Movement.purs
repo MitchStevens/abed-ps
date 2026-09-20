@@ -33,6 +33,7 @@ import Data.Tuple (Tuple(..))
 import Effect (Effect)
 import Effect.Aff.Class (class MonadAff)
 import Effect.Class (liftEffect)
+import Game.Frame (Frame)
 import Game.Direction (CardinalDirection)
 import Game.Location (Location)
 import Game.Piece (Piece, name)
@@ -56,14 +57,14 @@ type Input =
   { piece :: Piece
   , location :: Location
   , rotation :: Rotation
-  , portStates :: Map CardinalDirection PortInfo
+  , portStates :: Frame PortInfo
   }
 
 type State =
   { piece :: Piece
   , location :: Location
   , rotation :: Rotation
-  , portStates :: Map CardinalDirection PortInfo
+  , portStates :: Frame PortInfo
   , isRotating :: Maybe
     { initialClickPosition :: Tuple Number Number
     , currentRotation :: Number

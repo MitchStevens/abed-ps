@@ -7,8 +7,9 @@ import Data.Maybe (Maybe(..), fromMaybe)
 import Data.Tuple (Tuple(..))
 import Game.Capacity (Capacity(..))
 import Game.Direction as Direction
+import Game.Frame as Frame
 import Game.Piece (Piece, PieceId(..), mkPieceNoAdapt)
-import Game.Port (inputPort, outputPort, wormholeIn, wormholeOut)
+import Game.Port (inputPort, noPort, outputPort, wormholeIn, wormholeOut)
 
 {-
   `counter`, wired to itself through a wormhole, counts up by one every tick.
@@ -24,12 +25,12 @@ counter :: Piece
 counter = mkPieceNoAdapt
   { name: PieceId "counter"
   , eval: \inputs ->
-      let n = fromMaybe zero (M.lookup Direction.Down inputs)
-      in M.fromFoldable
+      let n = Frame.index Direction.Down inputs
+      in Frame.fromFoldable zero
         [ Tuple Direction.Up (n + one)
         , Tuple Direction.Left n
         ]
-  , ports: M.fromFoldable
+  , ports: Frame.fromFoldable noPort
     [ Tuple Direction.Up (wormholeIn EightBit)
     , Tuple Direction.Left (outputPort EightBit)
     , Tuple Direction.Down (wormholeOut EightBit)
@@ -55,14 +56,14 @@ risingEdge :: Piece
 risingEdge = mkPieceNoAdapt
   { name: PieceId "rising-edge"
   , eval: \inputs ->
-      let curr = fromMaybe zero (M.lookup Direction.Left inputs)
-          prev = fromMaybe zero (M.lookup Direction.Down inputs)
+      let curr = Frame.index Direction.Left inputs
+          prev = Frame.index Direction.Down inputs
           edge = if curr == one && prev == zero then one else zero
-      in M.fromFoldable
+      in Frame.fromFoldable zero
         [ Tuple Direction.Up curr
         , Tuple Direction.Right edge
         ]
-  , ports: M.fromFoldable
+  , ports: Frame.fromFoldable noPort
     [ Tuple Direction.Up (wormholeIn OneBit)
     , Tuple Direction.Down (wormholeOut OneBit)
     , Tuple Direction.Left (inputPort OneBit)

@@ -16,9 +16,10 @@ import Debug (trace)
 import Game.Capacity (Capacity(..))
 import Game.Direction (CardinalDirection)
 import Game.Direction as Direction
+import Game.Frame as Frame
 import Game.Piece.Complexity as Complexity
 import Game.Piece.Types (Piece(..), PieceId(..), Simplification(..), isSimplifiable, mkPieceNoAdapt, name, shouldRipple)
-import Game.Port (PortType(..), inputPort, outputPort)
+import Game.Port (PortType(..), getPortType, inputPort, noPort, outputPort)
 import Game.Signal (Signal(..))
 import Partial.Unsafe (unsafeCrashWith)
 
@@ -57,8 +58,8 @@ mkWirePiece :: WirePiece -> Piece
 mkWirePiece wire@{ outputs, capacity } = Piece
   { name: fromMaybe' nameErr (M.lookup outputs wirePieceNames)
   , eval: \inputs ->
-      let signal = fromMaybe zero (M.lookup Direction.Left inputs)
-      in S.toMap outputs $> signal
+      let signal = Frame.index Direction.Left inputs
+      in Frame.tabulate \dir -> if dir `elem` outputs then signal else zero
   , complexity: Complexity.space (toNumber (length outputs))
 
   , shouldRipple: true
@@ -67,19 +68,21 @@ mkWirePiece wire@{ outputs, capacity } = Piece
       then Just $ mkWirePiece (wire { capacity = capacity'})
       else Nothing
 
-  , ports: M.insert Direction.Left (inputPort capacity)
-      (S.toMap outputs $> outputPort capacity)
+  , ports: Frame.tabulate case _ of
+      Direction.Left -> inputPort capacity
+      dir | dir `elem` outputs -> outputPort capacity
+      _ -> noPort
 
-  , adapt: \dir portType -> case dir, portType of
+  , adapt: \dir port -> case dir, getPortType port of
       Direction.Left, _ -> Nothing
-      _, Just Input -> do
+      _, Input -> do
           let newOutputs = S.insert dir outputs
           guard (outputs /= newOutputs)
           pure $ mkWirePiece (wire { outputs = newOutputs })
-      _, Just Output -> Nothing
-      _, Just WormholeIn -> Nothing
-      _, Just WormholeOut -> Nothing
-      _, Nothing -> do
+      _, Output -> Nothing
+      _, WormholeIn -> Nothing
+      _, WormholeOut -> Nothing
+      _, NoPort -> do
           let newOutputs = S.delete dir outputs
           guard (outputs /= newOutputs && newOutputs /= S.empty)
           pure $ mkWirePiece (wire { outputs = newOutputs })
@@ -152,13 +155,13 @@ dualWirePiece :: DualWirePiece -> Piece
 dualWirePiece dualWire = mkPieceNoAdapt
   { name: dualWire.name
   , eval: \m ->
-      let a1 = fromMaybe zero (M.lookup Direction.Left m)
-          a2 = fromMaybe zero (M.lookup dualWire.input2 m)
-      in M.fromFoldable
+      let a1 = Frame.index Direction.Left m
+          a2 = Frame.index dualWire.input2 m
+      in Frame.fromFoldable zero
           [ Tuple dualWire.output1 a1
           , Tuple dualWire.output2 a2
           ]
-  , ports: M.fromFoldable
+  , ports: Frame.fromFoldable noPort
       [ Tuple Direction.Left   (inputPort  dualWire.capacity)
       , Tuple dualWire.input2  (inputPort  dualWire.capacity)
       , Tuple dualWire.output1 (outputPort dualWire.capacity)

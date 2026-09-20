@@ -14,22 +14,23 @@ import Capability.GlobalEventEmmiters (globalKeyDownEventEmitter)
 import Component.Board.Render (render)
 import Component.DataAttribute (attr)
 import Component.DataAttribute as DA
-import Component.Multimeter as Multimeter
 import Component.Piece.Movement as Piece
+import Component.Piece.Types (boardInputs)
 import Render.Port (portPath)
 import Control.Monad.Except (ExceptT, lift, throwError)
 import Control.Monad.Logger.Class (class MonadLogger, debug, info, warn)
 import Control.Monad.Maybe.Trans (MaybeT(..), runMaybeT)
 import Control.Monad.Reader (class MonadAsk, class MonadReader)
-import Control.Monad.State (class MonadState, evalState, execState, get, gets, modify, modify_, put, runState, runStateT)
+import Control.Monad.Rec.Class (forever)
+import Control.Monad.State (class MonadState, execState, get, gets, modify, modify_, put, runState, runStateT)
 import Control.Monad.State.Class (modify_, gets)
 import Data.Array (elem, intercalate, last, (..))
 import Data.Array as A
 import Data.Bifunctor (lmap)
 import Data.Either (Either(..), blush, either, fromRight, hush, isLeft)
 import Data.Enum (fromEnum)
-import Data.Foldable (fold, foldMap, for_, traverse_)
-import Data.FoldableWithIndex (foldlWithIndex, foldrWithIndex, forWithIndex_, traverseWithIndex_)
+import Data.Foldable (for_, traverse_)
+import Data.FoldableWithIndex (foldlWithIndex, forWithIndex_, traverseWithIndex_)
 import Data.FunctorWithIndex (mapWithIndex)
 import Data.HeytingAlgebra (ff, tt)
 import Data.Int (toNumber)
@@ -54,19 +55,20 @@ import Data.Zipper (Zipper)
 import Data.Zipper as Z
 import Debug (trace)
 import Effect (Effect)
-import Effect.Aff.Class (class MonadAff)
+import Effect.Aff (Milliseconds(..), delay)
+import Effect.Aff.Class (class MonadAff, liftAff)
 import Effect.Class (class MonadEffect, liftEffect)
 import Effect.Class.Console (log, logShow)
-import Game.Board (Board(..), BoardError, BoardM, _pieces, _size, addPath, addPiece, buildEvaluableBoard, capacityRipple, decreaseSize, evalBoardM, evalWithPortInfo, execBoardM, getBoardPortEdge, getPieceInfo, increaseSize, pieceDropped, removePiece, rotatePieceBy, runBoardM, runEvaluableM, setBoardSize, toLocalInputs, transaction)
+import Game.Board (Board(..), BoardError, BoardM, _pieces, _ports, _size, addPath, addPiece, boundaryPortInfo, compile, decreaseSize, evalBoardM, evaluate, execBoardM, extractBoundaryOutputs, getPieceInfo, increaseSize, injectBoundaryInputs, pieceDropped, removePiece, rotatePieceBy, runBoardM, setBoardSize, transaction)
 import Game.Direction (CardinalDirection, allDirections)
 import Game.Direction as Direction
 import Game.Location (Location(..), location)
-import Game.Port (isInput, portCapacity)
-import Game.PortInfo (PortInfo)
+import Game.Port (hasPort, isInput, portCapacity)
 import Game.Rotation (Rotation(..))
+import Game.Frame as Frame
 import Game.Signal (Signal(..), maxValue)
 import Game.TestCase (testCaseOutcome)
-import Halogen (AttrName(..), ClassName(..), Component, ComponentHTML, ComponentSlot, HalogenM(..), HalogenQ, Slot, mkComponent, mkEval, raise, subscribe, tell)
+import Halogen (AttrName(..), ClassName(..), Component, ComponentHTML, ComponentSlot, HalogenM(..), HalogenQ, Slot, mkComponent, mkEval, raise, subscribe)
 import Halogen as H
 import Halogen.HTML (HTML, PlainHTML, fromPlainHTML)
 import Halogen.HTML as HH
@@ -74,6 +76,7 @@ import Halogen.HTML.Events as HE
 import Halogen.HTML.Extras (mapActionOverHTML)
 import Halogen.HTML.Properties as HA
 import Halogen.HTML.Properties as HP
+import Halogen.Subscription as HS
 import Halogen.Svg.Attributes (Transform(..))
 import Halogen.Svg.Attributes as SA
 import Halogen.Svg.Elements as SE
@@ -140,9 +143,13 @@ component = mkComponent { eval , initialState , render }
         SetGoalPorts boardPorts next -> do
           lift $ debug (tag "boardPorts" (show boardPorts)) "Set goal ports on board"
           modify_ $ _ { boardPorts = boardPorts }
+          -- `compile` reads a board's own boundary straight off `BoardF.ports`
+          -- (see `Game.Board.Compiled.compileNode`), so the goal's ports have
+          -- to land there too, not just in `State.boardPorts`.
+          _board <<< _ports .= boardPorts
           forWithIndex_ boardPorts \dir port -> do
             when (isInput port) do
-              _inputs <<< at dir .= Just ff
+              _inputs <<< Frame._side dir .= ff
           handleAction EvaluateBoard 
           pure (Just next)
 
@@ -187,6 +194,18 @@ component = mkComponent { eval , initialState , render }
         Initialise -> do
           emitter <- liftEffect $ globalKeyDownEventEmitter
           void $ subscribe (GlobalOnKeyDown <$> emitter)
+
+          -- fires `Tick` every 500ms for as long as this component lives
+          -- (Halogen kills forked fibers on teardown, so no `finalize`
+          -- handler is needed) -- same `HS.create` + forked loop + `notify`
+          -- shape as `Component.Piece.Outline.after`/`Component.Level.delay`,
+          -- just repeating via `forever` instead of firing once.
+          { emitter: tickEmitter, listener: tickListener } <- liftEffect HS.create
+          void $ subscribe (Tick <$ tickEmitter)
+          void $ H.fork $ forever do
+            liftAff (delay (Milliseconds 500.0))
+            liftEffect (HS.notify tickListener unit)
+
           raise =<< NewBoardState <$> use _board
 
           -- add attribute oncontextmenu="return false;" to board-component in order to disable right click context menu over the board (we are using right click to remove pieces)
@@ -205,42 +224,29 @@ component = mkComponent { eval , initialState , render }
 
           result <- liftBoardM (pieceDropped src maybeDst)
           when (isLeft result) do
-              lift $ warn M.empty (show result)
+              lift $ warn M.empty (either show (const "") result)
               Animate.headShake (DA.selector DA.location src)
 
         PieceOutput (Piece.RemoveThis loc) -> do
           _ <- liftBoardM (removePiece loc)
           pure unit
 
-        -- todo: fix this
-        MultimeterOutput (Multimeter.SetCapacity relativeEdge capacity) -> do
-          void $ liftBoardM (capacityRipple relativeEdge capacity)
-          -- update the multimeter after the port has changed
-          signals <- gets (_.lastEvalWithPortInfo)
-          let focus = do
-                info <- M.lookup relativeEdge signals
-                pure { info, relativeEdge }
-            
-          tell Multimeter.slot unit (Multimeter.NewFocus focus)
-
         ToggleInput dir -> do
-          _inputs <<< ix dir %= \signal -> if signal == ff then tt else ff
+          _inputs <<< Frame._side dir %= \signal -> if signal == ff then tt else ff
           handleAction EvaluateBoard
 
         IncrementInput dir -> do
-          gets (_.boardPorts >>> M.lookup dir) >>= traverse_ \port ->
-            _inputs <<< ix dir %= \signal -> if signal == maxValue (portCapacity port) then ff else signal <> one
+          gets (_.boardPorts >>> Frame.lookupWhere hasPort dir) >>= traverse_ \port ->
+            _inputs <<< Frame._side dir %= \signal -> if signal == maxValue (portCapacity port) then ff else signal <> one
           handleAction EvaluateBoard
 
         DecrementInput dir -> do
-          gets (_.boardPorts >>> M.lookup dir) >>= traverse_ \port ->
-            _inputs <<< ix dir %= \n -> if n == zero then maxValue (portCapacity port) else n - one
+          gets (_.boardPorts >>> Frame.lookupWhere hasPort dir) >>= traverse_ \port ->
+            _inputs <<< Frame._side dir %= \n -> if n == zero then maxValue (portCapacity port) else n - one
           handleAction EvaluateBoard
 
         SetOutputs outputs -> do
           modify_ $ _ { outputs = outputs }
-          gets (_.isMouseOverBoardPort) >>= traverse_ \dir ->
-            tell Multimeter.slot unit (Multimeter.SetSignal (fold (M.lookup dir outputs)))
 
         BoardOnDragExit _ -> do
           modify_ (_ { isCreatingWire = Nothing })
@@ -274,36 +280,34 @@ component = mkComponent { eval , initialState , render }
           -- tell puzzle component that board state has been changed
           raise (NewBoardState board)
 
+        -- ticking and input-driven evaluation are the same operation now --
+        -- both just re-run `evaluate` with the persisted tick state -- so a
+        -- wormhole piece's state keeps advancing every 500ms even with no
+        -- input change (see `Initialise`).
+        Tick -> handleAction EvaluateBoard
+
         EvaluateBoard -> do
-          boardPorts <- gets (_.boardPorts)
           inputs <- gets (_.inputs)
-          --let inputs = M.mapMaybe (\info -> if isInput info.port then Just info.signal else Nothing) goalPorts
-          eitherEvaluable <- (buildEvaluableBoard boardPorts) <$> use _board
+          board <- use _board
 
-          case eitherEvaluable of      -- update pieces
-            Left boardError -> 
-              -- todo: what should we do when an evaluable can't be created?
-              lift $ warn M.empty ("Unable to build EvaluableBoard, BoardError: " <> show boardError)
-            Right evaluable -> do
-              -- evaluate the evaulable
-              let Tuple outputs signals = runEvaluableM evaluable (evalWithPortInfo inputs)
+          case compile board of
+            Left boardError ->
+              -- a cyclic wiring (two outputs facing each other, say) is an
+              -- easy, ordinary thing for a player to do mid-edit -- leave
+              -- the board as it last was rather than crashing.
+              lift $ warn M.empty ("Unable to compile board, BoardError: " <> show boardError)
+            Right compiled -> do
+              prevState <- gets (_.lastEvalState)
+              let newState = evaluate compiled (injectBoundaryInputs compiled inputs prevState)
+              let outputs = extractBoundaryOutputs compiled newState
               lift $ debug (tag "inputs" (show inputs) `union` tag "outputs" (show outputs)) "Evaluating board"
-              lift $ debug (foldrWithIndex (\relEdge info -> M.insert (show relEdge) (StringTag (show info))) M.empty signals) "Signals from tryboard eval"
 
-              modify_ $ _ { lastEvalWithPortInfo = signals }
+              modify_ $ _
+                { lastEvalState = newState
+                , pieceInputs = boardInputs compiled board newState
+                , boardPortInfoMap = boundaryPortInfo compiled newState
+                }
               handleAction (SetOutputs outputs)
-
-              --handleAction UpdatePieceComponents
-
-        --UpdatePieceComponents -> do
-        --  lift $ debug M.empty "Updating piece components"
-        --  signals <- gets (_.lastEvalWithPortInfo)
-        --  use (_board <<< _pieces) >>= traverseWithIndex_ \loc info -> do
-        --    let portStates = toLocalInputs loc signals
-        --    --lift $ debug (tag "port states" (show portStates)) ("update piece at :" <> show loc )
-        --    tell Piece.slot loc (Piece.SetPortStates portStates)
-        --    tell Piece.slot loc (Piece.SetPiece info.piece)
-        --    tell Piece.slot loc (Piece.SetRotation info.rotation)
 
         -- can these events be simplified? do we need all of them?
         LocationOnDragEnter loc dragEvent -> do
@@ -331,13 +335,8 @@ component = mkComponent { eval , initialState , render }
         
         BoardPortOnMouseEnter dir -> do
           modify_ (_ { isMouseOverBoardPort = Just dir })
-          relativeEdge <- evalState (getBoardPortEdge dir) <$> use _board
-          signals <- gets (_.lastEvalWithPortInfo)
-          let focus = { info: _, relativeEdge } <$> M.lookup relativeEdge signals
-          tell Multimeter.slot unit (Multimeter.NewFocus focus)
         BoardPortOnMouseLeave -> do
           modify_ (_ { isMouseOverBoardPort = Nothing })
-          tell Multimeter.slot unit (Multimeter.NewFocus Nothing)
 
         {-
           Lift a `BoardM` operation in the `HalogenM` Monad for this component.

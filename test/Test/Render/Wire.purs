@@ -9,7 +9,9 @@ import Data.Map as M
 import Data.Tuple (Tuple(..))
 import Game.Capacity (Capacity(..))
 import Game.Direction as Direction
+import Game.Frame as Frame
 import Game.Port (inputPort, outputPort)
+import Game.PortInfo (noPortInfo)
 import Game.Signal (Signal)
 import Test.Spec (Spec, describe, it, itOnly)
 import Test.Spec.Assertions (shouldEqual)
@@ -19,9 +21,9 @@ spec = do
   describe "Render.Wire" do
     it "wirePath" do
       let signal = zero
-      let id = M.fromFoldable [ Tuple Direction.Left {connected: false, port: inputPort OneBit, signal} , Tuple Direction.Right {connected: false, port: outputPort OneBit, signal} ]
-      let left = M.fromFoldable [ Tuple Direction.Left {connected: false, port: inputPort OneBit, signal} , Tuple Direction.Up {connected: false, port: outputPort OneBit, signal} ]
-      let super = M.fromFoldable
+      let id = Frame.fromFoldable noPortInfo [ Tuple Direction.Left {connected: false, port: inputPort OneBit, signal} , Tuple Direction.Right {connected: false, port: outputPort OneBit, signal} ]
+      let left = Frame.fromFoldable noPortInfo [ Tuple Direction.Left {connected: false, port: inputPort OneBit, signal} , Tuple Direction.Up {connected: false, port: outputPort OneBit, signal} ]
+      let super = Frame.fromFoldable noPortInfo
                 [ Tuple Direction.Left {connected: false, port: inputPort OneBit, signal}
                 , Tuple Direction.Up {connected: false, port: outputPort OneBit, signal}
                 , Tuple Direction.Right {connected: false, port: outputPort OneBit, signal}

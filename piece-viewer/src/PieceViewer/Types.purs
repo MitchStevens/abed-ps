@@ -4,6 +4,7 @@ module PieceViewer.Types
   , clearAnimation
   , currentPiece
   , defaultPiece
+  , adaptPort
   , initialState
   , portStatesForPiece
   ) where
@@ -14,12 +15,15 @@ import Data.Array as A
 import Data.Foldable (foldl)
 import Data.Map (Map)
 import Data.Map as Map
-import Data.Maybe (Maybe(..), fromMaybe)
+import Data.Maybe (Maybe(..), fromMaybe, maybe)
 import Data.Tuple (Tuple(..))
+import Game.Capacity (Capacity(..))
 import Game.Direction (CardinalDirection(..))
+import Game.Frame (Frame)
+import Game.Frame as Frame
 import Game.Piece (Piece, allPieces, defaultPortInfo, eval, name, superPiece, truncateInputs)
-import Game.Port (PortType(..), isInput, isOutput)
-import Game.PortInfo (PortInfo, clampPortInfo)
+import Game.Port (Port, PortType(..), createPort, isInput, isOutput, noPort)
+import Game.PortInfo (PortInfo, clampPortInfo, hasPortInfo)
 import Game.Rotation (Rotation, rotation)
 import Game.Signal (Signal, mkSignal)
 import Partial.Unsafe (unsafeCrashWith)
@@ -37,9 +41,14 @@ type State =
   , tiled :: Boolean
   , adaptDirection :: CardinalDirection
   , adaptPortType :: Maybe PortType
-  , inputValues :: Map CardinalDirection Int
+  , inputValues :: Frame Int
   , animation :: Maybe Animation
   }
+
+-- | The neighbouring port the "Adapt" controls stand in for: the chosen type
+-- | on a one-bit port, or no port at all.
+adaptPort :: Maybe PortType -> Port
+adaptPort = maybe noPort (\portType -> createPort portType OneBit)
 
 defaultPiece :: Piece
 defaultPiece = superPiece
@@ -52,34 +61,34 @@ initialState =
   , tiled: false
   , adaptDirection: Up
   , adaptPortType: Just Input
-  , inputValues: Map.empty
+  , inputValues: pure 0
   , animation: Nothing
   }
 
-portStatesForPiece :: Piece -> Map CardinalDirection Int -> Map CardinalDirection PortInfo
+portStatesForPiece :: Piece -> Frame Int -> Frame PortInfo
 portStatesForPiece piece inputValues =
   let
     defaults = defaultPortInfo piece
     withInputs =
       foldl
         (\acc (Tuple dir value) ->
-          case Map.lookup dir acc of
+          case Frame.lookupWhere hasPortInfo dir acc of
             Just info | isInput info.port ->
-              Map.insert dir (clampPortInfo (info { signal = mkSignal value })) acc
+              Frame.set dir (clampPortInfo (info { signal = mkSignal value })) acc
             _ -> acc)
         defaults
-        (Map.toUnfoldable inputValues :: Array (Tuple CardinalDirection Int))
+        (Frame.toListWithIndex inputValues)
     signalInputs = truncateInputs piece (mkSignal <$> inputValues)
     outputs = eval piece signalInputs
   in
     foldl
       (\acc (Tuple dir signal) ->
-        case Map.lookup dir acc of
+        case Frame.lookupWhere hasPortInfo dir acc of
           Just info | isOutput info.port ->
-            Map.insert dir (clampPortInfo (info { signal = signal })) acc
+            Frame.set dir (clampPortInfo (info { signal = signal })) acc
           _ -> acc)
       withInputs
-      (Map.toUnfoldable outputs :: Array (Tuple CardinalDirection Signal))
+      (Frame.toListWithIndex outputs)
 
 currentPiece :: State -> Piece
 currentPiece s = s.piece

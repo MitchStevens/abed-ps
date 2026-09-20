@@ -8,9 +8,10 @@ import Data.Maybe (Maybe(..))
 import Data.Tuple (Tuple(..))
 import Game.Capacity (Capacity(..))
 import Game.Direction as Direction
+import Game.Frame as Frame
 import Game.Piece (andPiece, getPorts, notPiece, orPiece, xorPiece)
 import Game.Piece as Port
-import Game.Port (inputPort, outputPort)
+import Game.Port (inputPort, noPort, outputPort)
 import Game.Signal (Signal(..))
 import Test.Game.Piece (testEval)
 import Test.Spec (Spec, describe, it)
@@ -19,49 +20,49 @@ import Test.Spec.Assertions (shouldEqual, shouldNotEqual)
 spec :: Spec Unit
 spec = do
   describe "Game.Piece.BasicPiece" do
-    let f x y = M.fromFoldable [ Tuple Direction.Left x, Tuple Direction.Up y ]
+    let f x y = Frame.fromFoldable zero [ Tuple Direction.Left x, Tuple Direction.Up y ]
     let inPort = inputPort OneBit
     let outPort = outputPort OneBit
     describe "NotPiece" do
       it "eval" do
-        testEval notPiece (f ff ff) (M.singleton Direction.Right one)
-        testEval notPiece (f tt ff) (M.singleton Direction.Right zero)
-        testEval notPiece (f tt tt) (M.singleton Direction.Right zero)
+        testEval notPiece (f ff ff) (Frame.singleton zero Direction.Right one)
+        testEval notPiece (f tt ff) (Frame.singleton zero Direction.Right zero)
+        testEval notPiece (f tt tt) (Frame.singleton zero Direction.Right zero)
       it "ports" do
-        getPorts notPiece `shouldEqual` M.fromFoldable
+        getPorts notPiece `shouldEqual` Frame.fromFoldable noPort
           [ Tuple Direction.Left inPort
           , Tuple Direction.Right outPort
           ]
     describe "OrPiece" do
       it "eval" do
-        testEval orPiece (f ff ff) (M.singleton Direction.Right zero)
-        testEval orPiece (f tt ff) (M.singleton Direction.Right one)
-        testEval orPiece (f tt tt) (M.singleton Direction.Right one)
+        testEval orPiece (f ff ff) (Frame.singleton zero Direction.Right zero)
+        testEval orPiece (f tt ff) (Frame.singleton zero Direction.Right one)
+        testEval orPiece (f tt tt) (Frame.singleton zero Direction.Right one)
       it "ports" do
-        getPorts orPiece `shouldEqual` M.fromFoldable
+        getPorts orPiece `shouldEqual` Frame.fromFoldable noPort
           [ Tuple Direction.Left inPort
           , Tuple Direction.Up inPort
           , Tuple Direction.Right outPort
           ]
     describe "andPiece" do
       it "eval" do
-        testEval andPiece (f ff ff) (M.singleton Direction.Right zero)
-        testEval andPiece (f tt ff) (M.singleton Direction.Right zero)
-        testEval andPiece (f tt tt) (M.singleton Direction.Right one)
+        testEval andPiece (f ff ff) (Frame.singleton zero Direction.Right zero)
+        testEval andPiece (f tt ff) (Frame.singleton zero Direction.Right zero)
+        testEval andPiece (f tt tt) (Frame.singleton zero Direction.Right one)
       it "ports" do
-        getPorts andPiece `shouldEqual` M.fromFoldable
+        getPorts andPiece `shouldEqual` Frame.fromFoldable noPort
           [ Tuple Direction.Left inPort
           , Tuple Direction.Up inPort
           , Tuple Direction.Right outPort
           ]
     describe "xorPiece" do
       it "eval" do
-        testEval xorPiece (f ff ff) (M.singleton Direction.Right zero)
-        testEval xorPiece (f tt ff) (M.singleton Direction.Right one)
-        testEval xorPiece (f ff tt) (M.singleton Direction.Right one)
-        testEval xorPiece (f tt tt) (M.singleton Direction.Right zero)
+        testEval xorPiece (f ff ff) (Frame.singleton zero Direction.Right zero)
+        testEval xorPiece (f tt ff) (Frame.singleton zero Direction.Right one)
+        testEval xorPiece (f ff tt) (Frame.singleton zero Direction.Right one)
+        testEval xorPiece (f tt tt) (Frame.singleton zero Direction.Right zero)
       it "ports" do
-        getPorts xorPiece `shouldEqual` M.fromFoldable
+        getPorts xorPiece `shouldEqual` Frame.fromFoldable noPort
           [ Tuple Direction.Left inPort
           , Tuple Direction.Up inPort
           , Tuple Direction.Right outPort

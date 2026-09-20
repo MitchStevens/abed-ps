@@ -6,15 +6,19 @@ import AppM (AppM)
 import Component.Board as Board
 import Component.Selector as Selector
 import Data.Array as A
+import Data.Either (Either(..))
 import Data.Foldable (any, for_, traverse_)
+import Data.Lens (view)
 import Data.Map as M
 import Data.Maybe (Maybe(..))
 import Data.Set as S
+import Game.Frame as Frame
 import Data.Tuple (Tuple(..), fst)
-import Game.Board (Board(..), firstEmptyLocation, standardBoard)
+import Game.Board (Board, firstEmptyLocation, standardBoard, resumeBoard, _pieces)
 import Game.Direction (allDirections)
 import Game.Location (Location, followDirection)
 import Game.Piece (Piece, PieceId, getPorts, isWirePiece, pieceLookup)
+import Game.Port (hasPort)
 import Halogen (ClassName(..), Component, ComponentHTML, HalogenM, Slot)
 import Halogen as H
 import Halogen.HTML as HH
@@ -166,12 +170,12 @@ component = H.mkComponent { eval, initialState, render }
 -- Objective predicates ----------------------------------------------------
 
 wirePieceLocations :: Board -> Array (Tuple Location Piece)
-wirePieceLocations (Board { pieces }) =
-  A.mapMaybe asWireLocation (M.toUnfoldable pieces)
+wirePieceLocations board =
+  A.mapMaybe asWireLocation (M.toUnfoldable (view _pieces board))
   where
-  asWireLocation (Tuple loc info)
-    | isWirePiece info.piece = Just (Tuple loc info.piece)
-    | otherwise = Nothing
+  asWireLocation (Tuple loc info) = case resumeBoard info.piece of
+    Right p | isWirePiece p -> Just (Tuple loc p)
+    _ -> Nothing
 
 madeAWire :: Objective
 madeAWire =
@@ -198,5 +202,5 @@ madeADoubleLengthWire =
 forkedAWire :: Objective
 forkedAWire =
   { title: "Fork an input from another wire"
-  , check: \new _ -> any (\(Tuple _ piece) -> M.size (getPorts piece) >= 3) (wirePieceLocations new)
+  , check: \new _ -> any (\(Tuple _ piece) -> S.size (Frame.directionsWhere hasPort (getPorts piece)) >= 3) (wirePieceLocations new)
   }

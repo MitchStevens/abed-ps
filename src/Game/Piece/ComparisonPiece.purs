@@ -11,9 +11,10 @@ import Data.Ord (greaterThan, lessThan)
 import Data.Tuple (Tuple(..))
 import Game.Capacity (Capacity(..))
 import Game.Direction as Direction
+import Game.Frame as Frame
 import Game.Piece (Piece(..), PieceId(..), mkPieceNoAdapt)
 import Game.Piece as Complexity
-import Game.Port (inputPort, outputPort)
+import Game.Port (inputPort, noPort, outputPort)
 import Game.Signal (Signal)
 
 allComparisonPieces :: Array Piece
@@ -33,10 +34,10 @@ mkComparisonPiece :: ComparisonPiece -> Piece
 mkComparisonPiece piece@{ name, comparison, capacity } = mkPieceNoAdapt
   { name
   , eval: \inputs ->
-      let a = fold (M.lookup Direction.Left inputs)
-          b = fold (M.lookup Direction.Up inputs)
-      in M.singleton Direction.Right (if comparison a b then one else zero)
-  , ports: M.fromFoldable
+      let a = Frame.index Direction.Left inputs
+          b = Frame.index Direction.Up inputs
+      in Frame.singleton zero Direction.Right (if comparison a b then one else zero)
+  , ports: Frame.fromFoldable noPort
       [ Tuple Direction.Up (inputPort capacity)
       , Tuple Direction.Right (outputPort OneBit)
       , Tuple Direction.Left (inputPort capacity)

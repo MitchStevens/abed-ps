@@ -15,6 +15,8 @@ import Data.Tuple (Tuple(..))
 import Game.Capacity (Capacity(..))
 import Game.Direction (CardinalDirection(..))
 import Game.Direction as Direction
+import Game.Frame (Frame)
+import Game.Frame as Frame
 import Game.Piece.Complexity (Complexity)
 import Game.Piece.Complexity as Complexity
 import Game.Piece.Types (Piece(..), PieceId(..), mkPieceNoAdapt)
@@ -23,8 +25,8 @@ import Game.Signal (Signal(..), xor)
 
 type BasicPiece =
   { name :: PieceId
-  , eval :: Map CardinalDirection Signal -> Map CardinalDirection Signal
-  , ports :: Map CardinalDirection PortType
+  , eval :: Frame Signal -> Frame Signal
+  , ports :: Frame PortType
   , capacity :: Capacity
   }
 
@@ -32,12 +34,12 @@ basicPiece :: BasicPiece -> Piece
 basicPiece basic = mkPieceNoAdapt
   { name: basic.name
   , eval: basic.eval
-  , ports: map (\portType -> createPort portType basic.capacity) basic.ports
+  , ports: (\portType -> createPort portType basic.capacity) <$> basic.ports
   , complexity: Complexity.space 1.0
 
   , shouldRipple: true
   , updateCapacity: \dir capacity -> do
-      guard (M.member dir basic.ports)
+      guard (Frame.index dir basic.ports /= NoPort)
       pure $ basicPiece (basic { capacity = capacity })
   , isSimplifiable: Nothing
   }
@@ -50,9 +52,9 @@ notPiece :: Piece
 notPiece = basicPiece
   { name: PieceId "not-piece"
   , eval: \m ->
-      let l = fromMaybe zero (M.lookup Left m)
-      in M.singleton Right (not l)
-  , ports: M.fromFoldable
+      let l = Frame.index Left m
+      in Frame.singleton zero Right (not l)
+  , ports: Frame.fromFoldable NoPort
     [ Tuple Left Input
     , Tuple Right Output
     ]
@@ -63,10 +65,10 @@ orPiece :: Piece
 orPiece = basicPiece
   { name: PieceId "or-piece"
   , eval: \m ->
-      let l = fromMaybe zero (M.lookup Left m)
-          u = fromMaybe zero (M.lookup Up m)
-      in M.singleton Right (l || u)
-  , ports: M.fromFoldable
+      let l = Frame.index Left m
+          u = Frame.index Up m
+      in Frame.singleton zero Right (l || u)
+  , ports: Frame.fromFoldable NoPort
     [ Tuple Left Input
     , Tuple Up Input
     , Tuple Right Output
@@ -78,10 +80,10 @@ andPiece :: Piece
 andPiece = basicPiece
   { name: PieceId "and-piece" 
   , eval: \m ->
-      let l = fromMaybe zero (M.lookup Left m)
-          u = fromMaybe zero (M.lookup Up m)
-      in M.singleton Right (l && u)
-  , ports: M.fromFoldable
+      let l = Frame.index Left m
+          u = Frame.index Up m
+      in Frame.singleton zero Right (l && u)
+  , ports: Frame.fromFoldable NoPort
     [ Tuple Left Input
     , Tuple Up Input
     , Tuple Right Output
@@ -93,10 +95,10 @@ xorPiece :: Piece
 xorPiece = basicPiece 
   { name: PieceId "xor-piece" 
   , eval: \m ->
-      let l = fromMaybe zero (M.lookup Left m)
-          u = fromMaybe zero (M.lookup Up m)
-      in M.singleton Right (xor l u)
-  , ports: M.fromFoldable
+      let l = Frame.index Left m
+          u = Frame.index Up m
+      in Frame.singleton zero Right (xor l u)
+  , ports: Frame.fromFoldable NoPort
     [ Tuple Left Input
     , Tuple Up Input
     , Tuple Right Output

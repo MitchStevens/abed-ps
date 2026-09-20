@@ -11,6 +11,8 @@ import Data.Traversable (traverse)
 import Effect (Effect)
 import Foreign.Object (Object)
 import Game.Direction (CardinalDirection)
+import Game.Frame (Frame)
+import Game.Frame as Frame
 import Game.Level.Problem (Problem, defaultProblem)
 import Game.Message (Message, Conversation)
 import Game.Signal (Base(..), Signal(..), SignalRepresentation(..))
@@ -47,7 +49,7 @@ defaultLevel =
 
 type LevelSuite = Object Level
 
-binaryTestInputs :: Array CardinalDirection -> Array (Map CardinalDirection Signal)
+binaryTestInputs :: Array CardinalDirection -> Array (Frame Signal)
 binaryTestInputs directions = do
   inputs <- traverse (\_ -> [zero, one]) directions
-  pure $ M.fromFoldable (zip directions inputs)
+  pure $ Frame.fromFoldable zero (zip directions inputs)

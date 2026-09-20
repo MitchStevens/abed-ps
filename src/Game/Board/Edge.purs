@@ -5,12 +5,14 @@ import Prelude
 import Control.Alternative (guard)
 import Control.Monad.Maybe.Trans (MaybeT(..))
 import Control.Monad.State (class MonadState)
+import Data.Either (Either(..))
 import Data.Function (on)
 import Data.Group (ginverse)
 import Data.Lens (use)
 import Data.Lens.At (at)
+import Data.Maybe (Maybe(..))
 import Data.Newtype (class Newtype)
-import Game.Board.Types (Board, _pieces)
+import Game.Board.Types (Board, _pieces, resumeBoard)
 import Game.Direction (CardinalDirection, oppositeDirection, rotateDirection)
 import Game.Location (Location, followDirection)
 import Game.Piece (getPort)
@@ -91,11 +93,13 @@ instance Show RelativeEdge where
   show (Relative { loc, dir }) = "RelativeEdge " <> show loc <> " " <> show dir
 instance Edge RelativeEdge where
   toAbsoluteEdge (Relative { loc, dir }) = do
-    {piece, rotation} <- MaybeT $ use (_pieces <<< at loc)
+    { rotation } <- MaybeT $ use (_pieces <<< at loc)
     pure $ absolute loc (rotateDirection dir rotation)
   fromAbsoluteEdge (Absolute { loc, dir }) = do
-    {piece, rotation} <- MaybeT $ use (_pieces <<< at loc)
+    { rotation } <- MaybeT $ use (_pieces <<< at loc)
     pure $ relative loc (rotateDirection dir (ginverse rotation))
   getPortOnEdge (Relative { loc, dir }) = do
-    { piece, rotation } <- MaybeT $ use (_pieces <<< at loc)
-    MaybeT $ pure $ getPort piece dir
+    { piece } <- MaybeT $ use (_pieces <<< at loc)
+    MaybeT $ pure case resumeBoard piece of
+      Right p -> getPort p dir
+      Left _ -> Nothing

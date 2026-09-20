@@ -20,14 +20,16 @@ import Debug (trace)
 import Effect.Aff (Aff, Error, error)
 import Effect.Aff.Class (class MonadAff)
 import Effect.Class.Console (log)
-import Game.Board (Board(..), RelativeEdge, absolute, addPath, addPiece, adjacent, execBoardM, fromAbsoluteEdge, getBoardPortEdge, getPortOnEdge, increaseSize, relative, rotatePieceBy, standardBoard, toAbsoluteEdge)
+import Game.Board (Board, BoardF(BoardF), RelativeEdge, absolute, addPath, addPiece, adjacent, execBoardM, fromAbsoluteEdge, getBoardPortEdge, getPortOnEdge, increaseSize, mkBoard, pureBoard, relative, rotatePieceBy, standardBoard, toAbsoluteEdge)
 import Game.Capacity (Capacity(..))
 import Game.Direction (CardinalDirection, allDirections)
 import Game.Direction as Direction
+import Game.Frame (Frame)
+import Game.Frame as Frame
 import Game.Location (Location(..), location)
 import Game.Piece (andPiece, notPiece, xorPiece)
 import Game.Piece as Port
-import Game.Port (inputPort, outputPort)
+import Game.Port (inputPort, noPort, outputPort)
 import Game.Rotation (rotation)
 import Game.Signal (Signal(..))
 import Halogen.HTML (object)
@@ -37,13 +39,14 @@ import Test.Spec (Spec, SpecT, before, describe, hoistSpec, it, itOnly)
 import Test.Spec.Assertions (fail, shouldContain, shouldEqual, shouldReturn)
 
 testBoard :: Board
-testBoard = Board
+testBoard = mkBoard $ BoardF
   { size: 3
+  , ports: pure noPort
   , pieces: M.fromFoldable
-    [ Tuple (location 0 1) { piece: notPiece, rotation: rotation 0 }
-    , Tuple (location 2 1) { piece: notPiece, rotation: rotation 0 }
-    , Tuple (location 1 0) { piece: notPiece, rotation: rotation 1 }
-    , Tuple (location 1 1) { piece: andPiece, rotation: rotation 0 }
+    [ Tuple (location 0 1) { piece: pureBoard notPiece, rotation: rotation 0 }
+    , Tuple (location 2 1) { piece: pureBoard notPiece, rotation: rotation 0 }
+    , Tuple (location 1 0) { piece: pureBoard notPiece, rotation: rotation 1 }
+    , Tuple (location 1 1) { piece: pureBoard andPiece, rotation: rotation 0 }
     ]
   , wormhole: Nothing
   }
@@ -65,8 +68,8 @@ testBoardCrossOver = either (show >>> unsafeCrashWith) identity $
     pure unit
 
 
-testInput :: Signal -> Signal -> Map CardinalDirection Signal
-testInput x y = M.fromFoldable $
+testInput :: Signal -> Signal -> Frame Signal
+testInput x y = Frame.fromFoldable zero $
   [ Tuple Direction.Left x
   , Tuple Direction.Up y
   ]
