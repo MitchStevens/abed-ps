@@ -59,7 +59,8 @@ import Effect.Aff (Milliseconds(..), delay)
 import Effect.Aff.Class (class MonadAff, liftAff)
 import Effect.Class (class MonadEffect, liftEffect)
 import Effect.Class.Console (log, logShow)
-import Game.Board (Board(..), BoardError, BoardM, _pieces, _ports, _size, addPath, addPiece, boundaryPortInfo, compile, decreaseSize, evalBoardM, evaluate, execBoardM, extractBoundaryOutputs, getPieceInfo, increaseSize, injectBoundaryInputs, pieceDropped, removePiece, rotatePieceBy, runBoardM, setBoardSize, transaction)
+import Game.Eval (boundaryPortInfo, compile, initialSignals, step)
+import Game.Board (Board(..), BoardError, BoardM, _pieces, _ports, _size, addPath, addPiece, decreaseSize, evalBoardM, execBoardM, getPieceInfo, increaseSize, pieceDropped, removePiece, rotatePieceBy, runBoardM, setBoardSize, transaction)
 import Game.Direction (CardinalDirection, allDirections)
 import Game.Direction as Direction
 import Game.Location (Location(..), location)
@@ -144,7 +145,7 @@ component = mkComponent { eval , initialState , render }
           lift $ debug (tag "boardPorts" (show boardPorts)) "Set goal ports on board"
           modify_ $ _ { boardPorts = boardPorts }
           -- `compile` reads a board's own boundary straight off `BoardF.ports`
-          -- (see `Game.Board.Compiled.compileNode`), so the goal's ports have
+          -- (see `Game.Eval.Flatten`), so the goal's ports have
           -- to land there too, not just in `State.boardPorts`.
           _board <<< _ports .= boardPorts
           forWithIndex_ boardPorts \dir port -> do
@@ -281,7 +282,7 @@ component = mkComponent { eval , initialState , render }
           raise (NewBoardState board)
 
         -- ticking and input-driven evaluation are the same operation now --
-        -- both just re-run `evaluate` with the persisted tick state -- so a
+        -- both just re-run `step` with the persisted tick state -- so a
         -- wormhole piece's state keeps advancing every 500ms even with no
         -- input change (see `Initialise`).
         Tick -> handleAction EvaluateBoard
@@ -296,16 +297,19 @@ component = mkComponent { eval , initialState , render }
               -- easy, ordinary thing for a player to do mid-edit -- leave
               -- the board as it last was rather than crashing.
               lift $ warn M.empty ("Unable to compile board, BoardError: " <> show boardError)
-            Right compiled -> do
-              prevState <- gets (_.lastEvalState)
-              let newState = evaluate compiled (injectBoundaryInputs compiled inputs prevState)
-              let outputs = extractBoundaryOutputs compiled newState
+            Right netlist -> do
+              lastEval <- gets (_.lastEvalState)
+              let
+                prevSignals = case lastEval of
+                  Just last | last.board == board -> last.signals
+                  _ -> initialSignals netlist
+                Tuple outputs signals = step netlist inputs prevSignals
               lift $ debug (tag "inputs" (show inputs) `union` tag "outputs" (show outputs)) "Evaluating board"
 
               modify_ $ _
-                { lastEvalState = newState
-                , pieceInputs = boardInputs compiled board newState
-                , boardPortInfoMap = boundaryPortInfo compiled newState
+                { lastEvalState = Just { board, signals }
+                , pieceInputs = boardInputs netlist board signals
+                , boardPortInfoMap = boundaryPortInfo netlist signals
                 }
               handleAction (SetOutputs outputs)
 

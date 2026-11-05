@@ -186,6 +186,12 @@ class Monad m <= Framing m where
   readFrame :: m (Frame Signal)
   withLocation :: forall a. Location -> m a -> m a
 
+-- | Run at the piece addressed by its whole path from the root -- one
+-- | `withLocation` per step, root first. A `PieceIndex` from a flattened
+-- | board is exactly such a path.
+atPath :: forall m a. Framing m => PieceIndex -> m a -> m a
+atPath path m = List.foldr withLocation m path
+
 -- | Something that turns its inputs' `Frame` into its outputs'. Truncation is
 -- | `Framing`'s job, so an instance needn't worry about stray values on sides
 -- | it doesn't read or write.

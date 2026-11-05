@@ -1,4 +1,4 @@
-module Game.Board.Edge where
+module Game.Board.Edge (module Game.Board.Edge, module Game.Board.Edge.Base) where
 
 import Prelude
 
@@ -6,20 +6,15 @@ import Control.Alternative (guard)
 import Control.Monad.Maybe.Trans (MaybeT(..))
 import Control.Monad.State (class MonadState)
 import Data.Either (Either(..))
-import Data.Function (on)
 import Data.Group (ginverse)
 import Data.Lens (use)
 import Data.Lens.At (at)
 import Data.Maybe (Maybe(..))
-import Data.Newtype (class Newtype)
+import Game.Board.Edge.Base
 import Game.Board.Types (Board, _pieces, resumeBoard)
-import Game.Direction (CardinalDirection, oppositeDirection, rotateDirection)
-import Game.Location (Location, followDirection)
+import Game.Direction (rotateDirection)
 import Game.Piece (getPort)
 import Game.Port (Port, portMatches)
-import Prim.Coerce (class Coercible)
-import Safe.Coerce (coerce)
-import Test.QuickCheck (class Arbitrary, arbitrary)
 
 {-
   toAbsoluteEdge >=> 
@@ -40,33 +35,6 @@ connected edge = do
   (portMatches <$> getPortOnEdge edge <*> getPortOnEdge adj) >>= guard
   pure adj
 
-edgeDirection :: forall e. Coercible e BaseEdge => Edge e => e -> CardinalDirection
-edgeDirection = (coerce :: e -> BaseEdge) >>> _.dir
-
-edgeLocation :: forall e. Coercible e BaseEdge => Edge e => e -> Location
-edgeLocation = (coerce :: e -> BaseEdge) >>> _.loc
-
-
-type BaseEdge = { loc :: Location, dir :: CardinalDirection }
-
-compareBaseEdge :: BaseEdge -> BaseEdge -> Ordering
-compareBaseEdge e1 e2 = compare e1.loc e2.loc <> compare e1.dir e2.dir
-
-
-newtype AbsoluteEdge = Absolute BaseEdge
-
-absolute :: Location -> CardinalDirection -> AbsoluteEdge
-absolute loc dir = Absolute { loc, dir }
-
-derive instance Newtype AbsoluteEdge _
-derive instance Eq AbsoluteEdge
--- do not derive!
-instance Ord AbsoluteEdge where
-  compare = compareBaseEdge `on` coerce
-instance Show AbsoluteEdge where
-  show (Absolute { loc, dir }) = "AbsoluteEdge " <> show loc <> " " <> show dir
-instance Arbitrary AbsoluteEdge where
-  arbitrary = absolute <$> arbitrary <*> arbitrary
 instance Edge AbsoluteEdge where
   toAbsoluteEdge = pure
   fromAbsoluteEdge = pure
@@ -74,23 +42,6 @@ instance Edge AbsoluteEdge where
     (relEdge :: RelativeEdge) <- fromAbsoluteEdge absEdge
     getPortOnEdge relEdge
 
-adjacentAbsoluteEdge :: AbsoluteEdge -> AbsoluteEdge
-adjacentAbsoluteEdge (Absolute { loc, dir }) = absolute (followDirection loc dir) (oppositeDirection dir)
-
-
-
-newtype RelativeEdge = Relative BaseEdge
-
-relative :: Location -> CardinalDirection -> RelativeEdge
-relative loc dir = Relative { loc, dir }
-
-derive instance Newtype RelativeEdge _
-derive instance Eq RelativeEdge
--- do not derive!
-instance Ord RelativeEdge where
-  compare = compareBaseEdge `on` coerce
-instance Show RelativeEdge where
-  show (Relative { loc, dir }) = "RelativeEdge " <> show loc <> " " <> show dir
 instance Edge RelativeEdge where
   toAbsoluteEdge (Relative { loc, dir }) = do
     { rotation } <- MaybeT $ use (_pieces <<< at loc)

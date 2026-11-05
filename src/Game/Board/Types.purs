@@ -30,7 +30,7 @@ import Data.Tuple (Tuple(..), fst, snd)
 import Data.Unfoldable (replicate)
 import Game.Direction (CardinalDirection, oppositeDirection, rotateDirection)
 import Game.Direction as Direction
-import Game.Frame (Frame)
+import Game.Frame (Frame, PortIndex)
 import Game.Frame as Frame
 import Game.Location (Location(..), location, taxicabDistance)
 import Game.Piece (Piece(..))
@@ -105,6 +105,8 @@ data BoardError
   | BadBoardSize Int
   | Cyclic
   | WormholeInvalid Wormhole
+  -- more than one thing drives the same net -- see `Game.Eval.Nets`
+  | MultipleWriters (Array PortIndex)
   | Other String
 derive instance Eq BoardError
 
@@ -117,6 +119,7 @@ instance Show BoardError where
     BadBoardSize n -> "Boards of size " <>  show n <>" are not valid"
     Cyclic -> "ABED does not admit cyclic boards"
     WormholeInvalid { wormholeIn, wormholeOut } -> "Invalid wormhole: mouth " <> show wormholeIn <> " and tail " <> show wormholeOut <> " must be on different board sides"
+    MultipleWriters ports -> "Ports " <> show ports <> " all drive the same signal"
     Other other -> "Other error: " <>  other
 
 -- a `Board`'s root is always a `BoardF`, never a bare `Piece` -- same

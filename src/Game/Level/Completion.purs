@@ -15,9 +15,9 @@ import Data.Map as M
 import Data.Maybe (Maybe(..), fromMaybe, maybe)
 import Data.Show.Generic (genericShow)
 import Game.Board (Board(..), BoardError)
-import Game.Board.Compiled (CompiledBoard(..))
 import Game.Capacity (Capacity)
 import Game.Direction (CardinalDirection, allDirections)
+import Game.Eval (Netlist)
 import Game.Frame (Frame)
 import Game.Frame as Frame
 import Game.Level.Problem (Problem)
@@ -94,11 +94,11 @@ type FailedRestriction =
 -- | Neither compiling nor evaluating the board is this module's job --
 -- | both are the caller's (`Component/Level.purs` calls `compile` itself,
 -- | since it already needs the result to drive the live board). This just
--- | interprets whatever `Either BoardError CompiledBoard` it's handed.
-isReadyForTesting :: Problem -> Board -> Either BoardError CompiledBoard -> CompletionStatus
+-- | interprets whatever `Either BoardError Netlist` it's handed.
+isReadyForTesting :: Problem -> Board -> Either BoardError Netlist -> CompletionStatus
 isReadyForTesting problem board eitherCompiled = fromLeft ReadyForTesting do
-  CompiledBoard compiled <- lmap NotEvaluable eitherCompiled
-  lmap PortMismatch $ checkPortMismatch problem compiled.ports
+  netlist <- lmap NotEvaluable eitherCompiled
+  lmap PortMismatch $ checkPortMismatch problem netlist.boundary
   lmap FailedRestriction $ checkOtherRestrictions problem board
 
 checkPortMismatch :: Problem -> Frame Port -> Either PortMismatch Unit

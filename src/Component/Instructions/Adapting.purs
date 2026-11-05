@@ -37,7 +37,7 @@ component = H.mkComponent { eval: H.mkEval H.defaultEval, render, initialState: 
         ]
 
     firstDiagram = HH.slot_ BoardDiagram.slot unit BoardDiagram.component
-      { board: Board { size: 2, pieces }
+      { board: Board { size: 3, pieces }
       , initialise: reset
       , actions: M.fromFoldable [ Tuple "Reset" reset, Tuple "adapt" adapt ]
       , description: "hello world"

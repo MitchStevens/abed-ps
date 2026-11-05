@@ -42,7 +42,7 @@ import Data.Newtype (class Newtype)
 import Data.Set as S
 import Data.Set.NonEmpty (NonEmptySet)
 import Data.Set.NonEmpty as NES
-import Game.Board.Edge (RelativeEdge(..), edgeLocation, relative)
+import Game.Board.Edge.Base (RelativeEdge(..), edgeLocation, relative)
 import Game.Direction as Direction
 import Game.Location (Location)
 

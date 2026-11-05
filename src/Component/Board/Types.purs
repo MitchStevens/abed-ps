@@ -31,7 +31,6 @@ import Data.Tuple (Tuple(..))
 import Data.Zipper (Zipper)
 import Data.Zipper as Z
 import Game.Board (Board, BoardError, BoardM, Path, evalBoardM, runBoardM, standardBoard)
-import Game.Board.Compiled (PortIndex)
 import Game.Direction (CardinalDirection)
 import Game.Frame (Frame)
 import Game.Location (Location(..))
@@ -54,10 +53,12 @@ type State =
   { boardHistory :: Zipper Board -- todo: limit the number of boards in this data structure
   , inputs :: Frame Signal
   , outputs :: Frame Signal
-  -- the tick state threaded through `Game.Board.Compiled.evaluate` from one
-  -- `EvaluateBoard` to the next -- what makes a wormhole piece remember
-  -- what it captured last tick.
-  , lastEvalState :: Map PortIndex Signal
+  -- the signals threaded through `Game.Eval.step` from one `EvaluateBoard`
+  -- to the next -- what makes a wormhole remember what it captured last
+  -- tick -- along with the board they belong to. Slots are only meaningful
+  -- for the board that was compiled, so any edit starts again from
+  -- `initialSignals` (which also resets every wormhole, as an edit should).
+  , lastEvalState :: Maybe { board :: Board, signals :: Array Signal }
   -- both precomputed once per `EvaluateBoard`, straight off `lastEvalState`
   -- -- render just reads them.
   , pieceInputs :: Map Location Piece.Input
@@ -135,7 +136,7 @@ initialState { board } =
   , boardPorts: pure noPort
   , inputs: pure zero
   , outputs: pure zero
-  , lastEvalState: M.empty
+  , lastEvalState: Nothing
   , pieceInputs: M.empty
   , boardPortInfoMap: pure noPortInfo
   , isCreatingWire: Nothing

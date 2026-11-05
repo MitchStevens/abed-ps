@@ -21,11 +21,12 @@ import Data.List (List(..))
 import Data.List as L
 import Data.Map (Map)
 import Data.Map as M
+import Data.Either (Either(..))
 import Data.Maybe (Maybe(..), fromMaybe, maybe)
 import Data.Tuple (Tuple(..))
 import Game.Frame (Frame)
-import Game.Board (Board, RelativeEdge, _pieces)
-import Game.Board.Compiled (CompiledBoard(..), PieceIndex, PortIndex, portInfoAt)
+import Game.Board (Board, RelativeEdge, _pieces, resumeBoard)
+import Game.Eval (Netlist, portInfo)
 import Game.Direction (CardinalDirection)
 import Game.Location (Location(..), location)
 import Game.Frame as Frame
@@ -128,34 +129,24 @@ _portStates = prop (Proxy :: _ "portStates")
 
 {-
   Every root-level piece's `Input`, ready to hand to `Component.Piece`. Takes
-  an already-`compile`d `CompiledBoard` (the caller needs one anyway, to
-  `evaluate` and produce `state`) rather than compiling `board` again here.
-  `board` is still needed on its own: it carries each piece's `Rotation` in
-  its own `_pieces` map, which `compile` discards since evaluation itself is
-  rotation-blind -- so there's no need for `CompiledBoard` to carry rotation
-  data of its own.
+  the already-`compile`d `Netlist` (the caller needs one anyway, to `step` it
+  and produce `signals`) rather than compiling `board` again here. `board`
+  supplies the pieces themselves and their `Rotation`s, which a `Netlist`
+  doesn't keep.
 
   A nested board can't be shown as a piece in this UI yet -- same
-  limitation as `Component.Board.Types.pieceInput` -- so only depth-1
-  `PieceIndex`es (a bare `Location`) are included.
+  limitation as `Component.Board.Types.pieceInput` -- so only the root's own
+  leaf pieces are included.
 -}
-boardInputs :: CompiledBoard -> Board -> Map PortIndex Signal -> Map Location Input
-boardInputs compiled@(CompiledBoard c) board state = mapWithIndex toInput rootPieces
+boardInputs :: Netlist -> Board -> Array Signal -> Map Location Input
+boardInputs netlist board signals = M.mapMaybeWithKey toInput (view _pieces board)
   where
-  rootPieces :: Map Location Piece
-  rootPieces = M.fromFoldable $ L.mapMaybe asRoot $ M.toUnfoldable c.pieces
-    where
-    asRoot :: Tuple PieceIndex Piece -> Maybe (Tuple Location Piece)
-    asRoot (Tuple (Cons loc Nil) piece) = Just (Tuple loc piece)
-    asRoot _ = Nothing
-
-  boardRotations :: Map Location Rotation
-  boardRotations = map _.rotation (view _pieces board)
-
-  toInput :: Location -> Piece -> Input
-  toInput loc piece =
-    { piece
-    , location: loc
-    , rotation: fromMaybe (rotation 0) (M.lookup loc boardRotations)
-    , portStates: mapWithIndex (\dir port -> portInfoAt compiled state (Tuple (L.singleton loc) dir) port) (getPorts piece)
-    }
+  toInput :: Location -> { rotation :: Rotation, piece :: Board } -> Maybe Input
+  toInput loc { rotation, piece: cell } = case resumeBoard cell of
+    Left _ -> Nothing
+    Right piece -> Just
+      { piece
+      , location: loc
+      , rotation
+      , portStates: mapWithIndex (\dir port -> portInfo netlist signals (Tuple (L.singleton loc) dir) port) (getPorts piece)
+      }
