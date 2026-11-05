@@ -18,9 +18,9 @@ import Game.Direction (CardinalDirection)
 import Game.Direction as Direction
 import Game.Frame as Frame
 import Game.Piece.Complexity as Complexity
+import Game.Piece.Operation as Operation
 import Game.Piece.Types (Piece(..), PieceId(..), Simplification(..), isSimplifiable, mkPieceNoAdapt, name, shouldRipple)
 import Game.Port (PortType(..), getPortType, inputPort, noPort, outputPort)
-import Game.Signal (Signal(..))
 import Partial.Unsafe (unsafeCrashWith)
 
 
@@ -57,9 +57,7 @@ wirePieceNames =
 mkWirePiece :: WirePiece -> Piece
 mkWirePiece wire@{ outputs, capacity } = Piece
   { name: fromMaybe' nameErr (M.lookup outputs wirePieceNames)
-  , eval: \inputs ->
-      let signal = Frame.index Direction.Left inputs
-      in Frame.tabulate \dir -> if dir `elem` outputs then signal else zero
+  , op: Operation.Connection connections
   , complexity: Complexity.space (toNumber (length outputs))
 
   , shouldRipple: true
@@ -87,11 +85,12 @@ mkWirePiece wire@{ outputs, capacity } = Piece
           guard (outputs /= newOutputs && newOutputs /= S.empty)
           pure $ mkWirePiece (wire { outputs = newOutputs })
 
-  , isSimplifiable:
-      let connections = M.fromFoldable $ S.map (\out -> Tuple out Direction.Left) outputs
-      in Just (Connection connections)
+  , isSimplifiable: Just (Connection connections)
   }
   where
+    connections :: Map CardinalDirection CardinalDirection
+    connections = M.fromFoldable $ S.map (\out -> Tuple out Direction.Left) outputs
+
     nameErr :: Unit -> PieceId
     nameErr _ =  unsafeCrashWith $
       "Can't find wire piece with outputs: " <> show outputs
@@ -154,13 +153,7 @@ type DualWirePiece =
 dualWirePiece :: DualWirePiece -> Piece
 dualWirePiece dualWire = mkPieceNoAdapt
   { name: dualWire.name
-  , eval: \m ->
-      let a1 = Frame.index Direction.Left m
-          a2 = Frame.index dualWire.input2 m
-      in Frame.fromFoldable zero
-          [ Tuple dualWire.output1 a1
-          , Tuple dualWire.output2 a2
-          ]
+  , op: Operation.Connection connections
   , ports: Frame.fromFoldable noPort
       [ Tuple Direction.Left   (inputPort  dualWire.capacity)
       , Tuple dualWire.input2  (inputPort  dualWire.capacity)
@@ -170,11 +163,14 @@ dualWirePiece dualWire = mkPieceNoAdapt
   , complexity: Complexity.space 1.0
   , shouldRipple: true
   , updateCapacity: \_ capacity -> Just $ dualWirePiece (dualWire { capacity = capacity})
-  , isSimplifiable: Just $ Connection $ M.fromFoldable
+  , isSimplifiable: Just (Connection connections)
+  }
+  where
+    connections :: Map CardinalDirection CardinalDirection
+    connections = M.fromFoldable
       [ Tuple dualWire.output1 Direction.Left
       , Tuple dualWire.output2 dualWire.input2
       ]
-  }
 
 crossPiece :: Piece
 crossPiece = dualWirePiece

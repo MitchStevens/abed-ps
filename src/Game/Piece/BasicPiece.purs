@@ -19,13 +19,14 @@ import Game.Frame (Frame)
 import Game.Frame as Frame
 import Game.Piece.Complexity (Complexity)
 import Game.Piece.Complexity as Complexity
+import Game.Piece.Operation (PieceOperation)
+import Game.Piece.Operation as Operation
 import Game.Piece.Types (Piece(..), PieceId(..), mkPieceNoAdapt)
 import Game.Port (PortType(..), createPort, inputPort, outputPort)
-import Game.Signal (Signal(..), xor)
 
 type BasicPiece =
   { name :: PieceId
-  , eval :: Frame Signal -> Frame Signal
+  , op :: PieceOperation
   , ports :: Frame PortType
   , capacity :: Capacity
   }
@@ -33,7 +34,7 @@ type BasicPiece =
 basicPiece :: BasicPiece -> Piece
 basicPiece basic = mkPieceNoAdapt
   { name: basic.name
-  , eval: basic.eval
+  , op: basic.op
   , ports: (\portType -> createPort portType basic.capacity) <$> basic.ports
   , complexity: Complexity.space 1.0
 
@@ -51,9 +52,7 @@ allBasicPieces =
 notPiece :: Piece
 notPiece = basicPiece
   { name: PieceId "not-piece"
-  , eval: \m ->
-      let l = Frame.index Left m
-      in Frame.singleton zero Right (not l)
+  , op: Operation.Not
   , ports: Frame.fromFoldable NoPort
     [ Tuple Left Input
     , Tuple Right Output
@@ -64,10 +63,7 @@ notPiece = basicPiece
 orPiece :: Piece
 orPiece = basicPiece
   { name: PieceId "or-piece"
-  , eval: \m ->
-      let l = Frame.index Left m
-          u = Frame.index Up m
-      in Frame.singleton zero Right (l || u)
+  , op: Operation.Or
   , ports: Frame.fromFoldable NoPort
     [ Tuple Left Input
     , Tuple Up Input
@@ -79,10 +75,7 @@ orPiece = basicPiece
 andPiece :: Piece
 andPiece = basicPiece
   { name: PieceId "and-piece" 
-  , eval: \m ->
-      let l = Frame.index Left m
-          u = Frame.index Up m
-      in Frame.singleton zero Right (l && u)
+  , op: Operation.And
   , ports: Frame.fromFoldable NoPort
     [ Tuple Left Input
     , Tuple Up Input
@@ -94,10 +87,7 @@ andPiece = basicPiece
 xorPiece :: Piece
 xorPiece = basicPiece 
   { name: PieceId "xor-piece" 
-  , eval: \m ->
-      let l = Frame.index Left m
-          u = Frame.index Up m
-      in Frame.singleton zero Right (xor l u)
+  , op: Operation.Xor
   , ports: Frame.fromFoldable NoPort
     [ Tuple Left Input
     , Tuple Up Input

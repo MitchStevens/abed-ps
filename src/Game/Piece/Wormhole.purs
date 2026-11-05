@@ -9,6 +9,7 @@ import Game.Capacity (Capacity(..))
 import Game.Direction as Direction
 import Game.Frame as Frame
 import Game.Piece (Piece, PieceId(..), mkPieceNoAdapt)
+import Game.Piece.Operation as Operation
 import Game.Port (inputPort, noPort, outputPort, wormholeIn, wormholeOut)
 
 {-
@@ -24,12 +25,7 @@ import Game.Port (inputPort, noPort, outputPort, wormholeIn, wormholeOut)
 counter :: Piece
 counter = mkPieceNoAdapt
   { name: PieceId "counter"
-  , eval: \inputs ->
-      let n = Frame.index Direction.Down inputs
-      in Frame.fromFoldable zero
-        [ Tuple Direction.Up (n + one)
-        , Tuple Direction.Left n
-        ]
+  , op: Operation.Counter
   , ports: Frame.fromFoldable noPort
     [ Tuple Direction.Up (wormholeIn EightBit)
     , Tuple Direction.Left (outputPort EightBit)
@@ -55,14 +51,7 @@ counter = mkPieceNoAdapt
 risingEdge :: Piece
 risingEdge = mkPieceNoAdapt
   { name: PieceId "rising-edge"
-  , eval: \inputs ->
-      let curr = Frame.index Direction.Left inputs
-          prev = Frame.index Direction.Down inputs
-          edge = if curr == one && prev == zero then one else zero
-      in Frame.fromFoldable zero
-        [ Tuple Direction.Up curr
-        , Tuple Direction.Right edge
-        ]
+  , op: Operation.RisingEdge
   , ports: Frame.fromFoldable noPort
     [ Tuple Direction.Up (wormholeIn OneBit)
     , Tuple Direction.Down (wormholeOut OneBit)

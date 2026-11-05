@@ -47,6 +47,8 @@ import Game.Frame (class Evaluable, Frame)
 import Game.Frame as Frame
 import Game.Piece.Complexity (Complexity(..))
 import Game.Piece.Complexity as Complexity
+import Game.Piece.Operation (PieceOperation)
+import Game.Piece.Operation as Operation
 import Game.Port (Port(..), PortType(..), getPortType, hasPort, isInput, isOutput, isReadable, isWritable, portCapacity)
 import Game.PortInfo (PortInfo, noPortInfo)
 import Game.Signal (Signal(..), mkSignal)
@@ -102,7 +104,7 @@ newtype Piece = Piece
   -}
   { name :: PieceId
   {-
-    The `eval` function for a `Piece` is a function
+    The operation of a `Piece` names its `eval` function (see `Game.Piece.Operation`), which is a function
       Signal^4 -> Signal^4
     which is exactly what `Frame Signal -> Frame Signal` is: one signal per side in, one per side out.
 
@@ -114,9 +116,9 @@ newtype Piece = Piece
     ```
     -> NOT4 ->
     ```
-    The `eval` function for such a piece would be the same as the 1 bit and 8 bit not pieces: `\(Frame m) -> Frame.singleton zero Right (not m.l)`.
+    The operation of such a piece would be the same as the 1 bit and 8 bit not pieces: `Operation.Not`, whose `eval` is `\m -> Frame.singleton zero Right (not (Frame.index Left m))`.
   -}
-  , eval :: Frame Signal -> Frame Signal
+  , op :: PieceOperation
   {-
     The complexity of a piece is a 
   -}
@@ -151,11 +153,13 @@ instance Eq Piece where
   eq (Piece p1) (Piece p2) = and
     [ p1.name == p2.name
     , p1.ports == p2.ports
+    , p1.op == p2.op
     ]
 instance Ord Piece where
   compare (Piece p1) (Piece p2) = fold
     [ compare p1.name p2.name
     , compare p1.ports p2.ports
+    , compare p1.op p2.op
     ]
 instance Show Piece where
   show (Piece p) = "(Piece " <> show p.name <> ")"
@@ -163,7 +167,7 @@ derive instance Newtype Piece _
 
 type MkPieceNoAdapt =
   { name :: PieceId
-  , eval :: Frame Signal -> Frame Signal
+  , op :: PieceOperation
   , ports :: Frame Port
   , complexity :: Complexity
   , shouldRipple :: Boolean
@@ -174,7 +178,7 @@ type MkPieceNoAdapt =
 mkPieceNoAdapt :: MkPieceNoAdapt -> Piece
 mkPieceNoAdapt piece = Piece
   { name: piece.name
-  , eval: piece.eval
+  , op: piece.op
   , ports: piece.ports
   , complexity: piece.complexity
   , shouldRipple: piece.shouldRipple
@@ -188,12 +192,12 @@ name :: Piece -> PieceId
 name (Piece p) = p.name
 
 eval :: Piece -> Frame Signal -> Frame Signal
-eval (Piece p) = p.eval
+eval (Piece p) = Operation.eval p.op
 
 -- `Game.Frame` can't provide this itself (it would have to import this module
 -- back); see the note on `Evaluable`.
 instance Evaluable Piece where
-  eval (Piece p) = p.eval
+  eval (Piece p) = Operation.eval p.op
 
 {-
   Advance a piece by one tick, as an `EvaluableBoard` would, injecting this

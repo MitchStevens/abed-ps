@@ -5,21 +5,20 @@ import Prelude
 import Data.Map as M
 import Data.Maybe (Maybe(..), fromMaybe)
 import Data.Tuple (Tuple(..))
-import Data.UInt (UInt)
-import Data.UInt as UInt
 import Game.Capacity (Capacity(..))
 import Game.Direction as Direction
 import Game.Frame as Frame
 import Game.Piece.Complexity (space)
 import Game.Piece.Complexity as Complexity
+import Game.Piece.Operation (PieceOperation)
+import Game.Piece.Operation as Operation
 import Game.Piece.Types (Piece(..), PieceId(..), mkPieceNoAdapt, shouldRipple)
 import Game.Port (inputPort, noPort, outputPort)
-import Game.Signal (Signal(..), overSignal)
 
 type UnaryOperation =
   { name :: PieceId
   , capacity :: Capacity
-  , operation :: UInt -> UInt
+  , op :: PieceOperation
   }
 
 {-
@@ -28,11 +27,9 @@ type UnaryOperation =
     - both inputs have the same capacity
 -}
 mkUnaryOperation :: UnaryOperation -> Piece
-mkUnaryOperation { name, capacity, operation } = mkPieceNoAdapt
+mkUnaryOperation { name, capacity, op } = mkPieceNoAdapt
     { name
-    , eval: \inputs ->
-        let signal = Frame.index Direction.Left inputs
-        in Frame.singleton zero Direction.Right (overSignal operation signal)
+    , op
     , ports: Frame.fromFoldable noPort [ Tuple Direction.Left (inputPort capacity), Tuple Direction.Right (outputPort capacity)]
     , complexity: Complexity.space 1.0
     , shouldRipple: false
@@ -44,21 +41,20 @@ mkShiftLeftBy :: Int -> Capacity -> Piece
 mkShiftLeftBy bitShift capacity = mkUnaryOperation
   { name: PieceId "shift-left-piece"
   , capacity
-  , operation: \n -> UInt.shl n (UInt.fromInt bitShift) }
+  , op: Operation.ShiftLeft bitShift
+  }
 
 mkShiftRightBy :: Int -> Capacity -> Piece
 mkShiftRightBy bitShift capacity = mkUnaryOperation 
   { name: PieceId "shift-left-piece"
   , capacity
-  , operation: \n -> UInt.shr n (UInt.fromInt bitShift) }
+  , op: Operation.ShiftRight bitShift
+  }
 
 
 twoBitCrossOver :: Piece
 twoBitCrossOver = mkUnaryOperation
   { name: PieceId "two-bit-cross-over"
   , capacity: TwoBit
-  , operation: \n -> 
-      let b0 = if UInt.and (UInt.fromInt 2) n > zero then one else zero
-          b1 = if UInt.and (UInt.fromInt 1) n > zero then one else zero
-      in (UInt.shl b1 one) + b0
+  , op: Operation.TwoBitCrossOver
   }

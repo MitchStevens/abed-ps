@@ -7,15 +7,15 @@ import Data.Array (elem)
 import Data.Foldable (fold)
 import Data.Map as M
 import Data.Maybe (Maybe(..))
-import Data.Ord (greaterThan, lessThan)
 import Data.Tuple (Tuple(..))
 import Game.Capacity (Capacity(..))
 import Game.Direction as Direction
 import Game.Frame as Frame
 import Game.Piece (Piece(..), PieceId(..), mkPieceNoAdapt)
 import Game.Piece as Complexity
+import Game.Piece.Operation (PieceOperation)
+import Game.Piece.Operation as Operation
 import Game.Port (inputPort, noPort, outputPort)
-import Game.Signal (Signal)
 
 allComparisonPieces :: Array Piece
 allComparisonPieces =
@@ -26,17 +26,14 @@ allComparisonPieces =
 
 type ComparisonPiece =
   { name :: PieceId
-  , comparison :: Signal -> Signal -> Boolean
+  , op :: PieceOperation
   , capacity :: Capacity
   }
 
 mkComparisonPiece :: ComparisonPiece -> Piece
-mkComparisonPiece piece@{ name, comparison, capacity } = mkPieceNoAdapt
+mkComparisonPiece piece@{ name, op, capacity } = mkPieceNoAdapt
   { name
-  , eval: \inputs ->
-      let a = Frame.index Direction.Left inputs
-          b = Frame.index Direction.Up inputs
-      in Frame.singleton zero Direction.Right (if comparison a b then one else zero)
+  , op
   , ports: Frame.fromFoldable noPort
       [ Tuple Direction.Up (inputPort capacity)
       , Tuple Direction.Right (outputPort OneBit)
@@ -52,10 +49,10 @@ mkComparisonPiece piece@{ name, comparison, capacity } = mkPieceNoAdapt
   }
 
 mkEqualPiece :: Capacity -> Piece
-mkEqualPiece capacity = mkComparisonPiece { name: PieceId "equal-piece", comparison: eq, capacity }
+mkEqualPiece capacity = mkComparisonPiece { name: PieceId "equal-piece", op: Operation.Equal, capacity }
 
 mkGreaterThanPiece :: Capacity -> Piece
-mkGreaterThanPiece capacity = mkComparisonPiece { name: PieceId "greater-than-piece", comparison: greaterThan, capacity }
+mkGreaterThanPiece capacity = mkComparisonPiece { name: PieceId "greater-than-piece", op: Operation.GreaterThan, capacity }
 
 mkLessThanPiece :: Capacity -> Piece
-mkLessThanPiece capacity = mkComparisonPiece { name: PieceId "less-than-piece", comparison: lessThan, capacity }
+mkLessThanPiece capacity = mkComparisonPiece { name: PieceId "less-than-piece", op: Operation.LessThan, capacity }
