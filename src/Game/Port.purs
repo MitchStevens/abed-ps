@@ -19,7 +19,7 @@ import Type.Proxy (Proxy(..))
 
 -- | `NoPort` is the null side of a `Frame Port`: what a piece or board holds
 -- | on a side it has no port on. See `noPort`.
-data PortType = Input | Output | WormholeIn | WormholeOut | NoPort
+data PortType = Input | Output | NoPort
 derive instance Eq PortType
 derive instance Ord PortType
 instance Arbitrary PortType where 
@@ -29,16 +29,12 @@ instance Show PortType where
   show = case _ of
     Input -> "Input"
     Output -> "Output"
-    WormholeIn -> "WormholeIn"
-    WormholeOut -> "WormholeOut"
     NoPort -> "NoPort"
 
 matchingPortType :: PortType -> PortType
 matchingPortType = case _ of
   Input -> Output
   Output -> Input
-  WormholeIn  -> WormholeOut
-  WormholeOut -> WormholeIn
   NoPort -> NoPort
 
 
@@ -81,33 +77,11 @@ inputPort = createPort Input
 outputPort :: Capacity -> Port
 outputPort = createPort Output 
 
--- | A port that feeds a signal *into* a wormhole. `Game.Piece.Types.tick`
--- | routes it back to the `wormholeOut` on the opposite side, delayed one tick.
-wormholeIn :: Capacity -> Port
-wormholeIn = createPort WormholeIn
-
--- | A port that receives a signal *out of* a wormhole (the piece reads it like
--- | an input).
-wormholeOut :: Capacity -> Port
-wormholeOut = createPort WormholeOut
-
 isInput :: Port -> Boolean
 isInput = has (_portType <<< only Input)
 
 isOutput :: Port -> Boolean
 isOutput = has (_portType <<< only Output)
-
--- | Is this a side a piece reads from each tick? An `Input` (driven by a
--- | neighbor), or a `WormholeOut` (the wormhole's tail, driven by whatever was
--- | buffered at its mouth last tick). Never overlaps `isWritable`.
-isReadable :: Port -> Boolean
-isReadable port = isInput port || getPortType port == WormholeOut
-
--- | Is this a side a piece produces a value on each tick? An `Output` (read by
--- | a neighbor), or a `WormholeIn` (the wormhole's mouth, captured into the
--- | buffer). Never overlaps `isReadable`.
-isWritable :: Port -> Boolean
-isWritable port = isOutput port || getPortType port == WormholeIn
 
 matchingPort :: Port -> Maybe Port
 matchingPort (Port { capacity, portType }) = case portType of

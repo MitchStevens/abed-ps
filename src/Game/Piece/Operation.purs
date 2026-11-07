@@ -3,13 +3,18 @@ module Game.Piece.Operation
   , eval
   , fuseSignals
   , severSignal
+  , wireOutputs
   ) where
 
 import Prelude
 
 import Data.Generic.Rep (class Generic)
+import Data.Foldable (all)
 import Data.Map (Map)
+import Data.Map as M
+import Data.Maybe (Maybe(..))
 import Data.Ord (greaterThan, lessThan)
+import Data.Set (Set)
 import Data.Show.Generic (genericShow)
 import Data.Tuple (Tuple(..))
 import Data.UInt (UInt, fromInt, shl, shr, (.&.), (.|.))
@@ -20,7 +25,7 @@ import Game.Direction (CardinalDirection)
 import Game.Direction as Direction
 import Game.Frame (Frame)
 import Game.Frame as Frame
-import Game.Signal (Signal, maxValue, mkSignal, over2Signal, overSignal, xor)
+import Game.Signal (Signal, maxValue, over2Signal, overSignal, xor)
 
 {-
   Instead of adding an `eval :: Frame Signal -> Frame Signal` to every piece, we provide each piece with an operation. This operation can be then used to lookup an eval function.
@@ -55,14 +60,6 @@ data PieceOperation
   | Equal
   | GreaterThan
   | LessThan
-  -- wormhole pieces
-  | Counter
-  | RisingEdge
-  {-
-    Deliberately malformed operations, for testing that truncation protects a board from them (see `Test.Game.Eval.Netcode`). No real piece should use these.
-  -}
-  | ReadsOwnOutput
-  | WritesOwnInput
 
 derive instance Eq PieceOperation
 derive instance Ord PieceOperation
@@ -116,28 +113,13 @@ eval = case _ of
   GreaterThan -> comparison greaterThan
   LessThan -> comparison lessThan
 
-  Counter -> \m ->
-    let n = Frame.index Direction.Down m
-    in Frame.fromFoldable zero
-        [ Tuple Direction.Up (n + one)
-        , Tuple Direction.Left n
-        ]
-  RisingEdge -> \m ->
-    let curr = Frame.index Direction.Left m
-        prev = Frame.index Direction.Down m
-        edge = if curr == one && prev == zero then one else zero
-    in Frame.fromFoldable zero
-        [ Tuple Direction.Up curr
-        , Tuple Direction.Right edge
-        ]
-
-  ReadsOwnOutput -> \m ->
-    Frame.singleton zero Direction.Right (Frame.index Direction.Right m + one)
-  WritesOwnInput -> \m ->
-    Frame.fromFoldable zero
-      [ Tuple Direction.Right (Frame.index Direction.Left m)
-      , Tuple Direction.Left (mkSignal 99)
-      ]
+{-
+  `Connection` covers both single wire and dual wire pieces. A single wire copies one input, on the `Left`, to every output, so this returns those outputs. For anything else, including a dual wire, it returns `Nothing`.
+-}
+wireOutputs :: Map CardinalDirection CardinalDirection -> Maybe (Set CardinalDirection)
+wireOutputs connections
+  | all (_ == Direction.Left) connections = Just (M.keys connections)
+  | otherwise = Nothing
 
 -- | Combine `Left` and `Up`, writing the result to `Right`.
 binary :: (Signal -> Signal -> Signal) -> Frame Signal -> Frame Signal

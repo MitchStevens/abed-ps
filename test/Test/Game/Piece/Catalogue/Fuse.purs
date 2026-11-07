@@ -1,4 +1,4 @@
-module Test.Game.Piece.FusePiece where
+module Test.Game.Piece.Catalogue.Fuse where
 
 import Prelude
 

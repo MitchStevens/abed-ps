@@ -1,4 +1,4 @@
-module Test.Game.Piece.Adapting where
+module Test.Game.Piece.Transform.Adapt where
 
 import Prelude
 

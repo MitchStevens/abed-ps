@@ -28,7 +28,7 @@ import Game.Direction (CardinalDirection, allDirections)
 import Game.Frame (Frame)
 import Game.Frame as Frame
 import Game.Piece (Piece(..), eval, getPorts)
-import Game.Port (Port, hasPort, isInput, isWritable, portCapacity)
+import Game.Port (Port, hasPort, isInput, isOutput, portCapacity)
 import Game.Signal (Base, Signal, SignalRepresentation(..), printSignal)
 import Game.TestCase as TestCase
 import Halogen (Slot)
@@ -109,7 +109,7 @@ cardContentFor :: State -> TestCase -> CardStack.CardContent
 cardContentFor state testCase =
   { title: "Test " <> show (state.currentIndex + 1) <> " of " <> show (A.length state.testCases)
   , statusBar: Just { status: cardStatus, text: cardStatusLabel }
-  , text: [ "In: " <> formatSignals isInput testCase.data.inputs, "Expected: " <> formatSignals isWritable testCase.data.expected ] <> receivedLine <> mismatchLine
+  , text: [ "In: " <> formatSignals isInput testCase.data.inputs, "Expected: " <> formatSignals isOutput testCase.data.expected ] <> receivedLine <> mismatchLine
   , diagram: Nothing
   , demonstration: Nothing
   }
@@ -139,8 +139,8 @@ cardContentFor state testCase =
       TestCase.Completed (TestCase.Failed _) -> "Failed"
 
     receivedLine = case testCase.status of
-      TestCase.Completed TestCase.Passed -> [ "Received: " <> formatSignals isWritable testCase.data.expected ]
-      TestCase.Completed (TestCase.Failed { received }) -> [ "Received: " <> formatSignals isWritable received ]
+      TestCase.Completed TestCase.Passed -> [ "Received: " <> formatSignals isOutput testCase.data.expected ]
+      TestCase.Completed (TestCase.Failed { received }) -> [ "Received: " <> formatSignals isOutput received ]
       _ -> []
 
     mismatchLine = case testCase.status of

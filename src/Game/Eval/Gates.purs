@@ -7,10 +7,9 @@
   `Game.Piece.Types.truncateInputs`/`truncateOutputs`) is decided here, once,
   by which slot each side points at, rather than on every tick:
 
-    - a readable side (`Input`, or a `WormholeOut` tail) reads its port's net;
-      every other side reads `zeroSlot`.
-    - a writable side (`Output`, or a `WormholeIn` mouth) writes its port's
-      net; every other side writes `scratchSlot`.
+    - an `Input` side reads its port's net; every other side reads `zeroSlot`.
+    - an `Output` side writes its port's net; every other side writes
+      `scratchSlot`.
 
   So evaluating a gate is just `outputs <- Operation.eval op inputs`, with no
   checks. Wire pieces are already merged into their nets (`Game.Eval.Nets`),
@@ -47,7 +46,7 @@ import Game.Eval.Nets (Nets, scratchSlot, wireConnections, zeroSlot)
 import Game.Frame (Frame, PieceIndex)
 import Game.Piece (Piece(..), getPorts)
 import Game.Piece.Operation (PieceOperation)
-import Game.Port (isReadable, isWritable)
+import Game.Port (isInput, isOutput)
 
 type Gate =
   { index :: PieceIndex -- the piece this came from, for debugging and rendering
@@ -68,9 +67,9 @@ gates flat ns = A.fromFoldable do
     { index
     , op: p.op
     , inputs: getPorts piece # mapWithIndex \dir port ->
-        if isReadable port then fromMaybe zeroSlot (slotAt dir) else zeroSlot
+        if isInput port then fromMaybe zeroSlot (slotAt dir) else zeroSlot
     , outputs: getPorts piece # mapWithIndex \dir port ->
-        if isWritable port then fromMaybe scratchSlot (slotAt dir) else scratchSlot
+        if isOutput port then fromMaybe scratchSlot (slotAt dir) else scratchSlot
     }
 
 -- | `gates` in dependency order (Kahn's algorithm): every gate after all the

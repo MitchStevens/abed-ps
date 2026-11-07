@@ -47,9 +47,7 @@ isConnected dir portStates = (Frame.index dir portStates).connected
 legPath :: Leg -> Frame PortInfo -> Array Segment
 legPath leg portStates = case leg.portType of
   Input -> stubPath (initialLocation leg.direction) leg.direction
-  WormholeOut -> stubPath (initialLocation leg.direction) leg.direction
   Output -> outputPath (isConnected leg.direction portStates) (initialLocation leg.direction) leg.direction
-  WormholeIn -> outputPath (isConnected leg.direction portStates) (initialLocation leg.direction) leg.direction
   NoPort -> []
 
 -- | Trace one closed cycle of legs into a path, using each leg's connected/

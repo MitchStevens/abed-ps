@@ -44,7 +44,7 @@ import Effect.Aff (Aff, error)
 import Game.Board.Edge (absolute, adjacent)
 import Game.Board.Operation (addPieceNoUpdate, adaptRelEdge, removePieceNoUpdate)
 import Game.Board.PathSegment (PathSegment(..), PathSegmentError, combineSegmentWithExtant, singlePath)
-import Game.Board.Types (Board, BoardError(..), _pieces, resumeBoard)
+import Game.Board.Types (Board, Cell(..), BoardError(..), _pieces)
 import Game.Direction (CardinalDirection, oppositeDirection)
 import Game.Location (Location(..), directionTo, followDirection)
 import Game.Piece (Piece(..), chickenPiece, cornerCutPiece, crossPiece, idPiece, leftPiece, rightPiece)
@@ -128,9 +128,9 @@ addPathToBoard path = do
     extant <- use (_pieces <<< at loc)
     -- combining with an extant piece only understands leaf pieces; a nested
     -- board isn't supported here yet -- see `Game.Board.EvaluableBoard.Build.leafPiece`.
-    let extantLeaf = extant <#> \e -> case resumeBoard e.piece of
-          Right p -> { piece: p, rotation: e.rotation }
-          Left _ -> unsafeCrashWith "addPathToBoard: nested boards aren't supported yet"
+    let extantLeaf = extant <#> \e -> case e.piece of
+          Leaf p -> { piece: p, rotation: e.rotation }
+          Nested _ -> unsafeCrashWith "addPathToBoard: nested boards aren't supported yet"
     { piece, rotation } <- liftBoardError (lmap PathSegmentError (combineSegmentWithExtant segment extantLeaf))
     catchError (void $ removePieceNoUpdate loc) (\_ -> pure unit)
     addPieceNoUpdate loc piece rotation

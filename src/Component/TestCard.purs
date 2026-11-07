@@ -200,7 +200,6 @@ renderDiagram { instanceKey, goal, testCase } =
       -- side as an input, not the signal riding on it (that's the
       -- read-out's job); only an output wedge's colour carries a verdict.
       Input -> wedgePolygon pts [] [ SA.fill Colours.portOn ]
-      WormholeOut -> wedgePolygon pts [] [ SA.fill Colours.portOn ]
       _ -> case testCase.status of
         NotStarted -> pendingWedge dir pts
         InProgress -> wedgePolygon pts [ ClassName "test-diagram-wedge-flicker" ] []
@@ -308,12 +307,7 @@ renderReadout { base, goal, testCase } =
       Input ->
         readoutRow dirLabel "IN"
           [ HH.text (print (signalAt dir testCase.data.inputs)) ]
-      WormholeOut ->
-        readoutRow dirLabel "IN"
-          [ HH.text (print (signalAt dir testCase.data.inputs)) ]
       Output ->
-        readoutRow dirLabel "OUT" (outputValue print dir)
-      WormholeIn ->
         readoutRow dirLabel "OUT" (outputValue print dir)
       NoPort ->
         HH.text "" -- never reached: `lookupWhere hasPort` already dropped it

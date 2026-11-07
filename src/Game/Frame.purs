@@ -22,11 +22,10 @@ import Game.Location (Location)
 import Game.Signal (Signal)
 import Test.QuickCheck (class Arbitrary, arbitrary)
 
--- | The path of locations from the root down to a piece. Usually non-empty
--- | (every piece normally sits inside at least one board level), but `Board`
--- | itself can be a bare `Piece` with no enclosing board at all (`pureBoard`),
--- | so `Nil` has to be a legal address too -- that's what `compilePiece`
--- | gives it.
+-- | The path of locations from the root down to a piece, or to a board: `Nil`
+-- | is the root board itself, so a piece's index is never `Nil` (every piece
+-- | sits inside at least one board). A board side is addressed by the
+-- | board's index -- see `PortIndex`.
 type PieceIndex = List Location
 
 -- | One port of one piece, addressed globally.
@@ -167,9 +166,9 @@ instance TraversableWithIndex CardinalDirection Frame where
 -- |
 -- | Truncation is part of the contract, not the caller's job:
 -- |
--- | * `readFrame` is `zero` on every side whose port isn't `isReadable`
+-- | * `readFrame` is `zero` on every side whose port isn't `isInput`
 -- |   (including a side with no port at all).
--- | * `writeFrame` only changes sides whose port is `isWritable`; every other
+-- | * `writeFrame` only changes sides whose port is `isOutput`; every other
 -- |   side keeps the value it already had. (A non-writable slot can hold a
 -- |   value seeded from outside -- a board input, a wormhole tail -- and a
 -- |   piece's own write must not wipe it.)

@@ -13,7 +13,7 @@ import Data.Maybe (Maybe(..))
 import Data.Set as S
 import Effect.Class (class MonadEffect)
 import Effect.Exception (Error, error)
-import Game.Board (Board, BoardError(..), _pieces, addPiece, addPieceNoUpdate, decreaseSize, increaseSize, removePiece, resumeBoard, standardBoard, validBoardSize)
+import Game.Board (Board, Cell(..), BoardError(..), _pieces, addPiece, addPieceNoUpdate, decreaseSize, increaseSize, removePiece, standardBoard, validBoardSize)
 import Game.Direction as Direction
 import Game.Location (location)
 import Game.Piece (andPiece, getOutputDirs, idPiece, leftPiece)
@@ -65,9 +65,9 @@ tests = do
         --  updatePortsAround (location 0 0)
 
           use (_pieces <<< at (location 0 1)) >>= case _ of
-            Just info -> case resumeBoard info.piece of
-              Right p -> getOutputDirs p `shouldEqual` S.fromFoldable [ Direction.Up ]
-              Left _ -> throwError (error "expected a leaf piece!")
+            Just info -> case info.piece of
+              Leaf p -> getOutputDirs p `shouldEqual` S.fromFoldable [ Direction.Up ]
+              Nested _ -> throwError (error "expected a leaf piece!")
             Nothing -> throwError (error "couldn't find piece!")
 
       describe "removePiece" do

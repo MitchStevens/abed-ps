@@ -39,6 +39,7 @@ import Data.Foldable (for_, sequence_)
 import Data.FunctorWithIndex (mapWithIndex)
 import Data.List (List(..))
 import Data.Map as M
+import Data.Set as S
 import Data.Maybe (Maybe(..), fromMaybe)
 import Data.Traversable (for, traverse)
 import Data.Tuple (Tuple(..), fst)
@@ -94,7 +95,7 @@ portInfo netlist signals idx port
       Nothing -> { port, connected: false, signal: zero }
       Just slot ->
         { port
-        , connected: fromMaybe 0 (A.index netlist.netSize slot) > 1
+        , connected: S.member idx netlist.linked
         , signal: fromMaybe zero (A.index signals slot)
         }
 

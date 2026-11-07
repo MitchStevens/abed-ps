@@ -24,8 +24,8 @@ import Data.Map as M
 import Data.Either (Either(..))
 import Data.Maybe (Maybe(..), fromMaybe, maybe)
 import Data.Tuple (Tuple(..))
-import Game.Frame (Frame)
-import Game.Board (Board, RelativeEdge, _pieces, resumeBoard)
+import Game.Frame (Frame, PieceIndex)
+import Game.Board (Board, Cell(..), RelativeEdge, _pieces)
 import Game.Eval (Netlist, portInfo)
 import Game.Direction (CardinalDirection)
 import Game.Location (Location(..), location)
@@ -134,19 +134,20 @@ _portStates = prop (Proxy :: _ "portStates")
   supplies the pieces themselves and their `Rotation`s, which a `Netlist`
   doesn't keep.
 
-  A nested board can't be shown as a piece in this UI yet -- same
-  limitation as `Component.Board.Types.pieceInput` -- so only the root's own
-  leaf pieces are included.
+  `board` is the board found at `index` in the compiled tree (`Nil` for the
+  root), so a zoomed-in board's pieces read their signals from where they
+  really sit. A nested board can't be shown as a piece in this UI yet, so
+  only `board`'s own leaf pieces are included.
 -}
-boardInputs :: Netlist -> Board -> Array Signal -> Map Location Input
-boardInputs netlist board signals = M.mapMaybeWithKey toInput (view _pieces board)
+boardInputs :: Netlist -> PieceIndex -> Board -> Array Signal -> Map Location Input
+boardInputs netlist index board signals = M.mapMaybeWithKey toInput (view _pieces board)
   where
-  toInput :: Location -> { rotation :: Rotation, piece :: Board } -> Maybe Input
-  toInput loc { rotation, piece: cell } = case resumeBoard cell of
-    Left _ -> Nothing
-    Right piece -> Just
+  toInput :: Location -> { rotation :: Rotation, piece :: Cell } -> Maybe Input
+  toInput loc { rotation, piece: cell } = case cell of
+    Nested _ -> Nothing
+    Leaf piece -> Just
       { piece
       , location: loc
       , rotation
-      , portStates: mapWithIndex (\dir port -> portInfo netlist signals (Tuple (L.singleton loc) dir) port) (getPorts piece)
+      , portStates: mapWithIndex (\dir port -> portInfo netlist signals (Tuple (index <> L.singleton loc) dir) port) (getPorts piece)
       }

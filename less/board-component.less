@@ -1,11 +1,64 @@
 @import "fonts";
 
+@keyframes nested-board-fade-out {
+    0%, 40% { opacity: 1; }
+    100% { opacity: 0; }
+}
+
+@keyframes board-grid-fade-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
 .board-component {
     aspect-ratio: 1 / 1;
-    border-spacing: 0px;
-    display: grid;
-    transition: 200ms;
-//    overflow: auto;
+    // the board's window onto .board-grid while zoomed in. `clip` rather than
+    // `hidden`, as a `hidden` box can still be scrolled by focusing a piece
+    // that's outside it.
+    overflow: clip;
+
+    // the camera: a zoom animates this, and everything inside moves with it.
+    // Its duration is `Component.Board.zoomDuration` too.
+    & .board-zoom {
+        position: relative;
+        transform-origin: 0 0;
+        transition: transform 200ms;
+    }
+
+    & .board-grid {
+        aspect-ratio: 1 / 1;
+        border-spacing: 0px;
+        display: grid;
+        position: relative;
+        z-index: 1;
+        transition: 200ms;
+
+        // just zoomed into
+        &.fade-in {
+            animation: board-grid-fade-in 500ms ease-out both;
+        }
+    }
+
+    // the board around a zoomed-in one, behind its grid -- see
+    // `Component.Board.Render.renderContext`
+    & .board-context {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        z-index: 0;
+        display: grid;
+        transform-origin: 0 0;
+        // keeps up with the grid's own resize transition
+        transition: transform 200ms;
+        pointer-events: none;
+
+        // already on screen when the context appears, so don't fade them in
+        .piece-component {
+            animation: none;
+        }
+    }
 
     & .piece {
         display: block;
@@ -33,6 +86,40 @@
         }
         &[data-location$=",0)"] {
             border-top: lightgray 2px solid;
+        }
+
+        // a slot holding a board of its own -- scroll up on it to zoom in
+        .nested-board {
+            transition: opacity 200ms;
+            opacity: 0.5;
+            &.zooming { opacity: 1; }
+            // the preview left under a board just zoomed into: holds while
+            // the grid fades in over it, then goes (see `.board-grid.fade-in`)
+            &.fading-out {
+                transition: none;
+                animation: nested-board-fade-out 500ms ease-in both;
+            }
+            box-sizing: border-box;
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            display: grid;
+
+            .nested-piece {
+                position: relative;
+                min-width: 0;
+                min-height: 0;
+                overflow: hidden;
+            }
+            // a board nested deeper still has no preview, so it keeps an
+            // outline to show something is there
+            .nested-board {
+                opacity: 1;
+                width: 80%;
+                height: 80%;
+                margin: 10%;
+                border: lightgray 1px dashed;
+            }
         }
 
         .location-text {

@@ -38,7 +38,7 @@ import Effect.Aff as Aff
 import Effect.Aff.Class (class MonadAff, liftAff)
 import Effect.Class (class MonadEffect, liftEffect)
 import Effect.Class.Console (log)
-import Game.Board (Board(..), _size, firstEmptyLocation, getBoardPorts, standardBoard)
+import Game.Board (Board(..), _focus, _size, firstEmptyLocation, getBoardPorts, rebuild, standardBoard)
 import Game.Eval (compile)
 import Game.Direction (CardinalDirection)
 import Game.Level (LevelId, Level)
@@ -148,13 +148,15 @@ component = H.mkComponent { eval , initialState , render }
         updateStore (RequestDemonstration d)
 
     BoardOutput boardOutput -> case boardOutput of
-      Board.NewBoardState board -> do
+      Board.NewBoardState zoomed -> do
         -- the side bar updates the puzzle completion status, if the board is ready to be
-        -- shown, trigger to test is on the sidebar
+        -- shown, trigger to test is on the sidebar. Completion and ports are
+        -- the real board's; the size slider is for the board being looked at.
         problem <- H.gets (_.level.problem)
+        let board = rebuild zoomed
         modify_ $ _
           { completionStatus = isReadyForTesting problem board (compile board)
-          , boardSize = board ^. _size
+          , boardSize = zoomed ^. _focus <<< _size
           , boardPorts = evalState getBoardPorts board }
 
     SidebarOutput sidebarOutput -> case sidebarOutput of
@@ -171,7 +173,7 @@ component = H.mkComponent { eval , initialState , render }
           Nothing -> pure unit -- do something here?
       Sidebar.ButtonOutput button -> case button of
         Sidebar.AddPiece pieceId -> do
-          H.request Board.slot unit Board.GetBoard >>= traverse_ \board -> do
+          H.request Board.slot unit Board.GetFocus >>= traverse_ \board -> do
             for_ (firstEmptyLocation board) \loc ->
               H.request Board.slot unit (Board.AddPiece loc (pieceLookup pieceId))
         Sidebar.BackToLevelSelect  ->
@@ -206,7 +208,7 @@ component = H.mkComponent { eval , initialState , render }
 
     SelectorOutput output -> case output of
       Selector.AddPiece pieceId -> 
-        H.request Board.slot unit Board.GetBoard >>= traverse_ \board -> do
+        H.request Board.slot unit Board.GetFocus >>= traverse_ \board -> do
           for_ (firstEmptyLocation board) \loc ->
             H.request Board.slot unit (Board.AddPiece loc (pieceLookup pieceId))
       Selector.PieceDropped pieceId -> do

@@ -31,7 +31,7 @@ import Effect.Aff.Class (class MonadAff)
 import Effect.Class (class MonadEffect)
 import Game.Board.Edge (AbsoluteEdge, RelativeEdge(..), absolute, adjacent, adjacentAbsoluteEdge, fromAbsoluteEdge, getPortOnEdge, relative)
 import Game.Board.Query (isInsideBoard)
-import Game.Board.Types (Board, BoardF(BoardF), BoardError(..), _boardF, _pieces, _size, mkBoard, pureBoard, resumeBoard)
+import Game.Board.Types (Board, Cell(..), BoardF(BoardF), BoardError(..), _boardF, _pieces, _size, mkBoard)
 import Game.Direction (allDirections)
 import Game.Direction as Direction
 import Game.Location (Location(..), location)
@@ -47,14 +47,13 @@ emptyBoard n =
     else Left $ InvalidBoardInitialisation n
 
 -- should return either boarderror
-getPieceInfo :: forall m. MonadState Board m => MonadError BoardError m => Location -> m { rotation :: Rotation, piece :: Board }
+getPieceInfo :: forall m. MonadState Board m => MonadError BoardError m => Location -> m { rotation :: Rotation, piece :: Cell }
 getPieceInfo loc =
   use (_pieces <<< at loc) >>=
     maybe (throwError (LocationNotOccupied loc)) pure
 
--- a location's piece is generally a whole `Board` (it may be a nested
--- board rather than a leaf) -- see `Game.Board.Types._pieces`.
-getPiece :: forall m. MonadState Board m => MonadError BoardError m => Location -> m Board
+-- a location's contents: a leaf piece or a nested board -- see `Game.Board.Types.Cell`.
+getPiece :: forall m. MonadState Board m => MonadError BoardError m => Location -> m Cell
 getPiece loc = (_.piece) <$> getPieceInfo loc
 
 {- 
@@ -78,9 +77,9 @@ adaptRelEdge absEdge port = do
   { piece } <- MaybeT $ use (_pieces <<< at loc)
   -- adapting only makes sense for a leaf piece; a nested board has no
   -- adaptable port yet, so leave it alone.
-  case resumeBoard piece of
-    Right p -> _pieces <<< ix loc <<< prop (Proxy :: Proxy "piece") .= pureBoard (adapt dir port p)
-    Left _ -> MaybeT $ pure Nothing
+  case piece of
+    Leaf p -> _pieces <<< ix loc <<< prop (Proxy :: Proxy "piece") .= Leaf (adapt dir port p)
+    Nested _ -> MaybeT $ pure Nothing
 
 adaptPortsAround :: forall m. MonadState Board m => Location -> m Unit
 adaptPortsAround loc =
@@ -96,7 +95,7 @@ addPieceNoUpdate loc piece rotation = do
   checkInsideBoard loc
   pieceInfo <- use (_pieces <<< at loc)
   case pieceInfo of
-    Nothing -> _pieces <<< at loc .= Just { piece: pureBoard piece, rotation }
+    Nothing -> _pieces <<< at loc .= Just { piece: Leaf piece, rotation }
     Just _ -> throwError (LocationOccupied loc)
 
 addPiece :: forall m. MonadError BoardError m => MonadState Board m => Location -> Piece -> m Unit
@@ -104,7 +103,7 @@ addPiece loc piece = do
    addPieceNoUpdate loc piece (rotation 0)
    adaptPortsAround loc
 
-removePieceNoUpdate :: forall m. MonadError BoardError m => MonadState Board m => Location -> m { rotation :: Rotation, piece :: Board }
+removePieceNoUpdate :: forall m. MonadError BoardError m => MonadState Board m => Location -> m { rotation :: Rotation, piece :: Cell }
 removePieceNoUpdate loc = do
   checkInsideBoard loc
   maybePieceInfo <- use (_pieces <<< at loc)
@@ -114,7 +113,7 @@ removePieceNoUpdate loc = do
       _pieces <<< at loc .= Nothing
       pure pieceInfo
 
-removePiece :: forall m. MonadError BoardError m => MonadState Board m => Location -> m { rotation :: Rotation, piece :: Board }
+removePiece :: forall m. MonadError BoardError m => MonadState Board m => Location -> m { rotation :: Rotation, piece :: Cell }
 removePiece loc = do
   piece <- removePieceNoUpdate loc
   adaptPortsAround loc
@@ -122,7 +121,7 @@ removePiece loc = do
 
 
 movePiece :: forall m. MonadError BoardError m => MonadState Board m
-  => Location -> Location -> m { rotation :: Rotation, piece :: Board }
+  => Location -> Location -> m { rotation :: Rotation, piece :: Cell }
 movePiece src dst = do
   use (_pieces <<< at src) >>= case _ of
     Just pieceInfoSrc -> do
@@ -138,7 +137,7 @@ movePiece src dst = do
       throwError (LocationNotOccupied src)
 
 pieceDropped :: forall m. MonadState Board m => MonadError BoardError m
-  => Location -> Maybe Location -> m { rotation :: Rotation, piece :: Board }
+  => Location -> Maybe Location -> m { rotation :: Rotation, piece :: Cell }
 pieceDropped src maybeDst =
   -- when a piece is dropped, it can be dropped over a new location or outside the game board 
   case maybeDst of

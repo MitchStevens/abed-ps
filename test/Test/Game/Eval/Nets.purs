@@ -9,7 +9,7 @@ import Data.List as L
 import Data.Map as M
 import Data.Maybe (Maybe(..))
 import Data.Tuple (Tuple(..))
-import Game.Board.Types (Board, BoardError(..), BoardF(BoardF), mkBoard, pureBoard)
+import Game.Board.Types (Board, Cell(..), BoardError(..), BoardF(BoardF), mkBoard)
 import Game.Capacity (Capacity(..))
 import Game.Direction as Direction
 import Game.Eval.Flatten (Flat, flatten)
@@ -43,7 +43,7 @@ wireLoop :: Board
 wireLoop = mkBoard $ BoardF
   { size: 1
   , ports: leftInRightOut OneBit OneBit
-  , pieces: M.singleton (location 0 0) (cell (pureBoard idPiece) (rotation 0))
+  , pieces: M.singleton (location 0 0) (cell (Leaf idPiece) (rotation 0))
   , wormhole: Just { wormholeIn: Direction.Right, wormholeOut: Direction.Left }
   }
 
@@ -70,7 +70,7 @@ spec = describe "Game.Eval.Nets" do
     m = location 1 1
     r = location 2 1
     o = location 0 0
-    piece p = cell (pureBoard p) (rotation 0)
+    piece p = cell (Leaf p) (rotation 0)
     at loc = L.singleton loc
 
   describe "a row of pieces" do

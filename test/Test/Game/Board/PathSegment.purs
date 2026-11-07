@@ -17,7 +17,7 @@ import Data.Maybe (Maybe(..))
 import Data.Tuple (Tuple(..))
 import Game.Board.PathSegment (PathSegment(..), PathSegmentError(..), combine, combineSegmentWithExtant, fromPiece, singlePath, toPiece)
 import Game.Direction as Direction
-import Game.Piece (andPiece, chickenPiece, cornerCutPiece, crossPiece, idPiece, rightPiece)
+import Game.Piece (andPiece, chickenPiece, cornerCutPiece, crossPiece, idPiece, reverseChickenPiece, rightPiece)
 import Game.Rotation (rotation)
 import Test.Spec (Spec, describe, describeOnly, focus, it)
 import Test.Spec.Assertions (shouldEqual, shouldReturn)
@@ -37,6 +37,8 @@ rightToLeft :: PathSegment
 rightToLeft = PathSegment $ M.singleton Direction.Right Direction.Left
 rightToUp :: PathSegment
 rightToUp = PathSegment $ M.singleton Direction.Right Direction.Up
+rightToDown :: PathSegment
+rightToDown = PathSegment $ M.singleton Direction.Right Direction.Down
 downToUp    :: PathSegment
 downToUp    = PathSegment $ M.singleton Direction.Down Direction.Up
 downToRight :: PathSegment
@@ -98,7 +100,8 @@ spec = do
           map toPiece (combine leftToDown rightToUp) `shouldEqual`
             pure { piece: chickenPiece, rotation: rotation 0}
         it "reverseChickenPiece" do
-          pure unit
+          map toPiece (combine leftToUp rightToDown) `shouldEqual`
+            pure { piece: reverseChickenPiece, rotation: rotation 0}
 
     describe "fromPiece" do
       it "should create path segments for pieces that are simplifiable" do
@@ -108,6 +111,9 @@ spec = do
           `shouldEqual` Right (upToDown)
         fromPiece { piece: rightPiece, rotation: rotation 3} 
           `shouldEqual` Right (downToRight)
+      it "should route reverseChickenPiece the way toPiece expects" do
+        fromPiece { piece: reverseChickenPiece, rotation: rotation 0 }
+          `shouldEqual` combine leftToUp rightToDown
       it "should fail to create path segments for non-simplifiable pieces" do
         fromPiece { piece: andPiece, rotation: rotation 0 }
           `shouldEqual` Left (NoSimplificationForPiece andPiece)

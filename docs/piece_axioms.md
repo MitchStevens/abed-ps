@@ -149,7 +149,7 @@ at port `d`.
 `getPortType (ports ! d) == getPortType port` for a real `port`; `adapt d noPort p`
 removes port `d`.
 
-**Open:** the wormhole cases. `Game.Piece.WirePiece` currently rejects
+**Open:** the wormhole cases. `Game.Piece.Catalogue.Wire` currently rejects
 `adapt _ port` outright when `port` is a `WormholeIn`/`WormholeOut`. D6 should permit
 "adapt to a wormhole type is always `Nothing`" as a legal implementation, but
 whether *some* piece should accept it, and how that interacts with A6 (pairs),

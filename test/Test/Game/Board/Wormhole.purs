@@ -14,7 +14,7 @@ import Data.Set as S
 import Data.Tuple (Tuple(..))
 import Data.Either (Either(..))
 import Data.List as L
-import Game.Board (Board, BoardF(BoardF), mkBoard, pureBoard)
+import Game.Board (Board, Cell(..), BoardF(BoardF), mkBoard)
 import Game.Eval (Netlist, compile, initialSignals, portInfo, run, step)
 import Game.Capacity (Capacity(..))
 import Game.Direction as Direction
@@ -73,7 +73,7 @@ counterBoard = mkBoard $ BoardF
   , wormhole: Just { wormholeIn: Direction.Up, wormholeOut: Direction.Down }
   }
   where
-  place x y r piece = Tuple (location x y) { piece: pureBoard piece, rotation: rotation r }
+  place x y r piece = Tuple (location x y) { piece: Leaf piece, rotation: rotation r }
   wire outputs = mkWirePiece { capacity: EightBit, outputs: S.fromFoldable outputs }
 
 {-
@@ -119,7 +119,7 @@ risingEdgeBoard = mkBoard $ BoardF
   , wormhole: Just { wormholeIn: Direction.Right, wormholeOut: Direction.Down }
   }
   where
-  place x y r piece = Tuple (location x y) { piece: pureBoard piece, rotation: rotation r }
+  place x y r piece = Tuple (location x y) { piece: Leaf piece, rotation: rotation r }
 
 -- | The board's outputs on each tick, driving its input sides with one `Frame`
 -- | per tick, from empty wormholes.
@@ -160,7 +160,7 @@ spec = describe "Boards with a wormhole" do
       parentBoard = mkBoard $ BoardF
         { size: 1
         , ports: pure noPort
-        , pieces: M.singleton parentAt { piece: counterBoard, rotation: rotation 0 }
+        , pieces: M.singleton parentAt { piece: Nested counterBoard, rotation: rotation 0 }
         , wormhole: Nothing
         }
       netlist = compileOrCrash parentBoard

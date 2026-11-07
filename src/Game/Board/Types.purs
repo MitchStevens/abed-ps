@@ -3,12 +3,11 @@ module Game.Board.Types where
 import Prelude
 
 import Control.Monad.Except (ExceptT(..), runExceptT)
-import Control.Monad.Free (Free, resume, wrap)
 import Control.Monad.State (StateT(..), runStateT)
 import Data.Array ((..))
 import Data.Array as A
 import Data.Either (Either(..))
-import Data.Eq (class Eq1)
+import Data.Eq (class Eq1, eq1)
 import Data.Foldable (foldMap, intercalate, maximumBy, surround)
 import Data.Function (on)
 import Data.Group (ginverse)
@@ -33,17 +32,16 @@ import Game.Direction as Direction
 import Game.Frame (Frame, PortIndex)
 import Game.Frame as Frame
 import Game.Location (Location(..), location, taxicabDistance)
-import Game.Piece (Piece(..))
+import Game.Piece (Piece(..), name)
 import Game.Port (Port, hasPort, isInput, noPort)
 import Game.Rotation (Rotation)
-import Partial.Unsafe (unsafeCrashWith)
 import Type.Proxy (Proxy(..))
 
 -- | `wormholeIn` is always the mouth (the side that consumes a signal and
 -- | buffers it) and `wormholeOut` is always the tail (the side that emits
 -- | the buffered signal one tick later, so its value depends on whatever
--- | `wormholeIn` last consumed). Same convention as the `WormholeIn`/
--- | `WormholeOut` port types and `Game.Piece.Types.getWormhole`.
+-- | `wormholeIn` last consumed). Only boards have wormholes: the mouth is
+-- | declared as an `Output` side and the tail as an `Input` one.
 -- |
 -- | Parameterized so `Game.Board.Compiled` can reuse this same named shape
 -- | once each side is resolved from a bare `CardinalDirection` down to a
@@ -66,36 +64,36 @@ instance Eq1 BoardF where
   eq1 (BoardF b1) (BoardF b2) =
     b1.size == b2.size && b1.ports == b2.ports && b1.pieces == b2.pieces && b1.wormhole == b2.wormhole
 
--- `Board` is a newtype (rather than a bare `type Board = Free BoardF Piece`
--- alias) so instances like `Eq`/`Show` can be attached to it: `Free`'s own
--- head type constructor lives in another module, so an instance on the bare
--- alias would be an orphan.
-newtype Board = Board (Free BoardF Piece)
+-- | A board: always at least one `BoardF` layer, never a bare `Piece` -- a
+-- | piece isn't a board, only something a board can hold (see `Cell`).
+newtype Board = Board (BoardF Cell)
+
+-- | What a board's slot holds: a leaf `Piece`, or a nested `Board`.
+data Cell
+  = Leaf Piece
+  | Nested Board
 
 derive instance Newtype Board _
-derive instance Eq Board
+derive instance Eq Cell
+
+instance Eq Board where
+  eq (Board x) (Board y) = eq1 x y
 
 instance Show Board where
-  show board = case resumeBoard board of
-    Right p -> "(Pure " <> show p <> ")"
-    Left (BoardF b) -> "(BoardF " <> show b <> ")"
+  show board = "(BoardF " <> show b <> ")"
+    where BoardF b = view _boardF board
 
--- like `Control.Monad.Free.resume`, but unwraps/rewraps the `Board` newtype
--- at each nested piece slot so callers keep working with `Board` throughout,
--- rather than the raw `Free BoardF Piece` representation underneath.
-resumeBoard :: Board -> Either (BoardF Board) Piece
-resumeBoard (Board free) = case resume free of
-  Right p -> Right p
-  Left boardF -> Left (map Board boardF)
+instance Show Cell where
+  show = case _ of
+    Leaf p -> "(Leaf " <> show p <> ")"
+    Nested board -> "(Nested " <> show board <> ")"
 
-mkBoard :: BoardF Board -> Board
-mkBoard boardF = Board (wrap (map (\(Board free) -> free) boardF))
+mkBoard :: BoardF Cell -> Board
+mkBoard = Board
 
--- a leaf piece, lifted into `Board` -- `Board` is a concrete type now (not
--- `Free BoardF Piece` itself), so `pure` from `Free`'s `Applicative` isn't
--- directly available on it.
-pureBoard :: Piece -> Board
-pureBoard = Board <<< pure
+-- | The board's top layer.
+unBoard :: Board -> BoardF Cell
+unBoard (Board boardF) = boardF
 
 data BoardError
   = LocationOccupied Location
@@ -122,16 +120,8 @@ instance Show BoardError where
     MultipleWriters ports -> "Ports " <> show ports <> " all drive the same signal"
     Other other -> "Other error: " <>  other
 
--- a `Board`'s root is always a `BoardF`, never a bare `Piece` -- same
--- invariant `Evaluable`/`Cell` enforce in `Game.Board.Compiled`, just not
--- pushed into the type itself here, so this crashes on the impossible case.
-_boardF :: Lens' Board (BoardF Board)
-_boardF = lens getter setter
-  where
-  getter board = case resumeBoard board of
-    Left boardF -> boardF
-    Right _ -> unsafeCrashWith "Board: expected a BoardF at the root, found a bare Piece"
-  setter _ boardF = mkBoard boardF
+_boardF :: Lens' Board (BoardF Cell)
+_boardF = lens unBoard (\_ boardF -> mkBoard boardF)
 
 _size :: Lens' Board Int
 _size = _boardF <<< _Newtype <<< prop (Proxy :: _ "size")
@@ -139,7 +129,7 @@ _size = _boardF <<< _Newtype <<< prop (Proxy :: _ "size")
 _ports :: Lens' Board (Frame Port)
 _ports = _boardF <<< _Newtype <<< prop (Proxy :: _ "ports")
 
-_pieces :: Lens' Board (Map Location { rotation :: Rotation, piece :: Board })
+_pieces :: Lens' Board (Map Location { rotation :: Rotation, piece :: Cell })
 _pieces = _boardF <<< _Newtype <<< prop (Proxy :: _ "pieces")
 
 standardBoard :: Board
@@ -176,10 +166,10 @@ printBoard board = "SHOW BOARD\n" <> (foldMap (_ <> "\n") $ interleave colEdges 
     BoardF b = view _boardF board
 
     -- a leaf piece's own ports; a nested board has none to show here yet.
-    portsOf :: Board -> Frame Port
-    portsOf cell = case resumeBoard cell of
-      Right (Piece p) -> p.ports
-      Left _ -> pure noPort
+    portsOf :: Cell -> Frame Port
+    portsOf cell = case cell of
+      Leaf (Piece p) -> p.ports
+      Nested _ -> pure noPort
 
     rows = L.range 0 (b.size - 1) <#> \x -> printRow x
     colEdges = L.range 0 b.size <#> \y ->
@@ -198,9 +188,9 @@ printBoard board = "SHOW BOARD\n" <> (foldMap (_ <> "\n") $ interleave colEdges 
           in maybe " " (printPort dir) (Frame.lookupWhere hasPort dir' ports)
 
         center = case (_.piece) <$> M.lookup loc b.pieces of
-          Just cell -> case resumeBoard cell of
-            Right (Piece p) -> String.take 3 (show p.name)
-            Left _ -> "brd"
+          Just cell -> case cell of
+            Leaf piece -> String.take 3 (show (name piece))
+            Nested _ -> "brd"
           Nothing -> printLocation loc
 
     printRow :: Int -> String

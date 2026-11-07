@@ -8,7 +8,7 @@ import Data.List as L
 import Data.Map as M
 import Data.Maybe (Maybe(..), fromMaybe)
 import Data.Tuple (Tuple(..))
-import Game.Board.Types (Board, BoardError(..), pureBoard)
+import Game.Board.Types (Board, Cell(..), BoardError(..))
 import Game.Capacity (Capacity(..))
 import Game.Direction (CardinalDirection)
 import Game.Direction as Direction
@@ -18,9 +18,8 @@ import Game.Eval.Nets (Nets, nets, scratchSlot, zeroSlot)
 import Game.Frame (PieceIndex, PortIndex)
 import Game.Frame as Frame
 import Game.Location (Location, location)
-import Game.Piece (Piece, PieceId(..), idPiece, mkPieceNoAdapt, notPiece)
+import Game.Piece (Piece(..), idPiece, notPiece)
 import Game.Piece.Operation as Operation
-import Game.Piece.Wormhole (counter)
 import Game.Port (inputPort, noPort, outputPort)
 import Game.Rotation (rotation)
 import Test.Game.Eval.Flatten (board, cell, oscillator, port)
@@ -46,37 +45,27 @@ slotOf :: Nets -> PortIndex -> Int
 slotOf ns idx = fromMaybe (-1) (M.lookup idx ns.portSlot)
 
 -- | A gate (not a wire) reading `inputDir` and writing `outputDir`.
-turnPiece :: String -> CardinalDirection -> CardinalDirection -> Piece
-turnPiece name inputDir outputDir = mkPieceNoAdapt
-  { name: PieceId name
-  , op: Operation.Not
+turnPiece :: CardinalDirection -> CardinalDirection -> Piece
+turnPiece inputDir outputDir = Piece
+  { op: Operation.Not
   , ports: Frame.fromFoldable noPort [ Tuple inputDir (inputPort OneBit), Tuple outputDir (outputPort OneBit) ]
-  , complexity: mempty
-  , shouldRipple: false
-  , updateCapacity: \_ _ -> Nothing
-  , isSimplifiable: Nothing
   }
 
 -- | `turnPiece` with `Connection` instead: a wire round the same corner.
-turnWire :: String -> CardinalDirection -> CardinalDirection -> Piece
-turnWire name inputDir outputDir = mkPieceNoAdapt
-  { name: PieceId name
-  , op: Operation.Connection (M.singleton outputDir inputDir)
+turnWire :: CardinalDirection -> CardinalDirection -> Piece
+turnWire inputDir outputDir = Piece
+  { op: Operation.Connection (M.singleton outputDir inputDir)
   , ports: Frame.fromFoldable noPort [ Tuple inputDir (inputPort OneBit), Tuple outputDir (outputPort OneBit) ]
-  , complexity: mempty
-  , shouldRipple: false
-  , updateCapacity: \_ _ -> Nothing
-  , isSimplifiable: Nothing
   }
 
 -- | Four corners in the top-left of a 3x3 board, each feeding the next
 -- | clockwise.
-ring :: (String -> CardinalDirection -> CardinalDirection -> Piece) -> Board
+ring :: (CardinalDirection -> CardinalDirection -> Piece) -> Board
 ring mk = board 3
-  [ Tuple (location 0 0) (cell (pureBoard (mk "a" Direction.Down Direction.Right)) (rotation 0))
-  , Tuple (location 1 0) (cell (pureBoard (mk "b" Direction.Left Direction.Down)) (rotation 0))
-  , Tuple (location 1 1) (cell (pureBoard (mk "c" Direction.Up Direction.Left)) (rotation 0))
-  , Tuple (location 0 1) (cell (pureBoard (mk "d" Direction.Right Direction.Up)) (rotation 0))
+  [ Tuple (location 0 0) (cell (Leaf (mk Direction.Down Direction.Right)) (rotation 0))
+  , Tuple (location 1 0) (cell (Leaf (mk Direction.Left Direction.Down)) (rotation 0))
+  , Tuple (location 1 1) (cell (Leaf (mk Direction.Up Direction.Left)) (rotation 0))
+  , Tuple (location 0 1) (cell (Leaf (mk Direction.Right Direction.Up)) (rotation 0))
   ]
 
 a :: Location
@@ -89,8 +78,8 @@ spec = describe "Game.Eval.Gates" do
     m = location 1 1
     r = location 2 1
     o = location 0 0
-    piece p = cell (pureBoard p) (rotation 0)
-    turned p = cell (pureBoard p) (rotation 2)
+    piece p = cell (Leaf p) (rotation 0)
+    turned p = cell (Leaf p) (rotation 2)
     at loc = L.singleton loc
 
   describe "gates" do
@@ -101,16 +90,6 @@ spec = describe "Game.Eval.Gates" do
         map _.inputs gs `shouldEqual` [ Frame.singleton zeroSlot Direction.Left (slotOf ns (port Nil Direction.Left)) ]
       it "writes each writable side's net, and scratch everywhere else" do
         map _.outputs gs `shouldEqual` [ Frame.singleton scratchSlot Direction.Right (slotOf ns (port Nil Direction.Right)) ]
-
-    withGates (board 3 [ Tuple o (piece counter) ]) \{ ns, gs } -> do
-      it "reads a piece wormhole's tail, and writes its mouth" do
-        map _.inputs gs `shouldEqual` [ Frame.singleton zeroSlot Direction.Down (slotOf ns (port (at o) Direction.Down)) ]
-        map _.outputs gs `shouldEqual`
-          [ Frame.fromFoldable scratchSlot
-              [ Tuple Direction.Up (slotOf ns (port (at o) Direction.Up))
-              , Tuple Direction.Left (slotOf ns (port (at o) Direction.Left))
-              ]
-          ]
 
   describe "orderGates" do
     it "orders an empty board" do
@@ -139,9 +118,6 @@ spec = describe "Game.Eval.Gates" do
 
     it "accepts feedback through a board wormhole" do
       orderOf oscillator `shouldEqual` Right [ at o ]
-
-    it "accepts feedback through a piece wormhole" do
-      orderOf (board 3 [ Tuple o (piece counter) ]) `shouldEqual` Right [ at o ]
 
     it "accepts a gate with nothing at the declared sides" do
       orderOf (board 3 [ Tuple m (piece notPiece) ]) `shouldEqual` Right [ at m ]

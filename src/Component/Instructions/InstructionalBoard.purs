@@ -14,7 +14,7 @@ import Data.Maybe (Maybe(..))
 import Data.Set as S
 import Game.Frame as Frame
 import Data.Tuple (Tuple(..), fst)
-import Game.Board (Board, firstEmptyLocation, standardBoard, resumeBoard, _pieces)
+import Game.Board (Board, Cell(..), firstEmptyLocation, standardBoard, _pieces)
 import Game.Direction (allDirections)
 import Game.Location (Location, followDirection)
 import Game.Piece (Piece, PieceId, getPorts, isWirePiece, pieceLookup)
@@ -99,7 +99,7 @@ component = H.mkComponent { eval, initialState, render }
 
     SelectorOutput output -> case output of
       Selector.AddPiece pieceId ->
-        H.request Board.slot unit Board.GetBoard >>= traverse_ \board ->
+        H.request Board.slot unit Board.GetFocus >>= traverse_ \board ->
           for_ (firstEmptyLocation board) \loc ->
             H.request Board.slot unit (Board.AddPiece loc (pieceLookup pieceId))
       Selector.PieceDropped pieceId -> do
@@ -173,8 +173,8 @@ wirePieceLocations :: Board -> Array (Tuple Location Piece)
 wirePieceLocations board =
   A.mapMaybe asWireLocation (M.toUnfoldable (view _pieces board))
   where
-  asWireLocation (Tuple loc info) = case resumeBoard info.piece of
-    Right p | isWirePiece p -> Just (Tuple loc p)
+  asWireLocation (Tuple loc info) = case info.piece of
+    Leaf p | isWirePiece p -> Just (Tuple loc p)
     _ -> Nothing
 
 madeAWire :: Objective

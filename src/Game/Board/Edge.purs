@@ -7,14 +7,15 @@ import Control.Monad.Maybe.Trans (MaybeT(..))
 import Control.Monad.State (class MonadState)
 import Data.Either (Either(..))
 import Data.Group (ginverse)
-import Data.Lens (use)
+import Data.Lens (use, view)
 import Data.Lens.At (at)
 import Data.Maybe (Maybe(..))
 import Game.Board.Edge.Base
-import Game.Board.Types (Board, _pieces, resumeBoard)
+import Game.Board.Types (Board, Cell(..), _pieces, _ports)
+import Game.Frame as Frame
 import Game.Direction (rotateDirection)
 import Game.Piece (getPort)
-import Game.Port (Port, portMatches)
+import Game.Port (Port, hasPort, portMatches)
 
 {-
   toAbsoluteEdge >=> 
@@ -51,6 +52,9 @@ instance Edge RelativeEdge where
     pure $ relative loc (rotateDirection dir (ginverse rotation))
   getPortOnEdge (Relative { loc, dir }) = do
     { piece } <- MaybeT $ use (_pieces <<< at loc)
-    MaybeT $ pure case resumeBoard piece of
-      Right p -> getPort p dir
-      Left _ -> Nothing
+    MaybeT $ pure case piece of
+      Leaf p -> getPort p dir
+      -- a sub-board's ports are its sides
+      Nested board ->
+        let port = Frame.index dir (view _ports board)
+        in if hasPort port then Just port else Nothing

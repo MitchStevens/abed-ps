@@ -20,7 +20,7 @@ import Debug (trace)
 import Effect.Aff (Aff, Error, error)
 import Effect.Aff.Class (class MonadAff)
 import Effect.Class.Console (log)
-import Game.Board (Board, BoardF(BoardF), RelativeEdge, absolute, addPath, addPiece, adjacent, execBoardM, fromAbsoluteEdge, getBoardPortEdge, getPortOnEdge, increaseSize, mkBoard, pureBoard, relative, rotatePieceBy, standardBoard, toAbsoluteEdge)
+import Game.Board (Board, Cell(..), BoardF(BoardF), RelativeEdge, absolute, addPath, addPiece, adjacent, execBoardM, fromAbsoluteEdge, getBoardPortEdge, getPortOnEdge, increaseSize, mkBoard, relative, rotatePieceBy, standardBoard, toAbsoluteEdge)
 import Game.Capacity (Capacity(..))
 import Game.Direction (CardinalDirection, allDirections)
 import Game.Direction as Direction
@@ -43,10 +43,10 @@ testBoard = mkBoard $ BoardF
   { size: 3
   , ports: pure noPort
   , pieces: M.fromFoldable
-    [ Tuple (location 0 1) { piece: pureBoard notPiece, rotation: rotation 0 }
-    , Tuple (location 2 1) { piece: pureBoard notPiece, rotation: rotation 0 }
-    , Tuple (location 1 0) { piece: pureBoard notPiece, rotation: rotation 1 }
-    , Tuple (location 1 1) { piece: pureBoard andPiece, rotation: rotation 0 }
+    [ Tuple (location 0 1) { piece: Leaf notPiece, rotation: rotation 0 }
+    , Tuple (location 2 1) { piece: Leaf notPiece, rotation: rotation 0 }
+    , Tuple (location 1 0) { piece: Leaf notPiece, rotation: rotation 1 }
+    , Tuple (location 1 1) { piece: Leaf andPiece, rotation: rotation 0 }
     ]
   , wormhole: Nothing
   }

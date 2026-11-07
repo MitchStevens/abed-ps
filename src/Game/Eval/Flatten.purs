@@ -1,7 +1,7 @@
 {-
   Step 1 of compiling a `Board` to a netlist: erase the nesting.
 
-  `flatten` walks the `Free BoardF` once, top-down, and reports everything
+  `flatten` walks the board's tree of `BoardF` layers once, top-down, and reports everything
   later passes need in terms of global `PortIndex`es only -- no `Location`
   arithmetic, rotations or nested boards survive past this module:
 
@@ -14,9 +14,8 @@
       A nested board's sides are real `PortIndex`es too, so a signal crossing
       into a nested board is two links: outer neighbour -> board side, board
       side -> inner piece. Union-find over `links` (step 2) gives the nets.
-    - `registers`: one-tick delays, mouth -> tail. Both a board's own
-      `wormhole` and a leaf piece's `WormholeIn`/`WormholeOut` pair end up
-      here, and look identical from now on.
+    - `registers`: one-tick delays, mouth -> tail: one per board `wormhole`.
+      Only boards have wormholes; pieces are pure.
     - `boundary`: the root's harness-facing ports, each addressed `(Nil, side)`.
 
   A board side attaches to the piece at the middle of that edge -- the same
@@ -49,16 +48,16 @@ import Data.Group (ginverse)
 import Data.List (List(..))
 import Data.List as L
 import Data.Map as M
-import Data.Maybe (Maybe(..), maybe)
+import Data.Maybe (Maybe(..))
 import Data.TraversableWithIndex (traverseWithIndex)
 import Data.Tuple (Tuple(..))
-import Game.Board.Types (Board, BoardError(..), BoardF(..), resumeBoard)
+import Game.Board.Types (Board, Cell(..), BoardError(..), BoardF(..), unBoard)
 import Game.Direction (CardinalDirection, oppositeDirection, rotateDirection)
 import Game.Direction as Direction
 import Game.Frame (Frame, PieceIndex, PortIndex)
 import Game.Frame as Frame
 import Game.Location (Location, followDirection, location)
-import Game.Piece (Piece, getPorts, getWormhole)
+import Game.Piece (Piece, getPorts)
 import Game.Port (Port, hasPort, isOutput, noPort, portMatches)
 import Game.Rotation (Rotation)
 
@@ -93,20 +92,12 @@ type Flat =
   }
 
 flatten :: Board -> Either BoardError Flat
-flatten board = case resumeBoard board of
-  -- a bare piece at the root: its own ports are the boundary, already
-  -- addressed `(Nil, side)`, so no aliases are needed
-  Right piece -> Right
-    { leaves: L.singleton { index: Nil, piece }
-    , links: Nil
-    , registers: pieceRegisters Nil piece
-    , boundary: getPorts piece
-    }
-  Left boardF -> do
-    { leaves, links, registers } <- flattenBoard Nil boardF
-    pure { leaves, links, registers, boundary: outerPorts boardF }
+flatten board = do
+  { leaves, links, registers } <- flattenBoard Nil boardF
+  pure { leaves, links, registers, boundary: outerPorts boardF }
+  where boardF = unBoard board
 
-flattenBoard :: PieceIndex -> BoardF Board -> Either BoardError Parts
+flattenBoard :: PieceIndex -> BoardF Cell -> Either BoardError Parts
 flattenBoard path boardF@(BoardF b) = do
   when (even b.size || b.size < 1) do
     Left (BadBoardSize b.size)
@@ -121,14 +112,14 @@ flattenBoard path boardF@(BoardF b) = do
   at :: Location -> PieceIndex
   at loc = path <> L.singleton loc
 
-  child :: Location -> { rotation :: Rotation, piece :: Board } -> Either BoardError Parts
-  child loc { piece: cell } = case resumeBoard cell of
-    Right piece -> Right
+  child :: Location -> { rotation :: Rotation, piece :: Cell } -> Either BoardError Parts
+  child loc { piece: cell } = case cell of
+    Leaf piece -> Right
       { leaves: L.singleton { index: at loc, piece }
       , links: Nil
-      , registers: pieceRegisters (at loc) piece
+      , registers: Nil
       }
-    Left inner -> flattenBoard (at loc) inner
+    Nested inner -> flattenBoard (at loc) (unBoard inner)
 
   -- every `Output` at this level matched by an `Input` facing back at it
   neighbourLinks :: List Link
@@ -157,14 +148,14 @@ flattenBoard path boardF@(BoardF b) = do
 
 -- | What a cell presents to its neighbours: a leaf's own ports, or a nested
 -- | board's declared ones (minus its wormhole sides).
-cellPorts :: Board -> Frame Port
-cellPorts cell = case resumeBoard cell of
-  Right piece -> getPorts piece
-  Left boardF -> outerPorts boardF
+cellPorts :: Cell -> Frame Port
+cellPorts cell = case cell of
+  Leaf piece -> getPorts piece
+  Nested board -> outerPorts (unBoard board)
 
 -- | A board's declared ports as seen from outside: a wormhole side is wired
 -- | back into the board itself, so it's `noPort` to everyone else.
-outerPorts :: BoardF Board -> Frame Port
+outerPorts :: forall a. BoardF a -> Frame Port
 outerPorts (BoardF b) = case b.wormhole of
   Nothing -> b.ports
   Just { wormholeIn, wormholeOut } ->
@@ -182,7 +173,7 @@ sideLocation n = case _ of
 -- | A board's own wormhole, between its two sides. Like any mismatched port
 -- | pair, a mouth that isn't an `Output` matching the tail's `Input` just
 -- | doesn't propagate (no register) rather than being an error.
-boardRegisters :: PieceIndex -> BoardF Board -> Either BoardError (List Register)
+boardRegisters :: forall a. PieceIndex -> BoardF a -> Either BoardError (List Register)
 boardRegisters path (BoardF b) = case b.wormhole of
   Nothing -> Right Nil
   Just w
@@ -190,8 +181,3 @@ boardRegisters path (BoardF b) = case b.wormhole of
     | portMatches (Frame.index w.wormholeIn b.ports) (Frame.index w.wormholeOut b.ports) ->
         Right (L.singleton { mouth: Tuple path w.wormholeIn, tail: Tuple path w.wormholeOut })
     | otherwise -> Right Nil
-
-pieceRegisters :: PieceIndex -> Piece -> List Register
-pieceRegisters index piece = maybe Nil pure do
-  { wormholeIn, wormholeOut } <- getWormhole piece
-  Just { mouth: Tuple index wormholeIn, tail: Tuple index wormholeOut }

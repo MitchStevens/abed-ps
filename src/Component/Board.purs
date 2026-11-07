@@ -46,7 +46,9 @@ import Data.Log.Tag (Tag(..), tag)
 import Data.Map (Map, union)
 import Data.Map as M
 import Data.Map.Unsafe (unsafeMapKey)
-import Data.Maybe (Maybe(..), fromMaybe, maybe)
+import Data.Maybe (Maybe(..), fromMaybe, isJust, isNothing, maybe)
+import Control.Alternative (guard)
+import Game.Board.Zoom (ZoomedBoard)
 import Data.Traversable (for, traverse)
 import Data.TraversableWithIndex (forWithIndex)
 import Data.Tuple (Tuple(..), uncurry)
@@ -59,8 +61,8 @@ import Effect.Aff (Milliseconds(..), delay)
 import Effect.Aff.Class (class MonadAff, liftAff)
 import Effect.Class (class MonadEffect, liftEffect)
 import Effect.Class.Console (log, logShow)
-import Game.Eval (boundaryPortInfo, compile, initialSignals, step)
-import Game.Board (Board(..), BoardError, BoardM, _pieces, _ports, _size, addPath, addPiece, decreaseSize, evalBoardM, execBoardM, getPieceInfo, increaseSize, pieceDropped, removePiece, rotatePieceBy, runBoardM, setBoardSize, transaction)
+import Game.Eval (boundaryPortInfo, compile, initialSignals, portInfo, step)
+import Game.Board (Board(..), BoardError, BoardM, Cell(..), _focus, _pieces, _ports, _rootPorts, _size, addPath, addPiece, focusIndex, isZoomed, pieceDropped, rebuild, removePiece, rotatePieceBy, runAtFocus, setBoardSize, standardBoard, zoomIn, zoomOut)
 import Game.Direction (CardinalDirection, allDirections)
 import Game.Direction as Direction
 import Game.Location (Location(..), location)
@@ -98,6 +100,8 @@ import Web.UIEvent.KeyboardEvent (KeyboardEvent, code, ctrlKey, fromEvent, key)
 import Web.UIEvent.MouseEvent (MouseEvent, clientX, clientY)
 import Web.UIEvent.MouseEvent as MouseEvent
 import Web.UIEvent.MouseEvent.Extras (MouseButton(..), button)
+import Web.UIEvent.WheelEvent (WheelEvent, deltaY)
+import Web.UIEvent.WheelEvent as WheelEvent
 
 component :: Component Query Input Output AppM
 component = mkComponent { eval , initialState , render }
@@ -115,6 +119,9 @@ component = mkComponent { eval , initialState , render }
       handleQuery :: forall a. Query a -> HalogenM State Action Slots Output AppM (Maybe a)
       handleQuery = case _ of
         GetBoard f -> do
+          Just <<< f <<< rebuild <$> use _zoomed
+
+        GetFocus f -> do
           Just <<< f <$> use _board
         
         AddPiece loc piece f -> do
@@ -147,7 +154,7 @@ component = mkComponent { eval , initialState , render }
           -- `compile` reads a board's own boundary straight off `BoardF.ports`
           -- (see `Game.Eval.Flatten`), so the goal's ports have
           -- to land there too, not just in `State.boardPorts`.
-          _board <<< _ports .= boardPorts
+          _zoomed <<< _rootPorts .= boardPorts
           forWithIndex_ boardPorts \dir port -> do
             when (isInput port) do
               _inputs <<< Frame._side dir .= ff
@@ -167,14 +174,14 @@ component = mkComponent { eval , initialState , render }
         Undo next -> do
           maybeZipper <- Z.moveLeft <$> gets (_.boardHistory)
           for_ maybeZipper \t -> do
-            modify_ (_ { boardHistory = t })
+            modify_ (_ { boardHistory = t, zoomAnimation = Nothing, fadeInGrid = false })
             handleAction EvaluateBoard
           pure (Just next)
 
         Redo next -> do
           maybeZipper <- Z.moveRight <$> gets (_.boardHistory)
           for_ maybeZipper \t -> do
-            modify_ (_ { boardHistory = t })
+            modify_ (_ { boardHistory = t, zoomAnimation = Nothing, fadeInGrid = false })
             handleAction EvaluateBoard
           pure (Just next)
         
@@ -207,7 +214,7 @@ component = mkComponent { eval , initialState , render }
             liftAff (delay (Milliseconds 500.0))
             liftEffect (HS.notify tickListener unit)
 
-          raise =<< NewBoardState <$> use _board
+          raise =<< NewBoardState <$> use _zoomed
 
           -- add attribute oncontextmenu="return false;" to board-component in order to disable right click context menu over the board (we are using right click to remove pieces)
           liftEffect do
@@ -232,6 +239,8 @@ component = mkComponent { eval , initialState , render }
           _ <- liftBoardM (removePiece loc)
           pure unit
 
+        -- the board's ports are only the level's inputs when zoomed out --
+        -- `Render` doesn't offer these while zoomed in
         ToggleInput dir -> do
           _inputs <<< Frame._side dir %= \signal -> if signal == ff then tt else ff
           handleAction EvaluateBoard
@@ -273,13 +282,15 @@ component = mkComponent { eval , initialState , render }
                 let terminal = getDirectionClicked me bb
                 handleQuery (AddPath initial locations terminal (\_ -> unit))
 
-        SetBoard board -> do
+        SetBoard zoomed -> do
           lift $ debug M.empty "Updating board"
-          -- append new board to board history for undo purposes 
-          modify_ $ \s -> s { boardHistory = Z.pushFocus board s.boardHistory }
+          -- append new board to board history for undo purposes, in the same
+          -- update as dropping any zoom animation, so a finished zoom in
+          -- swaps straight from the scaled-up slot to the board inside it
+          modify_ $ \s -> s { boardHistory = Z.pushFocus zoomed s.boardHistory, zoomAnimation = Nothing, fadeInGrid = false }
           handleAction EvaluateBoard
           -- tell puzzle component that board state has been changed
-          raise (NewBoardState board)
+          raise (NewBoardState zoomed)
 
         -- ticking and input-driven evaluation are the same operation now --
         -- both just re-run `step` with the persisted tick state -- so a
@@ -287,9 +298,14 @@ component = mkComponent { eval , initialState , render }
         -- input change (see `Initialise`).
         Tick -> handleAction EvaluateBoard
 
+        -- only the real board can be evaluated, so this rebuilds it from the
+        -- zoom, then reads the focus's signals from where it sits in it
         EvaluateBoard -> do
           inputs <- gets (_.inputs)
-          board <- use _board
+          zoomed <- use _zoomed
+          let board = rebuild zoomed
+              focus = view _focus zoomed
+              index = focusIndex zoomed
 
           case compile board of
             Left boardError ->
@@ -308,8 +324,14 @@ component = mkComponent { eval , initialState , render }
 
               modify_ $ _
                 { lastEvalState = Just { board, signals }
-                , pieceInputs = boardInputs netlist board signals
-                , boardPortInfoMap = boundaryPortInfo netlist signals
+                , pieceInputs = boardInputs netlist index focus signals
+                , contextInputs = case zoomOut zoomed of
+                    Just parent -> boardInputs netlist (focusIndex parent) (view _focus parent) signals
+                    Nothing -> M.empty
+                , boardPortInfoMap =
+                    if isZoomed zoomed
+                      then mapWithIndex (\side port -> portInfo netlist signals (Tuple index side) port) (view _ports focus)
+                      else boundaryPortInfo netlist signals
                 }
               handleAction (SetOutputs outputs)
 
@@ -324,6 +346,61 @@ component = mkComponent { eval , initialState , render }
           liftEffect $ preventDefault (toEvent dragEvent)
         LocationOnDragLeave _ -> do
           modify_ (_ { isMouseOverLocation = Nothing } )
+
+        -- the wheel only claims the event (stopping the page scrolling) when
+        -- it actually zooms, so scrolling over a board still scrolls the page.
+        -- A slot with no piece shown is either empty or holds a nested board,
+        -- and both can be zoomed into.
+        --
+        -- Zooming in scales the slot up to fill the board first (all but the
+        -- margin the board inside it will show its neighbours in), and only
+        -- then moves into it (`FinishZoomIn`).
+        LocationOnWheel loc we -> do
+          state <- get
+          when (deltaY we < 0.0 && isNothing state.zoomAnimation && isNothing (pieceInput state loc)) do
+            liftEffect $ preventDefault (WheelEvent.toEvent we)
+            let innerSize = case _.piece <$> M.lookup loc (view (_board <<< _pieces) state) of
+                  Just (Nested inner) -> view _size inner
+                  _ -> view _size standardBoard
+            modify_ (_ { zoomAnimation = Just { location: loc, animate: true, inset: zoomInset innerSize } })
+            void $ H.fork do
+              liftAff (delay zoomDuration)
+              handleAction (FinishZoomIn loc)
+
+        -- Zooming out moves out first, shows the parent with the slot still
+        -- filling the board, then scales it back down (`FinishZoomOut`).
+        BoardOnWheel we -> do
+          zoomed <- use _zoomed
+          animating <- gets (isJust <<< _.zoomAnimation)
+          for_ (guard (deltaY we > 0.0 && not animating) *> zoomOutWithLocation zoomed) \(Tuple loc parent) -> do
+            liftEffect $ preventDefault (WheelEvent.toEvent we)
+            -- starts from just how the zoomed-in board was showing its parent
+            let inset = zoomInset (view (_focus <<< _size) zoomed)
+            handleAction (SetBoard parent)
+            modify_ (_ { zoomAnimation = Just { location: loc, animate: false, inset } })
+            -- long enough for the browser to draw the scaled-up frame, so the
+            -- transition has somewhere to start from
+            void $ H.fork do
+              liftAff (delay (Milliseconds 30.0))
+              handleAction (FinishZoomOut loc)
+
+        FinishZoomIn loc -> do
+          -- the board can have changed under the animation (undo, a resize),
+          -- so the slot might not be there to zoom into any more
+          animation <- gets (_.zoomAnimation)
+          when (isAnimating loc true animation) do
+            zoomIn loc <$> use _zoomed >>= case _ of
+              Right zoomed -> do
+                handleAction (SetBoard zoomed)
+                modify_ (_ { fadeInGrid = true })
+              Left err -> do
+                lift $ warn M.empty ("Couldn't zoom in: " <> show err)
+                modify_ (_ { zoomAnimation = Nothing })
+
+        FinishZoomOut loc -> do
+          animation <- gets (_.zoomAnimation)
+          when (isAnimating loc false animation) do
+            modify_ (_ { zoomAnimation = Nothing })
 
         GlobalOnKeyDown ke -> 
           case key ke of
@@ -347,14 +424,27 @@ component = mkComponent { eval , initialState , render }
         -}
       liftBoardM :: forall a. BoardM a -> HalogenM State Action Slots Output AppM (Either BoardError a)
       liftBoardM boardM =  do
-        board <- use _board
-        case runBoardM boardM board of
+        zoomed <- use _zoomed
+        case runAtFocus boardM zoomed of
           Left boardError ->
             pure (Left boardError)
-          Right (Tuple a board') -> do
-            handleAction (SetBoard board')
+          Right (Tuple a zoomed') -> do
+            handleAction (SetBoard zoomed')
             pure (Right a)
       
+
+-- | How long a zoom in scales up for before moving into the slot -- the
+-- | same as `.board-grid`'s transition in `less/board-component.less`.
+zoomDuration :: Milliseconds
+zoomDuration = Milliseconds 200.0
+
+-- | Whether a zoom animation is still the one that was started at `loc`.
+isAnimating :: forall r. Location -> Boolean -> Maybe { location :: Location, animate :: Boolean | r } -> Boolean
+isAnimating loc animate = maybe false \a -> a.location == loc && a.animate == animate
+
+-- | `zoomOut`, along with the slot it zoomed out of.
+zoomOutWithLocation :: ZoomedBoard -> Maybe (Tuple Location ZoomedBoard)
+zoomOutWithLocation zoomed = Tuple <$> L.last (focusIndex zoomed) <*> zoomOut zoomed
 
 boundingBoxFromMouseEvent :: MouseEvent -> Effect (Maybe DOMRect)
 boundingBoxFromMouseEvent me =

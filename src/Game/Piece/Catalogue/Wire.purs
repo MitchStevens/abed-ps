@@ -1,27 +1,21 @@
-module Game.Piece.WirePiece where
+module Game.Piece.Catalogue.Wire where
 
 import Prelude
 
-import Control.Alternative (guard)
-import Data.Foldable (all, elem, length)
-import Data.Int (toNumber)
+import Data.Foldable (elem)
 import Data.Map (Map)
 import Data.Map as M
-import Data.Maybe (Maybe(..), fromMaybe, fromMaybe', maybe)
-import Data.Newtype (class Newtype, unwrap)
 import Data.Set (Set)
 import Data.Set as S
 import Data.Tuple (Tuple(..))
-import Debug (trace)
 import Game.Capacity (Capacity(..))
 import Game.Direction (CardinalDirection)
 import Game.Direction as Direction
 import Game.Frame as Frame
-import Game.Piece.Complexity as Complexity
 import Game.Piece.Operation as Operation
-import Game.Piece.Types (Piece(..), PieceId(..), Simplification(..), isSimplifiable, mkPieceNoAdapt, name, shouldRipple)
-import Game.Port (PortType(..), getPortType, inputPort, noPort, outputPort)
-import Partial.Unsafe (unsafeCrashWith)
+import Game.Piece.PieceId (wirePieceNames)
+import Game.Piece.Types (Piece(..), name)
+import Game.Port (inputPort, noPort, outputPort)
 
 
 {-
@@ -38,62 +32,17 @@ type WirePiece =
   , outputs :: Set CardinalDirection
   }
 
-wirePieceNames :: Map (Set CardinalDirection) PieceId
-wirePieceNames =
-  M.fromFoldable
-    [ Tuple (up)                  (PieceId "left-piece") 
-    , Tuple (right)               (PieceId "id-piece") 
-    , Tuple (down)                (PieceId "right-piece") 
-    , Tuple (up <> right)         (PieceId "intersection-left-piece") 
-    , Tuple (up <> down)          (PieceId "intersection-junction-piece") 
-    , Tuple (right <> down)       (PieceId "intersection-right-piece") 
-    , Tuple (up <> right <> down) (PieceId "super-piece") 
-    ]
-  where
-    up    = S.singleton Direction.Up
-    right = S.singleton Direction.Right
-    down  = S.singleton Direction.Down
-
 mkWirePiece :: WirePiece -> Piece
-mkWirePiece wire@{ outputs, capacity } = Piece
-  { name: fromMaybe' nameErr (M.lookup outputs wirePieceNames)
-  , op: Operation.Connection connections
-  , complexity: Complexity.space (toNumber (length outputs))
-
-  , shouldRipple: true
-  , updateCapacity: \dir capacity' ->
-    if dir == Direction.Left || dir `elem` outputs
-      then Just $ mkWirePiece (wire { capacity = capacity'})
-      else Nothing
-
+mkWirePiece { outputs, capacity } = Piece
+  { op: Operation.Connection connections
   , ports: Frame.tabulate case _ of
       Direction.Left -> inputPort capacity
       dir | dir `elem` outputs -> outputPort capacity
       _ -> noPort
-
-  , adapt: \dir port -> case dir, getPortType port of
-      Direction.Left, _ -> Nothing
-      _, Input -> do
-          let newOutputs = S.insert dir outputs
-          guard (outputs /= newOutputs)
-          pure $ mkWirePiece (wire { outputs = newOutputs })
-      _, Output -> Nothing
-      _, WormholeIn -> Nothing
-      _, WormholeOut -> Nothing
-      _, NoPort -> do
-          let newOutputs = S.delete dir outputs
-          guard (outputs /= newOutputs && newOutputs /= S.empty)
-          pure $ mkWirePiece (wire { outputs = newOutputs })
-
-  , isSimplifiable: Just (Connection connections)
   }
   where
     connections :: Map CardinalDirection CardinalDirection
     connections = M.fromFoldable $ S.map (\out -> Tuple out Direction.Left) outputs
-
-    nameErr :: Unit -> PieceId
-    nameErr _ =  unsafeCrashWith $
-      "Can't find wire piece with outputs: " <> show outputs
 
 
 {-
@@ -143,27 +92,21 @@ intersectionRightPiece = mkWirePiece
 
 
 type DualWirePiece =
-  { name :: PieceId
-  , capacity :: Capacity
+  { capacity :: Capacity
   , output1 :: CardinalDirection
   , input2 :: CardinalDirection
   , output2 :: CardinalDirection
   }
 
 dualWirePiece :: DualWirePiece -> Piece
-dualWirePiece dualWire = mkPieceNoAdapt
-  { name: dualWire.name
-  , op: Operation.Connection connections
+dualWirePiece dualWire = Piece
+  { op: Operation.Connection connections
   , ports: Frame.fromFoldable noPort
       [ Tuple Direction.Left   (inputPort  dualWire.capacity)
       , Tuple dualWire.input2  (inputPort  dualWire.capacity)
       , Tuple dualWire.output1 (outputPort dualWire.capacity)
       , Tuple dualWire.output2 (outputPort dualWire.capacity)
       ]
-  , complexity: Complexity.space 1.0
-  , shouldRipple: true
-  , updateCapacity: \_ capacity -> Just $ dualWirePiece (dualWire { capacity = capacity})
-  , isSimplifiable: Just (Connection connections)
   }
   where
     connections :: Map CardinalDirection CardinalDirection
@@ -174,8 +117,7 @@ dualWirePiece dualWire = mkPieceNoAdapt
 
 crossPiece :: Piece
 crossPiece = dualWirePiece
-  { name: PieceId "cross-piece"
-  , capacity: OneBit
+  { capacity: OneBit
   , output1: Direction.Right
   , input2: Direction.Up
   , output2: Direction.Down
@@ -183,8 +125,7 @@ crossPiece = dualWirePiece
 
 cornerCutPiece :: Piece
 cornerCutPiece = dualWirePiece
-  { name: PieceId "corner-cut-piece"
-  , capacity: OneBit
+  { capacity: OneBit
   , output1: Direction.Down
   , input2: Direction.Up
   , output2: Direction.Right
@@ -192,8 +133,7 @@ cornerCutPiece = dualWirePiece
 
 chickenPiece :: Piece
 chickenPiece = dualWirePiece
-  { name: PieceId "chicken-piece"
-  , capacity: OneBit
+  { capacity: OneBit
   , output1: Direction.Down
   , input2: Direction.Right
   , output2: Direction.Up
@@ -201,9 +141,8 @@ chickenPiece = dualWirePiece
 
 reverseChickenPiece :: Piece
 reverseChickenPiece = dualWirePiece
-  { name: PieceId "reverse-chicken-piece"
-  , capacity: OneBit
-  , output1: Direction.Right
-  , input2: Direction.Up
+  { capacity: OneBit
+  , output1: Direction.Up
+  , input2: Direction.Right
   , output2: Direction.Down
   }

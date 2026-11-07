@@ -27,7 +27,7 @@ import Data.Tuple (Tuple(..))
 import Data.Witherable (wither)
 import Debug (trace)
 import Game.Board.Edge (RelativeEdge(..), absolute, adjacent, connected, edgeDirection, edgeLocation, getPortOnEdge, relative)
-import Game.Board.Types (Board, _pieces, _size, pureBoard, resumeBoard)
+import Game.Board.Types (Board, Cell(..), _pieces, _size)
 import Game.Capacity (Capacity)
 import Game.Direction (CardinalDirection, allDirections, oppositeDirection, rotateDirection)
 import Game.Direction as Direction
@@ -126,10 +126,6 @@ buildConnectionMapAt loc =
           tell (L.singleton (Tuple relEdge adjRelEdge))
       Port.Output ->
           tell (L.singleton (Tuple adjRelEdge relEdge))
-      -- wormhole edges are a cut in the dependency graph: they never contribute
-      -- a connection, so `layerDecomposition` / the cyclic check ignore them
-      Port.WormholeIn -> pure unit
-      Port.WormholeOut -> pure unit
       Port.NoPort -> pure unit
 
 --todo: fix this, looks like garbage
@@ -149,14 +145,14 @@ capacityRippleAcc capacity vars = case vars.openSet of
     maybeCell <- map (_.piece) <$> use (_pieces <<< at loc)
     -- capacity ripple only understands leaf pieces -- a nested board doesn't
     -- ripple through yet, so it's treated the same as an empty cell here.
-    let maybePiece = maybeCell >>= \cell -> case resumeBoard cell of
-          Right p -> Just p
-          Left _ -> Nothing
+    let maybePiece = maybeCell >>= \cell -> case cell of
+          Leaf p -> Just p
+          Nested _ -> Nothing
 
     case maybePiece >>= updateCapacity (edgeDirection relEdge) capacity of
       Just piece -> do                                        -- if the capacity can be changed...
         connected <- allConnectedRelativeEdges loc
-        _pieces <<< ix loc %= (_ { piece = pureBoard piece })     -- set the capacity at the location...
+        _pieces <<< ix loc %= (_ { piece = Leaf piece })     -- set the capacity at the location...
 
         if shouldRipple piece
           then do

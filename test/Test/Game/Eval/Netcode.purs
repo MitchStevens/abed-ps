@@ -6,14 +6,17 @@ module Test.Game.Eval.Netcode where
 import Prelude
 
 import Data.Array as A
-import Data.Either (Either(..))
+import Data.Either (Either(..), either)
+import Data.Foldable (for_)
+import Data.Lens (view)
 import Data.List (List(..), (:))
 import Data.List as L
 import Data.Map as M
 import Data.Maybe (Maybe(..))
 import Data.Traversable (scanl)
 import Data.Tuple (Tuple(..), fst, snd)
-import Game.Board.Types (Board, BoardF(BoardF), mkBoard, pureBoard)
+import Game.Board (BoardError, BoardM, _focus, _ports, addPiece, execBoardM, rebuild, runAtFocus, unzoomed, zoomIn)
+import Game.Board.Types (Board, Cell(..), BoardF(BoardF), mkBoard)
 import Game.Capacity (Capacity(..))
 import Game.Direction as Direction
 import Game.Eval.Netcode (boundaryPortInfo, evaluate, initialSignals, portInfo, run, step)
@@ -21,9 +24,8 @@ import Game.Eval.Netlist (Netlist, compile)
 import Game.Frame (Frame, PortIndex)
 import Game.Frame as Frame
 import Game.Location (location)
-import Game.Piece (Piece, PieceId(..), idPiece, mkPieceNoAdapt, notPiece)
+import Game.Piece (Piece(..), idPiece, notPiece)
 import Game.Piece.Operation as Operation
-import Game.Piece.Wormhole (counter)
 import Game.Port (inputPort, noPort, outputPort)
 import Game.PortInfo (noPortInfo)
 import Game.Rotation (rotation)
@@ -58,32 +60,15 @@ probe netlist idx n = map (\signals -> (portInfo netlist signals idx (outputPort
   where
   states = A.cons (initialSignals netlist) (scanl (\signals _ -> snd (step netlist (pure zero) signals)) (initialSignals netlist) (A.replicate n unit))
 
--- | Left in, Right out, `op` in between.
-opPiece :: String -> Operation.PieceOperation -> Piece
-opPiece name op = mkPieceNoAdapt
-  { name: PieceId name
-  , op
-  , ports: leftInRightOut OneBit OneBit
-  , complexity: mempty
-  , shouldRipple: false
-  , updateCapacity: \_ _ -> Nothing
-  , isSimplifiable: Nothing
-  }
-
 -- | Copies Up to both Down and Right: a wire that splits.
 splitPiece :: Piece
-splitPiece = mkPieceNoAdapt
-  { name: PieceId "split"
-  , op: Operation.Connection (M.fromFoldable [ Tuple Direction.Down Direction.Up, Tuple Direction.Right Direction.Up ])
+splitPiece = Piece
+  { op: Operation.Connection (M.fromFoldable [ Tuple Direction.Down Direction.Up, Tuple Direction.Right Direction.Up ])
   , ports: Frame.fromFoldable noPort
       [ Tuple Direction.Up (inputPort OneBit)
       , Tuple Direction.Down (outputPort OneBit)
       , Tuple Direction.Right (outputPort OneBit)
       ]
-  , complexity: mempty
-  , shouldRipple: false
-  , updateCapacity: \_ _ -> Nothing
-  , isSimplifiable: Nothing
   }
 
 spec :: Spec Unit
@@ -93,7 +78,7 @@ spec = describe "Game.Eval.Netcode" do
     m = location 1 1
     r = location 2 1
     o = location 0 0
-    piece p = cell (pureBoard p) (rotation 0)
+    piece p = cell (Leaf p) (rotation 0)
 
   describe "a combinational board" do
     it "carries a signal along a wire" do
@@ -104,8 +89,8 @@ spec = describe "Game.Eval.Netcode" do
       let netlist = compileOrCrash (board 3 [ Tuple l (piece idPiece), Tuple m (piece notPiece), Tuple r (piece idPiece) ])
       quickCheck \(s :: Signal) -> evaluate netlist (left s) === right (not s)
 
-    it "evaluates a bare piece" do
-      let netlist = compileOrCrash (pureBoard notPiece)
+    it "evaluates a piece alone on a 1x1 board" do
+      let netlist = compileOrCrash (board 1 [ Tuple o (piece notPiece) ])
       quickCheck \(s :: Signal) -> evaluate netlist (left s) === right (not s)
 
     it "outputs zero on a declared side nothing drives" do
@@ -132,27 +117,31 @@ spec = describe "Game.Eval.Netcode" do
       Frame.index Direction.Up info `shouldEqual` noPortInfo
       Frame.index Direction.Down info `shouldEqual` noPortInfo
 
+  describe "connected" do
+    let
+      connected netlist idx p = (portInfo netlist (initialSignals netlist) idx p).connected
+
+    it "is false for a wire with nothing at either end, though its ends share a net" do
+      let netlist = compileOrCrash (board 3 [ Tuple m (piece idPiece) ])
+      connected netlist (port (L.singleton m) Direction.Left) (inputPort OneBit) `shouldEqual` false
+      connected netlist (port (L.singleton m) Direction.Right) (outputPort OneBit) `shouldEqual` false
+
+    it "is true for each end that meets a neighbour" do
+      let netlist = compileOrCrash (board 3 [ Tuple m (piece idPiece), Tuple r (piece idPiece) ])
+      connected netlist (port (L.singleton m) Direction.Left) (inputPort OneBit) `shouldEqual` false
+      connected netlist (port (L.singleton m) Direction.Right) (outputPort OneBit) `shouldEqual` true
+      connected netlist (port (L.singleton r) Direction.Left) (inputPort OneBit) `shouldEqual` true
+
+    it "is true for an end that meets a board side" do
+      let netlist = compileOrCrash (board 3 [ Tuple r (piece idPiece) ])
+      connected netlist (port (L.singleton r) Direction.Right) (outputPort OneBit) `shouldEqual` true
+
   describe "truncation" do
-    it "never lets a piece read its own output" do
-      -- without truncation this climbs: 1, 2, 3
-      let netlist = compileOrCrash (board 1 [ Tuple o (piece (opPiece "reads-own-output" Operation.ReadsOwnOutput)) ])
-      run netlist (A.replicate 3 (pure zero)) `shouldEqual` A.replicate 3 (right (mkSignal 1))
-
     it "never lets a piece write over a neighbour's output through its input" do
-      -- `WritesOwnInput` writes 99 to its Left, which is `notPiece`'s output
-      let netlist = compileOrCrash (board 3 [ Tuple l (piece idPiece), Tuple m (piece notPiece), Tuple r (piece (opPiece "writes-own-input" Operation.WritesOwnInput)) ])
-      quickCheck \(s :: Signal) -> evaluate netlist (left s) === right (not s)
-
-  describe "a piece wormhole" do
-    it "counts up a tick at a time" do
-      let
-        netlist = compileOrCrash $ mkBoard $ BoardF
-          { size: 3
-          , ports: Frame.singleton noPort Direction.Left (outputPort EightBit)
-          , pieces: M.singleton l (piece counter)
-          , wormhole: Nothing
-          }
-      run netlist (A.replicate 4 (pure zero)) `shouldEqual` map (left <<< mkSignal) [ 0, 1, 2, 3 ]
+      -- `Operation.Not` writes `zero` to every side but `Right`, including its
+      -- `Left`, which is the middle `notPiece`'s output
+      let netlist = compileOrCrash (board 3 [ Tuple l (piece idPiece), Tuple m (piece notPiece), Tuple r (piece notPiece) ])
+      quickCheck \(s :: Signal) -> evaluate netlist (left s) === right s
 
   describe "a board wormhole" do
     let netlist = compileOrCrash oscillator
@@ -167,6 +156,51 @@ spec = describe "Game.Eval.Netcode" do
       (boundaryPortInfo netlist (initialSignals netlist) <#> _.connected) `shouldEqual` pure false
       (portInfo netlist (initialSignals netlist) (port Nil Direction.Right) (outputPort OneBit)).connected `shouldEqual` true
 
+
+  describe "a nested board" do
+    -- A wire straight across the middle row. Swapping its middle piece for a
+    -- sub-board holding the same wire shouldn't change what the board does.
+    let
+      wire = board 3 [ Tuple l (piece idPiece), Tuple m (piece idPiece), Tuple r (piece idPiece) ]
+      nested = board 3 [ Tuple l (piece idPiece), Tuple m (cell (Nested wire) (rotation 0)), Tuple r (piece idPiece) ]
+      flat = compileOrCrash wire
+      deep = compileOrCrash nested
+
+    it "carries a signal along a wire" do
+      quickCheck \(s :: Signal) -> evaluate flat (left s) === right s
+
+    it "carries a signal along a wire that passes through a sub-board" do
+      quickCheck \(s :: Signal) -> evaluate deep (left s) === right s
+
+    it "behaves the same as the wire it replaces, tick by tick" do
+      let inputs = left <$> [ zero, on, on, zero, on ]
+      run deep inputs `shouldEqual` run flat inputs
+
+  describe "a nested board built by zooming in, as the game does" do
+    -- Same two boards, but built with `addPiece`, and the sub-board made by
+    -- zooming into the empty middle slot, as a player would.
+    let
+      addWire :: BoardM Unit
+      addWire = for_ [ l, m, r ] \loc -> addPiece loc idPiece
+      orCrash :: forall a. Either BoardError a -> a
+      orCrash = either (\err -> unsafeCrashWith (show err)) identity
+      flat = compileOrCrash (orCrash (execBoardM addWire (board 3 [])))
+      deepBoard = orCrash do
+        outer <- execBoardM (for_ [ l, r ] \loc -> addPiece loc idPiece) (board 3 [])
+        zoomed <- zoomIn m (unzoomed outer)
+        Tuple _ zoomed' <- runAtFocus addWire zoomed
+        pure (rebuild zoomed')
+      deep = compileOrCrash deepBoard
+
+    it "gives the sub-board a port wherever its wire meets a side" do
+      let subBoardPorts = view (_focus <<< _ports) <$> zoomIn m (unzoomed deepBoard)
+      subBoardPorts `shouldEqual` Right (leftInRightOut OneBit OneBit)
+
+    it "carries a signal along the flat wire" do
+      quickCheck \(s :: Signal) -> evaluate flat (left s) === right s
+
+    it "carries a signal along the wire through the sub-board" do
+      quickCheck \(s :: Signal) -> evaluate deep (left s) === right s
 
   describe "nested wormholes" do
     -- The inner board's wormhole runs Right (mouth) to Up (tail) through a
@@ -183,10 +217,10 @@ spec = describe "Game.Eval.Netcode" do
             , Tuple Direction.Down (outputPort OneBit)
             ]
         , pieces: M.fromFoldable
-            [ Tuple (location 1 0) (cell (pureBoard idPiece) (rotation 1))
+            [ Tuple (location 1 0) (cell (Leaf idPiece) (rotation 1))
             , Tuple (location 1 1) (piece splitPiece)
             , Tuple (location 2 1) (piece notPiece)
-            , Tuple (location 1 2) (cell (pureBoard idPiece) (rotation 1))
+            , Tuple (location 1 2) (cell (Leaf idPiece) (rotation 1))
             ]
         , wormhole: Just { wormholeIn: Direction.Right, wormholeOut: Direction.Up }
         }
@@ -196,7 +230,7 @@ spec = describe "Game.Eval.Netcode" do
             [ Tuple Direction.Up (inputPort OneBit)
             , Tuple Direction.Down (outputPort OneBit)
             ]
-        , pieces: M.singleton o (cell inner (rotation 0))
+        , pieces: M.singleton o (cell (Nested inner) (rotation 0))
         , wormhole: Just { wormholeIn: Direction.Down, wormholeOut: Direction.Up }
         }
       netlist = compileOrCrash outer

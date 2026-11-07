@@ -25,5 +25,5 @@ crossOverLegPairs piece
   | name piece == name chickenPiece =
       Just (Tuple (Tuple Direction.Left Direction.Down) (Tuple Direction.Right Direction.Up))
   | name piece == name reverseChickenPiece =
-      Just (Tuple (Tuple Direction.Left Direction.Right) (Tuple Direction.Up Direction.Down))
+      Just (Tuple (Tuple Direction.Left Direction.Up) (Tuple Direction.Right Direction.Down))
   | otherwise = Nothing

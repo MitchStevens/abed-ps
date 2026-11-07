@@ -26,10 +26,6 @@ createPortGradient { port, connected, signal } = { id, def }
           [ SE.stop [ SA.offset "5%" , SA.stopColor color, SA.stopOpacity 0.5 ]
           , SE.stop [ SA.offset "95%" , SA.stopColor color ]
           ]
-        Port.WormholeOut ->
-          [ SE.stop [ SA.offset "5%" , SA.stopColor color, SA.stopOpacity 0.5 ]
-          , SE.stop [ SA.offset "95%" , SA.stopColor color ]
-          ]
         _ ->
           [ SE.stop [ SA.offset "5%" , SA.stopColor color, SA.stopOpacity 0.5 ]
           , SE.stop [ SA.offset "95%" , SA.stopColor color, SA.stopOpacity 0.0 ]

@@ -13,7 +13,7 @@ import Data.Map as M
 import Data.Maybe (Maybe(..))
 import Data.Tuple (Tuple(..))
 import Effect.Exception (Error)
-import Game.Board (Board, _pieces, buildConnectionMap, capacityRipple, getBoardEdges, getBoardPorts, relative, resumeBoard)
+import Game.Board (Board, Cell(..), _pieces, buildConnectionMap, capacityRipple, getBoardEdges, getBoardPorts, relative)
 import Game.Capacity (Capacity(..))
 import Game.Direction as Direction
 import Game.Frame as Frame
@@ -67,8 +67,8 @@ tests = do
           it "ripples" do
             capacityRipple (relative (location 1 1) Direction.Up) TwoBit
             use (_pieces <<< at (location 1 1)) >>= traverse_ \info ->
-              case resumeBoard info.piece of
-                Right p -> (portCapacity <$> getPort p Direction.Left) `shouldEqual` Just TwoBit
-                Left _ -> pure unit
+              case info.piece of
+                Leaf p -> (portCapacity <$> getPort p Direction.Left) `shouldEqual` Just TwoBit
+                Nested _ -> pure unit
             --use (_pieces <<< at (location 0 1)) >>= traverse_ \info ->
             --  getCapacity info.piece `shouldEqual` Just TwoBit

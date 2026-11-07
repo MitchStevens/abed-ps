@@ -1,4 +1,4 @@
-module Test.Game.Piece.WirePiece where
+module Test.Game.Piece.Catalogue.Wire where
 
 import Prelude
 
@@ -20,7 +20,7 @@ import Test.Spec.Assertions (fail, shouldEqual)
 
 spec :: Spec Unit
 spec =
-  describe "Game.Piece.WirePiece" do
+  describe "Game.Piece.Catalogue.Wire" do
     describe "WirePiece" do
       it "leftPiece" do
         getInputDirs  leftPiece `shouldEqual` S.fromFoldable [ Direction.Left ]

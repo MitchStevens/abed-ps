@@ -5,6 +5,7 @@ module Game.Board
 , module Game.Board.Query
 , module Game.Board.Edge
 , module Game.Board.Types
+, module Game.Board.Zoom
 ) where
 
 import Game.Board.Operation
@@ -13,4 +14,5 @@ import Game.Board.PathSegment
 import Game.Board.Query
 import Game.Board.Edge
 import Game.Board.Types
+import Game.Board.Zoom
 

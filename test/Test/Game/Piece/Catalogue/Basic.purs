@@ -1,4 +1,4 @@
-module Test.Game.Piece.BasicPiece where
+module Test.Game.Piece.Catalogue.Basic where
 
 import Prelude
 
@@ -19,7 +19,7 @@ import Test.Spec.Assertions (shouldEqual, shouldNotEqual)
 
 spec :: Spec Unit
 spec = do
-  describe "Game.Piece.BasicPiece" do
+  describe "Game.Piece.Catalogue.Basic" do
     let f x y = Frame.fromFoldable zero [ Tuple Direction.Left x, Tuple Direction.Up y ]
     let inPort = inputPort OneBit
     let outPort = outputPort OneBit

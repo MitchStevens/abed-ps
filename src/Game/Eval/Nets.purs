@@ -52,7 +52,7 @@ import Game.Frame (PortIndex)
 import Game.Frame as Frame
 import Game.Piece (Piece(..), getPorts)
 import Game.Piece.Operation (PieceOperation(..))
-import Game.Port (Port, hasPort, isReadable, isWritable)
+import Game.Port (Port, hasPort, isInput, isOutput)
 
 type Nets =
   { slotCount :: Int
@@ -135,7 +135,7 @@ nets flat = do
   writersBySlot :: Map Int (Array PortIndex)
   writersBySlot = M.fromFoldableWith (flip (<>)) do
     idx <- fold
-      [ L.mapMaybe (\(Tuple idx { port, wire }) -> if isWritable port && not wire then Just idx else Nothing) leafPorts
+      [ L.mapMaybe (\(Tuple idx { port, wire }) -> if isOutput port && not wire then Just idx else Nothing) leafPorts
       , _.tail <$> flat.registers
       ]
     slot <- L.fromFoldable (M.lookup idx portSlot)
@@ -150,7 +150,7 @@ wireLinks { index, piece } = case wireConnections piece of
   Just connections -> do
     Tuple out in_ <- M.toUnfoldable connections
     let ports = getPorts piece
-    guard (isWritable (Frame.index out ports) && isReadable (Frame.index in_ ports))
+    guard (isOutput (Frame.index out ports) && isInput (Frame.index in_ ports))
     pure (Tuple (Tuple index out) (Tuple index in_))
 
 -- | The root of each of `n` elements, after unioning every pair. Roots are

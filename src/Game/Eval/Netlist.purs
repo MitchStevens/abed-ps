@@ -26,7 +26,9 @@ import Prelude
 import Data.Array as A
 import Data.Either (Either)
 import Data.FunctorWithIndex (mapWithIndex)
-import Data.List (List(..))
+import Data.List (List(..), (:))
+import Data.Set (Set)
+import Data.Set as S
 import Data.Map (Map)
 import Data.Map as M
 import Data.Maybe (fromMaybe)
@@ -49,7 +51,10 @@ type Netlist =
   , inputSlots :: Frame Int
   , outputSlots :: Frame Int
   , portSlot :: Map PortIndex Int
-  , netSize :: Array Int
+  -- every port that meets another port across an edge: a neighbour's, or a
+  -- board side. Not the same as sharing a net -- a wire's two ends always
+  -- share one, whether or not anything is plugged into either.
+  , linked :: Set PortIndex
   }
 
 compile :: Board -> Either BoardError Netlist
@@ -71,5 +76,5 @@ compile board = do
     , outputSlots: flat.boundary # mapWithIndex \side port ->
         if isOutput port then fromMaybe zeroSlot (sideSlot side) else zeroSlot
     , portSlot: ns.portSlot
-    , netSize: ns.netSize
+    , linked: S.fromFoldable (flat.links >>= \(Tuple a b) -> a : b : Nil)
     }
