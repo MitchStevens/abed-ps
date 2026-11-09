@@ -6,6 +6,7 @@ dist/static/default.css
 dist/static/abed.js
 dist-piece-viewer/
 .psc-ide-port
+.purs-repl
 npm-debug.log
 .spec-results
 
