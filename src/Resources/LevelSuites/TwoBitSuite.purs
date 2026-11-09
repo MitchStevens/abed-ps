@@ -9,6 +9,7 @@ import Foreign.Object (fromHomogeneous)
 import Game.Capacity (Capacity(..))
 import Game.Direction as Direction
 import Game.Frame as Frame
+import Game.Board (leafCells)
 import Game.Level (LevelSuite, defaultLevel)
 import Game.Level.Problem (defaultProblem)
 import Game.Piece (fusePiece, idPiece, mkWirePiece, notPiece, severPiece, succPiece, twoBitCrossOver, xorPiece)
@@ -21,7 +22,7 @@ twoBitSuite = fromHomogeneous
       { goal = mkWirePiece { capacity: TwoBit, outputs: S.singleton Direction.Right }
       , title = "From 2A to 2B"
       , description = "This looks familiar, but the input and output ports have a capacity of 2 bits! Build a path between the left and the right, then use the '2' key to increase the capacity of the path. The capacity of each port is colour coded, only ports with the same capacity can connect!"
-      , availablePieces = S.fromFoldable [ idPiece ]
+      , availablePieces = leafCells [ idPiece ]
       , testCases =
         [ Frame.singleton zero Direction.Left (mkSignal 0)
         , Frame.singleton zero Direction.Left (mkSignal 1)
@@ -35,7 +36,7 @@ twoBitSuite = fromHomogeneous
       { goal = fusePiece
       , title = "Lovers Lake"
       , description = "Use a fuse-piece to combine the inputs from the top and left, output the result to the right"
-      , availablePieces = S.fromFoldable [fusePiece, idPiece]
+      , availablePieces = leafCells [fusePiece, idPiece]
       , testCases =
         [ Frame.singleton zero Direction.Left (mkSignal 0)
         , Frame.singleton zero Direction.Left (mkSignal 1)
@@ -49,7 +50,7 @@ twoBitSuite = fromHomogeneous
       { goal = twoBitCrossOver
       , title = "Two bit criss cross"
       , description = "Sever the input on the left with a sever-piece, cross over the signals, fuse them back together"
-      , availablePieces = S.fromFoldable [severPiece, fusePiece, idPiece]
+      , availablePieces = leafCells [severPiece, fusePiece, idPiece]
       , testCases =
         [ Frame.singleton zero Direction.Left (mkSignal 0)
         , Frame.singleton zero Direction.Left (mkSignal 1)
@@ -63,7 +64,7 @@ twoBitSuite = fromHomogeneous
       { goal = succPiece
       , title = "Increment"
       , description = "Add one to the two bit input signal. if the input is 3 (which has no successor), output signal 0"
-      , availablePieces = S.fromFoldable [xorPiece, notPiece, fusePiece, severPiece]
+      , availablePieces = leafCells [xorPiece, notPiece, fusePiece, severPiece]
       , testCases =
         [ Frame.singleton zero Direction.Left (mkSignal 0)
         , Frame.singleton zero Direction.Left (mkSignal 1)

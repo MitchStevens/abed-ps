@@ -13,13 +13,14 @@ import Effect (Effect)
 import Effect.Aff (Aff)
 import Effect.Aff.Class (class MonadAff, liftAff)
 import Effect.Class (class MonadEffect, liftEffect)
+import Effect.Console (logShow)
 import GlobalState (GlobalState, GlobalStateAction, initialGlobalState, reduce)
 import Halogen (Component)
 import Halogen as H
 import Halogen.Store.Monad (class MonadStore, StoreT, runStoreT)
 import Logging (logMessage)
 import Web.HTML (window)
-import Web.HTML.Location (hostname)
+import Web.HTML.Location (hostname, protocol)
 import Web.HTML.Window (location)
 
  
@@ -49,16 +50,19 @@ runAppM component = do
     # map (H.hoist unLogger)
 
   where
-    -- Wide open on localhost (every trace shows up while developing), but
-    -- silent down to just errors anywhere else -- there's no separate
-    -- prod/dev bundle to hang this off, so the running page checks its own
-    -- address instead.
     unLogger :: forall m a. MonadEffect m => LoggerT m a -> m a
     unLogger loggerT = do
       level <- liftEffect currentLogLevel
       runLoggerT loggerT (logMessage level)
 
-    currentLogLevel :: Effect LogLevel
-    currentLogLevel = do
-      host <- window >>= location >>= hostname
-      pure if host `elem` [ "localhost", "127.0.0.1" ] then Trace else Error
+-- Wide open on localhost (every trace shows up while developing), but
+-- silent down to just errors anywhere else -- there's no separate
+-- prod/dev bundle to hang this off, so the running page checks its own
+-- address instead.
+currentLogLevel :: Effect LogLevel
+currentLogLevel = do
+  host <- window >>= location >>= hostname
+  protocol <- window >>= location >>= protocol
+  if (host `elem` [ "localhost", "127.0.0.1" ] || protocol == "file:")
+    then pure Trace
+    else pure Error

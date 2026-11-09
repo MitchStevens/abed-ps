@@ -14,6 +14,7 @@ import Data.MediaType (MediaType(..))
 import Data.Set as S
 import Foreign.Object (fromHomogeneous)
 import Game.Direction as Direction
+import Game.Board (leafCells)
 import Game.Level (LevelSuite, binaryTestInputs, defaultLevel)
 import Game.Level.Demonstration (videoDemonstration)
 import Game.Level.Problem (defaultProblem)
@@ -38,7 +39,7 @@ tutorialSuite = fromHomogeneous
           , description: "To create a Piece, click and drag from the left to the right"
           }
         , testCases = binaryTestInputs [ Direction.Left ]
-        , availablePieces = S.fromFoldable [ ]
+        , availablePieces = leafCells [ ]
         }
       }
   , "Negation":
@@ -49,7 +50,7 @@ tutorialSuite = fromHomogeneous
         , subtitle = Just "Not bad"
         , description = "Negate the signal inputed on the Left and output it on the Right. You can add a piece to the board from the \'Available Pieces\' menu by clicking an icon or dragging an icon an open location."
         , testCases = binaryTestInputs [Direction.Left]
-        , availablePieces = S.fromFoldable [ notPiece ]
+        , availablePieces = leafCells [ notPiece ]
         }
       }
   , "Two enter, one leaves": defaultLevel
@@ -59,7 +60,7 @@ tutorialSuite = fromHomogeneous
       , subtitle = Just "The gladiator (2000)"
       , description = "An or piece takes two inputs!"
       , testCases = binaryTestInputs [ Direction.Left, Direction.Up ]
-      , availablePieces = S.fromFoldable [ orPiece ]
+      , availablePieces = leafCells [ orPiece ]
       }
     }
   , "Take a Left": defaultLevel
@@ -69,7 +70,7 @@ tutorialSuite = fromHomogeneous
       , subtitle = Just "Taking L(efts)s  "
       , description = ""
       , testCases = binaryTestInputs [Direction.Left]
-      , availablePieces = S.fromFoldable [ orPiece ]
+      , availablePieces = leafCells [ orPiece ]
       }
     }
   , "The Chicken": defaultLevel
@@ -79,7 +80,7 @@ tutorialSuite = fromHomogeneous
       , subtitle = Just "Huh McFly!"
       , description = ""
       , testCases = binaryTestInputs [Direction.Left, Direction.Right]
-      , availablePieces = S.fromFoldable [ ]
+      , availablePieces = leafCells [ ]
       }
     }
   }

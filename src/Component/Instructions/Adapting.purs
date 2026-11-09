@@ -9,7 +9,7 @@ import Data.Array as A
 import Data.FunctorWithIndex (mapWithIndex)
 import Data.Map as M
 import Data.Tuple (Tuple(..))
-import Game.Board (Board(..))
+import Game.Board (Board(..), Cell(..))
 import Game.Location (location)
 import Game.Piece (idPiece)
 import Game.Rotation (rotation)
@@ -49,12 +49,12 @@ component = H.mkComponent { eval: H.mkEval H.defaultEval, render, initialState: 
           ]
         reset =
           [ Board.Clear
-          , const $ Board.AddPiece (location 0 0) idPiece (const unit)
-          , const $ Board.AddPiece (location 1 1) idPiece (const unit)
+          , const $ Board.AddPiece (location 0 0) (Leaf idPiece) (const unit)
+          , const $ Board.AddPiece (location 1 1) (Leaf idPiece) (const unit)
           , const $ Board.RotatePieceBy (location 1 1) (rotation 1) (const unit)
           ]
         adapt =
           [ const $ Board.RemovePiece (location 1 1) (const unit)
-          , const $ Board.AddPiece (location 0 1) idPiece (const unit)
+          , const $ Board.AddPiece (location 0 1) (Leaf idPiece) (const unit)
           , const $ Board.RotatePieceBy (location 0 1) (rotation 1) (const unit)
           ]

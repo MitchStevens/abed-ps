@@ -10,12 +10,12 @@ import Prelude
 
 import AppM (AppM)
 import Capability.Animate as Animate
-import Capability.GlobalEventEmmiters (globalKeyDownEventEmitter)
+import Capability.GlobalEventEmmiters (globalKeyDownEventEmitter, globalMouseUpEventEmitter)
 import Component.Board.Render (render)
 import Component.DataAttribute (attr)
 import Component.DataAttribute as DA
 import Component.Piece.Movement as Piece
-import Component.Piece.Types (boardInputs)
+import Component.Board.ViewModel (PortSource, leafInputs, liveSource, maxDepth, staticSource, viewBoard)
 import Render.Port (portPath)
 import Control.Monad.Except (ExceptT, lift, throwError)
 import Control.Monad.Logger.Class (class MonadLogger, debug, info, warn)
@@ -61,8 +61,8 @@ import Effect.Aff (Milliseconds(..), delay)
 import Effect.Aff.Class (class MonadAff, liftAff)
 import Effect.Class (class MonadEffect, liftEffect)
 import Effect.Class.Console (log, logShow)
-import Game.Eval (boundaryPortInfo, compile, initialSignals, portInfo, step)
-import Game.Board (Board(..), BoardError, BoardM, Cell(..), _focus, _pieces, _ports, _rootPorts, _size, addPath, addPiece, focusIndex, isZoomed, pieceDropped, rebuild, removePiece, rotatePieceBy, runAtFocus, setBoardSize, standardBoard, zoomIn, zoomOut)
+import Game.Eval (boundaryPortInfo, compile, portInfo, restoreState, saveState, step)
+import Game.Board (Board(..), BoardError, BoardM, Cell(..), _focus, _pieces, _ports, _rootPorts, _size, addCell, addPath, addWormhole, focusIndex, isZoomed, pieceDropped, rebuild, removePiece, removeWormhole, rotatePieceBy, runAtFocus, setBoardSize, standardBoard, zoomIn, zoomOut)
 import Game.Direction (CardinalDirection, allDirections)
 import Game.Direction as Direction
 import Game.Location (Location(..), location)
@@ -125,7 +125,7 @@ component = mkComponent { eval , initialState , render }
           Just <<< f <$> use _board
         
         AddPiece loc piece f -> do
-          result <- liftBoardM (addPiece loc piece)
+          result <- liftBoardM (addCell loc piece)
           case result of
             Left _ -> Animate.headShake (DA.selector DA.location loc)
             Right _ -> pure unit
@@ -202,6 +202,9 @@ component = mkComponent { eval , initialState , render }
         Initialise -> do
           emitter <- liftEffect $ globalKeyDownEventEmitter
           void $ subscribe (GlobalOnKeyDown <$> emitter)
+          -- a wormhole drag can end anywhere, on the board or off it
+          mouseUpEmitter <- liftEffect $ globalMouseUpEventEmitter
+          void $ subscribe (GlobalOnMouseUp <$> mouseUpEmitter)
 
           -- fires `Tick` every 500ms for as long as this component lives
           -- (Halogen kills forked fibers on teardown, so no `finalize`
@@ -307,31 +310,43 @@ component = mkComponent { eval , initialState , render }
               focus = view _focus zoomed
               index = focusIndex zoomed
 
+          let
+            -- the focus and the board around it as they're drawn, their
+            -- ports read from `src`
+            setViews :: PortSource -> HalogenM State Action Slots Output AppM Unit
+            setViews src = do
+              let focusView = viewBoard src maxDepth index focus
+              modify_ _
+                { focusView = focusView
+                , pieceInputs = leafInputs focusView
+                , contextView = do
+                    parent <- zoomOut zoomed
+                    hole <- L.last index
+                    pure { parent: viewBoard src maxDepth (focusIndex parent) (view _focus parent), hole }
+                }
+
           case compile board of
-            Left boardError ->
+            Left boardError -> do
               -- a cyclic wiring (two outputs facing each other, say) is an
               -- easy, ordinary thing for a player to do mid-edit -- leave
-              -- the board as it last was rather than crashing.
+              -- the signals as they last were rather than crashing, but
+              -- still show the edit.
               lift $ warn M.empty ("Unable to compile board, BoardError: " <> show boardError)
+              setViews staticSource
             Right netlist -> do
-              lastEval <- gets (_.lastEvalState)
+              saved <- gets (_.registerState)
               let
-                prevSignals = case lastEval of
-                  Just last | last.board == board -> last.signals
-                  _ -> initialSignals netlist
-                Tuple outputs signals = step netlist inputs prevSignals
+                Tuple outputs signals = step netlist inputs (restoreState netlist saved)
               lift $ debug (tag "inputs" (show inputs) `union` tag "outputs" (show outputs)) "Evaluating board"
 
+              setViews (liveSource netlist signals)
               modify_ $ _
-                { lastEvalState = Just { board, signals }
-                , pieceInputs = boardInputs netlist index focus signals
-                , contextInputs = case zoomOut zoomed of
-                    Just parent -> boardInputs netlist (focusIndex parent) (view _focus parent) signals
-                    Nothing -> M.empty
+                { registerState = saveState netlist signals
+                -- every side the focus declares, its wormhole's included: at
+                -- the root that's the harness's sides (`boundaryPortInfo`)
+                -- and the wormhole's, which the harness never sees
                 , boardPortInfoMap =
-                    if isZoomed zoomed
-                      then mapWithIndex (\side port -> portInfo netlist signals (Tuple index side) port) (view _ports focus)
-                      else boundaryPortInfo netlist signals
+                    mapWithIndex (\side port -> portInfo netlist signals (Tuple index side) port) (view _ports focus)
                 }
               handleAction (SetOutputs outputs)
 
@@ -418,6 +433,32 @@ component = mkComponent { eval , initialState , render }
           modify_ (_ { isMouseOverBoardPort = Just dir })
         BoardPortOnMouseLeave -> do
           modify_ (_ { isMouseOverBoardPort = Nothing })
+
+        -- Dragging from a side: from one end of the wormhole, to drop it off
+        -- the board; from any other side a wormhole could use, to drop it on
+        -- another and join the two. The drop is `GlobalOnMouseUp`.
+        BoardPortOnMouseDown dir me -> when (button me == Primary) do
+          state <- get
+          let existing = isJust (wormholeEnd state dir)
+          when (existing || canHoldWormhole state dir) do
+            -- or the drag selects text
+            liftEffect $ preventDefault (MouseEvent.toEvent me)
+            modify_ (_ { wormholeDrag = Just { from: dir, existing, outside: false } })
+
+        BoardOnMouseEnter -> do
+          modify_ \s -> s { wormholeDrag = s.wormholeDrag <#> _ { outside = false } }
+        BoardOnMouseLeave -> do
+          modify_ \s -> s { wormholeDrag = s.wormholeDrag <#> _ { outside = true } }
+
+        GlobalOnMouseUp _ -> do
+          state <- get
+          for_ state.wormholeDrag \drag -> do
+            modify_ (_ { wormholeDrag = Nothing })
+            if drag.existing
+              then when drag.outside do
+                void $ liftBoardM removeWormhole
+              else for_ (state.isMouseOverBoardPort >>= wormholeCandidate state drag.from) \wormhole ->
+                void $ liftBoardM (addWormhole wormhole)
 
         {-
           Lift a `BoardM` operation in the `HalogenM` Monad for this component.

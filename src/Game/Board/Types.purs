@@ -7,8 +7,8 @@ import Control.Monad.State (StateT(..), runStateT)
 import Data.Array ((..))
 import Data.Array as A
 import Data.Either (Either(..))
+import Data.Foldable (class Foldable, foldMap, intercalate, maximumBy, surround)
 import Data.Eq (class Eq1, eq1)
-import Data.Foldable (foldMap, intercalate, maximumBy, surround)
 import Data.Function (on)
 import Data.Group (ginverse)
 import Data.Identity (Identity)
@@ -22,6 +22,7 @@ import Data.Map as M
 import Data.Maybe (Maybe(..), maybe)
 import Data.Monoid (power)
 import Data.Newtype (class Newtype, unwrap)
+import Data.Ord (class Ord1, compare1)
 import Data.Set (Set)
 import Data.Set as S
 import Data.String as String
@@ -32,7 +33,7 @@ import Game.Direction as Direction
 import Game.Frame (Frame, PortIndex)
 import Game.Frame as Frame
 import Game.Location (Location(..), location, taxicabDistance)
-import Game.Piece (Piece(..), name)
+import Game.Piece (Piece(..), PieceId(..), name)
 import Game.Port (Port, hasPort, isInput, noPort)
 import Game.Rotation (Rotation)
 import Type.Proxy (Proxy(..))
@@ -64,6 +65,13 @@ instance Eq1 BoardF where
   eq1 (BoardF b1) (BoardF b2) =
     b1.size == b2.size && b1.ports == b2.ports && b1.pieces == b2.pieces && b1.wormhole == b2.wormhole
 
+instance Ord1 BoardF where
+  compare1 (BoardF b1) (BoardF b2) =
+    compare b1.size b2.size
+      <> compare b1.ports b2.ports
+      <> compare b1.pieces b2.pieces
+      <> compare b1.wormhole b2.wormhole
+
 -- | A board: always at least one `BoardF` layer, never a bare `Piece` -- a
 -- | piece isn't a board, only something a board can hold (see `Cell`).
 newtype Board = Board (BoardF Cell)
@@ -75,18 +83,34 @@ data Cell
 
 derive instance Newtype Board _
 derive instance Eq Cell
+derive instance Ord Cell
 
 instance Eq Board where
   eq (Board x) (Board y) = eq1 x y
 
+instance Ord Board where
+  compare (Board x) (Board y) = compare1 x y
+
 instance Show Board where
-  show board = "(BoardF " <> show b <> ")"
-    where BoardF b = view _boardF board
+  show (Board (BoardF b)) = "(BoardF " <> show b <> ")"
 
 instance Show Cell where
   show = case _ of
     Leaf p -> "(Leaf " <> show p <> ")"
     Nested board -> "(Nested " <> show board <> ")"
+
+-- | A label for a cell. Unlike a piece's name it isn't unique: nested boards
+-- | are only told apart by their wormhole.
+cellId :: Cell -> PieceId
+cellId = case _ of
+  Leaf piece -> name piece
+  Nested (Board (BoardF { wormhole })) -> PieceId case wormhole of
+    Just { wormholeIn, wormholeOut } -> "wormhole-" <> show wormholeIn <> "-" <> show wormholeOut
+    Nothing -> "nested-board"
+
+-- | A level's `availablePieces` when they're all plain pieces.
+leafCells :: forall f. Foldable f => f Piece -> Set Cell
+leafCells = foldMap (S.singleton <<< Leaf)
 
 mkBoard :: BoardF Cell -> Board
 mkBoard = Board
@@ -131,6 +155,9 @@ _ports = _boardF <<< _Newtype <<< prop (Proxy :: _ "ports")
 
 _pieces :: Lens' Board (Map Location { rotation :: Rotation, piece :: Cell })
 _pieces = _boardF <<< _Newtype <<< prop (Proxy :: _ "pieces")
+
+_wormhole :: Lens' Board (Maybe Wormhole)
+_wormhole = _boardF <<< _Newtype <<< prop (Proxy :: _ "wormhole")
 
 standardBoard :: Board
 standardBoard = mkBoard $ BoardF { size: 3, ports: pure noPort, pieces: M.empty, wormhole: Nothing }

@@ -8,6 +8,6 @@ module Game.Eval
   , module Game.Frame
   ) where
 
-import Game.Eval.Netcode (boundaryPortInfo, evaluate, initialSignals, portInfo, run, step, tick)
+import Game.Eval.Netcode (boundaryPortInfo, evaluate, initialSignals, portInfo, restoreState, run, saveState, step, tick)
 import Game.Eval.Netlist (Netlist, SlotRegister, compile)
 import Game.Frame (PieceIndex, PortIndex)

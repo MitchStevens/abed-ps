@@ -18,8 +18,10 @@ import Data.Map as M
 import Data.Maybe (Maybe(..), fromMaybe)
 import Debug (trace)
 import Effect.Aff.Class (class MonadAff)
+import Effect.Class (liftEffect)
 import Effect.Class.Console (log)
 import Foreign.Object as Object
+import Game.Level (LevelSuite)
 import GlobalState (GlobalState)
 import Halogen (Component, Slot, lift, mkEval)
 import Halogen as H
@@ -32,13 +34,15 @@ import Web.UIEvent.KeyboardEvent (KeyboardEvent)
 
 type Input = {}
 
-type State = 
-  { route :: Route }
+type State =
+  { route :: Route
+  , levelSuites :: Object.Object LevelSuite
+  }
 
 data Query a
   = Navigate Route a
 
-data Action
+data Action = Initialise
 
 
 data Output
@@ -55,10 +59,10 @@ type Slots =
 component :: Component Query Unit Void AppM
 component = H.mkComponent { eval, initialState, render }
   where
-  initialState _ = { route: Home }
+  initialState _ = { route: Home, levelSuites: Object.empty }
   
   render :: State -> H.ComponentHTML Action Slots AppM
-  render { route } = case route of
+  render { route, levelSuites } = case route of
       Home ->
         HH.slot_ (Proxy :: _ "home") unit Home.component unit
       About ->
@@ -70,7 +74,7 @@ component = H.mkComponent { eval, initialState, render }
       LevelSelect ->
         HH.slot_ (Proxy :: _ "levelSelect") unit LevelSelect.component unit
       Level { suiteName, levelName } -> fromMaybe (HH.text "couldn't find that problem" ) do
-        levelSuite <- Object.lookup (fromUnderscore suiteName) allLevelSuites
+        levelSuite <- Object.lookup (fromUnderscore suiteName) levelSuites
         level <- Object.lookup (fromUnderscore levelName) levelSuite
         pure $ HH.slot_ (Proxy :: _ "level") unit Level.component
           { levelId: {suiteName: fromUnderscore suiteName, levelName: fromUnderscore levelName}, level }
@@ -80,7 +84,9 @@ component = H.mkComponent { eval, initialState, render }
   eval = mkEval 
     { finalize: Nothing 
     , handleAction: case _ of
-        _ -> pure unit
+        Initialise -> do
+          levelSuites <- liftEffect allLevelSuites
+          H.modify_ (_ { levelSuites = levelSuites })
     , handleQuery: case _ of
         Navigate dest a -> do
           { route } <- H.get
@@ -88,6 +94,6 @@ component = H.mkComponent { eval, initialState, render }
             lift $ debug M.empty ("Navigated to " <> show dest)
             H.modify_ (_ { route = dest })
           pure (Just a)
-    , initialize: Nothing
+    , initialize: Just Initialise
     , receive: \_ -> Nothing
     }

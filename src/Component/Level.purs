@@ -38,7 +38,7 @@ import Effect.Aff as Aff
 import Effect.Aff.Class (class MonadAff, liftAff)
 import Effect.Class (class MonadEffect, liftEffect)
 import Effect.Class.Console (log)
-import Game.Board (Board(..), _focus, _size, firstEmptyLocation, getBoardPorts, rebuild, standardBoard)
+import Game.Board (Board(..), Cell(..), _focus, _size, firstEmptyLocation, getBoardPorts, rebuild, standardBoard)
 import Game.Eval (compile)
 import Game.Direction (CardinalDirection)
 import Game.Level (LevelId, Level)
@@ -163,7 +163,7 @@ component = H.mkComponent { eval , initialState , render }
       Sidebar.PieceDropped pieceId -> do
         maybeLocation <- H.request Board.slot unit (Board.GetMouseOverLocation)
         for_ maybeLocation \loc -> 
-          H.request Board.slot unit (Board.AddPiece loc (pieceLookup pieceId))
+          H.request Board.slot unit (Board.AddPiece loc (Leaf (pieceLookup pieceId)))
       Sidebar.InputFieldOutput (Sidebar.BoardSize n) ->
         H.request Board.slot unit (Board.SetBoardSize n) >>= case _ of
           Just (Right _) -> modify_ (_ {boardSize = n})
@@ -175,7 +175,7 @@ component = H.mkComponent { eval , initialState , render }
         Sidebar.AddPiece pieceId -> do
           H.request Board.slot unit Board.GetFocus >>= traverse_ \board -> do
             for_ (firstEmptyLocation board) \loc ->
-              H.request Board.slot unit (Board.AddPiece loc (pieceLookup pieceId))
+              H.request Board.slot unit (Board.AddPiece loc (Leaf (pieceLookup pieceId)))
         Sidebar.BackToLevelSelect  ->
           H.lift $ navigateTo LevelSelect
         Sidebar.Undo ->
@@ -207,15 +207,14 @@ component = H.mkComponent { eval , initialState , render }
 
 
     SelectorOutput output -> case output of
-      Selector.AddPiece pieceId -> 
+      Selector.AddPiece cell ->
         H.request Board.slot unit Board.GetFocus >>= traverse_ \board -> do
           for_ (firstEmptyLocation board) \loc ->
-            H.request Board.slot unit (Board.AddPiece loc (pieceLookup pieceId))
-      Selector.PieceDropped pieceId -> do
+            H.request Board.slot unit (Board.AddPiece loc cell)
+      Selector.PieceDropped cell -> do
         maybeLocation <- H.request Board.slot unit (Board.GetMouseOverLocation)
-        for_ maybeLocation \loc -> 
-          H.request Board.slot unit (Board.AddPiece loc (pieceLookup pieceId))
-      Selector.DoNothing -> pure unit
+        for_ maybeLocation \loc ->
+          H.request Board.slot unit (Board.AddPiece loc cell)
 
 
 delay :: forall m a. MonadAff m => Milliseconds -> a -> m (Emitter a)

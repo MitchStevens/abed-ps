@@ -15,7 +15,7 @@ import Data.Tuple (Tuple(..))
 import Data.Either (Either(..))
 import Data.List as L
 import Game.Board (Board, Cell(..), BoardF(BoardF), mkBoard)
-import Game.Eval (Netlist, compile, initialSignals, portInfo, run, step)
+import Game.Eval (Netlist, compile, initialSignals, portInfo, restoreState, run, saveState, step)
 import Game.Capacity (Capacity(..))
 import Game.Direction as Direction
 import Game.Frame (Frame)
@@ -169,6 +169,33 @@ spec = describe "Boards with a wormhole" do
 
     it "still counts, addressed by the nested board's own path" do
       map mouthAfter [ 0, 1, 7, 20 ] `shouldEqual` map mkSignal [ 0, 1, 7, 20 ]
+
+    -- an edit recompiles the board, renumbering every slot: what the counter
+    -- has captured must be carried over by `saveState`/`restoreState`
+    let
+      ticks n nl signals = A.foldl (\s _ -> snd (step nl (pure zero) s)) signals (A.replicate n unit)
+      -- the parent, grown to 3x3 with the counter at `at` and a stray `not`
+      edited at = mkBoard $ BoardF
+        { size: 3
+        , ports: pure noPort
+        , pieces: M.fromFoldable
+            [ Tuple at { piece: Nested counterBoard, rotation: rotation 0 }
+            , Tuple (location 2 2) { piece: Leaf notPiece, rotation: rotation 0 }
+            ]
+        , wormhole: Nothing
+        }
+      countAfterEdit at = do
+        let
+          before = ticks 5 netlist (initialSignals netlist)
+          netlist' = compileOrCrash (edited at)
+          after = restoreState netlist' (saveState netlist before)
+        (portInfo netlist' (ticks 1 netlist' after) (Tuple (L.singleton at) Direction.Up) (outputPort EightBit)).signal
+
+    it "keeps its count when a piece is added beside it" do
+      countAfterEdit parentAt `shouldEqual` mkSignal 6
+
+    it "starts again from zero when it's moved" do
+      countAfterEdit (location 1 0) `shouldEqual` mkSignal 1
 
   describe "risingEdgeBoard" do
     it "pulses on a 0->1 transition and is zero otherwise" do

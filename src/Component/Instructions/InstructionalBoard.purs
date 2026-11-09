@@ -14,7 +14,7 @@ import Data.Maybe (Maybe(..))
 import Data.Set as S
 import Game.Frame as Frame
 import Data.Tuple (Tuple(..), fst)
-import Game.Board (Board, Cell(..), firstEmptyLocation, standardBoard, _pieces)
+import Game.Board (Board, Cell(..), firstEmptyLocation, leafCells, standardBoard, _pieces)
 import Game.Direction (allDirections)
 import Game.Location (Location, followDirection)
 import Game.Piece (Piece, PieceId, getPorts, isWirePiece, pieceLookup)
@@ -98,15 +98,14 @@ component = H.mkComponent { eval, initialState, render }
           }
 
     SelectorOutput output -> case output of
-      Selector.AddPiece pieceId ->
+      Selector.AddPiece cell ->
         H.request Board.slot unit Board.GetFocus >>= traverse_ \board ->
           for_ (firstEmptyLocation board) \loc ->
-            H.request Board.slot unit (Board.AddPiece loc (pieceLookup pieceId))
-      Selector.PieceDropped pieceId -> do
+            H.request Board.slot unit (Board.AddPiece loc cell)
+      Selector.PieceDropped cell -> do
         maybeLocation <- H.request Board.slot unit Board.GetMouseOverLocation
         for_ maybeLocation \loc ->
-          H.request Board.slot unit (Board.AddPiece loc (pieceLookup pieceId))
-      Selector.DoNothing -> pure unit
+          H.request Board.slot unit (Board.AddPiece loc cell)
 
     -- Board's own Clear query doesn't raise an output, so update our board
     -- snapshot by hand instead of waiting for a BoardOutput that never
@@ -150,7 +149,7 @@ component = H.mkComponent { eval, initialState, render }
       | otherwise =
           [ HH.p [ HP.class_ (ClassName "available-pieces-label") ] [ HH.text "Available pieces" ]
           , HH.slot Selector.slot unit Selector.component
-              { availablePieces: S.fromFoldable (map pieceLookup state.availablePieces) }
+              { availablePieces: leafCells (map pieceLookup state.availablePieces) }
               SelectorOutput
           ]
 

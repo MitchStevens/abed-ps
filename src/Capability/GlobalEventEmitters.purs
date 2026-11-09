@@ -26,3 +26,8 @@ globalMouseMoveEventEmitter = do
   htmlDocument <- window >>= document
   let target = toEventTarget htmlDocument
   pure $ eventListener MouseEvent.mousemove target MouseEvent.fromEvent
+globalMouseUpEventEmitter :: Effect (Emitter MouseEvent)
+globalMouseUpEventEmitter = do
+  htmlDocument <- window >>= document
+  let target = toEventTarget htmlDocument
+  pure $ eventListener MouseEvent.mouseup target MouseEvent.fromEvent

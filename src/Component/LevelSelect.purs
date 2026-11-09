@@ -36,21 +36,24 @@ import Halogen.HTML.Properties as HP
 import Resources.LevelSuites (allLevelSuites, getAllLevelProgress)
 
 
-type State = { levelProgress :: Map LevelId LevelProgress }
+type State =
+  { levelProgress :: Map LevelId LevelProgress
+  , levelSuites :: Object LevelSuite
+  }
 
 data Action = Initialise | NavigateTo LevelId
 
 component :: forall q i o. H.Component q i o AppM
 component = H.mkComponent { eval , initialState , render }
   where
-    initialState _ = { levelProgress: M.empty } 
+    initialState _ = { levelProgress: M.empty, levelSuites: O.empty }
 
     render :: State -> ComponentHTML Action () AppM
     render state =  
       defaultLayout $
         HH.div [ HP.id "puzzle-select-component" ]
           [ HH.h1_ [ HH.text "Level Select" ] 
-          , HH.div [HP.id "level-suites" ] (A.fromFoldable (mapWithIndex renderLevelSuite allLevelSuites))
+          , HH.div [HP.id "level-suites" ] (A.fromFoldable (mapWithIndex renderLevelSuite state.levelSuites))
           ]
 
 
@@ -88,7 +91,8 @@ component = H.mkComponent { eval , initialState , render }
           Initialise -> do
             progress <- liftEffect getAllLevelProgress
             log (show progress)
-            H.modify_ (_ { levelProgress = progress})
+            levelSuites <- liftEffect allLevelSuites
+            H.modify_ (_ { levelProgress = progress, levelSuites = levelSuites })
           NavigateTo levelId -> do
             saveLevelProgress levelId Incomplete
             H.lift $ navigateTo (level levelId)

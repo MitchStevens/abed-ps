@@ -2,46 +2,39 @@ module Component.Selector where
 
 import Prelude
 
-import Component.DataAttribute (availablePiece)
+import Component.Board.ViewModel (maxDepth, staticSource, viewBoard)
+import Component.BoardView as BoardView
 import Component.DataAttribute as DA
-import Component.Piece.Types as Piece
-import Component.Piece.Render (ChildSlots, renderPiece)
+import Component.Piece.Visual as Visual
 import Data.Array as A
-import Data.Map as M
+import Data.FunctorWithIndex (mapWithIndex)
+import Data.List (List(..))
 import Data.Maybe (Maybe(..))
 import Data.Set (Set)
 import Data.Set as S
 import Effect.Aff.Class (class MonadAff)
-import Game.Location (location)
-import Game.Piece (Piece(..), PieceId(..), defaultPortInfo, name)
-import Game.Rotation (rotation)
+import Game.Board (Cell(..), cellId)
+import Game.Piece (defaultPortInfo)
 import Halogen (ClassName(..), Component, ComponentHTML, HalogenM, HalogenQ, mkComponent, mkEval)
 import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
-import Halogen.HTML.Extras (mapActionOverHTML)
 import Halogen.HTML.Properties as HP
 import Type.Proxy (Proxy(..))
-import Web.HTML.Event.DragEvent (DragEvent)
 
-type Input = { availablePieces :: Set Piece }
+type Input = { availablePieces :: Set Cell }
 
 type State = Input
 
+-- | Keyed by position in the selector.
+type Slots =
+  ( piece :: H.Slot Visual.Query Visual.Output Int
+  , boardView :: H.Slot BoardView.Query Void Int
+  )
+
 data Action
-  = AddPiece PieceId
-  | PieceDropped PieceId
-  {-
-    the sidebar creates little icons using the same piece rendering as pieces. the type of HTML used in piece rendering is:
-      `ComponentHTML Piece.Action s m`
-    
-    When the sidebar renders the little icons, it requires HTML of type
-      `ComponentHTML Sidebar.Action s m`
-    
-    We use the function `mapActionOverHTML :: (a -> a') -> ComponentHTML a s m -> ComponentHTML a' s m` to convert between the two HTML types, but this requires a mapping between between piece actions and sidebar actions. The simplest such function is:
-      (\_ -> DoNothing) :: Piece.Action -> Sidebar.Action)
-  -}
-  | DoNothing
+  = AddPiece Cell
+  | PieceDropped Cell
 
 data Query a
 
@@ -50,7 +43,7 @@ type Output = Action
 component :: forall m. MonadAff m => Component Query Input Output m
 component = mkComponent { initialState: identity, eval, render }
 
-eval :: forall m. MonadAff m => HalogenQ Query Action Input ~> HalogenM State Action ChildSlots Output m
+eval :: forall m. MonadAff m => HalogenQ Query Action Input ~> HalogenM State Action Slots Output m
 eval = mkEval
   { handleAction: \action -> H.raise action
   , handleQuery: \_ -> pure Nothing
@@ -59,8 +52,8 @@ eval = mkEval
   , finalize: Nothing
   }
 
-render :: forall m. MonadAff m => State -> ComponentHTML Action ChildSlots m
-render { availablePieces } = 
+render :: forall m. MonadAff m => State -> ComponentHTML Action Slots m
+render { availablePieces } =
   if S.isEmpty availablePieces
     then HH.text ""
     else
@@ -69,24 +62,30 @@ render { availablePieces } =
         [ HH.h2_ [ HH.text "Available pieces"]
         , HH.span
           [ HP.class_ (ClassName "pieces") ]
-          (renderAvailablePiece <$> (A.fromFoldable availablePieces))
+          (mapWithIndex renderAvailablePiece (A.fromFoldable availablePieces))
         ]
   where
-    renderAvailablePiece piece =
-      HH.div 
-        [ DA.attr DA.availablePiece pieceId
+    renderAvailablePiece index cell =
+      HH.div
+        [ DA.attr DA.availablePiece (cellId cell)
         , HP.draggable true
         , HP.classes [ ClassName "available-piece" ]
-        , HE.onDragEnd (\_ -> PieceDropped pieceId)
-        , HE.onClick (\_ -> AddPiece pieceId)
+        , HE.onDragEnd (\_ -> PieceDropped cell)
+        , HE.onClick (\_ -> AddPiece cell)
         ]
-        [ mapActionOverHTML (\_ -> DoNothing) (renderPiece pieceState)
-        , HH.text (show pieceId) 
+        [ renderCell index cell
+        , HH.text (show (cellId cell))
         ]
-      where
-        pieceId = name piece
-        pieceState = Piece.initialState 
-          { piece, location: location 0 0, rotation: rotation 0, portStates: defaultPortInfo piece}
+
+    renderCell index = case _ of
+      Leaf piece -> HH.slot_ (Proxy :: _ "piece") index Visual.component
+        { piece, portStates: defaultPortInfo piece }
+      Nested board -> HH.slot_ (Proxy :: _ "boardView") index BoardView.component
+        { view: viewBoard staticSource maxDepth Nil board
+        , layout: BoardView.Bare
+        , classes: [ ClassName "nested" ]
+        , hole: Nothing
+        }
 
 slot :: Proxy "selector"
 slot = Proxy

@@ -40,8 +40,11 @@ import Game.Eval.Nets (nets, scratchSlot, zeroSlot)
 import Game.Frame (Frame, PortIndex)
 import Game.Port (Port, isInput, isOutput)
 
--- | A wormhole, by slot: `tail` takes `mouth`'s value between ticks.
-type SlotRegister = { mouth :: Int, tail :: Int }
+-- | A wormhole, by slot: `tail` takes `mouth`'s value between ticks. `key` is
+-- | the tail's `PortIndex`: unlike slot numbers it survives recompiling an
+-- | edited board, so it's what a wormhole's state is saved under (see
+-- | `Netcode.saveState`).
+type SlotRegister = { mouth :: Int, tail :: Int, key :: PortIndex }
 
 type Netlist =
   { slotCount :: Int
@@ -69,7 +72,7 @@ compile board = do
     { slotCount: ns.slotCount
     , gates: ordered
     , registers: A.fromFoldable flat.registers # A.mapMaybe \{ mouth, tail } ->
-        { mouth: _, tail: _ } <$> slotOf mouth <*> slotOf tail
+        { mouth: _, tail: _, key: tail } <$> slotOf mouth <*> slotOf tail
     , boundary: flat.boundary
     , inputSlots: flat.boundary # mapWithIndex \side port ->
         if isInput port then fromMaybe scratchSlot (sideSlot side) else scratchSlot

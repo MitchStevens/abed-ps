@@ -32,6 +32,63 @@
     opacity: 1;
   }
 }
+@keyframes wormhole-flow {
+  to {
+    stroke-dashoffset: -11;
+  }
+}
+@keyframes wormhole-march {
+  to {
+    stroke-dashoffset: -9;
+  }
+}
+.board-view {
+  box-sizing: border-box;
+  width: 100%;
+  height: 100%;
+  display: grid;
+}
+.board-view.framed {
+  aspect-ratio: 1 / 1;
+}
+.board-view.nested {
+  transition: opacity 200ms;
+  opacity: 0.5;
+}
+.board-view.nested.zooming {
+  opacity: 1;
+}
+.board-view.nested.fading-out {
+  transition: none;
+  animation: nested-board-fade-out 500ms ease-in both;
+}
+.board-view.nested .nested {
+  opacity: 1;
+}
+.board-view.too-deep {
+  width: 80%;
+  height: 80%;
+  margin: 10%;
+  border: lightgray 1px dashed;
+}
+.board-view .board-view-slot {
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+.board-view .board-view-piece {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+.board-view .board-view-rotation {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
 .board-component {
   aspect-ratio: 1 / 1;
   overflow: clip;
@@ -59,7 +116,6 @@
   width: 100%;
   height: 100%;
   z-index: 0;
-  display: grid;
   transform-origin: 0 0;
   transition: transform 200ms;
   pointer-events: none;
@@ -84,35 +140,6 @@
 .board-component .piece[data-location$=",0)"] {
   border-top: lightgray 2px solid;
 }
-.board-component .piece .nested-board {
-  transition: opacity 200ms;
-  opacity: 0.5;
-  box-sizing: border-box;
-  width: 100%;
-  height: 100%;
-  margin: 0;
-  display: grid;
-}
-.board-component .piece .nested-board.zooming {
-  opacity: 1;
-}
-.board-component .piece .nested-board.fading-out {
-  transition: none;
-  animation: nested-board-fade-out 500ms ease-in both;
-}
-.board-component .piece .nested-board .nested-piece {
-  position: relative;
-  min-width: 0;
-  min-height: 0;
-  overflow: hidden;
-}
-.board-component .piece .nested-board .nested-board {
-  opacity: 1;
-  width: 80%;
-  height: 80%;
-  margin: 10%;
-  border: lightgray 1px dashed;
-}
 .board-component .piece .location-text {
   padding-left: 10px;
   padding-top: 2px;
@@ -124,6 +151,8 @@
   justify-items: center;
   align-items: center;
   overflow: hidden;
+  position: relative;
+  z-index: 1;
 }
 .board-component .board-port[data-direction='up'],
 .board-component .board-port[data-direction='down'] {
@@ -138,6 +167,85 @@
 }
 .board-component .board-port[data-direction='down'] svg {
   width: 50%;
+}
+.board-component .board-port svg {
+  overflow: visible;
+}
+.board-component .board-port.draggable {
+  cursor: grab;
+}
+.board-component .board-port .empty-oval {
+  fill: transparent;
+  stroke: rgba(57, 35, 13, 0.45);
+  stroke-width: 1.2;
+  stroke-dasharray: 1.5 3;
+  stroke-linecap: round;
+  transition: stroke 150ms;
+}
+.board-component .board-port.draggable:hover .empty-oval {
+  stroke: #39230d;
+}
+.board-component .board-port .hole-rim {
+  fill: #3a2614;
+  stroke: black;
+  stroke-width: 1;
+}
+.board-component .board-port .hole-depth {
+  fill: #1d1209;
+}
+.board-component .board-port .hole-floor {
+  fill: #090503;
+}
+.board-component .board-port .wormhole-glyph {
+  transition: opacity 150ms;
+}
+.board-component .board-port.removing .wormhole-glyph {
+  opacity: 0.3;
+}
+.board-component .board-port .target-ring {
+  fill: none;
+  stroke: none;
+  stroke-width: 1.6;
+}
+.board-component .board-port.wormhole-source .target-ring {
+  stroke: rgba(57, 35, 13, 0.7);
+  stroke-dasharray: 2 3;
+}
+.board-component .board-port.wormhole-target .target-ring {
+  stroke: #3f9a52;
+  stroke-width: 2.2;
+  stroke-dasharray: 5 4;
+  animation: wormhole-march 800ms linear infinite;
+}
+.board-component.dragging-wormhole,
+.board-component.dragging-wormhole * {
+  cursor: grabbing;
+}
+.board-component .wormhole-thread {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+  pointer-events: none;
+}
+.board-component .wormhole-thread .thread {
+  fill: none;
+  stroke: #39230d;
+  stroke-width: 2;
+  stroke-dasharray: 1.5 4;
+  stroke-linecap: round;
+  animation: wormhole-flow 800ms linear infinite;
+}
+.board-component .wormhole-thread .thread.invalid {
+  stroke: #e74747;
+}
+@media (prefers-reduced-motion: reduce) {
+  .board-component .wormhole-thread .thread,
+  .board-component .board-port.wormhole-target .target-ring {
+    animation: none;
+  }
 }
 .board-component #multimeter {
   position: absolute;
@@ -3948,6 +4056,10 @@
 }
 #selector-component .pieces > div {
   border: #39230d 1px solid;
+}
+#selector-component .pieces .board-view {
+  height: auto;
+  aspect-ratio: 1 / 1;
 }
 #sidebar-component {
   display: flex;

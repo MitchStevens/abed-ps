@@ -10,6 +10,71 @@
     to { opacity: 1; }
 }
 
+// the dashes of a wormhole's thread and its drop targets' rings, moving the
+// way the signal would
+@keyframes wormhole-flow {
+    to { stroke-dashoffset: -11; }
+}
+@keyframes wormhole-march {
+    to { stroke-dashoffset: -9; }
+}
+
+.board-view {
+    box-sizing: border-box;
+    width: 100%;
+    height: 100%;
+    display: grid;
+
+    // laid out like the board itself (the context)
+    &.framed {
+        aspect-ratio: 1 / 1;
+    }
+
+    // a board in a slot -- scroll up on it to zoom in
+    &.nested {
+        transition: opacity 200ms;
+        opacity: 0.5;
+        &.zooming { opacity: 1; }
+        // the preview left under a board just zoomed into: holds while
+        // the grid fades in over it, then goes (see `.board-grid.fade-in`)
+        &.fading-out {
+            transition: none;
+            animation: nested-board-fade-out 500ms ease-in both;
+        }
+        // already faded by the board it's in
+        .nested { opacity: 1; }
+    }
+
+    // nested too deep to be worth drawing: just show something's there
+    &.too-deep {
+        width: 80%;
+        height: 80%;
+        margin: 10%;
+        border: lightgray 1px dashed;
+    }
+
+    .board-view-slot {
+        position: relative;
+        min-width: 0;
+        min-height: 0;
+        overflow: hidden;
+    }
+
+    .board-view-piece {
+        position: relative;
+        width: 100%;
+        height: 100%;
+    }
+
+    .board-view-rotation {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+    }
+}
+
 .board-component {
     aspect-ratio: 1 / 1;
     // the board's window onto .board-grid while zoomed in. `clip` rather than
@@ -48,7 +113,6 @@
         width: 100%;
         height: 100%;
         z-index: 0;
-        display: grid;
         transform-origin: 0 0;
         // keeps up with the grid's own resize transition
         transition: transform 200ms;
@@ -60,6 +124,7 @@
         }
     }
 
+    // a board that's only drawn -- see `Component.BoardView`
     & .piece {
         display: block;
         box-sizing: border-box;
@@ -86,40 +151,6 @@
         }
         &[data-location$=",0)"] {
             border-top: lightgray 2px solid;
-        }
-
-        // a slot holding a board of its own -- scroll up on it to zoom in
-        .nested-board {
-            transition: opacity 200ms;
-            opacity: 0.5;
-            &.zooming { opacity: 1; }
-            // the preview left under a board just zoomed into: holds while
-            // the grid fades in over it, then goes (see `.board-grid.fade-in`)
-            &.fading-out {
-                transition: none;
-                animation: nested-board-fade-out 500ms ease-in both;
-            }
-            box-sizing: border-box;
-            width: 100%;
-            height: 100%;
-            margin: 0;
-            display: grid;
-
-            .nested-piece {
-                position: relative;
-                min-width: 0;
-                min-height: 0;
-                overflow: hidden;
-            }
-            // a board nested deeper still has no preview, so it keeps an
-            // outline to show something is there
-            .nested-board {
-                opacity: 1;
-                width: 80%;
-                height: 80%;
-                margin: 10%;
-                border: lightgray 1px dashed;
-            }
         }
 
         .location-text {
@@ -157,6 +188,78 @@
 
         &[data-direction='up'] svg { width: 50%; }
         &[data-direction='down'] svg { width: 50%; }
+
+        // above the wormhole thread, which runs under the ports
+        position: relative;
+        z-index: 1;
+        svg { overflow: visible; }
+
+        &.draggable { cursor: grab; }
+
+        // a side a wormhole could use: the outline of the hole it would make
+        .empty-oval {
+            fill: transparent;
+            stroke: fade(@brown, 45%);
+            stroke-width: 1.2;
+            stroke-dasharray: 1.5 3;
+            stroke-linecap: round;
+            transition: stroke 150ms;
+        }
+        &.draggable:hover .empty-oval { stroke: @brown; }
+
+        // one end of a wormhole -- see `Component.Board.Layout.wormholeEndSvg`
+        .hole-rim { fill: #3a2614; stroke: black; stroke-width: 1; }
+        .hole-depth { fill: #1d1209; }
+        .hole-floor { fill: #090503; }
+        .wormhole-glyph { transition: opacity 150ms; }
+        // being dragged off the board, and about to close
+        &.removing .wormhole-glyph { opacity: 0.3; }
+
+        // only shown while a wormhole is being dragged
+        .target-ring {
+            fill: none;
+            stroke: none;
+            stroke-width: 1.6;
+        }
+        &.wormhole-source .target-ring {
+            stroke: fade(@brown, 70%);
+            stroke-dasharray: 2 3;
+        }
+        &.wormhole-target .target-ring {
+            stroke: #3f9a52;
+            stroke-width: 2.2;
+            stroke-dasharray: 5 4;
+            animation: wormhole-march 800ms linear infinite;
+        }
+    }
+
+    &.dragging-wormhole, &.dragging-wormhole * { cursor: grabbing; }
+
+    // the way a wormhole's signal goes, round the port tracks from mouth to
+    // tail -- see `Component.Board.Render.wormholeThread`
+    & .wormhole-thread {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        z-index: 0;
+        pointer-events: none;
+
+        .thread {
+            fill: none;
+            stroke: @brown;
+            stroke-width: 2;
+            stroke-dasharray: 1.5 4;
+            stroke-linecap: round;
+            animation: wormhole-flow 800ms linear infinite;
+            &.invalid { stroke: @red; }
+        }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        .wormhole-thread .thread,
+        .board-port.wormhole-target .target-ring { animation: none; }
     }
 
     & #multimeter {

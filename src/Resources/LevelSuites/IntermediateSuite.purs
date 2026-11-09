@@ -9,7 +9,7 @@ import Data.Foldable (all)
 import Data.Lens (view)
 import Data.Set as S
 import Foreign.Object (fromHomogeneous)
-import Game.Board (Cell(..), _pieces)
+import Game.Board (Cell(..), _pieces, leafCells)
 import Game.Direction as Direction
 import Game.Level (LevelSuite, binaryTestInputs, defaultLevel)
 import Game.Level.Problem (defaultProblem)
@@ -24,7 +24,7 @@ intermediateSuite = fromHomogeneous
         , title = "Cross over"
         , description = "Propogate the signal on the left to the right, and the top to the bottom"
         , testCases = binaryTestInputs [ Direction.Left, Direction.Up ]
-        , availablePieces = S.fromFoldable [idPiece, superPiece, leftPiece, rightPiece, xorPiece]
+        , availablePieces = leafCells [idPiece, superPiece, leftPiece, rightPiece, xorPiece]
         , otherRestrictions =
           [ { name: "Prohibited Piece"
             , description: "You can't use the CrossOver piece in this level"
@@ -64,7 +64,7 @@ intermediateSuite = fromHomogeneous
         , title ="From Or, birthed And"
         , description = "Create an and-piece using only or-piece and not-piece"
         , testCases = binaryTestInputs [ Direction.Left, Direction.Up ]
-        , availablePieces = S.fromFoldable[ orPiece, notPiece ]
+        , availablePieces = leafCells [ orPiece, notPiece ]
         } 
       }
     , "Exclusive Or: Pick One": defaultLevel
@@ -73,7 +73,7 @@ intermediateSuite = fromHomogeneous
         , title = "Exclusive Or: Pick One"
         , description = "Output true when EXACTLY one input is true. If both inputs are true, output false"
         , testCases = binaryTestInputs [ Direction.Left, Direction.Up ]
-        , availablePieces = S.fromFoldable [ idPiece, notPiece, orPiece, andPiece, crossPiece ]
+        , availablePieces = leafCells [ idPiece, notPiece, orPiece, andPiece, crossPiece ]
         }
       }
     }

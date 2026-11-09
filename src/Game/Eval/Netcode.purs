@@ -17,13 +17,21 @@
   wormhole's mouth can be the same net (an inner board's tail wired straight
   to the outer board's mouth); copying one register at a time would let a
   value through both in a single tick.
+
+  Between ticks the register tails are the *only* state: every other slot is
+  rewritten before it's read. Slot numbers don't survive recompiling an edited
+  board, so to carry state across an edit, `saveState` keeps each tail's value
+  under its `PortIndex` and `restoreState` puts it back into the new netlist's
+  slots. A wormhole whose board moved, or that's new, starts empty.
 -}
 module Game.Eval.Netcode
   ( boundaryPortInfo
   , evaluate
   , initialSignals
   , portInfo
+  , restoreState
   , run
+  , saveState
   , step
   , tick
   ) where
@@ -38,6 +46,7 @@ import Data.Array.ST as STA
 import Data.Foldable (for_, sequence_)
 import Data.FunctorWithIndex (mapWithIndex)
 import Data.List (List(..))
+import Data.Map (Map)
 import Data.Map as M
 import Data.Set as S
 import Data.Maybe (Maybe(..), fromMaybe)
@@ -53,6 +62,20 @@ import Game.Signal (Signal)
 -- | Every slot `zero`: the state before the first tick, wormholes empty.
 initialSignals :: Netlist -> Array Signal
 initialSignals netlist = A.replicate netlist.slotCount zero
+
+-- | Every wormhole's buffer, by its tail's `PortIndex`.
+saveState :: Netlist -> Array Signal -> Map PortIndex Signal
+saveState netlist signals = M.fromFoldable $ netlist.registers <#> \{ key, tail } ->
+  Tuple key (fromMaybe zero (A.index signals tail))
+
+-- | `initialSignals`, but with each wormhole saved in `saved` (under the same
+-- | `PortIndex`) holding what it held. Unknown keys are ignored.
+restoreState :: Netlist -> Map PortIndex Signal -> Array Signal
+restoreState netlist saved = ST.run do
+  st <- STA.thaw (initialSignals netlist)
+  for_ netlist.registers \{ key, tail } ->
+    for_ (M.lookup key saved) \signal -> STA.poke tail signal st
+  STA.unsafeFreeze st
 
 -- | One tick, in place, returning the harness outputs.
 tick :: forall h. Netlist -> Frame Signal -> STArray h Signal -> ST h (Frame Signal)

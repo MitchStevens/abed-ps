@@ -5,7 +5,6 @@ module Component.Piece.Types
   , Query(..)
   , State
   , _portStates
-  , boardInputs
   , initialState
   , slot
   )
@@ -127,27 +126,3 @@ _portStates = prop (Proxy :: _ "portStates")
 --
 --  }
 
-{-
-  Every root-level piece's `Input`, ready to hand to `Component.Piece`. Takes
-  the already-`compile`d `Netlist` (the caller needs one anyway, to `step` it
-  and produce `signals`) rather than compiling `board` again here. `board`
-  supplies the pieces themselves and their `Rotation`s, which a `Netlist`
-  doesn't keep.
-
-  `board` is the board found at `index` in the compiled tree (`Nil` for the
-  root), so a zoomed-in board's pieces read their signals from where they
-  really sit. A nested board can't be shown as a piece in this UI yet, so
-  only `board`'s own leaf pieces are included.
--}
-boardInputs :: Netlist -> PieceIndex -> Board -> Array Signal -> Map Location Input
-boardInputs netlist index board signals = M.mapMaybeWithKey toInput (view _pieces board)
-  where
-  toInput :: Location -> { rotation :: Rotation, piece :: Cell } -> Maybe Input
-  toInput loc { rotation, piece: cell } = case cell of
-    Nested _ -> Nothing
-    Leaf piece -> Just
-      { piece
-      , location: loc
-      , rotation
-      , portStates: mapWithIndex (\dir port -> portInfo netlist signals (Tuple (index <> L.singleton loc) dir) port) (getPorts piece)
-      }

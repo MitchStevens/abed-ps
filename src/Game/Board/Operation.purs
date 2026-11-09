@@ -30,13 +30,15 @@ import Debug as Debug
 import Effect.Aff.Class (class MonadAff)
 import Effect.Class (class MonadEffect)
 import Game.Board.Edge (AbsoluteEdge, RelativeEdge(..), absolute, adjacent, adjacentAbsoluteEdge, fromAbsoluteEdge, getPortOnEdge, relative)
-import Game.Board.Query (isInsideBoard)
-import Game.Board.Types (Board, Cell(..), BoardF(BoardF), BoardError(..), _boardF, _pieces, _size, mkBoard)
-import Game.Direction (allDirections)
+import Game.Board.Query (getBoardPorts, isInsideBoard)
+import Game.Board.Types (Board, Cell(..), BoardF(BoardF), BoardError(..), Wormhole, _boardF, _pieces, _ports, _size, _wormhole, mkBoard)
+import Game.Direction (CardinalDirection, allDirections)
 import Game.Direction as Direction
 import Game.Location (Location(..), location)
 import Game.Piece (Piece(..), adapt, pieceLookup)
-import Game.Port (Port, noPort)
+import Game.Frame (Frame)
+import Game.Frame as Frame
+import Game.Port (Port, hasPort, isInput, isOutput, noPort, portCapacity)
 import Game.Rotation (Rotation(..), rotation)
 import Type.Proxy (Proxy(..))
 
@@ -91,16 +93,23 @@ adaptPortsAround loc =
 
 addPieceNoUpdate :: forall m. MonadError BoardError m => MonadState Board m 
   => Location -> Piece -> Rotation -> m Unit
-addPieceNoUpdate loc piece rotation = do
+addPieceNoUpdate loc piece = addCellNoUpdate loc (Leaf piece)
+
+addCellNoUpdate :: forall m. MonadError BoardError m => MonadState Board m
+  => Location -> Cell -> Rotation -> m Unit
+addCellNoUpdate loc cell rotation = do
   checkInsideBoard loc
   pieceInfo <- use (_pieces <<< at loc)
   case pieceInfo of
-    Nothing -> _pieces <<< at loc .= Just { piece: Leaf piece, rotation }
+    Nothing -> _pieces <<< at loc .= Just { piece: cell, rotation }
     Just _ -> throwError (LocationOccupied loc)
 
 addPiece :: forall m. MonadError BoardError m => MonadState Board m => Location -> Piece -> m Unit
-addPiece loc piece = do
-   addPieceNoUpdate loc piece (rotation 0)
+addPiece loc piece = addCell loc (Leaf piece)
+
+addCell :: forall m. MonadError BoardError m => MonadState Board m => Location -> Cell -> m Unit
+addCell loc cell = do
+   addCellNoUpdate loc cell (rotation 0)
    adaptPortsAround loc
 
 removePieceNoUpdate :: forall m. MonadError BoardError m => MonadState Board m => Location -> m { rotation :: Rotation, piece :: Cell }
@@ -184,6 +193,9 @@ increaseSize = do
 
 setBoardSize :: forall m. MonadState Board m => MonadError BoardError m => Int -> m Unit
 setBoardSize n = do
+  -- the wormhole doesn't survive a resize, and takes its sides' ports with it
+  -- (see `removeWormhole`)
+  removeWormhole
   BoardF { size, ports, pieces } <- use _boardF
   newSize <- validBoardSize n
   let dSize = -(newSize - size) `div` 2
@@ -199,3 +211,58 @@ setBoardSize n = do
       , ports
       , pieces: unsafeMapKey shiftLocation pieces
       , wormhole: Nothing }
+
+
+{-
+  wormholes
+-}
+
+-- | The wormhole joining `from` to `to`, given the ports the pieces on the
+-- | board's edges offer there (`getBoardPorts`). The mouth's side needs an
+-- | output and the tail's an input, of the same capacity -- or no port yet,
+-- | for one to be wired up later. Where the ports allow either way round, the
+-- | signal goes from `from` to `to`. `Nothing` if neither way works.
+wormholeBetween :: Frame Port -> CardinalDirection -> CardinalDirection -> Maybe Wormhole
+wormholeBetween edges from to
+  | from == to = Nothing
+  | otherwise = find fits
+      [ { wormholeIn: from, wormholeOut: to }
+      , { wormholeIn: to, wormholeOut: from }
+      ]
+  where
+  fits { wormholeIn, wormholeOut } =
+    allows isOutput mouth && allows isInput tail && sameCapacity
+    where
+    mouth = Frame.index wormholeIn edges
+    tail = Frame.index wormholeOut edges
+    sameCapacity = not (hasPort mouth && hasPort tail) || portCapacity mouth == portCapacity tail
+
+  allows isRole port = not (hasPort port) || isRole port
+
+-- | Join two sides of the board with a wormhole, replacing the one it had.
+addWormhole :: forall m. MonadState Board m => MonadError BoardError m => Wormhole -> m Unit
+addWormhole wormhole = do
+  when (wormhole.wormholeIn == wormhole.wormholeOut) do
+    throwError (WormholeInvalid wormhole)
+  removeWormhole
+  _wormhole .= Just wormhole
+  syncWormholePorts
+
+-- | Close the board's wormhole, if it has one. Its two sides go back to having
+-- | no port: right for the root, whose wormhole can only be on sides the goal
+-- | leaves empty, and a nested board's ports are rederived from its edges
+-- | anyway (`Game.Board.Zoom.runAtFocus`).
+removeWormhole :: forall m. MonadState Board m => m Unit
+removeWormhole = use _wormhole >>= traverse_ \{ wormholeIn, wormholeOut } -> do
+  _wormhole .= Nothing
+  _ports %= Frame.set wormholeIn noPort >>> Frame.set wormholeOut noPort
+
+-- | Declare the wormhole's sides as whatever the pieces on those edges offer,
+-- | so the mouth is an output and the tail an input once they're wired up. A
+-- | nested board rederives all its ports this way; this is for the root, whose
+-- | other sides are the goal's.
+syncWormholePorts :: forall m. MonadState Board m => m Unit
+syncWormholePorts = use _wormhole >>= traverse_ \{ wormholeIn, wormholeOut } -> do
+  edges <- getBoardPorts
+  _ports %= Frame.set wormholeIn (Frame.index wormholeIn edges)
+    >>> Frame.set wormholeOut (Frame.index wormholeOut edges)

@@ -6,7 +6,7 @@ import Data.Map (Map)
 import Data.Maybe (Maybe(..))
 import Data.Set (Set)
 import Data.Set as S
-import Game.Board (Board(..))
+import Game.Board (Board(..), Cell)
 import Game.Frame (Frame)
 import Game.Level.Demonstration (Demonstration)
 import Game.Piece (Piece(..), idPiece)
@@ -26,7 +26,7 @@ type Problem =
   , demonstration :: Maybe Demonstration
   , testCases :: Array (Frame Signal)
   , requiresAutomaticTesting :: Boolean
-  , availablePieces :: Set Piece -- doesn't need to be non empty
+  , availablePieces :: Set Cell -- doesn't need to be non empty
   , otherRestrictions :: Array Restriction
   }
 

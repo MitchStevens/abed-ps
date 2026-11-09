@@ -53,6 +53,7 @@ import Data.Maybe (Maybe(..), isNothing)
 import Data.Newtype (class Newtype)
 import Data.Set as S
 import Data.Tuple (Tuple(..))
+import Game.Board.Operation (syncWormholePorts)
 import Game.Board.Query (getBoardPorts)
 import Game.Board.Types (Board, Cell(..), BoardError(..), BoardF(..), BoardM, Wormhole, _ports, mkBoard, runBoardM, standardBoard, unBoard)
 import Game.Frame (Frame, PieceIndex)
@@ -182,11 +183,12 @@ _rootPorts = lens getter setter
 -- | Run a `BoardM` operation on the focus. A nested focus's ports are then
 -- | rederived from the pieces on its edges (`getBoardPorts`), so the parent
 -- | sees whatever the sub-board now offers. The root's ports are the level's
--- | goal ports, so they're left alone.
+-- | goal ports, so they're left alone -- all but its wormhole's sides, which
+-- | the goal leaves empty and the pieces on those edges declare.
 runAtFocus :: forall a. BoardM a -> ZoomedBoard -> Either BoardError (Tuple a ZoomedBoard)
 runAtFocus boardM zoomed =
   map (\focus -> set _focus focus zoomed) <$> runBoardM op (view _focus zoomed)
   where
   op
     | isZoomed zoomed = boardM <* (getBoardPorts >>= assign _ports)
-    | otherwise = boardM
+    | otherwise = boardM <* syncWormholePorts

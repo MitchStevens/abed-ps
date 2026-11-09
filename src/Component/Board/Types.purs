@@ -3,6 +3,8 @@ module Component.Board.Types
   , Input
   , Output(..)
   , Query(..)
+  , WormholeRole(..)
+  , BoardViewKey(..)
   , Slots
   , State
   , _board
@@ -11,9 +13,12 @@ module Component.Board.Types
   , _outputs
   , _wireLocations
   , boardPortInfo
+  , canHoldWormhole
   , initialState
   , pieceInput
   , slot
+  , wormholeCandidate
+  , wormholeEnd
   , zoomGeometry
   , zoomInset
   , zoomTransform
@@ -24,7 +29,9 @@ import Data.Lens
 import Prelude
 
 import Component.Piece.Movement as Piece
-import Component.Piece.Visual as Visual
+import Component.Board.ViewModel (BoardView, maxDepth, staticSource, viewBoard)
+import Data.List (List(..))
+import Component.BoardView as BoardView
 import Data.Either (Either(..))
 import Data.Foldable (for_)
 import Data.Lens.Record (prop)
@@ -36,12 +43,14 @@ import Data.Traversable (for)
 import Data.Tuple (Tuple(..))
 import Data.Zipper (Zipper)
 import Data.Zipper as Z
-import Game.Board (Board, BoardError, BoardM, Cell, Path, ZoomedBoard, _focus, evalBoardM, runBoardM, standardBoard, unzoomed)
+import Control.Monad.State (evalState)
+import Game.Board (Board, BoardError, BoardM, Cell, Path, Wormhole, ZoomedBoard, _focus, _wormhole, evalBoardM, getBoardPorts, isZoomed, runBoardM, standardBoard, unzoomed, wormholeBetween)
 import Game.Direction (CardinalDirection)
-import Game.Frame (Frame)
+import Game.Frame (Frame, PortIndex)
+import Game.Frame as Frame
 import Game.Location (Location(..))
 import Game.Piece (Piece(..))
-import Game.Port (Port(..), noPort)
+import Game.Port (Port(..), hasPort, noPort)
 import Game.PortInfo (PortInfo, noPortInfo)
 import Game.Rotation (Rotation(..))
 import Game.Signal (Signal)
@@ -61,12 +70,12 @@ type State =
   { boardHistory :: Zipper ZoomedBoard -- todo: limit the number of boards in this data structure
   , inputs :: Frame Signal
   , outputs :: Frame Signal
-  -- the signals threaded through `Game.Eval.step` from one `EvaluateBoard`
-  -- to the next -- what makes a wormhole remember what it captured last
-  -- tick -- along with the board they belong to. Slots are only meaningful
-  -- for the board that was compiled, so any edit starts again from
-  -- `initialSignals` (which also resets every wormhole, as an edit should).
-  , lastEvalState :: Maybe { board :: Board, signals :: Array Signal }
+  -- every wormhole's buffer after the last `EvaluateBoard`, keyed by its
+  -- tail's `PortIndex` (`Game.Eval.saveState`) -- what makes a wormhole
+  -- remember what it captured last tick. Keyed by port rather than slot so
+  -- it survives recompiling an edited board: adding a piece doesn't wipe a
+  -- memory cell in a nested board. Moving that board does (its path changes).
+  , registerState :: Map PortIndex Signal
   -- both precomputed once per `EvaluateBoard`, straight off `lastEvalState`
   -- -- render just reads them.
   , pieceInputs :: Map Location Piece.Input
@@ -78,6 +87,10 @@ type State =
     }
   , isMouseOverBoardPort :: Maybe CardinalDirection
   , isMouseOverLocation :: Maybe Location
+  -- a board side being dragged from: to another side, to make a wormhole
+  -- between them, or, when it's one end of the wormhole (`existing`), off the
+  -- board to close it. `outside` is whether the mouse has left the board.
+  , wormholeDrag :: Maybe { from :: CardinalDirection, existing :: Boolean, outside :: Boolean }
   -- the slot being scaled up to fill the board (or back down), while a
   -- zoom animates -- see `zoomTransform`. Purely visual: the zoom itself
   -- lives in `boardHistory`. `animate` is false for the one frame a zoom
@@ -87,20 +100,29 @@ type State =
   , zoomAnimation :: Maybe { location :: Location, animate :: Boolean, inset :: Number }
   -- the board was just zoomed into, so its grid fades in
   , fadeInGrid :: Boolean
-  -- while zoomed in, the pieces of the board around the focus, which show
-  -- at its edges -- `pieceInputs`, one level up
-  , contextInputs :: Map Location Piece.Input
+  -- the focus as it's drawn, nested boards and all. `pieceInputs` is its
+  -- leaves, ready for `Component.Piece.Movement`
+  , focusView :: BoardView
+  -- while zoomed in, the board around the focus, which shows at its edges,
+  -- and where the focus sits in it
+  , contextView :: Maybe { parent :: BoardView, hole :: Location }
   }
 
 pieceInput :: State -> Location -> Maybe Piece.Input
 pieceInput state location = M.lookup location state.pieceInputs
+
+-- | The mouth takes a signal in from the board; the tail gives it back out a
+-- | tick later.
+data WormholeRole = Mouth | Tail
+
+derive instance Eq WormholeRole
 
 data Query a
   -- the real board: everything, rebuilt from the zoom
   = GetBoard (Board -> a)
   -- the board being looked at, which every edit below applies to
   | GetFocus (Board -> a)
-  | AddPiece Location Piece (Either BoardError Unit -> a)
+  | AddPiece Location Cell (Either BoardError Unit -> a)
   | AddPath CardinalDirection (Array Location) CardinalDirection (Either BoardError Path -> a)
   | RemovePiece Location  (Either BoardError { rotation :: Rotation, piece :: Cell } -> a)
   | RotatePieceBy Location Rotation (Either BoardError Unit -> a)
@@ -145,6 +167,10 @@ data Action
 
   | BoardPortOnMouseEnter CardinalDirection
   | BoardPortOnMouseLeave
+  | BoardPortOnMouseDown CardinalDirection MouseEvent
+  | BoardOnMouseEnter
+  | BoardOnMouseLeave
+  | GlobalOnMouseUp MouseEvent
 
 data Output
   = NewBoardState ZoomedBoard
@@ -155,13 +181,16 @@ data Output
 -- removed rather than migrated. Revisit if/when it's reintroduced.
 type Slots =
   ( piece :: Slot Piece.Query Piece.Output Location
-  -- the pieces around a zoomed-in board: drawn, but not interactive
-  , contextPiece :: Slot Visual.Query Visual.Output Location
-  -- the pieces inside a nested board, drawn as a static preview. Keyed by
-  -- which grid the preview is in (the board's own or its context) and the
-  -- nested board's location, then the piece's location inside it
-  , nestedPiece :: Slot Visual.Query Visual.Output (Tuple String (Tuple Location Location))
+  -- everything only drawn: nested boards, and the board around a zoomed-in one
+  , boardView :: Slot BoardView.Query Void BoardViewKey
   )
+
+data BoardViewKey
+  = ContextKey
+  | NestedKey Location
+
+derive instance Eq BoardViewKey
+derive instance Ord BoardViewKey
 
 initialState :: Input -> State
 initialState { board } =
@@ -169,15 +198,17 @@ initialState { board } =
   , boardPorts: pure noPort
   , inputs: pure zero
   , outputs: pure zero
-  , lastEvalState: Nothing
+  , registerState: M.empty
   , pieceInputs: M.empty
   , boardPortInfoMap: pure noPortInfo
   , isCreatingWire: Nothing
   , isMouseOverLocation: Nothing
   , isMouseOverBoardPort: Nothing
+  , wormholeDrag: Nothing
   , zoomAnimation: Nothing
   , fadeInGrid: false
-  , contextInputs: M.empty
+  , focusView: viewBoard staticSource maxDepth Nil board
+  , contextView: Nothing
   }
 
 slot = Proxy :: Proxy "board"
@@ -233,3 +264,24 @@ zoomTransform n inset loc =
 
 boardPortInfo :: State -> Frame PortInfo
 boardPortInfo = _.boardPortInfoMap
+-- | Which end of the focus's wormhole is on `dir`, if any.
+wormholeEnd :: State -> CardinalDirection -> Maybe { role :: WormholeRole, wormhole :: Wormhole }
+wormholeEnd state dir = view (_board <<< _wormhole) state >>= \wormhole ->
+  if wormhole.wormholeIn == dir then Just { role: Mouth, wormhole }
+  else if wormhole.wormholeOut == dir then Just { role: Tail, wormhole }
+  else Nothing
+
+-- | Whether a wormhole could have an end on `dir`. Any side of a nested board
+-- | can; the root's sides with a goal port are the level's, so only its
+-- | others can.
+canHoldWormhole :: State -> CardinalDirection -> Boolean
+canHoldWormhole state dir =
+  isZoomed (view _zoomed state) || not (hasPort (Frame.index dir state.boardPorts))
+
+-- | The wormhole a drag from `from` dropped on `to` would make, if it's
+-- | allowed -- see `Game.Board.wormholeBetween`.
+wormholeCandidate :: State -> CardinalDirection -> CardinalDirection -> Maybe Wormhole
+wormholeCandidate state from to
+  | canHoldWormhole state from && canHoldWormhole state to =
+      wormholeBetween (evalState getBoardPorts (view _board state)) from to
+  | otherwise = Nothing

@@ -9,6 +9,7 @@ import Foreign.Object (fromHomogeneous)
 import Game.Capacity (Capacity(..))
 import Game.Direction as Direction
 import Game.Frame as Frame
+import Game.Board (leafCells)
 import Game.Level (LevelSuite, binaryTestInputs, defaultLevel)
 import Game.Level.Problem (defaultProblem)
 import Game.Piece (fusePiece, idPiece, leftPiece, mkShiftLeftBy, rightPiece, severPiece)
@@ -23,7 +24,7 @@ shiftingSuite = fromHomogeneous
         , title = "4 bit left shift"
         , description = "For each of the 4 bits in the input, shift them up towards the left by one place\n bluefdsajafdskl"
         , testCases = Frame.singleton zero Direction.Left <$> (map mkSignal [ 0, 1, 2, 3, 8, 9, 15] )
-        , availablePieces = S.fromFoldable [ severPiece, fusePiece, idPiece, leftPiece, rightPiece ]
+        , availablePieces = leafCells [ severPiece, fusePiece, idPiece, leftPiece, rightPiece ]
         }
       }
     --, "Exclusive Or": defaultLevel
